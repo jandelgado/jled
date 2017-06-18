@@ -1,13 +1,14 @@
 # JLed - Extended LED Library
 
+[![Build Status](https://travis-ci.org/jandelgado/jled.svg?branch=master)](https://travis-ci.org/jandelgado/jled)
+
 An Arduino library to control LEDs. It uses a **non-blocking** approach and can
 control LEDs in simple (**on**/**off**) and complex (**blinking**,
 **breathing**) ways in a **time-driven** manner.
 
 ```c++
 // blink and breathe two LEDs (builtin and gpio 9) for 11 seconds.
-#include <Arduino.h>
-#include "jled.h"
+#include <jled.h>
 
 JLed led_breathe = JLed(9).Breathe(1500).Repeat(6).DelayAfter(500);
 JLed led_blink = JLed(LED_BUILTIN).Blink(500, 500).Repeat(11).DelayBefore(1000);
@@ -69,8 +70,7 @@ like `JLed(LED_BUILTIN).On().Update()`.
 #### Static on example
 
 ```c++
-#include <Arduino.h>
-#include "jled.h"
+#include <jled.h>
 
 // turn builtin LED on after 1 second.
 JLed led = JLed(LED_BUILTIN).On().DelayBefore(1000);
@@ -94,8 +94,7 @@ In blinking mode, the LED cycles through a given number of on-off cycles.
 #### Blinking example
 
 ```c++
-#include <Arduino.h>
-#include "jled.h"
+#include <jled.h>
 
 // blink internal LED every second.
 JLed led = JLed(LED_BUILTIN).Blink(1000, 1000).Forever();
@@ -114,8 +113,7 @@ In breathing mode, the LED smoothly changes brightness using PWM.
 #### Breathing example
 
 ```c++
-#include <Arduino.h>
-#include "jled.h"
+#include <jled.h>
 
 // connect LED to pin 13 (PWM capable). LED will breathe with period of
 // 2000ms and a delay of 1000ms after each period.
