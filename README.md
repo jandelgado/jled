@@ -1,4 +1,4 @@
-# Extended LED Library
+# JLed - Extended LED Library
 
 An Arduino library to control LEDs. It uses a **non-blocking** approach and can
 control LEDs in simple (**on**/**off**) and complex (**blinking**,
