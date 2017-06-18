@@ -8,9 +8,7 @@ cache:
         - "~/.platformio"
 
 env:
-    - PLATFORMIO_CI_SRC=examples/hello/hello.ino
-    - PLATFORMIO_CI_SRC=examples/breathe/breathe.ino
-    - PLATFORMIO_CI_SRC=examples/simple_on/simple_on.ino
+    global:
     - CPP_LINT_URL=https://raw.githubusercontent.com/google/styleguide/gh-pages/cpplint/cpplint.py
 
 install:
@@ -18,7 +16,8 @@ install:
     - wget -O cpplint "$CPP_LINT_URL" && chmod 755 cpplint
 
 script:
-    - ./cpplint --extensions=cpp,h,ino \
-              $(find . -name "*\.cpp" -o -name "*\.h" -o -name "*\.ino") 
-    - platformio ci --lib="src/" --board=uno --board=esp01
+    - ./cpplint --extensions=cpp,h,ino $(find . -name "*\.cpp" -o -name "*\.h" -o -name "*\.ino") 
+    - platformio ci --lib="src/" examples/hello/hello.ino --board=uno --board=esp01
+    - platformio ci --lib="src/" examples/breathe/breathe.ino --board=uno --board=esp01
+    - platformio ci --lib="src/" examples/simple_on/simple_on.ino --board=uno --board=esp01
 
