@@ -7,7 +7,7 @@ control LEDs in simple (**on**/**off**) and complex (**blinking**,
 **breathing**) ways in a **time-driven** manner.
 
 ```c++
-// blink and breathe two LEDs (builtin and gpio 9) for 11 seconds.
+// blink and breathe two LEDs (builtin and gpio 9) for 12 seconds.
 #include <jled.h>
 
 JLed led_breathe = JLed(9).Breathe(1500).Repeat(6).DelayAfter(500);
