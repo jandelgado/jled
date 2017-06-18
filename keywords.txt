@@ -1,0 +1,34 @@
+#######################################
+# Syntax Coloring Map For JLed
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+JLed	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+On          KEYWORD2
+Off         KEYWORD2
+Set         KEYWORD2
+Blink       KEYWORD2
+Breathe     KEYWORD2
+Repeat      KEYWORD2
+Forever     KEYWORD2
+DelayBefore KEYWORD2
+DelayAfter  KEYWORD2
+Forever     KEYWORD2
+IsForever   KEYWORD2
+LowActive   KEYWORD2
+
+#######################################
+# Instances (KEYWORD2)
+#######################################
+
+#######################################
+# Constants (LITERAL1)
+#######################################
