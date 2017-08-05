@@ -16,8 +16,10 @@ install:
     - wget -O cpplint "$CPP_LINT_URL" && chmod 755 cpplint
 
 script:
-    - ./cpplint --extensions=cpp,h,ino $(find . -name "*\.cpp" -o -name "*\.h" -o -name "*\.ino") 
+    - ./cpplint --extensions=cpp,h,ino $(find . -name "*\.cpp" -o -name "*\.h" -o -name "*\.ino")
     - platformio ci --lib="src/" examples/hello/hello.ino --board=uno --board=esp01
     - platformio ci --lib="src/" examples/breathe/breathe.ino --board=uno --board=esp01
     - platformio ci --lib="src/" examples/simple_on/simple_on.ino --board=uno --board=esp01
-
+    - platformio ci --lib="src/" examples/fade_on/fade_on.ino --board=uno --board=esp01
+    - platformio ci --lib="src/" examples/fade_off/fade_off.ino --board=uno --board=esp01
+    - platformio ci --lib="src/" examples/user_func/user_func.ino --board=uno --board=esp01

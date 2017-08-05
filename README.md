@@ -23,7 +23,6 @@ void loop() {
 
 ## Contents
 
-
 <!-- vim-markdown-toc GFM -->
 * [Features](#features)
 * [Usage](#usage)
@@ -34,9 +33,13 @@ void loop() {
         * [Blinking example](#blinking-example)
     * [Breathing](#breathing)
         * [Breathing example](#breathing-example)
+    * [FadeOn](#fadeon)
+        * [FadeOn example](#fadeon-example)
+    * [FadeOff](#fadeoff)
+    * [User provided brightness function](#user-provided-brightness-function)
+        * [User provided brightness function example](#user-provided-brightness-function-example)
     * [Immediate Stop](#immediate-stop)
 * [Parameter overview](#parameter-overview)
-* [Memory footprint](#memory-footprint)
 * [Author](#author)
 * [License](#license)
 
@@ -48,7 +51,9 @@ void loop() {
 * simple on/off
 * breathe effect
 * blinking effect
-* supports reversed polarity
+* fade-on and -off effect
+* user provided effects
+* supports reversed polarity of LED
 * easy configuration using fluent interface
 
 ## Usage
@@ -63,8 +68,8 @@ further details.
 
 ### Static on
 
-Calling `On()` turns the LED on on after the an optional time, specified by
-`DelayBefore()`, has elapsed. To immediately turn a LED on, you can make a call
+Calling `On()` turns the LED on on after an optional time, specified by
+`DelayBefore()`, has elapsed. To immediately turn a LED on, make a call
 like `JLed(LED_BUILTIN).On().Update()`.
 
 #### Static on example
@@ -75,8 +80,7 @@ like `JLed(LED_BUILTIN).On().Update()`.
 // turn builtin LED on after 1 second.
 JLed led = JLed(LED_BUILTIN).On().DelayBefore(1000);
 
-void setup() {
-}
+void setup() { }
 
 void loop() {
   led.Update();
@@ -126,6 +130,57 @@ void loop() {
 }
 ```
 
+### FadeOn
+
+In FadeOn mode, the LED is smoothly faded on to 100% brightness using PWM.
+
+#### FadeOn example
+
+```c++
+#include <jled.h>
+
+// LED is connected to pin 9 (PWM capable) gpio
+JLed led = JLed(9).FadeOn(1000).DelayBefore(2000);
+
+void setup() { }
+
+void loop() {
+  led.Update();
+}
+```
+
+### FadeOff
+
+In FadeOff mode, the LED is smoothly faded off using PWM. The fade starts
+at 100% brightness.
+
+### User provided brightness function
+
+It is also possible to provide a user defined brightness function. The
+signature of such a function is `unit8_t func(unit32_t t, uint16_t period)`.
+The function must return the brightness in range 0..255 in dependence of the
+current time t.
+
+#### User provided brightness function example
+
+The example uses a lambda function to calculate the brightness.
+
+```c++
+#include <jled.h>
+
+// this function returns changes between 0 and 255 and vice versa every 250 ms.
+auto blinkFunc = [] (uint32_t t, uint16_t) -> uint8_t {return 255*((t/250)%2);};
+
+// Run blinkUserFunc for 5000ms
+JLed led = JLed(LED_BUILTIN).UserFunc(blinkFunc, 5000);
+
+void setup() { } 
+
+void loop() {
+  led.Update();
+}
+```
+
 ### Immediate Stop
 
 Call `Stop()` to immediately turn the LED off and stop any running effects.
@@ -133,23 +188,19 @@ Call `Stop()` to immediately turn the LED off and stop any running effects.
 ## Parameter overview
 
 The following table shows the applicability of the various parameters in
-dependence of the operating mode (on, off, blink, breath).
+dependence of the chosen effect:
 
-| Method         | Description                                    | Default | On  | Off | Blink | Breath |
-|----------------|------------------------------------------------|---------|:---:|:---:|:-----:|:------:|
-| DelayBefore(t) | time to wait before state is initially changed | 0       | Yes | Yes | Yes   | Yes    |
-| DelayAfter(t)  | time to wait after each period                 | 0       |     |     | Yes   | Yes    |
-| Repeat(n)      | repeat for given number of periods             | 1       |     |     | Yes   | Yes    |
-| Forever()      | repeat infinitely                              | false   |     |     | Yes   | Yes    |
-| LowActive()    | set output to be low-active                    | false   | Yes | Yes | Yes   | Yes    |
+| Method         | Description                                      | Default | On  | Off | Blink | Breath | FadeOn | FadeOff | UserFunc |
+|----------------|--------------------------------------------------|---------|:---:|:---:|:-----:|:------:|:------:|:-------:|:--------:|
+| DelayBefore(t) | time to wait before state is initially changed   | 0       | Yes | Yes | Yes   | Yes    | Yes    | Yes     | Yes      |
+| DelayAfter(t)  | time to wait after each period                   | 0       |     |     |       | Yes    | Yes    | Yes     | Yes      |
+| Repeat(n)      | repeat effect for given number of periods        | 1       |     |     | Yes   | Yes    | Yes    | Yes     | Yes      |
+| Forever()      | repeat infinitely                                | false   |     |     | Yes   | Yes    | Yes    | Yes     | Yes      |
+| LowActive()    | set output to be low-active (i.e. invert output) | false   | Yes | Yes | Yes   | Yes    | Yes    | Yes     | Yes      |
 
 * all times are specified in milliseconds
 * time specified by `DelayBefore()` is relative to first invocation of 
   `Update()`
-
-## Memory footprint
-
-An instance of the JLed class consumes 21 bytes of memory (nanoatmega328 target).
 
 ## Author
 
