@@ -22,4 +22,5 @@ script:
     - platformio ci --lib="src/" examples/simple_on/simple_on.ino --board=uno --board=esp01
     - platformio ci --lib="src/" examples/fade_on/fade_on.ino --board=uno --board=esp01
     - platformio ci --lib="src/" examples/fade_off/fade_off.ino --board=uno --board=esp01
+    - platformio ci --lib="src/" examples/dual_led/dual_led.ino --board=uno --board=esp01
     - platformio ci --lib="src/" examples/user_func/user_func.ino --board=uno --board=esp01
