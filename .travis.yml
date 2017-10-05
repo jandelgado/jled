@@ -1,26 +1,32 @@
 language: python
 python:
-    - "2.7"
-
-sudo: false
+- '2.7'
+sudo: true
 cache:
-    directories:
-        - "~/.platformio"
-
-env:
-    global:
-    - CPP_LINT_URL=https://raw.githubusercontent.com/google/styleguide/gh-pages/cpplint/cpplint.py
+  directories:
+  - "~/.platformio"
 
 install:
-    - pip install -U platformio
-    - wget -O cpplint "$CPP_LINT_URL" && chmod 755 cpplint
+- sudo apt-get -qq update && sudo apt-get install make g++ gcovr
+- pip install -U platformio
+- pip install -U cpp-coveralls
+- wget -O cpplint "$CPP_LINT_URL" && chmod 755 cpplint
 
 script:
-    - ./cpplint --extensions=cpp,h,ino $(find . -name "*\.cpp" -o -name "*\.h" -o -name "*\.ino")
-    - platformio ci --lib="src/" examples/hello/hello.ino --board=uno --board=esp01
-    - platformio ci --lib="src/" examples/breathe/breathe.ino --board=uno --board=esp01
-    - platformio ci --lib="src/" examples/simple_on/simple_on.ino --board=uno --board=esp01
-    - platformio ci --lib="src/" examples/fade_on/fade_on.ino --board=uno --board=esp01
-    - platformio ci --lib="src/" examples/fade_off/fade_off.ino --board=uno --board=esp01
-    - platformio ci --lib="src/" examples/dual_led/dual_led.ino --board=uno --board=esp01
-    - platformio ci --lib="src/" examples/user_func/user_func.ino --board=uno --board=esp01
+- ./cpplint --extensions=cpp,h $(find . -name "*\.cpp" -o -name "*\.h" )
+- cd test && make test
+- cpp-coveralls --gcov-options '\-lp' -r ../src  -i ../src -t $COVERALLS_TOKEN
+
+- cd ..
+- platformio ci --lib="src/" examples/hello/hello.cpp --board=uno --board=esp01
+- platformio ci --lib="src/" examples/breathe/breathe.cpp --board=uno --board=esp01
+- platformio ci --lib="src/" examples/simple_on/simple_on.cpp --board=uno --board=esp01
+- platformio ci --lib="src/" examples/fade_on/fade_on.cpp --board=uno --board=esp01
+- platformio ci --lib="src/" examples/fade_off/fade_off.cpp --board=uno --board=esp01
+- platformio ci --lib="src/" examples/dual_led/dual_led.cpp --board=uno --board=esp01
+- platformio ci --lib="src/" examples/user_func/user_func.cpp --board=uno --board=esp01
+
+env:
+  global:
+  - CPP_LINT_URL=https://raw.githubusercontent.com/google/styleguide/gh-pages/cpplint/cpplint.py
+  - secure: s5n3rtNF0ODwQY1f0ScuF4Hj1sElj3I3gdliHwCzWX4CQzJj7wX108l/GAXC+oohJlZ9OaFMEiNuHQj1Z5tzFxSS5YaB68h97HZ7+yIfh2pvhbSv09PlGUvfXiFRMzqMdT133JKXcsMwaDzdZNHBN/9E3tvNa61Fb2eVHQnCAQIh6w9UIo9ntyEtsQqcbZqtyOO1vry2sBf5JzhAA4LXwgTO7VfBKPFeFDnjozhPlxbMLJSNTgG9rGU2IPHLxs7WC+d8xRJMzISY6fJ5vbr7k3gDhxVyu89nj/w3dAEhWyzLY7qaRGTF0rLxA310anPQU+4QVSKndJFY0RpZcTPO2jexkMVnSi+n12sSPAp22CPtsJzO7tRmT+BCMZVTNg9CfPByPNgBvUcOi5hQOPXMbb97k4CX8+3NbVCTjxqlDzE1RjlIR27bXFtOuqfI7Q1YxVUZJbZlMKtAOtwOi5mZUU2x8zGsRQhPAYhPWYoudXn8K7OvpeONxO/wHw4c8AeZW59CVNuUvUsW67ZpFnPaGhkMDvFoVZfLuUUbLsllBYRdiz+QGExnRRE0wkkf8RvCi1dWgVd1MjxLuZNkuCHZ+4sNyMPsDZ6xEeJ0lSy5/p67Ap0VCkHU7d1Vy5jB5bY2kC5KPFTKahGBLwW7KUNaTRvq3QxYizQkGXoSeTGPEbU=

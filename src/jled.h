@@ -41,26 +41,27 @@ class JLed {
   // point in time and the given period. t is in range [0..period-1].
   // f(peroid-1,period) will always be called and can be used to set the final
   // state.
-  using  BrightnessEvalFunction = uint8_t(*)(uint32_t t, uint16_t period);
+  using  BrightnessEvalFunction =
+      uint8_t(*)(uint32_t t, uint16_t period, uint32_t param);
 
  private:
-  enum eState { RUNNING, IDLE };
   static constexpr uint16_t kRepeatForever = 65535;
+  static constexpr uint32_t kTimeUndef = -1;
 
-  eState    state_;
-  bool      high_active_;
-  uint8_t   led_pin_;
-  uint16_t  num_repetitions_;
-  uint32_t  last_update_time_;
-  uint16_t  delay_before_;    // delay before the first effect starts
-  uint16_t  delay_after_;     // delay after each repetition
-  bool      in_delay_phase_;  // true if in delay phase
-  uint32_t  time_start_;
-  uint16_t  period_;
+  bool effect_inverted_;
+  bool low_active_;
+  uint8_t led_pin_;
+  uint16_t num_repetitions_;
+  uint32_t last_update_time_;
+  uint16_t delay_before_;    // delay before the first effect starts
+  uint16_t delay_after_;     // delay after each repetition
+  uint32_t time_start_;
+  uint16_t period_;
   BrightnessEvalFunction brightness_func_;
+  uint16_t effect_param_;   // in case effect needs additional parameter
 
   // internal control of the LED, does not affect
-  // state and honors high_active_ flag
+  // state and honors low_active_ flag
   void AnalogWrite(uint8_t val);
 
   JLed& Init(BrightnessEvalFunction func);
@@ -83,7 +84,7 @@ class JLed {
   // Fade LED on
   JLed& FadeOn(uint16_t duration);
 
-  // Fade LED off
+  // Fade LED off - acutally is just inverted version of FadeOn()
   JLed& FadeOff(uint16_t duration);
 
   // set number of repetitions for Blink() or Breathe()
@@ -97,8 +98,12 @@ class JLed {
     return Repeat(kRepeatForever);
   }
 
-  bool IsForever() const {
+  bool IsForever() const  {
     return num_repetitions_ == kRepeatForever;
+  }
+
+  bool IsRunning() const {
+      return brightness_func_ != nullptr;
   }
 
   // Set amount of time to initially wait before updating LED. Time is relative
@@ -114,9 +119,17 @@ class JLed {
     return *this;
   }
 
-  // Set LED to be lo active, i.e. LED will be ON when output pin is set to LOW
+  // Invert effect. If set, every effect calculation will be inverted, i.e.
+  // instead of a, 255-a will be used.
+  JLed& Invert() {
+    effect_inverted_ = true;
+    return *this;
+  }
+
+  // Set physical LED polarity to be low active. This inverts every signal
+  // physically output to a pin.
   JLed& LowActive() {
-    high_active_ = false;
+    low_active_ = true;
     return *this;
   }
 
@@ -134,39 +147,34 @@ class JLed {
 
  private:
   // permanently turn LED on
-  static uint8_t OnFunc(uint32_t, uint16_t) {
+  static uint8_t OnFunc(uint32_t, uint16_t, uint32_t) {
     return 255;
   }
 
   // permanently turn LED off
-  static uint8_t OffFunc(uint32_t, uint16_t) {
+  static uint8_t OffFunc(uint32_t, uint16_t, uint32_t) {
     return 0;
   }
 
   // LED breathe effect. LED must be connected to a PWM capable gpio.
   // idea see http://sean.voisen.org/blog/2011/10/breathing-led-with-arduino/
   // for details.
-  static uint8_t BreatheFunc(uint32_t t, uint16_t period) {
-    return (t > period) ? 0 :
+  static uint8_t BreatheFunc(uint32_t t, uint16_t period, uint32_t) {
+    return (t > period) ? 255 :
            static_cast<uint8_t>((exp(sin((t-period/4.)
                                  *2.*PI/period))-0.36787944)*108.0);
   }
 
-  // turn LED off if t == period-1, before entering delay_after phase
-  static uint8_t BlinkFunc(uint32_t t, uint16_t period) {
-    return (t < period-1) ? 255 : 0;
+  static uint8_t BlinkFunc(uint32_t t, uint16_t period, uint32_t effect_param) {
+    return (t < effect_param) ? 255 : 0;
   }
 
   // fade LED on
-  static uint8_t FadeOnFunc(uint32_t t, uint16_t period) {
-    return  (t >= period-1) ? 255 :
+  // https://www.wolframalpha.com/input/?i=plot+(exp(sin((x-100%2F2.)*PI%2F100))-0.36787944)*108.0++x%3D0+to+100
+  static uint8_t FadeOnFunc(uint32_t t, uint16_t period, uint32_t) {
+    return  (t+1 >= period) ? 255 :
               static_cast<uint8_t>((exp(sin((t-period/2.)
                                     *PI/period))-0.36787944)*108.0);
-  }
-
-  // fade led off
-  static uint8_t FadeOffFunc(uint32_t t, uint16_t period) {
-    return  255-FadeOnFunc(t, period);
   }
 };
 #endif  // SRC_JLED_H_

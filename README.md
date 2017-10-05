@@ -1,6 +1,7 @@
 # JLed - Extended LED Library
 
 [![Build Status](https://travis-ci.org/jandelgado/jled.svg?branch=master)](https://travis-ci.org/jandelgado/jled)
+[![Coverage Status](https://coveralls.io/repos/github/jandelgado/jled/badge.svg?branch=master)](https://coveralls.io/github/jandelgado/jled?branch=master)
 
 An Arduino library to control LEDs. It uses a **non-blocking** approach and can
 control LEDs in simple (**on**/**off**) and complex (**blinking**,
@@ -24,6 +25,7 @@ void loop() {
 ## Contents
 
 <!-- vim-markdown-toc GFM -->
+
 * [Features](#features)
 * [Usage](#usage)
     * [Static on](#static-on)

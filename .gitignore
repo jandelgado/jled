@@ -1,6 +1,11 @@
+*.o
 .pioenvs
 .piolibdeps
 .clang_complete
 .gcc-flags.json
 *~
 lib
+test/test_jled
+*.gcov
+*.gcno
+*.gcda

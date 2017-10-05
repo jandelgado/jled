@@ -18,23 +18,24 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //
-
 #include "jled.h"   // NOLINT
 
-JLed::JLed(uint8_t led_pin) : state_(IDLE), high_active_(true),
+JLed::JLed(uint8_t led_pin) :
+    effect_inverted_(false), low_active_(false),
     led_pin_(led_pin),  num_repetitions_(1), last_update_time_(0),
-    delay_before_(0), delay_after_(0), in_delay_phase_(false),
-    time_start_(0), period_(0), brightness_func_(nullptr)  {
+    delay_before_(0), delay_after_(0),
+    time_start_(kTimeUndef), period_(0), brightness_func_(nullptr),
+    effect_param_(0) {
   pinMode(led_pin_, OUTPUT);
 }
 
 void JLed::AnalogWrite(uint8_t val) {
-  analogWrite(led_pin_, high_active_ ? val : 255 - val);
+  analogWrite(led_pin_, low_active_ ? 255 - val : val);
 }
 
 void JLed::Stop() {
   // Immediately turn LED off and stop effect.
-  state_ = IDLE;
+  brightness_func_ = nullptr;
   AnalogWrite(0);
 }
 
@@ -48,7 +49,7 @@ void JLed::Stop() {
 //                       | func(t)    |
 //                       |<- num_repetitions times  ->
 void JLed::Update() {
-  if (!brightness_func_ || state_ == IDLE) {
+  if (!IsRunning()) {
     return;
   }
   const auto now = millis();
@@ -56,30 +57,24 @@ void JLed::Update() {
   // no need to process updates twice during one time tick.
   // last_update_time_ will be 0 on initialization, so this fails on
   // first call to this method.
-  const auto delta_time = now - last_update_time_;
-  const auto is_first_called = (last_update_time_ == 0);
-  if (!is_first_called && delta_time == 0) {
-    return;
+  if (last_update_time_ == kTimeUndef) {
+    last_update_time_ = now;
+    time_start_ = now + delay_before_;
   }
+  const auto delta_time = now - last_update_time_;
   last_update_time_ = now;
-
   // wait until delay_before time is elapsed before actually doing anything
   if (delay_before_ > 0) {
-    if (!is_first_called) {
       delay_before_ = max(0, static_cast<int64_t>(delay_before_) - delta_time); // NOLINT
-    }
-    return;
-  }
-
-  if (time_start_ == 0) {
-    time_start_ = now;
+    if (delay_before_ > 0)
+        return;
   }
 
   const auto time_end = time_start_ +
         (uint32_t)(period_ + delay_after_) * num_repetitions_;
 
   if (!IsForever() && now >= time_end) {
-    state_ = IDLE;
+    brightness_func_ = nullptr;
     return;
   }
 
@@ -87,30 +82,24 @@ void JLed::Update() {
   auto t = (now - time_start_) % (period_ + delay_after_);
 
   if (t < period_) {
-    in_delay_phase_ = false;
-  } else if (t > period_-1 && !in_delay_phase_) {
-    // entering delay phase. call brightness function with last value of
-    // interval [0..period-1] to make sure last value is set correctly.
-    in_delay_phase_ = true;
-    t = period_ - 1;
-  } else if (in_delay_phase_) {
-    // no need to evaluate brightness_func_
-    return;
+    auto val = brightness_func_(t, period_, effect_param_);
+    AnalogWrite(effect_inverted_ ? 255 - val : val);
+  } else {
+      // in delay phase
+      return;
   }
-  AnalogWrite(brightness_func_(t, period_));
 }
 
 JLed& JLed::Init(BrightnessEvalFunction func) {
   brightness_func_ = func;
-  last_update_time_ = 0;
-  time_start_ = 0;    // actual time will be set on first call to Update
-  state_ = RUNNING;
+  last_update_time_ = kTimeUndef;
+  time_start_ = kTimeUndef;
   return *this;
 }
 
 JLed& JLed::Blink(uint16_t duration_on, uint16_t duration_off) {
-  period_ = duration_on;
-  delay_after_ = duration_off;
+  period_ = duration_on + duration_off;
+  effect_param_ = duration_on;
   return Init(&JLed::BlinkFunc);
 }
 
@@ -125,8 +114,7 @@ JLed& JLed::FadeOn(uint16_t duration) {
 }
 
 JLed& JLed::FadeOff(uint16_t duration) {
-  period_ = duration;
-  return Init(&JLed::FadeOffFunc);
+  return FadeOn(duration).Invert();
 }
 
 JLed& JLed::On() {
@@ -140,7 +128,7 @@ JLed& JLed::Off() {
 }
 
 JLed& JLed::Set(bool on) {
-  return on ? On(): Off();
+  return on ? On() : Off();
 }
 
 JLed& JLed::UserFunc(BrightnessEvalFunction func, uint16_t period) {
