@@ -42,6 +42,10 @@ void loop() {
         * [User provided brightness function example](#user-provided-brightness-function-example)
     * [Immediate Stop](#immediate-stop)
 * [Parameter overview](#parameter-overview)
+* [Example sketches](#example-sketches)
+    * [PlatformIO](#platformio)
+    * [Arduino IDE](#arduino-ide)
+* [Unit tests](#unit-tests)
 * [Author](#author)
 * [License](#license)
 
@@ -165,18 +169,21 @@ current time t.
 
 #### User provided brightness function example
 
-The example uses a lambda function to calculate the brightness.
+The example uses a user provided function to calculate the brightness.
 
 ```c++
 #include <jled.h>
 
 // this function returns changes between 0 and 255 and vice versa every 250 ms.
-auto blinkFunc = [] (uint32_t t, uint16_t) -> uint8_t {return 255*((t/250)%2);};
+uint8_t blinkFunc(uint32_t t, uint16_t /*period*/, uint32_t /*effect param*/) {
+  return 255*((t/250)%2);
+}
 
 // Run blinkUserFunc for 5000ms
 JLed led = JLed(LED_BUILTIN).UserFunc(blinkFunc, 5000);
 
-void setup() { } 
+void setup() {
+}
 
 void loop() {
   led.Update();
@@ -203,6 +210,35 @@ dependence of the chosen effect:
 * all times are specified in milliseconds
 * time specified by `DelayBefore()` is relative to first invocation of 
   `Update()`
+
+## Example sketches
+
+Examples sketches are provided in the [examples](examples/) directory. 
+
+### PlatformIO
+
+To build an example using [the PlatformIO ide](http://platformio.org/), simply
+uncomment the example to be built in the [platformio.ini](platformio.ini)
+project file, e.g.:
+
+```ini
+...
+[platformio]
+; uncomment example to build
+src_dir = examples/hello
+;src_dir = examples/breathe
+...
+```
+
+### Arduino IDE
+
+To build an example sketch in the Arduino IDE, simply select an example from
+the `File` > `Examples` > `JLed` menu.
+
+## Unit tests
+
+Info on how to run the host based provided unit tests 
+[is provided here](test/README.md).
 
 ## Author
 

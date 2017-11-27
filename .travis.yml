@@ -1,6 +1,7 @@
 language: python
 python:
-- '2.7'
+    - "2.7"
+
 sudo: true
 cache:
   directories:
@@ -18,13 +19,13 @@ script:
 - cpp-coveralls --gcov-options '\-lp' -r ../src  -i ../src -t $COVERALLS_TOKEN
 
 - cd ..
-- platformio ci --lib="src/" examples/hello/hello.cpp --board=uno --board=esp01
-- platformio ci --lib="src/" examples/breathe/breathe.cpp --board=uno --board=esp01
-- platformio ci --lib="src/" examples/simple_on/simple_on.cpp --board=uno --board=esp01
-- platformio ci --lib="src/" examples/fade_on/fade_on.cpp --board=uno --board=esp01
-- platformio ci --lib="src/" examples/fade_off/fade_off.cpp --board=uno --board=esp01
-- platformio ci --lib="src/" examples/dual_led/dual_led.cpp --board=uno --board=esp01
-- platformio ci --lib="src/" examples/user_func/user_func.cpp --board=uno --board=esp01
+- platformio ci --lib="src/" examples/hello/hello.ino --board=uno --board=esp01
+- platformio ci --lib="src/" examples/breathe/breathe.ino --board=uno --board=esp01
+- platformio ci --lib="src/" examples/simple_on/simple_on.ino --board=uno --board=esp01
+- platformio ci --lib="src/" examples/fade_on/fade_on.ino --board=uno --board=esp01
+- platformio ci --lib="src/" examples/fade_off/fade_off.ino --board=uno --board=esp01
+- platformio ci --lib="src/" examples/dual_led/dual_led.ino --board=uno --board=esp01
+- platformio ci --lib="src/" examples/user_func/user_func.ino --board=uno --board=esp01
 
 env:
   global:
