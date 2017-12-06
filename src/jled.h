@@ -145,7 +145,9 @@ class JLed {
   // Stop current effect and turn LED off
   void Stop();
 
- private:
+ protected:
+  uint8_t EvalBrightness(uint32_t t);
+
   // permanently turn LED on
   static uint8_t OnFunc(uint32_t, uint16_t, uint32_t) {
     return 255;
@@ -160,11 +162,13 @@ class JLed {
   // idea see http://sean.voisen.org/blog/2011/10/breathing-led-with-arduino/
   // for details.
   static uint8_t BreatheFunc(uint32_t t, uint16_t period, uint32_t) {
-    return (t > period) ? 255 :
+    return (t > period) ? 0 :
            static_cast<uint8_t>((exp(sin((t-period/4.)
                                  *2.*PI/period))-0.36787944)*108.0);
   }
 
+  // BlincFunc does on on-off cycle in the specified period. The effect_param
+  // specifies the time the effect is on.
   static uint8_t BlinkFunc(uint32_t t, uint16_t period, uint32_t effect_param) {
     return (t < effect_param) ? 255 : 0;
   }

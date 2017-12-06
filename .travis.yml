@@ -1,4 +1,20 @@
-language: python
+dist: trusty
+sudo: required
+language:
+  - cpp
+  - pyhton
+compiler:
+  - gcc
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - gcc-6
+      - g++-6
+      - make 
+      - lcov
+
 python:
     - "2.7"
 
@@ -8,15 +24,19 @@ cache:
   - "~/.platformio"
 
 install:
-- sudo apt-get -qq update && sudo apt-get install make g++ gcovr
-- pip install -U platformio
-- pip install -U cpp-coveralls
-- wget -O cpplint "$CPP_LINT_URL" && chmod 755 cpplint
+- gcc --version
+- gcc-6 --version
+- gcov --version
+- gcov-6 --version
+- pip install --user platformio
+- gem install coveralls-lcov
+- mkdir -p ~/.local/bin
+- wget -O ~/.local/bin/cpplint "$CPP_LINT_URL" && chmod 755 ~/.local/bin/cpplint
 
 script:
-- ./cpplint --extensions=cpp,h $(find . -name "*\.cpp" -o -name "*\.h" )
-- cd test && make test
-- cpp-coveralls --gcov-options '\-lp' -r ../src  -i ../src -t $COVERALLS_TOKEN
+- PATH=$PATH:~/.local/bin
+- cpplint --extensions=cpp,h $(find . -name "*\.cpp" -o -name "*\.h" )
+- cd test && make coverage
 
 - cd ..
 - platformio ci --lib="src/" examples/hello/hello.ino --board=uno --board=esp01
@@ -26,6 +46,9 @@ script:
 - platformio ci --lib="src/" examples/fade_off/fade_off.ino --board=uno --board=esp01
 - platformio ci --lib="src/" examples/dual_led/dual_led.ino --board=uno --board=esp01
 - platformio ci --lib="src/" examples/user_func/user_func.ino --board=uno --board=esp01
+
+- cd test
+- coveralls-lcov --repo-token "$COVERALLS_TOKEN" coverage.info
 
 env:
   global:
