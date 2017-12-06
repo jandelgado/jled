@@ -5,18 +5,8 @@ language:
   - pyhton
 compiler:
   - gcc
-addons:
-  apt:
-    sources:
-      - ubuntu-toolchain-r-test
-    packages:
-      - gcc-6
-      - g++-6
-      - make 
-      - lcov
-
 python:
-    - "2.7"
+  - "2.7"
 
 sudo: true
 cache:
@@ -24,17 +14,17 @@ cache:
   - "~/.platformio"
 
 install:
-- gcc --version
-- gcc-6 --version
-- gcov --version
-- gcov-6 --version
+- wget http://ftp.de.debian.org/debian/pool/main/l/lcov/lcov_1.13.orig.tar.gz 
+- tar xf lcov_1.13.orig.tar.gz 
+- make -C lcov-1.13 "PREFIX=${HOME}/.local" install
+- rm -rf lcov-1.13
 - pip install --user platformio
 - gem install coveralls-lcov
 - mkdir -p ~/.local/bin
 - wget -O ~/.local/bin/cpplint "$CPP_LINT_URL" && chmod 755 ~/.local/bin/cpplint
 
 script:
-- PATH=$PATH:~/.local/bin
+- PATH=~/.local/bin:$PATH
 - cpplint --extensions=cpp,h $(find . -name "*\.cpp" -o -name "*\.h" )
 - cd test && make coverage
 
