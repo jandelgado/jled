@@ -12,22 +12,22 @@ JLed	KEYWORD1
 # Methods and Functions (KEYWORD2)
 #######################################
 
-On          KEYWORD2
-Off         KEYWORD2
-Set         KEYWORD2
-Blink       KEYWORD2
-Breathe     KEYWORD2
-FadeOn      KEYWORD2
-FadeOff     KEYWORD2
-Repeat      KEYWORD2
-Forever     KEYWORD2
-DelayBefore KEYWORD2
-DelayAfter  KEYWORD2
-Forever     KEYWORD2
-IsForever   KEYWORD2
-LowActive   KEYWORD2
-Invert      KEYWORD2
-Stop        KEYWORD2
+On	KEYWORD2
+Off	KEYWORD2
+Set	KEYWORD2
+Blink	KEYWORD2
+Breathe	KEYWORD2
+FadeOn	KEYWORD2
+FadeOff	KEYWORD2
+Repeat	KEYWORD2
+Forever	KEYWORD2
+DelayBefore	KEYWORD2
+DelayAfter	KEYWORD2
+Forever	KEYWORD2
+IsForever	KEYWORD2
+LowActive	KEYWORD2
+Invert	KEYWORD2
+Stop	KEYWORD2
 
 #######################################
 # Instances (KEYWORD2)
