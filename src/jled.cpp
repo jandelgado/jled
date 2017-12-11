@@ -18,18 +18,11 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //
-#include "jled.h"   // NOLINT
+#include "jled.h"  // NOLINT
 
-JLed::JLed(uint8_t led_pin) :
-    effect_inverted_(false), low_active_(false),
-    led_pin_(led_pin),  num_repetitions_(1), last_update_time_(0),
-    delay_before_(0), delay_after_(0),
-    time_start_(kTimeUndef), period_(0), brightness_func_(nullptr),
-    effect_param_(0) {
-        pinMode(led_pin_, OUTPUT);
-}
+JLed::JLed(uint8_t led_pin) : led_pin_(led_pin) { pinMode(led_pin_, OUTPUT); }
 
-void JLed::AnalogWrite(uint8_t val) {
+void JLed::AnalogWrite(uint8_t val) const {
     analogWrite(led_pin_, low_active_ ? 255 - val : val);
 }
 
@@ -65,21 +58,23 @@ void JLed::Update() {
     last_update_time_ = now;
     // wait until delay_before time is elapsed before actually doing anything
     if (delay_before_ > 0) {
-        delay_before_ = max(0, static_cast<int64_t>(delay_before_) - delta_time); // NOLINT
-        if (delay_before_ > 0)
-            return;
+        delay_before_ =
+            max(0, static_cast<int64_t>(delay_before_) - delta_time);  // NOLINT
+        if (delay_before_ > 0) return;
     }
 
-    const auto time_end = time_start_ +
-        (uint32_t)(period_ + delay_after_) * num_repetitions_;
+    const auto time_end =
+        time_start_ + (uint32_t)(period_ + delay_after_) * num_repetitions_;
 
     if (!IsForever() && now >= time_end) {
+        // make sure final value is set
+        AnalogWrite(EvalBrightness(period_ - 1));
         brightness_func_ = nullptr;
         return;
     }
 
     // t cycles in range [0..period+delay_after-1]
-    auto t = (now - time_start_) % (period_ + delay_after_);
+    const auto t = (now - time_start_) % (period_ + delay_after_);
 
     if (t < period_) {
         AnalogWrite(EvalBrightness(t));
@@ -89,7 +84,7 @@ void JLed::Update() {
     }
 }
 
-uint8_t JLed::EvalBrightness(uint32_t t) {
+uint8_t JLed::EvalBrightness(uint32_t t) const {
     auto val = brightness_func_(t, period_, effect_param_);
     return effect_inverted_ ? 255 - val : val;
 }
@@ -118,7 +113,8 @@ JLed& JLed::FadeOn(uint16_t duration) {
 }
 
 JLed& JLed::FadeOff(uint16_t duration) {
-    return FadeOn(duration).Invert();
+    period_ = duration;
+    return Init(&JLed::FadeOffFunc);
 }
 
 JLed& JLed::On() {
@@ -131,11 +127,11 @@ JLed& JLed::Off() {
     return Init(&JLed::OffFunc);
 }
 
-JLed& JLed::Set(bool on) {
-    return on ? On() : Off();
-}
+JLed& JLed::Set(bool on) { return on ? On() : Off(); }
 
-JLed& JLed::UserFunc(BrightnessEvalFunction func, uint16_t period) {
+JLed& JLed::UserFunc(BrightnessEvalFunction func,
+                     uint16_t period, uint32_t user_param) {
+    effect_param_ = user_param;
     period_ = period;
     return Init(func);
 }

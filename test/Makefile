@@ -12,6 +12,8 @@ $(EXECUTABLE): $(OBJECTS)
 coverage: test
 	lcov --config-file=.lcovrc --directory ../src --directory .. --capture --output-file coverage.info --no-external
 	lcov --config-file=.lcovrc --list coverage.info
+	mkdir -p report
+	genhtml coverage.info -o report
 
 test: all
 	./test_jled

@@ -10,3 +10,4 @@ test/test_jled
 *.gcno
 *.gcda
 test/coverage.info
+test/report
