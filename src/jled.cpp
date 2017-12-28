@@ -22,8 +22,58 @@
 
 JLed::JLed(uint8_t led_pin) : led_pin_(led_pin) { pinMode(led_pin_, OUTPUT); }
 
-void JLed::AnalogWrite(uint8_t val) const {
-    analogWrite(led_pin_, low_active_ ? 255 - val : val);
+JLed& JLed::SetFlags(uint8_t f, bool val) {
+    if (val) {
+        flags_ |= f;
+    } else {
+        flags_ &= ~f;
+    }
+    return *this;
+}
+
+bool JLed::GetFlag(uint8_t f) const { return (flags_ & f) != 0; }
+
+void JLed::SetInDelayAfterPhase(bool f) { SetFlags(FL_IN_DELAY_PHASE, f); }
+
+bool JLed::IsInDelayAfterPhase() const { return GetFlag(FL_IN_DELAY_PHASE); }
+
+JLed& JLed::Repeat(uint16_t num_repetitions) {
+    num_repetitions_ = num_repetitions;
+    return *this;
+}
+
+JLed& JLed::Forever() { return Repeat(kRepeatForever); }
+
+bool JLed::IsForever() const { return num_repetitions_ == kRepeatForever; }
+
+JLed& JLed::DelayBefore(uint16_t delay_before) {
+    delay_before_ = delay_before;
+    return *this;
+}
+
+JLed& JLed::DelayAfter(uint16_t delay_after) {
+    delay_after_ = delay_after;
+    return *this;
+}
+
+JLed& JLed::Invert() { return SetFlags(FL_INVERTED, true); }
+
+bool JLed::IsInverted() const { return GetFlag(FL_INVERTED); }
+
+JLed& JLed::LowActive() { return SetFlags(FL_LOW_ACTIVE, true); }
+
+bool JLed::IsLowActive() const { return GetFlag(FL_LOW_ACTIVE); }
+
+void JLed::AnalogWrite(uint8_t val) {
+    const auto new_val = IsLowActive() ? 255 - val : val;
+    if (new_val == 0) {
+        // WORKAROUND (does not solve the problem totally) for flickering LED
+        // when turning LED off.  see
+        // https://arduino.stackexchange.com/questions/17946/why-does-an-led-sometimes-flash-when-increasing-brightness
+        analogWrite(led_pin_, 1);
+        analogWrite(led_pin_, 1);
+    }
+    analogWrite(led_pin_, new_val);
 }
 
 void JLed::Stop() {
@@ -42,12 +92,16 @@ void JLed::Stop() {
 //                       | func(t)    |
 //                       |<- num_repetitions times  ->
 void JLed::Update() {
-    if (!IsRunning()) {
+    if (!brightness_func_) {
         return;
     }
     const auto now = millis();
 
     // no need to process updates twice during one time tick.
+    if (last_update_time_ == now) {
+        return;
+    }
+
     // last_update_time_ will be 0 on initialization, so this fails on
     // first call to this method.
     if (last_update_time_ == kTimeUndef) {
@@ -77,16 +131,21 @@ void JLed::Update() {
     const auto t = (now - time_start_) % (period_ + delay_after_);
 
     if (t < period_) {
+        SetInDelayAfterPhase(false);
         AnalogWrite(EvalBrightness(t));
     } else {
-        // in delay phase
-        return;
+        if (IsInDelayAfterPhase()) {
+            return;
+        } else {
+            SetInDelayAfterPhase(true);
+            AnalogWrite(EvalBrightness(period_ - 1));
+        }
     }
 }
 
 uint8_t JLed::EvalBrightness(uint32_t t) const {
-    auto val = brightness_func_(t, period_, effect_param_);
-    return effect_inverted_ ? 255 - val : val;
+    const auto val = brightness_func_(t, period_, effect_param_);
+    return IsInverted() ? 255 - val : val;
 }
 
 JLed& JLed::Init(BrightnessEvalFunction func) {
@@ -129,9 +188,40 @@ JLed& JLed::Off() {
 
 JLed& JLed::Set(bool on) { return on ? On() : Off(); }
 
-JLed& JLed::UserFunc(BrightnessEvalFunction func,
-                     uint16_t period, uint32_t user_param) {
+JLed& JLed::UserFunc(BrightnessEvalFunction func, uint16_t period,
+                     uintptr_t user_param) {
     effect_param_ = user_param;
     period_ = period;
     return Init(func);
 }
+
+uint8_t JLed::OnFunc(uint32_t, uint16_t, uintptr_t) { return 255; }
+
+uint8_t JLed::OffFunc(uint32_t, uint16_t, uintptr_t) { return 0; }
+
+uint8_t JLed::BreatheFunc(uint32_t t, uint16_t period, uintptr_t) {
+    return (t + 1 >= period)  // <-> t >= period-1
+               ? 0
+               : static_cast<uint8_t>(
+                     (exp(sin((t - period / 4.) * 2. * PI / period)) -
+                      0.36787944) *
+                     108.);
+}
+
+uint8_t JLed::BlinkFunc(uint32_t t, uint16_t period,
+        uintptr_t effect_param) {
+    return (t < effect_param) ? 255 : 0;
+}
+
+uint8_t JLed::FadeOnFunc(uint32_t t, uint16_t period, uintptr_t) {
+    return (t + 1 >= period)
+               ? 255
+               : static_cast<uint8_t>(
+                     (exp(sin((t - period / 2.) * PI / period)) - 0.36787944) *
+                     108.);
+}
+
+uint8_t JLed::FadeOffFunc(uint32_t t, uint16_t period, uintptr_t) {
+    return 255 - FadeOnFunc(t, period, 0);
+}
+

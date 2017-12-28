@@ -7,6 +7,8 @@ An Arduino library to control LEDs. It uses a **non-blocking** approach and can
 control LEDs in simple (**on**/**off**) and complex (**blinking**,
 **breathing**) ways in a **time-driven** manner.
 
+![breathing, blinking, fadeon and -off at the same time](doc/jled.gif)
+
 ```c++
 // blink and breathe two LEDs (builtin and gpio 9) for 12 seconds.
 #include <jled.h>
@@ -163,7 +165,7 @@ at 100% brightness.
 ### User provided brightness function
 
 It is also possible to provide a user defined brightness function. The
-signature of such a function is `unit8_t func(unit32_t t, uint16_t period)`.
+signature of such a function is `unit8_t func(unit32_t t, uint16_t period, uintptr_t param)`.
 The function must return the brightness in range 0..255 in dependence of the
 current time t.
 
@@ -175,7 +177,7 @@ The example uses a user provided function to calculate the brightness.
 #include <jled.h>
 
 // this function returns changes between 0 and 255 and vice versa every 250 ms.
-uint8_t blinkFunc(uint32_t t, uint16_t /*period*/, uint32_t /*effect param*/) {
+uint8_t blinkFunc(uint32_t t, uint16_t /*period*/, uintptr_t /*param*/) {
   return 255*((t/250)%2);
 }
 

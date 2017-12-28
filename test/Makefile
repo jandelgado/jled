@@ -1,6 +1,6 @@
 CFLAGS=-std=c++11 -c -Wall -I. -I../src --coverage -fno-inline -fno-inline-small-functions -fno-default-inline -O0 -g
 LDFLAGS=-fprofile-arcs -ftest-coverage 
-SOURCES=Arduino.cpp test_jled.cpp ../src/jled.cpp
+SOURCES=Arduino.cpp test_jled.cpp ../src/jled.cpp 
 OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE=test_jled
 
