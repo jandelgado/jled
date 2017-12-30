@@ -30,3 +30,6 @@ monitor:
 
 test:
 	$(MAKE) -C test test
+
+tags:
+	ctags -R

@@ -128,11 +128,6 @@ class JLed {
     // permanently turn LED off
     static uint8_t OffFunc(uint32_t, uint16_t, uintptr_t);
 
-    // LED breathe effect.
-    // idea see http://sean.voisen.org/blog/2011/10/breathing-led-with-arduino/
-    // for details.
-    static uint8_t BreatheFunc(uint32_t t, uint16_t period, uintptr_t);
-
     // BlincFunc does one on-off cycle in the specified period. The effect_param
     // specifies the time the effect is on.
     static uint8_t BlinkFunc(uint32_t t, uint16_t period, uintptr_t on_time);
@@ -144,7 +139,20 @@ class JLed {
     // Fade LED off - inverse of FadeOnFunc()
     static uint8_t FadeOffFunc(uint32_t t, uint16_t period, uintptr_t);
 
+    // LED breathe effect. Composition of fade-on and fade-off with half
+    // the period each.
+    static uint8_t BreatheFunc(uint32_t t, uint16_t period, uintptr_t);
+
  private:
+    // pre-calculated fade-on function. This table samples the function
+    //   y(x) =  exp(sin((t - period / 2.) * PI / period)) - 0.36787944) * 108.
+    // at x={0,32,...,256}. In FadeOnFunc() we us linear interpolation to
+    // approximate the original function (so we do not need fp-ops).
+    // fade-off and breath functions are all derived from fade-on, see below.
+    // (To save some additional bytes, we could place it in PROGMEM sometime)
+    static constexpr uint8_t kFadeOnTable[] = {0, 3, 13, 33, 68, 118, 179, 232,
+        255};
+
     static constexpr uint16_t kRepeatForever = 65535;
     static constexpr uint32_t kTimeUndef = -1;
 

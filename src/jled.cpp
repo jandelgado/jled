@@ -20,7 +20,14 @@
 //
 #include "jled.h"  // NOLINT
 
-JLed::JLed(uint8_t led_pin) : led_pin_(led_pin) { pinMode(led_pin_, OUTPUT); }
+// uncomment to enable workaround (does not solve the problem totally) for
+// flickering LED when turning LED off.  see
+// https://arduino.stackexchange.com/questions/17946/why-does-an-led-sometimes-flash-when-increasing-brightness
+// #define PWM_FLICKER_WORKAROUND_ENABLE
+
+constexpr uint8_t JLed::kFadeOnTable[];
+
+JLed::JLed(uint8_t led_pin) : led_pin_(led_pin) { pinMode(led_pin, OUTPUT); }
 
 JLed& JLed::SetFlags(uint8_t f, bool val) {
     if (val) {
@@ -66,13 +73,11 @@ bool JLed::IsLowActive() const { return GetFlag(FL_LOW_ACTIVE); }
 
 void JLed::AnalogWrite(uint8_t val) {
     const auto new_val = IsLowActive() ? 255 - val : val;
+#ifdef PWM_FLICKER_WORKAROUND_ENABLE
     if (new_val == 0) {
-        // WORKAROUND (does not solve the problem totally) for flickering LED
-        // when turning LED off.  see
-        // https://arduino.stackexchange.com/questions/17946/why-does-an-led-sometimes-flash-when-increasing-brightness
-        analogWrite(led_pin_, 1);
         analogWrite(led_pin_, 1);
     }
+#endif
     analogWrite(led_pin_, new_val);
 }
 
@@ -199,29 +204,38 @@ uint8_t JLed::OnFunc(uint32_t, uint16_t, uintptr_t) { return 255; }
 
 uint8_t JLed::OffFunc(uint32_t, uint16_t, uintptr_t) { return 0; }
 
-uint8_t JLed::BreatheFunc(uint32_t t, uint16_t period, uintptr_t) {
-    return (t + 1 >= period)  // <-> t >= period-1
-               ? 0
-               : static_cast<uint8_t>(
-                     (exp(sin((t - period / 4.) * 2. * PI / period)) -
-                      0.36787944) *
-                     108.);
-}
-
-uint8_t JLed::BlinkFunc(uint32_t t, uint16_t period,
-        uintptr_t effect_param) {
+uint8_t JLed::BlinkFunc(uint32_t t, uint16_t period, uintptr_t effect_param) {
     return (t < effect_param) ? 255 : 0;
 }
 
+// The breathe func is composed by fadein and fade-out with one each half
+// period.  we approximate the following function:
+//   y(x) = exp(sin((t-period/4.) * 2. * PI / period)) - 0.36787944) * 108.)
+// idea see:  http://sean.voisen.org/blog/2011/10/breathing-led-with-arduino/
+// But we do it with integers only.
+uint8_t JLed::BreatheFunc(uint32_t t, uint16_t period, uintptr_t) {
+    if (t + 1 >= period) return 0;
+    const uint16_t periodh = period >> 1;
+    return t < periodh ? FadeOnFunc(t, periodh, 0)
+                       : FadeOffFunc(t - periodh, periodh, 0);
+}
+
+// The fade-on func is an approximation of
+//   y(x) = exp(sin((t-period/2.) * PI / period)) - 0.36787944) * 108.)
 uint8_t JLed::FadeOnFunc(uint32_t t, uint16_t period, uintptr_t) {
-    return (t + 1 >= period)
-               ? 255
-               : static_cast<uint8_t>(
-                     (exp(sin((t - period / 2.) * PI / period)) - 0.36787944) *
-                     108.);
+    if (t + 1 >= period) return 255;
+
+    // approximate by linear interpolation.
+    // scale t according to period to 0..255
+    t = ((t << 8) / period) & 0xff;
+    const auto i = (t >> 5);  // -> i will be in range 0 .. 7
+    const auto y0 = kFadeOnTable[i];
+    const auto y1 = kFadeOnTable[i + 1];
+    const auto x0 = i << 5;  // *32
+
+    return ((t - x0) * (y1 - y0)) / (/* x1 - x0 is always =*/32) + y0;
 }
 
 uint8_t JLed::FadeOffFunc(uint32_t t, uint16_t period, uintptr_t) {
-    return 255 - FadeOnFunc(t, period, 0);
+    return FadeOnFunc(period-t, period, 0);
 }
-

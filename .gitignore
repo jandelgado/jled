@@ -11,3 +11,4 @@ test/test_jled
 *.gcda
 test/coverage.info
 test/report
+**/tags

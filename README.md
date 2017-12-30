@@ -160,7 +160,8 @@ void loop() {
 ### FadeOff
 
 In FadeOff mode, the LED is smoothly faded off using PWM. The fade starts
-at 100% brightness.
+at 100% brightness. Internally it is implemented as a mirrored version of 
+the FadeOn function, i.e. FadeOn(t) = FadeOff(period-t)
 
 ### User provided brightness function
 
