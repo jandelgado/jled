@@ -8,7 +8,8 @@ all:
 	pio run
 
 lint:
-	cpplint --extensions=cpp,h,ino $(shell find . -name "*\.cpp" -o -name "*\.h" -o -name "*\.ino")
+	cpplint --extensions=cpp,h,ino $(shell find .  \( ! -regex '.*/\..*' \) \
+		       -type f -a \( -name "*\.cpp" -o -name "*\.h" -o -name "*\.ino" \) )
 
 ci:
 	platformio ci  examples/hello/hello.ino $(CIOPTS)
