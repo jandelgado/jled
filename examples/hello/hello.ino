@@ -1,5 +1,6 @@
 // JLed 'hello, world.'. Blinks built in LED 5 times.
 // Copyright 2017 by Jan Delgado. All rights reserved.
+// https://github.com/jandelgado/jled
 #include <jled.h>
 
 // blink builtin LED for 5 times

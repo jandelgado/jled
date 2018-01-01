@@ -1,6 +1,6 @@
 // JLed multi led demo. control multiple LEDs syncronized.
 // Copyright 2017 by Jan Delgado. All rights reserved.
-
+// https://github.com/jandelgado/jled
 #include <jled.h>
 
 JLed leds[5] = {

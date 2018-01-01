@@ -29,6 +29,9 @@ void loop() {
 <!-- vim-markdown-toc GFM -->
 
 * [Features](#features)
+* [Installation](#installation)
+    * [Arduino IDE](#arduino-ide)
+    * [PlatformIO](#platformio)
 * [Usage](#usage)
     * [Static on](#static-on)
         * [Static on example](#static-on-example)
@@ -45,8 +48,8 @@ void loop() {
     * [Immediate Stop](#immediate-stop)
 * [Parameter overview](#parameter-overview)
 * [Example sketches](#example-sketches)
-    * [PlatformIO](#platformio)
-    * [Arduino IDE](#arduino-ide)
+    * [PlatformIO](#platformio-1)
+    * [Arduino IDE](#arduino-ide-1)
 * [Unit tests](#unit-tests)
 * [Author](#author)
 * [License](#license)
@@ -63,6 +66,28 @@ void loop() {
 * user provided effects
 * supports reversed polarity of LED
 * easy configuration using fluent interface
+
+## Installation
+
+### Arduino IDE
+
+In the main menu of the Arduino IDE, select `Sketch` > `Include Library` >
+`Manage Libraries...` and search for `jled`, then press `install`.
+
+### PlatformIO
+
+Add `jled` to your library dependencies in your `platformio.ini` project file,
+e.g.
+
+```ini
+...
+[env:nanoatmega328]
+platform = atmelavr
+board = nanoatmega328
+framework = arduino
+lib_deps=jled
+...
+```
 
 ## Usage
 
