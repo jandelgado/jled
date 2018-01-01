@@ -233,7 +233,8 @@ uint8_t JLed::FadeOnFunc(uint32_t t, uint16_t period, uintptr_t) {
     const auto y1 = kFadeOnTable[i + 1];
     const auto x0 = i << 5;  // *32
 
-    return ((t - x0) * (y1 - y0)) / (/* x1 - x0 is always =*/32) + y0;
+    // y(t) = mt+b, with m = dy/dx = (y1-y0)/32 = (y1-y0) >> 5
+    return (((t - x0) * (y1 - y0)) >> 5) + y0;
 }
 
 uint8_t JLed::FadeOffFunc(uint32_t t, uint16_t period, uintptr_t) {
