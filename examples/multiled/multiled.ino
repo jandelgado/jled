@@ -1,4 +1,4 @@
-// JLed multi led demo. control multiple LEDs syncronized.
+// JLed multi LED demo. control multiple LEDs in-sync.
 // Copyright 2017 by Jan Delgado. All rights reserved.
 // https://github.com/jandelgado/jled
 #include <jled.h>
