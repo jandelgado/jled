@@ -7,7 +7,7 @@ An Arduino library to control LEDs. It uses a **non-blocking** approach and can
 control LEDs in simple (**on**/**off**) and complex (**blinking**,
 **breathing**) ways in a **time-driven** manner.
 
-![breathing, blinking, fadeon and -off at the same time](doc/jled.gif)
+[![breathing, blinking, fadeon and -off at the same time](doc/jled.gif)](examples/multiled)
 
 ```c++
 // blink and breathe two LEDs (builtin and gpio 9) for 12 seconds.
