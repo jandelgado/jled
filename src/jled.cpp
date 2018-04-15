@@ -119,7 +119,7 @@ void JLed::Update() {
     // wait until delay_before time is elapsed before actually doing anything
     if (delay_before_ > 0) {
         delay_before_ =
-            max(0, static_cast<int64_t>(delay_before_) - delta_time);  // NOLINT
+            max(static_cast<int64_t>(0), static_cast<int64_t>(delay_before_) - delta_time);  // NOLINT
         if (delay_before_ > 0) return;
     }
 
