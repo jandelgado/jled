@@ -175,11 +175,11 @@ TEST_CASE("EvalBrightness()", "[jled]") {
 
    public:
     static void test() {
-      constexpr auto kTimeProbe = 100;
-      constexpr auto kPeriod = 1000;
-      constexpr auto kUserParam = 1337;
-      constexpr auto kBrightness = 100;
-      constexpr auto kBrightnessLast = 10;
+      static constexpr auto kTimeProbe = 100;
+      static constexpr auto kPeriod = 1000;
+      static constexpr auto kUserParam = 1337;
+      static constexpr auto kBrightness = 100;
+      static constexpr auto kBrightnessLast = 10;
 
       // we test that our custom brightness Function is called properly.
       auto func = [](uint32_t t, uint16_t period,

@@ -22,6 +22,7 @@ ci:
 
 clean:
 	pio run --target clean
+	rm -f {test,src}/{*.o,*.gcno,*.gcda}
 
 upload:
 	pio run --target upload 
@@ -30,7 +31,7 @@ monitor:
 	pio device monitor 
 
 test:
-	$(MAKE) -C test test
+	$(MAKE) -C test coverage
 
 tags:
 	ctags -R

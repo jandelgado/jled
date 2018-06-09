@@ -28,7 +28,9 @@
 
 constexpr uint8_t JLed::kFadeOnTable[];
 
-JLed::JLed(uint8_t led_pin) : led_pin_(led_pin) { pinMode(led_pin, OUTPUT); }
+JLed::JLed(uint8_t led_pin) : led_pin_(led_pin) {
+    pinMode(led_pin, OUTPUT);
+}
 
 JLed& JLed::SetFlags(uint8_t f, bool val) {
     if (val) {
@@ -73,11 +75,15 @@ JLed& JLed::LowActive() { return SetFlags(FL_LOW_ACTIVE, true); }
 bool JLed::IsLowActive() const { return GetFlag(FL_LOW_ACTIVE); }
 
 void JLed::AnalogWrite(uint8_t val) {
-    const auto new_val = IsLowActive() ? 255 - val : val;
+    auto new_val = IsLowActive() ? 255 - val : val;
 #ifdef PWM_FLICKER_WORKAROUND_ENABLE
     if (new_val == 0) {
         analogWrite(led_pin_, 1);
     }
+#endif
+#ifdef ESP8266
+    // ESP8266 uses 10bit PWM range per default, scale value up
+    new_val <<= 2;
 #endif
     analogWrite(led_pin_, new_val);
 }
