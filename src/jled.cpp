@@ -28,7 +28,8 @@
 
 constexpr uint8_t JLed::kFadeOnTable[];
 
-static JLed *JLed::head = NULL;
+JLed *JLed::head = (JLed *)0;
+
 
 JLed::~JLed()
 {
@@ -54,7 +55,7 @@ JLed::JLed(uint8_t led_pin) : led_pin_(led_pin) {
       for (p=head;p->next;p=p->next);
       p->next=this;
     }
-  next=NULL;
+  next=(JLed *)0;
 }
 
 
