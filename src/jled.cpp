@@ -28,9 +28,35 @@
 
 constexpr uint8_t JLed::kFadeOnTable[];
 
-JLed::JLed(uint8_t led_pin) : led_pin_(led_pin) {
-    pinMode(led_pin, OUTPUT);
+static JLed *JLed::head = NULL;
+
+JLed::~JLed()
+{
+  // remove from linked list
+  JLed *p,*last=head;
+  if (head==this) head=next;
+  else
+    {
+      for (p=head;p&&p!=this;p=p->next) last=p;
+      if (last) last->next=next;
+    }
+  
 }
+
+
+JLed::JLed(uint8_t led_pin) : led_pin_(led_pin) {
+  JLed *p;
+  pinMode(led_pin, OUTPUT);
+  // add to linked list
+  if (!head) head=this;
+  else
+    {
+      for (p=head;p->next;p=p->next);
+      p->next=this;
+    }
+  next=NULL;
+}
+
 
 JLed& JLed::SetFlags(uint8_t f, bool val) {
     if (val) {
@@ -154,6 +180,13 @@ void JLed::Update() {
         }
     }
 }
+
+void JLed::UpdateAll()
+{
+  JLed *p;
+  for (p=head;p;p=p->next) p->Update();
+}
+
 
 uint8_t JLed::EvalBrightness(uint32_t t) const {
     const auto val = brightness_func_(t, period_, effect_param_);

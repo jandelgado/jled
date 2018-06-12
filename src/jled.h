@@ -49,9 +49,11 @@ class JLed {
 
     JLed() = delete;
     explicit JLed(uint8_t led_pin);
+    ~JLed();
 
     // call Update() from the loop() function to update LED state.
     void Update();
+    static void UpdateAll();
 
     // turn LED on, respecting delay_before
     JLed& On();
@@ -143,6 +145,9 @@ class JLed {
     // LED breathe effect. Composition of fade-on and fade-off with half
     // the period each.
     static uint8_t BreatheFunc(uint32_t t, uint16_t period, uintptr_t);
+    JLed *next;
+    static JLed *head;
+    
 
  private:
     // pre-calculated fade-on function. This table samples the function

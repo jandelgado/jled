@@ -32,6 +32,7 @@ LowActive	KEYWORD2
 Invert	KEYWORD2
 Stop	KEYWORD2
 Update	KEYWORD2
+UpdateAll	KEYWORD2
 UserFunc	KEYWORD2
 
 #######################################
