@@ -49,6 +49,7 @@ class JLed {
 
     JLed() = delete;
     explicit JLed(uint8_t led_pin);
+    JLed(const JLed &jled);
     ~JLed();
 
     // call Update() from the loop() function to update LED state.
