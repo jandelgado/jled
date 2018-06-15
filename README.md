@@ -270,14 +270,9 @@ Info on how to run the host based provided unit tests
 [is provided here](test/README.md).
 
 ## Important note about this version
-Al Willaims (@wd5gnr) modified this version to maintain a linked list of JLed objects
-to support UpdateAll. However, this causes an issue with some of the example code.
+Al Williams (@wd5gnr) modified this version to maintain a linked list of JLed objects
+to support UpdateAll. 
 
-If you create a global object and then call things like `.forever()` or `.breathe()`
-on it, it will cause the constructor to get an incorrect this pointer. In previous versions
-the this pointer wasn't used, so this wasn't an issue. The solution is to call
-the methods in `setup()` or some other initialization code. See the multiled2 example for
-more about this.
 
 ## Author
 
