@@ -36,7 +36,7 @@ JLed::~JLed() {
   // remove from linked list
   JLed *p, *last = head;
   if (head == this) {
-    head=next;
+    head = next;
   } else   {
       for (p = head; p&&p != this; p = p->next) last = p;
       if (last) last->next = next;
@@ -48,20 +48,21 @@ JLed::JLed(uint8_t led_pin) : led_pin_(led_pin) {
   JLed *p;
   pinMode(led_pin, OUTPUT);
   // add to linked list
-  if (!head) head = this;
-  else   {
+  if (!head) {
+    head = this;
+  } else {
     for (p = head; p->next; p = p->next) {}
       p->next = this;
     }
-  next=nullptr;
+  next = nullptr;
 }
 
 JLed::JLed(const JLed &jled) {
   JLed *p;
   next = &jled;
-  if (head && head == &jled)
+  if (head && head == &jled) {
     head = this;
-  else  {
+  } else {
     for (p = head; p&&p->next&&p->next != &jled; p = p->next) {}
       if (p) p->next = this;
     }
