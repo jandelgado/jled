@@ -148,7 +148,6 @@ class JLed {
     static uint8_t BreatheFunc(uint32_t t, uint16_t period, uintptr_t);
     JLed *next;
     static JLed *head;
-    
 
  private:
     // pre-calculated fade-on function. This table samples the function

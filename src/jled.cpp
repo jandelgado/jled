@@ -35,12 +35,12 @@ JLed *JLed::head = nullptr;
 JLed::~JLed() {
   // remove from linked list
   JLed *p, *last = head;
-  if (head == this) head=next;
-  else   {
-      for (p = head;p&&p != this;p = p->next) last = p;
+  if (head == this) {
+    head=next;
+  } else   {
+      for (p = head; p&&p != this; p = p->next) last = p;
       if (last) last->next = next;
     }
-  
 }
 
 
@@ -49,13 +49,11 @@ JLed::JLed(uint8_t led_pin) : led_pin_(led_pin) {
   pinMode(led_pin, OUTPUT);
   // add to linked list
   if (!head) head = this;
-  else
-    {
-      for (p = head;p->next;p = p->next);
+  else   {
+    for (p = head; p->next; p = p->next) {}
       p->next = this;
     }
-  next=(JLed *)0;
-  
+  next=nullptr;
 }
 
 JLed::JLed(const JLed &jled) {
@@ -63,12 +61,10 @@ JLed::JLed(const JLed &jled) {
   next = &jled;
   if (head && head == &jled)
     head = this;
-  else
-    {
-      for (p = head;p&&p->next&&p->next != &jled;p = p->next);
+  else  {
+    for (p = head; p&&p->next&&p->next != &jled; p = p->next) {}
       if (p) p->next = this;
     }
-  
   brightness_func_ = jled.brightness_func_;
   effect_param_ = jled.effect_param_;
   flags_ = jled.flags_;
@@ -79,8 +75,6 @@ JLed::JLed(const JLed &jled) {
   delay_after_ = jled.delay_after_;
   time_start_ = jled.time_start_;
   period_ = jled.period_;
-
-  
 }
 
 
@@ -208,10 +202,9 @@ void JLed::Update() {
     }
 }
 
-void JLed::UpdateAll()
-{
+void JLed::UpdateAll() {
   JLed *p;
-  for (p=head;p;p=p->next) p->Update();
+  for (p=head; p; p=p->next) p->Update();
 }
 
 
