@@ -57,7 +57,7 @@ JLed::JLed(uint8_t led_pin) : led_pin_(led_pin) {
   next = nullptr;
 }
 
-JLed::JLed(const JLed &jled) {
+JLed::JLed(JLed &jled) {
   JLed *p;
   next = &jled;
   if (head && head == &jled) {
