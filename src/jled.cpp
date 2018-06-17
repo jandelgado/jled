@@ -64,9 +64,9 @@ JLed::JLed(const JLed &jled) {
   } else {
     for (p = head; p&&p->next&&p->next != &jled; p = p->next) {}
     if (p) {
-      JLed *p0=p->next; // p0 now points to jled but not const!
+      JLed *p0 = p->next;  // p0 now points to jled but not const!
       p->next = this;
-      next=p0;
+      next = p0;
     }
   }
   brightness_func_ = jled.brightness_func_;
