@@ -60,6 +60,7 @@ JLed::JLed(uint8_t led_pin) : led_pin_(led_pin) {
 JLed::JLed(const JLed &jled) {
   JLed *p;
   if (head && head == &jled) {
+    next = head;
     head = this;
   } else {
     for (p = head; p&&p->next&&p->next != &jled; p = p->next) {}
