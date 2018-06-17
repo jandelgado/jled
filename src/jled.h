@@ -147,7 +147,7 @@ class JLed {
     // LED breathe effect. Composition of fade-on and fade-off with half
     // the period each.
     static uint8_t BreatheFunc(uint32_t t, uint16_t period, uintptr_t);
-    JLed const *next;
+    JLed *next;
     static JLed *head;
 
  private:
