@@ -59,13 +59,16 @@ JLed::JLed(uint8_t led_pin) : led_pin_(led_pin) {
 
 JLed::JLed(const JLed &jled) {
   JLed *p;
-  next = &jled;
   if (head && head == &jled) {
     head = this;
   } else {
     for (p = head; p&&p->next&&p->next != &jled; p = p->next) {}
-      if (p) p->next = this;
+    if (p) {
+      JLed *p0=p->next; // p0 now points to jled but not const!
+      p->next = this;
+      next=p0;
     }
+  }
   brightness_func_ = jled.brightness_func_;
   effect_param_ = jled.effect_param_;
   flags_ = jled.flags_;
