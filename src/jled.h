@@ -1,3 +1,4 @@
+
 // Copyright (c) 2017 Jan Delgado <jdelgado[at]gmx.net>
 // https://github.com/jandelgado/jled
 //
@@ -49,7 +50,7 @@ class JLed {
 
     JLed() = delete;
     explicit JLed(uint8_t led_pin);
-    JLed(JLed &jled);
+    JLed(const JLed &jled);
     ~JLed();
 
     // call Update() from the loop() function to update LED state.
@@ -146,7 +147,7 @@ class JLed {
     // LED breathe effect. Composition of fade-on and fade-off with half
     // the period each.
     static uint8_t BreatheFunc(uint32_t t, uint16_t period, uintptr_t);
-    JLed *next;
+    JLed const *next;
     static JLed *head;
 
  private:
