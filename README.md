@@ -7,6 +7,9 @@ An Arduino library to control LEDs. It uses a **non-blocking** approach and can
 control LEDs in simple (**on**/**off**) and complex (**blinking**,
 **breathing**) ways in a **time-driven** manner.
 
+JLed got some [coverage on Hackaday](https://hackaday.com/2018/06/13/simplifying-basic-led-effects/)
+and someone did a [video tutorial for JLed](https://youtu.be/x5V2vdpZq1w)  - Thanks! 
+
 [![breathing, blinking, fadeon and -off at the same time](doc/jled.gif)](examples/multiled)
 
 ```c++
