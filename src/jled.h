@@ -144,6 +144,8 @@ class JLed {
     // the period each.
     static uint8_t BreatheFunc(uint32_t t, uint16_t period, uintptr_t);
 
+    static uint16_t ScaleTo10Bit(uint8_t);
+
  private:
     // pre-calculated fade-on function. This table samples the function
     //   y(x) =  exp(sin((t - period / 2.) * PI / period)) - 0.36787944) * 108.

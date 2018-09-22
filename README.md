@@ -54,6 +54,7 @@ void loop() {
     * [PlatformIO](#platformio-1)
     * [Arduino IDE](#arduino-ide-1)
 * [Unit tests](#unit-tests)
+* [Contributing](#contributing)
 * [Author](#author)
 * [License](#license)
 
@@ -270,6 +271,17 @@ the `File` > `Examples` > `JLed` menu.
 
 Info on how to run the host based provided unit tests 
 [is provided here](test/README.md).
+
+## Contributing
+
+* fork this repository
+* create your feature branch
+* add code
+* add unit test(s)
+* add documentation
+* make sure linter does not report problems (make lint)
+* commit changes
+* submit a PR
 
 ## Author
 

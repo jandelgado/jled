@@ -21,11 +21,6 @@
 //
 #include "jled.h"  // NOLINT
 
-// uncomment to enable workaround (does not solve the problem totally) for
-// flickering LED when turning LED off.  see
-// https://arduino.stackexchange.com/questions/17946/why-does-an-led-sometimes-flash-when-increasing-brightness
-// #define PWM_FLICKER_WORKAROUND_ENABLE
-
 constexpr uint8_t JLed::kFadeOnTable[];
 
 JLed::JLed(uint8_t led_pin) : led_pin_(led_pin) {
@@ -74,16 +69,16 @@ JLed& JLed::LowActive() { return SetFlags(FL_LOW_ACTIVE, true); }
 
 bool JLed::IsLowActive() const { return GetFlag(FL_LOW_ACTIVE); }
 
+// scale an 8bit value to 10bit: 0 -> 0, ..., 255 -> 1023.
+uint16_t JLed::ScaleTo10Bit(uint8_t x) {
+    return (x == 0) ? 0 : (x << 2) + 3;
+}
+
 void JLed::AnalogWrite(uint8_t val) {
     auto new_val = IsLowActive() ? 255 - val : val;
-#ifdef PWM_FLICKER_WORKAROUND_ENABLE
-    if (new_val == 0) {
-        analogWrite(led_pin_, 1);
-    }
-#endif
 #ifdef ESP8266
     // ESP8266 uses 10bit PWM range per default, scale value up
-    new_val <<= 2;
+    new_val = JLed::ScaleTo10Bit(new_val);
 #endif
     analogWrite(led_pin_, new_val);
 }

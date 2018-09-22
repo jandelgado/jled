@@ -38,6 +38,20 @@ TEST_CASE("jled ctor set pin mode to OUTPUT", "[jled]") {
   REQUIRE(arduinoMockGetPinMode(kTestPin) == OUTPUT);
 }
 
+TEST_CASE("properly scale 8bit to 10bit for ESP8266 support") {
+  class TestableJLed : public JLed {
+   public:
+    using JLed::JLed;
+    static void test() {
+      REQUIRE(TestableJLed::ScaleTo10Bit(0) == 0);
+      REQUIRE(TestableJLed::ScaleTo10Bit(127) == (127<<2)+3);
+      REQUIRE(TestableJLed::ScaleTo10Bit(255) == 1023);
+    }
+  };
+  TestableJLed::test();
+}
+
+
 TEST_CASE("properly initialize brightness_func", "[jled]") {
   class TestableJLed : public JLed {
    public:
