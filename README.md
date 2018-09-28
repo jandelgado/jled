@@ -97,7 +97,10 @@ lib_deps=jled
 
 First the LED object is constructed and configured, then the state is updated
 with subsequent calls to the `Update()` method, typically from the `loop()`
-function. The constructor takes the pin, to which the LED is connected to as
+function. While the effect is active, `Update` returns `true`, otherwise
+false.
+
+The constructor takes the pin, to which the LED is connected to as
 only parameter. Further configuration of the LED object is done using a fluent
 interface, e.g. `JLed led = JLed(13).Breathe(2000).DelayAfter(1000).Repeat(5)`.
 See examples and [Parameter overview](#parameter-oveview) section below for

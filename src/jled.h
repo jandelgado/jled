@@ -50,8 +50,9 @@ class JLed {
     JLed() = delete;
     explicit JLed(uint8_t led_pin);
 
-    // call Update() from the loop() function to update LED state.
-    void Update();
+    // call Update() from the loop() function to update LED state. Returns
+    // true while the effect is active, otherwise false.
+    bool Update();
 
     // turn LED on, respecting delay_before
     JLed& On();

@@ -44,13 +44,12 @@ TEST_CASE("properly scale 8bit to 10bit for ESP8266 support") {
     using JLed::JLed;
     static void test() {
       REQUIRE(TestableJLed::ScaleTo10Bit(0) == 0);
-      REQUIRE(TestableJLed::ScaleTo10Bit(127) == (127<<2)+3);
+      REQUIRE(TestableJLed::ScaleTo10Bit(127) == (127 << 2) + 3);
       REQUIRE(TestableJLed::ScaleTo10Bit(255) == 1023);
     }
   };
   TestableJLed::test();
 }
-
 
 TEST_CASE("properly initialize brightness_func", "[jled]") {
   class TestableJLed : public JLed {
@@ -321,8 +320,6 @@ TEST_CASE("blink led forever", "[jled]") {
     REQUIRE(jled.IsForever());
 
     auto timer = 0;
-
-    jled.Blink(kOnDuration, kOffDuration);
     for (auto i = 0; i < kRepetitions; i++) {
       jled.Update();
       auto state = (timer < kOnDuration);
@@ -334,6 +331,20 @@ TEST_CASE("blink led forever", "[jled]") {
       arduinoMockSetMillis(++time);
     }
   }
+}
+
+TEST_CASE("Update returns true while updating, else false", "[jled]") {
+  arduinoMockInit();
+  JLed jled = JLed(10).Blink(2, 3);
+  constexpr auto expectedTime = 2+3;
+
+  uint32_t time = 0;
+  for (auto i = 0; i < expectedTime; i++) {
+    REQUIRE(jled.Update());
+    arduinoMockSetMillis(++time);
+  }
+  // when effect is done, we expect false to be returned
+  REQUIRE_FALSE(jled.Update());
 }
 
 TEST_CASE("user provided brightness function", "[jled]") {

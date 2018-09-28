@@ -23,9 +23,7 @@
 
 constexpr uint8_t JLed::kFadeOnTable[];
 
-JLed::JLed(uint8_t led_pin) : led_pin_(led_pin) {
-    pinMode(led_pin, OUTPUT);
-}
+JLed::JLed(uint8_t led_pin) : led_pin_(led_pin) { pinMode(led_pin, OUTPUT); }
 
 JLed& JLed::SetFlags(uint8_t f, bool val) {
     if (val) {
@@ -70,9 +68,7 @@ JLed& JLed::LowActive() { return SetFlags(FL_LOW_ACTIVE, true); }
 bool JLed::IsLowActive() const { return GetFlag(FL_LOW_ACTIVE); }
 
 // scale an 8bit value to 10bit: 0 -> 0, ..., 255 -> 1023.
-uint16_t JLed::ScaleTo10Bit(uint8_t x) {
-    return (x == 0) ? 0 : (x << 2) + 3;
-}
+uint16_t JLed::ScaleTo10Bit(uint8_t x) { return (x == 0) ? 0 : (x << 2) + 3; }
 
 void JLed::AnalogWrite(uint8_t val) {
     auto new_val = IsLowActive() ? 255 - val : val;
@@ -98,15 +94,15 @@ void JLed::Stop() {
 //        |<delay before>|<--period-->|<-delay after-> (time)
 //                       | func(t)    |
 //                       |<- num_repetitions times  ->
-void JLed::Update() {
+bool JLed::Update() {
     if (!brightness_func_) {
-        return;
+        return false;
     }
     const auto now = millis();
 
     // no need to process updates twice during one time tick.
     if (last_update_time_ == now) {
-        return;
+        return true;
     }
 
     // last_update_time_ will be 0 on initialization, so this fails on
@@ -119,19 +115,21 @@ void JLed::Update() {
     last_update_time_ = now;
     // wait until delay_before time is elapsed before actually doing anything
     if (delay_before_ > 0) {
-        delay_before_ =
-            max(static_cast<int64_t>(0), static_cast<int64_t>(delay_before_) - delta_time);  // NOLINT
-        if (delay_before_ > 0) return;
+        delay_before_ = max(static_cast<int64_t>(0),  // NOLINT
+                            static_cast<int64_t>(delay_before_) - delta_time);
+        if (delay_before_ > 0) return true;
     }
 
-    const auto time_end =
-        time_start_ + (uint32_t)(period_ + delay_after_) * num_repetitions_;
+    if (!IsForever()) {
+        const auto time_end =
+            time_start_ + (uint32_t)(period_ + delay_after_) * num_repetitions_;
 
-    if (!IsForever() && now >= time_end) {
-        // make sure final value is set
-        AnalogWrite(EvalBrightness(period_ - 1));
-        brightness_func_ = nullptr;
-        return;
+        if (now >= time_end) {
+            // make sure final value of t=period-1 is set
+            AnalogWrite(EvalBrightness(period_ - 1));
+            brightness_func_ = nullptr;
+            return false;
+        }
     }
 
     // t cycles in range [0..period+delay_after-1]
@@ -141,13 +139,12 @@ void JLed::Update() {
         SetInDelayAfterPhase(false);
         AnalogWrite(EvalBrightness(t));
     } else {
-        if (IsInDelayAfterPhase()) {
-            return;
-        } else {
+        if (!IsInDelayAfterPhase()) {
             SetInDelayAfterPhase(true);
             AnalogWrite(EvalBrightness(period_ - 1));
         }
     }
+    return true;
 }
 
 uint8_t JLed::EvalBrightness(uint32_t t) const {
@@ -240,5 +237,5 @@ uint8_t JLed::FadeOnFunc(uint32_t t, uint16_t period, uintptr_t) {
 }
 
 uint8_t JLed::FadeOffFunc(uint32_t t, uint16_t period, uintptr_t) {
-    return FadeOnFunc(period-t, period, 0);
+    return FadeOnFunc(period - t, period, 0);
 }
