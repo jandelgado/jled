@@ -1,5 +1,10 @@
 # JLed changelog
 
+## [2018-09-22] v2.4.0
+
+* `JLed::Update()` now returns a `bool` indicating if the effect is still
+  active (true), or finished (false).
+
 ## [2018-09-22] v2.3.0
 
 * ESP8266 platform: scaling from 8 to 10 bit improved. The scaling makes sure
