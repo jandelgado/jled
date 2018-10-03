@@ -50,6 +50,9 @@ void loop() {
         * [User provided brightness function example](#user-provided-brightness-function-example)
     * [Immediate Stop](#immediate-stop)
 * [Parameter overview](#parameter-overview)
+* [Platform notes](#platform-notes)
+    * [ESP8266](#esp8266)
+    * [ESP32](#esp32)
 * [Example sketches](#example-sketches)
     * [PlatformIO](#platformio-1)
     * [Arduino IDE](#arduino-ide-1)
@@ -70,6 +73,7 @@ void loop() {
 * user provided effects
 * supports reversed polarity of LED
 * easy configuration using fluent interface
+* Arduino, ESP8266 and ESP32 platform compatible
 
 ## Installation
 
@@ -246,6 +250,39 @@ dependence of the chosen effect:
 * time specified by `DelayBefore()` is relative to first invocation of 
   `Update()`
 
+## Platform notes
+
+### ESP8266
+
+The DAC of the ESP8266 operates with 10 bits, every value JLed writes out gets
+automatically scaled to 10 bits, since JLed internally only uses 8 bits.  The
+scaling methods makes sure that min/max relationships are preserved, i.e. 0 is
+mapped to 0 and 255 is mapped to 1023. When using a user defined brightness
+function on the ESP8266, 8 bit values must be returned, all scaling is done by
+JLed transparently for the application, yielding platform independent code.
+
+### ESP32
+
+The ESP32 Arduino SDK does not provide an `analogWrite()` function. To
+be able to use PWM, we use the `ledc` functions of the ESP32 SDK. 
+(See [esspressif documentation](https://docs.espressif.com/projects/esp-idf/en/latest/api-reference/peripherals/ledc.html) for details).
+
+The `ledc` API connects so called channels to GPIO pins, enabling them to use
+PWM. There are 16 channels available. Unless otherwise specified, JLed
+automatically picks the next free channel, starting with channel 0 and wrapping
+over after channel 15. To manually specify a channel, the JLed object must be
+constructed this way:
+
+```
+JLed esp32Led = JLed(Esp32AnalogWriter(2, 7)).Blink(1000, 1000).Forever();
+```
+
+The `Esp32AnalogWriter(pin, chan)` constructor takes the pin number as the
+first argument and the channel number on second position. Note that using the
+above mentioned constructor yields non-platform independent code.
+
+See [ESP32 multi led example](examples/multiled_esp32).
+
 ## Example sketches
 
 Examples sketches are provided in the [examples](examples/) directory. 
@@ -272,15 +309,15 @@ the `File` > `Examples` > `JLed` menu.
 
 ## Unit tests
 
-Info on how to run the host based provided unit tests 
-[is provided here](test/README.md).
+Jled comes with an exhaustive host based unit test suite. Info on how to run
+the host based provided unit tests [is provided here](test/README.md).
 
 ## Contributing
 
 * fork this repository
 * create your feature branch
 * add code
-* add unit test(s)
+* add unit test(s) 
 * add documentation
 * make sure linter does not report problems (make lint)
 * commit changes

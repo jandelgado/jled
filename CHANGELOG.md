@@ -1,5 +1,11 @@
 # JLed changelog
 
+## [2018-10-03] v3.0.0
+
+* Major refactoring making support of different platforms easier
+* ESP32 support added
+* Unit tests refactored
+
 ## [2018-09-22] v2.4.0
 
 * `JLed::Update()` now returns a `bool` indicating if the effect is still

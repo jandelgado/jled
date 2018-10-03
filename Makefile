@@ -12,16 +12,17 @@ lint:
 		       -type f -a \( -name "*\.cpp" -o -name "*\.h" -o -name "*\.ino" \) )
 
 ci:
-	platformio ci  examples/hello/hello.ino $(CIOPTS)
-	platformio ci  examples/breathe/breathe.ino $(CIOPTS)
-	platformio ci  examples/simple_on/simple_on.ino $(CIOPTS)
-	platformio ci  examples/fade_on/fade_on.ino $(CIOPTS)
-	platformio ci  examples/fade_off/fade_off.ino $(CIOPTS)
-	platformio ci  examples/user_func/user_func.ino $(CIOPTS)
-	platformio ci  examples/multiled/multiled.ino $(CIOPTS)
+	platformio ci examples/hello/hello.ino $(CIOPTS)
+	platformio ci examples/breathe/breathe.ino $(CIOPTS)
+	platformio ci examples/simple_on/simple_on.ino $(CIOPTS)
+	platformio ci examples/fade_on/fade_on.ino $(CIOPTS)
+	platformio ci examples/fade_off/fade_off.ino $(CIOPTS)
+	platformio ci examples/user_func/user_func.ino $(CIOPTS)
+	platformio ci examples/multiled/multiled.ino $(CIOPTS)
+	platformio ci examples/multiled_esp32/multiled_esp32.ino --board=esp32dev --lib="src"
 
 clean:
-	pio run --target clean
+	-pio run --target clean
 	rm -f {test,src}/{*.o,*.gcno,*.gcda}
 
 upload:

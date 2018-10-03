@@ -26,6 +26,7 @@ install:
 script:
   - PATH=~/.local/bin:$PATH
   - make lint
+  - make ci
   - cd test && make coverage
   - cd ..
   - cd test && coveralls-lcov --repo-token "$COVERALLS_TOKEN" coverage.info

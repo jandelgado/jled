@@ -3,7 +3,7 @@
 // https://github.com/jandelgado/jled
 #include <jled.h>
 
-JLed leds[5] = {
+JLed leds[] = {
     JLed(3).Breathe(2000).Forever(),
     JLed(4).Blink(750, 250).Forever(),
     JLed(5).FadeOff(1000).Forever(),
