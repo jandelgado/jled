@@ -213,7 +213,7 @@ class TJLed {
     // internal control of the LED, does not affect
     // state and honors low_active_ flag
     void AnalogWrite(uint8_t val) {
-        auto new_val = IsLowActive() ? 255 - val : val;
+        auto new_val = IsLowActive() ? kFullBrightness - val : val;
         port_.analogWrite(new_val);
     }
 
@@ -239,20 +239,24 @@ class TJLed {
 
     uint8_t EvalBrightness(uint32_t t) const {
         const auto val = brightness_func_(t, period_, effect_param_);
-        return IsInverted() ? 255 - val : val;
+        return IsInverted() ? kFullBrightness - val : val;
     }
 
     // permanently turn LED on
-    static uint8_t OnFunc(uint32_t, uint16_t, uintptr_t) { return 255; }
+    static uint8_t OnFunc(uint32_t, uint16_t, uintptr_t) {
+        return kFullBrightness;
+    }
 
     // permanently turn LED off
-    static uint8_t OffFunc(uint32_t, uint16_t, uintptr_t) { return 0; }
+    static uint8_t OffFunc(uint32_t, uint16_t, uintptr_t) {
+        return kZeroBrightness;
+    }
 
     // BlincFunc does one on-off cycle in the specified period. The effect_param
     // specifies the time the effect is on.
     static uint8_t BlinkFunc(uint32_t t, uint16_t period,
                              uintptr_t effect_param) {
-        return (t < effect_param) ? 255 : 0;
+        return (t < effect_param) ? kFullBrightness : kZeroBrightness;
     }
 
     // fade LED on
@@ -260,7 +264,7 @@ class TJLed {
     // The fade-on func is an approximation of
     //   y(x) = exp(sin((t-period/2.) * PI / period)) - 0.36787944) * 108.)
     static uint8_t FadeOnFunc(uint32_t t, uint16_t period, uintptr_t) {
-        if (t + 1 >= period) return 255;
+        if (t + 1 >= period) return kFullBrightness;
 
         // approximate by linear interpolation.
         // scale t according to period to 0..255
@@ -285,7 +289,7 @@ class TJLed {
     // idea see: http://sean.voisen.org/blog/2011/10/breathing-led-with-arduino/
     // But we do it with integers only.
     static uint8_t BreatheFunc(uint32_t t, uint16_t period, uintptr_t) {
-        if (t + 1 >= period) return 0;
+        if (t + 1 >= period) return kZeroBrightness;
         const uint16_t periodh = period >> 1;
         return t < periodh ? FadeOnFunc(t, periodh, 0)
                            : FadeOffFunc(t - periodh, periodh, 0);
@@ -305,6 +309,8 @@ class TJLed {
     static constexpr uint8_t FL_INVERTED = (1 << 0);
     static constexpr uint8_t FL_LOW_ACTIVE = (1 << 1);
     static constexpr uint8_t FL_IN_DELAY_PHASE = (1 << 2);
+    static constexpr uint8_t kFullBrightness = 255;
+    static constexpr uint8_t kZeroBrightness = 0;
     T port_;
     uint8_t flags_ = 0;
 
