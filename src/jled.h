@@ -34,9 +34,8 @@
 //   void loop() {
 //     led.Update();
 //   }
-//
 
-template <typename T>
+template <typename PortType, typename B>
 class TJLed {
  public:
     // a function f(t,period,param) that calculates the LEDs brightness for a
@@ -47,9 +46,14 @@ class TJLed {
     using BrightnessEvalFunction = uint8_t (*)(uint32_t t, uint16_t period,
                                                uintptr_t param);
 
-    TJLed() = delete;
-    explicit TJLed(const T& port) noexcept : port_(port) {}
-    explicit TJLed(uint8_t led_pin) noexcept : TJLed(T(led_pin)) {}
+    // TJLed() noexcept : port_(nullptr) {}
+    // explicit TJLed(T& port) noexcept : port_(&port) {}  // TODO(jd)
+    // explicit TJLed(uint8_t led_pin) noexcept : port_(new T(led_pin)) {}
+
+    // ~TJLed() {
+    //     // TODO(jd)
+    //     // delete port_;
+    // }
 
     // update brightness of LED using the given brightness function
     //  (brightness)                     _________________
@@ -60,7 +64,7 @@ class TJLed {
     //        |<delay before>|<--period-->|<-delay after-> (time)
     //                       | func(t)    |
     //                       |<- num_repetitions times  ->
-    bool Update() {
+    bool Update(PortType* port) {
         if (!brightness_func_) {
             return false;
         }
@@ -95,7 +99,7 @@ class TJLed {
 
             if (now >= time_end) {
                 // make sure final value of t=period-1 is set
-                AnalogWrite(EvalBrightness(period_ - 1));
+                AnalogWrite(port, EvalBrightness(period_ - 1));
                 brightness_func_ = nullptr;
                 return false;
             }
@@ -106,104 +110,109 @@ class TJLed {
 
         if (t < period_) {
             SetInDelayAfterPhase(false);
-            AnalogWrite(EvalBrightness(t));
+            AnalogWrite(port, EvalBrightness(t));
         } else {
             if (!IsInDelayAfterPhase()) {
                 // when in delay after phase, just call AnalogWrite()
                 // once at the beginning.
                 SetInDelayAfterPhase(true);
-                AnalogWrite(EvalBrightness(period_ - 1));
+                AnalogWrite(port, EvalBrightness(period_ - 1));
             }
         }
         return true;
     }
 
+    // B& Then(B& led) {
+    //     next_ = &led;  // TODO
+    //     return *this;
+    // }
+
     // turn LED on, respecting delay_before
-    TJLed<T>& On() {
+    B& On() {
         period_ = 1;
         return Init(&TJLed::OnFunc);
     }
 
     // turn LED off, respecting delay_before
-    TJLed<T>& Off() {
+    B& Off() {
         period_ = 1;
         return Init(&TJLed::OffFunc);
     }
 
     // turn LED on or off, calls On() / Off()
-    TJLed<T>& Set(bool on) { return on ? On() : Off(); }
+    B& Set(bool on) { return on ? On() : Off(); }
 
     // Fade LED on
-    TJLed<T>& FadeOn(uint16_t duration) {
+    B& FadeOn(uint16_t duration) {
         period_ = duration;
         return Init(&TJLed::FadeOnFunc);
     }
 
     // Fade LED off - acutally is just inverted version of FadeOn()
-    TJLed<T>& FadeOff(uint16_t duration) {
+    B& FadeOff(uint16_t duration) {
         period_ = duration;
         return Init(&TJLed::FadeOffFunc);
     }
 
     // Set effect to Breathe, with the given period time in ms.
-    TJLed<T>& Breathe(uint16_t period) {
+    B& Breathe(uint16_t period) {
         period_ = period;
         return Init(&TJLed::BreatheFunc);
     }
 
     // Set effect to Blink, with the given on- and off- duration values.
-    TJLed<T>& Blink(uint16_t duration_on, uint16_t duration_off) {
+    B& Blink(uint16_t duration_on, uint16_t duration_off) {
         period_ = duration_on + duration_off;
         effect_param_ = duration_on;
         return Init(&TJLed::BlinkFunc);
     }
 
     // Use user provided function func as brightness function.
-    TJLed<T>& UserFunc(BrightnessEvalFunction func, uint16_t period,
-                       uintptr_t user_param = 0) {
+    B& UserFunc(BrightnessEvalFunction func, uint16_t period,
+                uintptr_t user_param = 0) {
         effect_param_ = user_param;
         period_ = period;
         return Init(func);
     }
 
     // set number of repetitions for effect.
-    TJLed<T>& Repeat(uint16_t num_repetitions) {
+    B& Repeat(uint16_t num_repetitions) {
         num_repetitions_ = num_repetitions;
-        return *this;
+        return static_cast<B&>(*this);
     }
 
     // repeat Forever
-    TJLed<T>& Forever() { return Repeat(kRepeatForever); }
+    B& Forever() { return Repeat(kRepeatForever); }
     bool IsForever() const { return num_repetitions_ == kRepeatForever; }
 
     // Set amount of time to initially wait before effect starts. Time is
     // relative to first call of Update() method and specified in ms.
-    TJLed<T>& DelayBefore(uint16_t delay_before) {
+    B& DelayBefore(uint16_t delay_before) {
         delay_before_ = delay_before;
-        return *this;
+        return static_cast<B&>(*this);
     }
 
     // Set amount of time to wait in ms after each iteration.
-    TJLed<T>& DelayAfter(uint16_t delay_after) {
+    B& DelayAfter(uint16_t delay_after) {
         delay_after_ = delay_after;
-        return *this;
+        return static_cast<B&>(*this);
     }
 
     // Invert effect. If set, every effect calculation will be inverted, i.e.
     // instead of a, 255-a will be used.
-    TJLed<T>& Invert() { return SetFlags(FL_INVERTED, true); }
+    B& Invert() { return SetFlags(FL_INVERTED, true); }
     bool IsInverted() const { return GetFlag(FL_INVERTED); }
 
     // Set physical LED polarity to be low active. This inverts every signal
     // physically output to a pin.
-    TJLed<T>& LowActive() { return SetFlags(FL_LOW_ACTIVE, true); }
+    B& LowActive() { return SetFlags(FL_LOW_ACTIVE, true); }
     bool IsLowActive() const { return GetFlag(FL_LOW_ACTIVE); }
 
     // Stop current effect and turn LED immeadiately off
-    void Stop() {
+    void Stop(PortType* port) {
         // Immediately turn LED off and stop effect.
         brightness_func_ = nullptr;
-        AnalogWrite(0);
+        AnalogWrite(port, 0);
     }
 
  protected:
@@ -212,25 +221,25 @@ class TJLed {
 
     // internal control of the LED, does not affect
     // state and honors low_active_ flag
-    void AnalogWrite(uint8_t val) {
+    void AnalogWrite(PortType* port, uint8_t val) {
         auto new_val = IsLowActive() ? kFullBrightness - val : val;
-        port_.analogWrite(new_val);
+        port->analogWrite(new_val);
     }
 
-    TJLed<T>& Init(BrightnessEvalFunction func) {
+    B& Init(BrightnessEvalFunction func) {
         brightness_func_ = func;
         last_update_time_ = kTimeUndef;
         time_start_ = kTimeUndef;
-        return *this;
+        return static_cast<B&>(*this);
     }
 
-    TJLed<T>& SetFlags(uint8_t f, bool val) {
+    B& SetFlags(uint8_t f, bool val) {
         if (val) {
             flags_ |= f;
         } else {
             flags_ &= ~f;
         }
-        return *this;
+        return static_cast<B&>(*this);
     }
     bool GetFlag(uint8_t f) const { return (flags_ & f) != 0; }
 
@@ -311,7 +320,6 @@ class TJLed {
     static constexpr uint8_t FL_IN_DELAY_PHASE = (1 << 2);
     static constexpr uint8_t kFullBrightness = 255;
     static constexpr uint8_t kZeroBrightness = 0;
-    T port_;
     uint8_t flags_ = 0;
 
     uint16_t num_repetitions_ = 1;
@@ -322,21 +330,68 @@ class TJLed {
     uint16_t period_ = 0;
 };
 
+template <typename T, typename B>
+constexpr uint8_t TJLed<T, B>::kFadeOnTable[];
+
 template <typename T>
-constexpr uint8_t TJLed<T>::kFadeOnTable[];
+class JLedP : public TJLed<T, JLedP<T>> {
+ private:
+    using Base = TJLed<T, JLedP<T>>;
+    T* port_;
+    JLedP<T>* next_ = nullptr;
+
+ public:
+    JLedP() : port_(nullptr) {}
+    JLedP(uint8_t pin) : port_(new T(pin)) {}  // TODO(jd)
+    JLedP(T port) : port_(&port) {}            // TODO(jd)
+
+    JLedP<T>& Then(JLedP<T>& led) {
+        next_ = &led;
+        return led;
+    }
+
+    bool Update() { return Base::Update(port_); }
+    void Stop() { Base::Stop(port_); }
+    T* Port() const { return port_; }
+};
+
+template <typename T>
+class JLedSequence {
+ public:
+    //   JLedSequence() delete;
+    JLedSequence(T* items, size_t n) : items_(items), n_(n) {}
+
+    bool Update() {
+        if (cur_ >= n_) {
+            return false;
+        }
+        auto led = items_[cur_];
+        port_ = led->Port() ? led->Port() : port_;
+        if (!led->Update(port_)) {
+            cur_++;
+        }
+        return true;
+    }
+
+ private:
+    JLedP<T>* items_;
+    T* port_;
+    size_t cur_ = 0;
+    size_t n_;
+};
 
 #ifdef ESP32
 #include "esp32_analog_writer.h"  // NOLINT
-using JLed = TJLed<Esp32AnalogWriter>;
-template class TJLed<Esp32AnalogWriter>;
+using JLed = JLedP<Esp32AnalogWriter>;
+template class JLedP<Esp32AnalogWriter>;
 #elif ESP8266
 #include "esp8266_analog_writer.h"  // NOLINT
-using JLed = TJLed<Esp8266AnalogWriter>;
-template class TJLed<Esp8266AnalogWriter>;
+using JLed = JLedP<Esp8266AnalogWriter>;
+template class JLedP<Esp8266AnalogWriter>;
 #else
 #include "arduino_analog_writer.h"  // NOLINT
-using JLed = TJLed<ArduinoAnalogWriter>;
-template class TJLed<ArduinoAnalogWriter>;
+using JLed = JLedP<ArduinoAnalogWriter>;
+template class JLedP<ArduinoAnalogWriter>;
 #endif
 
 #endif  // SRC_JLED_H_
