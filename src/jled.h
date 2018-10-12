@@ -50,11 +50,6 @@ class TJLed {
     // explicit TJLed(T& port) noexcept : port_(&port) {}  // TODO(jd)
     // explicit TJLed(uint8_t led_pin) noexcept : port_(new T(led_pin)) {}
 
-    // ~TJLed() {
-    //     // TODO(jd)
-    //     // delete port_;
-    // }
-
     // update brightness of LED using the given brightness function
     //  (brightness)                     _________________
     // on 255 |                       ¸-'
@@ -112,13 +107,14 @@ class TJLed {
                 time_start_ +
                 (uint32_t)(period_ + delay_after_) * num_repetitions_ - 1;
 
-            if (now == time_end) {
+            if (now >= time_end) {
                 // make sure final value of t=period-1 is set
                 AnalogWrite(port, EvalBrightness(period_ - 1));
                 brightness_func_ = nullptr;
                 return false;
             }
         }
+
         return true;
     }
 
@@ -335,23 +331,23 @@ class JLedP : public TJLed<T, JLedP<T>> {
     T* port_;
 
  public:
-    ~JLedP() { delete port_; }
+    //~JLedP() { delete port_; }
     JLedP() : port_(nullptr) {}
-    explicit JLedP(const JLedP<T>& l) {
-        port_ = new T(*l.port_);
-    }
-    explicit JLedP(uint8_t pin) : port_(new T(pin)) {}
-    explicit JLedP(const T& port) {
-        port_ = new T(port);
-    }
+    JLedP(const JLedP<T>& l) : Base(l) {
+         port_ = new T(*l.port_);
+     }
+    JLedP(uint8_t pin) : port_(new T(pin)) {}
+     // JLedP(const T& port) {
+     //     port_ = new T(port);
+     // }
     bool Update(T* port) { return Base::Update(port); }
     bool Update() { return Update(port_); }
     void Stop() { Base::Stop(port_); }
     T* Port() const { return port_; }
-    JLedP<T>& operator=(const JLedP<T>& l) {
-        port_ = new T(*l.port_);
-        return *this;
-    }
+    // JLedP<T>& operator=(const JLedP<T>& l) {
+    //     port_ = new T(*l.port_);
+    //     return *this;
+    // }
 };
 
 template <typename T>

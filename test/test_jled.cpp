@@ -4,7 +4,6 @@
 #include <map>
 #include <vector>
 
-#define CATCH_CONFIG_MAIN
 #include "catch.hpp"
 
 #include <jled.h>  // NOLINT
@@ -227,13 +226,13 @@ TEST_CASE("stop effect", "[jled]") {
     // we test that an effect that normally has high ouput for a longer
     // time (e.g. FadeOff()) stays off after Stop() was called
     JLed jled = JLed(kTestPin).FadeOff(kDuration);
-
     jled.Update();
     REQUIRE(arduinoMockGetPinState(kTestPin) > 0);
     jled.Stop();
+    REQUIRE_FALSE(jled.Update());
     REQUIRE(arduinoMockGetPinState(kTestPin) == 0);
     // update should not change anything
-    jled.Update();
+    REQUIRE_FALSE(jled.Update());
     REQUIRE(arduinoMockGetPinState(kTestPin) == 0);
 }
 
@@ -241,14 +240,11 @@ TEST_CASE("LowActive() inverts signal", "[jled]") {
     constexpr auto kTestPin = 10;
     arduinoMockInit();
 
-    // we test that an effect that normally has high ouput for a longer
-    // time (e.g. FadeOff()) stays off after Stop() was called
     JLed jled = JLed(kTestPin).On().LowActive();
     REQUIRE(arduinoMockGetPinState(kTestPin) == 0);
     jled.Update();
     REQUIRE(arduinoMockGetPinState(kTestPin) == 0);
-    jled.Off();
-    jled.Update();
+    jled.Stop();
     REQUIRE(arduinoMockGetPinState(kTestPin) == 255);
 }
 
@@ -303,22 +299,22 @@ TEST_CASE("blink led forever", "[jled]") {
     }
 }
 
-TEST_CASE("construct Jled object with custom ctor", "[jled]") {
-    arduinoMockInit();
+// TEST_CASE("construct Jled object with custom ctor", "[jled]") {
+//     arduinoMockInit();
 
-    constexpr auto kTestPin = 1;
-    JLed jled = JLed(ArduinoAnalogWriter(kTestPin)).Blink(1,1);
-    //JLed jled = JLed(kTestPin).Blink(1,1);
+//     constexpr auto kTestPin = 1;
+//     JLed jled = JLed(ArduinoAnalogWriter(kTestPin)).Blink(1,1);
+//     //JLed jled = JLed(kTestPin).Blink(1,1);
 
-    // test with a simple on-off sequence
-    uint32_t time = 0;
-    REQUIRE(jled.Update());
-    REQUIRE(arduinoMockGetPinState(kTestPin) == 255);
-    arduinoMockSetMillis(++time);
-    REQUIRE(!jled.Update());
-    REQUIRE(arduinoMockGetPinState(kTestPin) == 0);
-    arduinoMockSetMillis(++time);
-}
+//     // test with a simple on-off sequence
+//     uint32_t time = 0;
+//     REQUIRE(jled.Update());
+//     REQUIRE(arduinoMockGetPinState(kTestPin) == 255);
+//     arduinoMockSetMillis(++time);
+//     REQUIRE(!jled.Update());
+//     REQUIRE(arduinoMockGetPinState(kTestPin) == 0);
+//     arduinoMockSetMillis(++time);
+// }
 
 TEST_CASE("Update returns true while updating, else false", "[jled]") {
     arduinoMockInit();
@@ -328,11 +324,12 @@ TEST_CASE("Update returns true while updating, else false", "[jled]") {
     uint32_t time = 0;
     for (auto i = 0; i < expectedTime-1; i++) {
         // returns FALSE on last step and beyond, else TRUE
-        REQUIRE(jled.Update());
-        arduinoMockSetMillis(++time);
+        arduinoMockSetMillis(time++);
+        auto res = jled.Update();
+        REQUIRE(res);
     }
     // when effect is done, we expect still false to be returned
-    REQUIRE_FALSE(jled.Update());
+    arduinoMockSetMillis(time++);
     REQUIRE_FALSE(jled.Update());
 }
 
