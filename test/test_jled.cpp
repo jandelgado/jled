@@ -303,17 +303,36 @@ TEST_CASE("blink led forever", "[jled]") {
     }
 }
 
+TEST_CASE("construct Jled object with custom ctor", "[jled]") {
+    arduinoMockInit();
+
+    constexpr auto kTestPin = 1;
+    JLed jled = JLed(ArduinoAnalogWriter(kTestPin)).Blink(1,1);
+    //JLed jled = JLed(kTestPin).Blink(1,1);
+
+    // test with a simple on-off sequence
+    uint32_t time = 0;
+    REQUIRE(jled.Update());
+    REQUIRE(arduinoMockGetPinState(kTestPin) == 255);
+    arduinoMockSetMillis(++time);
+    REQUIRE(!jled.Update());
+    REQUIRE(arduinoMockGetPinState(kTestPin) == 0);
+    arduinoMockSetMillis(++time);
+}
+
 TEST_CASE("Update returns true while updating, else false", "[jled]") {
     arduinoMockInit();
     JLed jled = JLed(10).Blink(2, 3);
     constexpr auto expectedTime = 2 + 3;
 
     uint32_t time = 0;
-    for (auto i = 0; i < expectedTime; i++) {
+    for (auto i = 0; i < expectedTime-1; i++) {
+        // returns FALSE on last step and beyond, else TRUE
         REQUIRE(jled.Update());
         arduinoMockSetMillis(++time);
     }
-    // when effect is done, we expect false to be returned
+    // when effect is done, we expect still false to be returned
+    REQUIRE_FALSE(jled.Update());
     REQUIRE_FALSE(jled.Update());
 }
 
