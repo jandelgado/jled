@@ -328,13 +328,13 @@ template <typename T>
 class JLedP : public TJLed<T, JLedP<T>> {
  private:
     using Base = TJLed<T, JLedP<T>>;
-    T* port_;
+    T* port_ = nullptr;
 
  public:
-    //~JLedP() { delete port_; }
+    //~JLedP() { delete port_; }  // TODO
     JLedP() : port_(nullptr) {}
     JLedP(const JLedP<T>& l) : Base(l) {
-         port_ = new T(*l.port_);
+         port_ = l.port_ ? new T(*l.port_) : nullptr;
      }
     JLedP(uint8_t pin) : port_(new T(pin)) {}
      // JLedP(const T& port) {
@@ -344,7 +344,7 @@ class JLedP : public TJLed<T, JLedP<T>> {
     bool Update() { return Update(port_); }
     void Stop() { Base::Stop(port_); }
     T* Port() const { return port_; }
-    // JLedP<T>& operator=(const JLedP<T>& l) {
+    // JLedP<T>& operator=(const JLedP<T>& l) {  // TODO
     //     port_ = new T(*l.port_);
     //     return *this;
     // }
@@ -356,6 +356,7 @@ class TJLedSequence {
 
  public:
     //   JLedSequence() delete;
+    TJLedSequence() delete;
     TJLedSequence(JLed* items, size_t n) : items_(items), n_(n) {}
 
     bool Update() {
@@ -372,7 +373,7 @@ class TJLedSequence {
 
  private:
     JLed* items_;
-    T* port_;
+    T* port_ = nullptr;
     size_t cur_ = 0;
     size_t n_;
 };
