@@ -46,7 +46,15 @@ class TJLed {
     using BrightnessEvalFunction = uint8_t (*)(uint32_t t, uint16_t period,
                                                uintptr_t param);
 
+     TJLed() = delete;
+     TJLed(const PortType& port) : port_(port) {}
+     TJLed(uint8_t pin) : port_(PortType(pin)) {}
+     // JLedP(const T& port) {
+    //     port_ = new T(port);
+    // }
+    //
     // TJLed() noexcept : port_(nullptr) {}
+    //
     // explicit TJLed(T& port) noexcept : port_(&port) {}  // TODO(jd)
     // explicit TJLed(uint8_t led_pin) noexcept : port_(new T(led_pin)) {}
 
@@ -59,7 +67,7 @@ class TJLed {
     //        |<delay before>|<--period-->|<-delay after-> (time)
     //                       | func(t)    |
     //                       |<- num_repetitions times  ->
-    bool Update(PortType* port) {
+    bool Update() {
         if (!brightness_func_) {
             return false;
         }
@@ -92,13 +100,13 @@ class TJLed {
 
         if (t < period_) {
             SetInDelayAfterPhase(false);
-            AnalogWrite(port, EvalBrightness(t));
+            AnalogWrite(EvalBrightness(t));
         } else {
             if (!IsInDelayAfterPhase()) {
                 // when in delay after phase, just call AnalogWrite()
                 // once at the beginning.
                 SetInDelayAfterPhase(true);
-                AnalogWrite(port, EvalBrightness(period_ - 1));
+                AnalogWrite(EvalBrightness(period_ - 1));
             }
         }
 
@@ -109,7 +117,7 @@ class TJLed {
 
             if (now >= time_end) {
                 // make sure final value of t=period-1 is set
-                AnalogWrite(port, EvalBrightness(period_ - 1));
+                AnalogWrite(EvalBrightness(period_ - 1));
                 brightness_func_ = nullptr;
                 return false;
             }
@@ -200,10 +208,10 @@ class TJLed {
     bool IsLowActive() const { return GetFlag(FL_LOW_ACTIVE); }
 
     // Stop current effect and turn LED immeadiately off
-    void Stop(PortType* port) {
+    void Stop() {
         // Immediately turn LED off and stop effect.
         brightness_func_ = nullptr;
-        AnalogWrite(port, 0);
+        AnalogWrite(kZeroBrightness);
     }
 
  protected:
@@ -212,9 +220,9 @@ class TJLed {
 
     // internal control of the LED, does not affect
     // state and honors low_active_ flag
-    void AnalogWrite(PortType* port, uint8_t val) {
+    void AnalogWrite(uint8_t val) {
         auto new_val = IsLowActive() ? kFullBrightness - val : val;
-        port->analogWrite(new_val);
+        port_.analogWrite(new_val);
     }
 
     B& Init(BrightnessEvalFunction func) {
@@ -319,64 +327,38 @@ class TJLed {
     uint16_t delay_after_ = 0;   // delay after each repetition
     uint32_t time_start_ = kTimeUndef;
     uint16_t period_ = 0;
+    PortType port_;
 };
 
 template <typename T, typename B>
 constexpr uint8_t TJLed<T, B>::kFadeOnTable[];
 
-template <typename T>
-class JLedP : public TJLed<T, JLedP<T>> {
- private:
-    using Base = TJLed<T, JLedP<T>>;
-    T* port_ = nullptr;
+// template <typename T>
+// class JLedP : public TJLed<T, JLedP<T>> {
+//  private:
+//     using Base = TJLed<T, JLedP<T>>;
+//     T* port_ = nullptr;
 
- public:
-    //~JLedP() { delete port_; }  // TODO
-    JLedP() : port_(nullptr) {}
-    JLedP(const JLedP<T>& l) : Base(l) {
-         port_ = l.port_ ? new T(*l.port_) : nullptr;
-     }
-    JLedP(uint8_t pin) : port_(new T(pin)) {}
-     // JLedP(const T& port) {
-     //     port_ = new T(port);
-     // }
-    bool Update(T* port) { return Base::Update(port); }
-    bool Update() { return Update(port_); }
-    void Stop() { Base::Stop(port_); }
-    T* Port() const { return port_; }
-    // JLedP<T>& operator=(const JLedP<T>& l) {  // TODO
-    //     port_ = new T(*l.port_);
-    //     return *this;
-    // }
-};
+//  public:
+//     //~JLedP() { delete port_; }  // TODO
+//     JLedP() : port_(nullptr) {}
+//     JLedP(const JLedP<T>& l) : Base(l) {
+//          port_ = l.port_ ? new T(*l.port_) : nullptr;
+//      }
+//     JLedP(uint8_t pin) : port_(new T(pin)) {}
+//      // JLedP(const T& port) {
+//      //     port_ = new T(port);
+//      // }
+//     bool Update(T* port) { return Base::Update(port); }
+//     bool Update() { return Update(port_); }
+//     void Stop() { Base::Stop(port_); }
+//     T* Port() const { return port_; }
+//     // JLedP<T>& operator=(const JLedP<T>& l) {  // TODO
+//     //     port_ = new T(*l.port_);
+//     //     return *this;
+//     // }
+// };
 
-template <typename T>
-class TJLedSequence {
-    using JLed = JLedP<T>;
-
- public:
-    //   JLedSequence() delete;
-    TJLedSequence() delete;
-    TJLedSequence(JLed* items, size_t n) : items_(items), n_(n) {}
-
-    bool Update() {
-        if (cur_ >= n_) {
-            return false;
-        }
-        auto& led = items_[cur_];
-        port_ = led.Port() ? led.Port() : port_;
-        if (!led.Update(port_)) {
-            cur_++;
-        }
-        return true;
-    }
-
- private:
-    JLed* items_;
-    T* port_ = nullptr;
-    size_t cur_ = 0;
-    size_t n_;
-};
 
 #ifdef ESP32
 #include "esp32_analog_writer.h"  // NOLINT
@@ -389,8 +371,40 @@ using JLedPortType = Esp8266AnalogWriter;
 using JLedPortType = ArduinoAnalogWriter;
 #endif
 
-using JLed = JLedP<JLedPortType>;
-template class JLedP<JLedPortType>;
-using JLedSequence = TJLedSequence<JLedPortType>;
+class JLed : public TJLed<JLedPortType, JLed> {
+    using TJLed::TJLed;
+};
+// using JLed = TJLed<JLedPortType, JLed>;
+// template class TLed<JLedPortType, JLed>;
+
+template<class T>
+class TJLedSequence {
+    //using JLed = JLedP<T>;
+
+ public:
+    //   JLedSequence() delete;
+    TJLedSequence() = delete;
+    TJLedSequence(T* items, size_t n) : items_(items), n_(n) {}
+
+    bool Update() {
+        if (cur_ >= n_) {
+            return false;
+        }
+        auto& led = items_[cur_];
+        //port_ = led.Port() ? led.Port() : port_;
+        if (!led.Update()) {
+            cur_++;
+        }
+        return true;
+    }
+
+ private:
+    T* items_;
+    //T* port_ = nullptr;
+    size_t cur_ = 0;
+    size_t n_;
+};
+
+using JLedSequence = TJLedSequence<JLed>;
 
 #endif  // SRC_JLED_H_

@@ -12,7 +12,7 @@ TEST_CASE("simple sequence performs all updates", "[jled_sequence]") {
     constexpr auto kPin = 1;
     JLed leds[] = {
         JLed(1).Blink(1, 1).Repeat(1),
-        JLed().Blink(1, 1).Invert().Repeat(1)
+        JLed(1).Blink(1, 1).Invert().Repeat(1)
     };
     JLedSequence seq(leds, 2);
     constexpr uint8_t expected[] = {255,  // first led
