@@ -2,7 +2,6 @@
 // an Arduino mock for testing.
 // Copyright 2017 Jan Delgado jdelgado@gmx.net
 #include <map>
-#include <vector>
 
 #include "catch.hpp"
 
@@ -15,17 +14,6 @@ TEST_CASE("jled ctor set pin mode to OUTPUT", "[jled]") {
     REQUIRE(arduinoMockGetPinMode(kTestPin) == OUTPUT);
 }
 
-TEST_CASE("properly initialize brightness_func", "[jled]") {
-    class TestableJLed : public JLed {
-     public:
-        using JLed::JLed;
-        static void test() {
-            TestableJLed jled = TestableJLed(1);
-            REQUIRE(jled.brightness_func_ == nullptr);
-        }
-    };
-    TestableJLed::test();
-}
 
 TEST_CASE("On/Off function configuration", "[jled]") {
     class TestableJLed : public JLed {
@@ -103,9 +91,10 @@ TEST_CASE("brightness functions calculate correct values", "[jled]") {
             }
 
             SECTION("OnFunc()") {
-                // OnFunc returns always 255
-                REQUIRE(JLed::OnFunc(0, 0, 0) == 255);
-                REQUIRE(JLed::OnFunc((uint32_t)(-1), 0, 0) == 255);
+                // OnFunc returns effect_param
+                REQUIRE(JLed::OnFunc(0, 0, 0) == 0);
+                REQUIRE(JLed::OnFunc(0, 0, 255) == 255);
+                REQUIRE(JLed::OnFunc((uint32_t)(-1), 0, 255) == 255);
             }
 
             SECTION("BreatheFunc()") {
@@ -113,7 +102,7 @@ TEST_CASE("brightness functions calculate correct values", "[jled]") {
                 const std::map<uint32_t, uint8_t> test_values = {
                     {0, 0},     {500, 68}, {1000, 255},
                     {1500, 68}, {1999, 0}, {2000, 0}};
-                for (auto &x : test_values) {
+                for (const auto &x : test_values) {
                     auto val = JLed::BreatheFunc(x.first, kPeriod, 0);
                     REQUIRE((int)x.second == (int)val);
                 }
@@ -218,17 +207,19 @@ TEST_CASE("dont evalute twice during one time tick", "[jled]") {
     REQUIRE(num_times_called == 2);
 }
 
-TEST_CASE("stop effect", "[jled]") {
+TEST_CASE("stop effect stops the effect", "[jled]") {
     constexpr auto kTestPin = 10;
     constexpr auto kDuration = 100;
     arduinoMockInit();
 
     // we test that an effect that normally has high ouput for a longer
-    // time (e.g. FadeOff()) stays off after Stop() was called
+    // time (e.g. FadeOff()) stays off after Stop() was called. 
     JLed jled = JLed(kTestPin).FadeOff(kDuration);
+    REQUIRE(!jled.IsStopped());
     jled.Update();
     REQUIRE(arduinoMockGetPinState(kTestPin) > 0);
     jled.Stop();
+    REQUIRE(jled.IsStopped());
     REQUIRE_FALSE(jled.Update());
     REQUIRE(arduinoMockGetPinState(kTestPin) == 0);
     // update should not change anything
@@ -255,7 +246,7 @@ TEST_CASE("blink led twice with delay and repeat", "[jled]") {
 
     // 1 ms on, 2 ms off + 2 ms delay = 3ms off in total per iteration
     jled.DelayBefore(5).Blink(1, 2).DelayAfter(2).Repeat(2);
-    const std::vector<uint8_t> expected = {
+    constexpr uint8_t expected[]{
         /* delay before 5ms */ 0, 0, 0, 0, 0,
         /* 1ms on */ 255,
         /* 2ms off */ 0,          0,
@@ -348,7 +339,7 @@ TEST_CASE("user provided brightness function", "[jled]") {
 
     JLed jled = JLed(kTestPin).UserFunc(user_func, kDuration, 0);
 
-    const std::vector<uint8_t> expected = {0, 1, 2, 3, kBrightness};
+    constexpr uint8_t expected[]{0, 1, 2, 3, kBrightness};
     auto time = 0;
     for (const auto val : expected) {
         jled.Update();
