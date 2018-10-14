@@ -35,17 +35,93 @@
 //     led.Update();
 //   }
 
+uint8_t jled_fadeon_func(uint32_t t, uint16_t period);
+
+// a function f(t,period,param) that calculates the LEDs brightness for a given
+// point in time and the given period. param is an optionally user provided
+// parameter. t will always be in range [0..period-1].
+// f(period-1,period,param) will be called last to calculate the final state of
+// the LED.
+class BrightnessEvaluator {
+ public:
+    BrightnessEvaluator() = default;
+    BrightnessEvaluator(const BrightnessEvaluator&) = default;
+    virtual uint16_t Period() const  = 0;
+    virtual uint8_t Eval(uint32_t t)  = 0;
+};
+
+class ConstantBrightnessEvaluator : public BrightnessEvaluator {
+    uint8_t val_;
+    using BrightnessEvaluator::BrightnessEvaluator;
+ public:
+    ConstantBrightnessEvaluator(uint8_t val) : val_(val) {}
+    uint16_t Period() const { return 1; }
+    uint8_t Eval(uint32_t t) { return val_; }
+};
+
+// BlinkBrightnessEvaluator does one on-off cycle in the specified period
+class BlinkBrightnessEvaluator : public BrightnessEvaluator {
+    uint16_t duration_on_, duration_off_;
+
+ public:
+    BlinkBrightnessEvaluator() : duration_on_(0), duration_off_(0) {}
+    BlinkBrightnessEvaluator(const BlinkBrightnessEvaluator& be) {}
+    BlinkBrightnessEvaluator(uint16_t duration_on, uint16_t duration_off)
+        : duration_on_(duration_on), duration_off_(duration_off) {}
+    uint16_t Period() const { return duration_on_ + duration_off_; }
+    uint8_t Eval(uint32_t t) {
+        return (t < duration_on_) ? 0 : 255;  // TODO constants
+    }
+};
+
+// fade LED on
+class FadeOnBrightnessEvaluator : public BrightnessEvaluator {
+    uint16_t period_;
+    using BrightnessEvaluator::BrightnessEvaluator;
+
+ public:
+    FadeOnBrightnessEvaluator(uint16_t period) : period_(period) {}
+    uint16_t Period() const { return period_; }
+    uint8_t Eval(uint32_t t) { return jled_fadeon_func(t, period_); }
+};
+
+// fade LED off
+class FadeOffBrightnessEvaluator : public BrightnessEvaluator {
+    uint16_t period_;
+    using BrightnessEvaluator::BrightnessEvaluator;
+
+ public:
+    FadeOffBrightnessEvaluator(uint16_t period) : period_(period) {}
+    uint16_t Period() const { return period_; }
+    uint8_t Eval(uint32_t t) { return jled_fadeon_func(period_ - t, period_); }
+};
+
+// The breathe func is composed by fadein and fade-out with one each
+// half
+// period.  we approximate the following function:
+//   y(x) = exp(sin((t-period/4.) * 2. * PI / period)) - 0.36787944) *
+//   108.)
+// idea see:
+// http://sean.voisen.org/blog/2011/10/breathing-led-with-arduino/
+// But we do it with integers only.
+class BreatheBrightnessEvaluator : public BrightnessEvaluator {
+    uint16_t period_;
+    using BrightnessEvaluator::BrightnessEvaluator;
+
+ public:
+    BreatheBrightnessEvaluator(uint16_t period) : period_(period) {}
+    uint16_t Period() const { return period_; }
+    uint8_t Eval(uint32_t t) {
+        if (t + 1 >= period_) return 0;  // kZeroBrightness;
+        const uint16_t periodh = period_ >> 1;
+        return t < periodh ? jled_fadeon_func(t, periodh)
+                           : jled_fadeon_func(periodh - t, periodh);
+    }
+};
+
 template <typename PortType, typename B>
 class TJLed {
  public:
-    // a function f(t,period,param) that calculates the LEDs brightness for a
-    // given point in time and the given period. param is an optionally user
-    // provided parameter. t will always be in range [0..period-1].
-    // f(period-1,period,param) will be called last to calculate the final
-    // state of the LED.
-    using BrightnessEvalFunction = uint8_t (*)(uint32_t t, uint16_t period,
-                                               uintptr_t param);
-
     TJLed() = delete;
     TJLed(const PortType& port) : port_(port) {}
     TJLed(uint8_t pin) : port_(PortType(pin)) {}
@@ -60,7 +136,7 @@ class TJLed {
     //                       | func(t)    |
     //                       |<- num_repetitions times  ->
     bool Update() {
-        if (IsStopped() || !brightness_func_) {
+        if (IsStopped() || !brightness_eval_) {
             return false;
         }
         const auto now = millis();
@@ -70,7 +146,8 @@ class TJLed {
             return true;
         }
 
-        // last_update_time_ will be 0 on initialization, so this fails on
+        // last_update_time_ will be 0 on initialization, so this fails
+        // on
         // first call to this method.
         if (last_update_time_ == kTimeUndef) {
             last_update_time_ = now;
@@ -83,9 +160,10 @@ class TJLed {
         }
 
         // t cycles in range [0..period+delay_after-1]
-        const auto t = (now - time_start_) % (period_ + delay_after_);
+        const auto period = brightness_eval_->Period();
+        const auto t = (now - time_start_) % (period + delay_after_);
 
-        if (t < period_) {
+        if (t < period) {
             SetInDelayAfterPhase(false);
             AnalogWrite(EvalBrightness(t));
         } else {
@@ -93,18 +171,18 @@ class TJLed {
                 // when in delay after phase, just call AnalogWrite()
                 // once at the beginning.
                 SetInDelayAfterPhase(true);
-                AnalogWrite(EvalBrightness(period_ - 1));
+                AnalogWrite(EvalBrightness(period - 1));
             }
         }
 
         if (!IsForever()) {
             const auto time_end =
                 time_start_ +
-                (uint32_t)(period_ + delay_after_) * num_repetitions_ - 1;
+                (uint32_t)(period + delay_after_) * num_repetitions_ - 1;
 
             if (now >= time_end) {
                 // make sure final value of t = period-1 is set
-                AnalogWrite(EvalBrightness(period_ - 1));
+                AnalogWrite(EvalBrightness(period - 1));
                 SetFlags(FL_STOPPED, true);
                 return false;
             }
@@ -114,15 +192,14 @@ class TJLed {
 
     // turn LED on, respecting delay_before
     B& On(uint8_t brightness = kFullBrightness) {
-        period_ = 1;
-        effect_param_ = brightness;
-        return Init(&TJLed::OnFunc);
+        ce = ConstantBrightnessEvaluator(brightness);
+        return Init(&ce);
     }
 
     // turn LED off, respecting delay_before
-    B& Off() {
-        period_ = 1;
-        return Init(&TJLed::OffFunc);
+    B& Off() { 
+        ce = ConstantBrightnessEvaluator(kZeroBrightness);
+        return Init(&ce);
     }
 
     // turn LED on or off, calls On() / Off()
@@ -130,36 +207,30 @@ class TJLed {
 
     // Fade LED on
     B& FadeOn(uint16_t duration) {
-        period_ = duration;
-        return Init(&TJLed::FadeOnFunc);
+        one = FadeOnBrightnessEvaluator(duration);
+        return Init(&one);
     }
 
     // Fade LED off - acutally is just inverted version of FadeOn()
     B& FadeOff(uint16_t duration) {
-        period_ = duration;
-        return Init(&TJLed::FadeOffFunc);
+        offe = FadeOffBrightnessEvaluator(duration);
+        return Init(&offe);
     }
 
     // Set effect to Breathe, with the given period time in ms.
     B& Breathe(uint16_t period) {
-        period_ = period;
-        return Init(&TJLed::BreatheFunc);
+        bre = BreatheBrightnessEvaluator(period);
+        return Init(&bre);
     }
 
     // Set effect to Blink, with the given on- and off- duration values.
     B& Blink(uint16_t duration_on, uint16_t duration_off) {
-        period_ = duration_on + duration_off;
-        effect_param_ = duration_on;
-        return Init(&TJLed::BlinkFunc);
+        ble = BlinkBrightnessEvaluator(duration_on, duration_off);
+        return Init(&ble);
     }
 
     // Use user provided function func as brightness function.
-    B& UserFunc(BrightnessEvalFunction func, uint16_t period,
-                uintptr_t user_param = 0) {
-        effect_param_ = user_param;
-        period_ = period;
-        return Init(func);
-    }
+    B& UserFunc(BrightnessEvaluator *be) { return Init(be); }
 
     // set number of repetitions for effect.
     B& Repeat(uint16_t num_repetitions) {
@@ -171,7 +242,8 @@ class TJLed {
     B& Forever() { return Repeat(kRepeatForever); }
     bool IsForever() const { return num_repetitions_ == kRepeatForever; }
 
-    // Set amount of time to initially wait before effect starts. Time is
+    // Set amount of time to initially wait before effect starts. Time
+    // is
     // relative to first call of Update() method and specified in ms.
     B& DelayBefore(uint16_t delay_before) {
         delay_before_ = delay_before;
@@ -184,12 +256,14 @@ class TJLed {
         return static_cast<B&>(*this);
     }
 
-    // Invert effect. If set, every effect calculation will be inverted, i.e.
+    // Invert effect. If set, every effect calculation will be inverted,
+    // i.e.
     // instead of a, 255-a will be used.
     B& Invert() { return SetFlags(FL_INVERTED, true); }
     bool IsInverted() const { return GetFlag(FL_INVERTED); }
 
-    // Set physical LED polarity to be low active. This inverts every signal
+    // Set physical LED polarity to be low active. This inverts every
+    // signal
     // physically output to a pin.
     B& LowActive() { return SetFlags(FL_LOW_ACTIVE, true); }
     bool IsLowActive() const { return GetFlag(FL_LOW_ACTIVE); }
@@ -210,7 +284,6 @@ class TJLed {
     }
 
  protected:
-
     // internal control of the LED, does not affect
     // state and honors low_active_ flag
     void AnalogWrite(uint8_t val) {
@@ -218,8 +291,8 @@ class TJLed {
         port_.analogWrite(new_val);
     }
 
-    B& Init(BrightnessEvalFunction func) {
-        brightness_func_ = func;
+    B& Init(BrightnessEvaluator *be) {
+        brightness_eval_ = be;
         last_update_time_ = kTimeUndef;
         time_start_ = kTimeUndef;
         return static_cast<B&>(*this);
@@ -236,76 +309,27 @@ class TJLed {
     bool GetFlag(uint8_t f) const { return (flags_ & f) != 0; }
 
     void SetInDelayAfterPhase(bool f) { SetFlags(FL_IN_DELAY_AFTER_PHASE, f); }
-    bool IsInDelayAfterPhase() const { return GetFlag(FL_IN_DELAY_AFTER_PHASE); }
+    bool IsInDelayAfterPhase() const {
+        return GetFlag(FL_IN_DELAY_AFTER_PHASE);
+    }
 
-    uint8_t EvalBrightness(uint32_t t) const {
-        const auto val = brightness_func_(t, period_, effect_param_);
+    uint8_t EvalBrightness(uint32_t t) {
+        const auto val = brightness_eval_->Eval(t);
         return IsInverted() ? kFullBrightness - val : val;
     }
 
-    // permanently turn LED on
-    static uint8_t OnFunc(uint32_t, uint16_t, uintptr_t effect_param) {
-        return static_cast<uint8_t>(effect_param);
-    }
+    // to avoid using new/delete while have polymorphism, we use use
+    // a union of the evaluators
+    union {
+        ConstantBrightnessEvaluator ce;  // only one must be initialized
+        BlinkBrightnessEvaluator ble;
+        FadeOnBrightnessEvaluator one;
+        FadeOffBrightnessEvaluator offe;
+        BreatheBrightnessEvaluator bre;
+    };
+    BrightnessEvaluator *brightness_eval_ = nullptr;
 
-    // permanently turn LED off
-    static uint8_t OffFunc(uint32_t, uint16_t, uintptr_t) {
-        return kZeroBrightness;
-    }
-
-    // BlinkFunc does one on-off cycle in the specified period. The effect_param
-    // specifies the time the effect is on.
-    static uint8_t BlinkFunc(uint32_t t, uint16_t period,
-                             uintptr_t effect_param) {
-        return (t < effect_param) ? kFullBrightness : kZeroBrightness;
-    }
-
-    // fade LED on
-    // https://www.wolframalpha.com/input/?i=plot+(exp(sin((x-100%2F2.)*PI%2F100))-0.36787944)*108.0++x%3D0+to+100
-    // The fade-on func is an approximation of
-    //   y(x) = exp(sin((t-period/2.) * PI / period)) - 0.36787944) * 108.)
-    static uint8_t FadeOnFunc(uint32_t t, uint16_t period, uintptr_t) {
-        if (t + 1 >= period) return kFullBrightness;
-
-        // approximate by linear interpolation.
-        // scale t according to period to 0..255
-        t = ((t << 8) / period) & 0xff;
-        const auto i = (t >> 5);  // -> i will be in range 0 .. 7
-        const auto y0 = kFadeOnTable[i];
-        const auto y1 = kFadeOnTable[i + 1];
-        const auto x0 = i << 5;  // *32
-
-        // y(t) = mt+b, with m = dy/dx = (y1-y0)/32 = (y1-y0) >> 5
-        return (((t - x0) * (y1 - y0)) >> 5) + y0;
-    }
-
-    // Fade LED off - inverse of FadeOnFunc()
-    static uint8_t FadeOffFunc(uint32_t t, uint16_t period, uintptr_t) {
-        return FadeOnFunc(period - t, period, 0);
-    }
-
-    // The breathe func is composed by fadein and fade-out with one each half
-    // period.  we approximate the following function:
-    //   y(x) = exp(sin((t-period/4.) * 2. * PI / period)) - 0.36787944) * 108.)
-    // idea see: http://sean.voisen.org/blog/2011/10/breathing-led-with-arduino/
-    // But we do it with integers only.
-    static uint8_t BreatheFunc(uint32_t t, uint16_t period, uintptr_t) {
-        if (t + 1 >= period) return kZeroBrightness;
-        const uint16_t periodh = period >> 1;
-        return t < periodh ? FadeOnFunc(t, periodh, 0)
-                           : FadeOffFunc(t - periodh, periodh, 0);
-    }
-
-    BrightnessEvalFunction brightness_func_ = nullptr;
  private:
-    // pre-calculated fade-on function. This table samples the function
-    //   y(x) =  exp(sin((t - period / 2.) * PI / period)) - 0.36787944) * 108.
-    // at x={0,32,...,256}. In FadeOnFunc() we us linear interpolation to
-    // approximate the original function (so we do not need fp-ops).
-    // fade-off and breath functions are all derived from fade-on, see below.
-    // (To save some additional bytes, we could place it in PROGMEM sometime)
-    static constexpr uint8_t kFadeOnTable[] = {0,   3,   13,  33, 68,
-                                               118, 179, 232, 255};
     static constexpr uint16_t kRepeatForever = 65535;
     static constexpr uint32_t kTimeUndef = -1;
     static constexpr uint8_t FL_INVERTED = (1 << 0);
@@ -315,18 +339,13 @@ class TJLed {
     static constexpr uint8_t kFullBrightness = 255;
     static constexpr uint8_t kZeroBrightness = 0;
     uint8_t flags_ = 0;
-    uintptr_t effect_param_ = 0;  // optional additional effect paramter.
     uint16_t num_repetitions_ = 1;
     uint32_t last_update_time_ = kTimeUndef;
     uint16_t delay_before_ = 0;  // delay before the first effect starts
     uint16_t delay_after_ = 0;   // delay after each repetition
     uint32_t time_start_ = kTimeUndef;
-    uint16_t period_ = 0;
     PortType port_;
 };
-
-template <typename T, typename B>
-constexpr uint8_t TJLed<T, B>::kFadeOnTable[];
 
 #ifdef ESP32
 #include "esp32_analog_writer.h"  // NOLINT
