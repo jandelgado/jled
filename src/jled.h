@@ -70,7 +70,7 @@ class BlinkBrightnessEvaluator : public BrightnessEvaluator {
         : duration_on_(duration_on), duration_off_(duration_off) {}
     uint16_t Period() const { return duration_on_ + duration_off_; }
     uint8_t Eval(uint32_t t) {
-        return (t < duration_on_) ? 0 : 255;  // TODO constants
+        return (t < duration_on_) ? 255 : 0;  // TODO constants
     }
 };
 
@@ -118,6 +118,9 @@ class BreatheBrightnessEvaluator : public BrightnessEvaluator {
                            : jled_fadeon_func(periodh - t, periodh);
     }
 };
+
+// set MAX_SIZE to class using most memory
+constexpr auto MAX_SIZE = sizeof(BlinkBrightnessEvaluator);
 
 template <typename PortType, typename B>
 class TJLed {
@@ -190,16 +193,16 @@ class TJLed {
         return true;
     }
 
-    // turn LED on, respecting delay_before
+    // turn LED on
     B& On(uint8_t brightness = kFullBrightness) {
-        ce = ConstantBrightnessEvaluator(brightness);
-        return Init(&ce);
+        // we use placement new and therefore not need to keep track of mem
+        // allocated
+        return Init(new (brightness_eval_buf_)  ConstantBrightnessEvaluator(brightness));
     }
 
-    // turn LED off, respecting delay_before
+    // turn LED off
     B& Off() { 
-        ce = ConstantBrightnessEvaluator(kZeroBrightness);
-        return Init(&ce);
+        return Init(new (brightness_eval_buf_)  ConstantBrightnessEvaluator(kZeroBrightness));
     }
 
     // turn LED on or off, calls On() / Off()
@@ -207,26 +210,22 @@ class TJLed {
 
     // Fade LED on
     B& FadeOn(uint16_t duration) {
-        one = FadeOnBrightnessEvaluator(duration);
-        return Init(&one);
+        return Init(new (brightness_eval_buf_) FadeOnBrightnessEvaluator(duration));
     }
 
     // Fade LED off - acutally is just inverted version of FadeOn()
     B& FadeOff(uint16_t duration) {
-        offe = FadeOffBrightnessEvaluator(duration);
-        return Init(&offe);
+        return Init(new (brightness_eval_buf_) FadeOffBrightnessEvaluator(duration));
     }
 
     // Set effect to Breathe, with the given period time in ms.
     B& Breathe(uint16_t period) {
-        bre = BreatheBrightnessEvaluator(period);
-        return Init(&bre);
+        return Init(new (brightness_eval_buf_) BreatheBrightnessEvaluator(period));
     }
 
     // Set effect to Blink, with the given on- and off- duration values.
     B& Blink(uint16_t duration_on, uint16_t duration_off) {
-        ble = BlinkBrightnessEvaluator(duration_on, duration_off);
-        return Init(&ble);
+        return Init(new (brightness_eval_buf_) BlinkBrightnessEvaluator(duration_on, duration_off));
     }
 
     // Use user provided function func as brightness function.
@@ -291,8 +290,8 @@ class TJLed {
         port_.analogWrite(new_val);
     }
 
-    B& Init(BrightnessEvaluator *be) {
-        brightness_eval_ = be;
+    B& Init(BrightnessEvaluator *eval) {
+        brightness_eval_ = eval;
         last_update_time_ = kTimeUndef;
         time_start_ = kTimeUndef;
         return static_cast<B&>(*this);
@@ -313,23 +312,18 @@ class TJLed {
         return GetFlag(FL_IN_DELAY_AFTER_PHASE);
     }
 
-    uint8_t EvalBrightness(uint32_t t) {
+    uint8_t EvalBrightness(uint32_t t) const {
         const auto val = brightness_eval_->Eval(t);
         return IsInverted() ? kFullBrightness - val : val;
     }
 
-    // to avoid using new/delete while have polymorphism, we use use
-    // a union of the evaluators
-    union {
-        ConstantBrightnessEvaluator ce;  // only one must be initialized
-        BlinkBrightnessEvaluator ble;
-        FadeOnBrightnessEvaluator one;
-        FadeOffBrightnessEvaluator offe;
-        BreatheBrightnessEvaluator bre;
-    };
-    BrightnessEvaluator *brightness_eval_ = nullptr;
 
  private:
+    // this is where the BrightnessEvaluator will be stored using 
+    // placment new.
+    char brightness_eval_buf_[MAX_SIZE];
+    BrightnessEvaluator *brightness_eval_ = nullptr;
+
     static constexpr uint16_t kRepeatForever = 65535;
     static constexpr uint32_t kTimeUndef = -1;
     static constexpr uint8_t FL_INVERTED = (1 << 0);
