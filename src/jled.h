@@ -37,6 +37,12 @@
 
 uint8_t jled_fadeon_func(uint32_t t, uint16_t period);
 
+// placement new and delete for Arduino
+#if !defined(NO_PLACEMENT_NEW) 
+void *operator new( size_t size, void *ptr );
+void operator delete( void *obj, void *alloc );
+#endif
+
 // a function f(t,period,param) that calculates the LEDs brightness for a given
 // point in time and the given period. param is an optionally user provided
 // parameter. t will always be in range [0..period-1].
@@ -120,7 +126,7 @@ class BreatheBrightnessEvaluator : public BrightnessEvaluator {
 };
 
 // set MAX_SIZE to class using most memory
-constexpr auto MAX_SIZE = sizeof(BlinkBrightnessEvaluator);
+constexpr auto MAX_SIZE = sizeof(BlinkBrightnessEvaluator)+10;
 
 template <typename PortType, typename B>
 class TJLed {
@@ -139,7 +145,7 @@ class TJLed {
     //                       | func(t)    |
     //                       |<- num_repetitions times  ->
     bool Update() {
-        if (IsStopped() || !brightness_eval_) {
+        if (IsStopped()) { // TODO || !brightness_eval_) {
             return false;
         }
         const auto now = millis();
@@ -197,12 +203,12 @@ class TJLed {
     B& On(uint8_t brightness = kFullBrightness) {
         // we use placement new and therefore not need to keep track of mem
         // allocated
-        return Init(new (brightness_eval_buf_)  ConstantBrightnessEvaluator(brightness));
+        return Init(new ((void*)brightness_eval_buf_)  ConstantBrightnessEvaluator(brightness));
     }
 
     // turn LED off
     B& Off() { 
-        return Init(new (brightness_eval_buf_)  ConstantBrightnessEvaluator(kZeroBrightness));
+        return Init(new ((void*)brightness_eval_buf_)  ConstantBrightnessEvaluator(kZeroBrightness));
     }
 
     // turn LED on or off, calls On() / Off()
@@ -210,22 +216,22 @@ class TJLed {
 
     // Fade LED on
     B& FadeOn(uint16_t duration) {
-        return Init(new (brightness_eval_buf_) FadeOnBrightnessEvaluator(duration));
+        return Init(new ((void*)brightness_eval_buf_) FadeOnBrightnessEvaluator(duration));
     }
 
     // Fade LED off - acutally is just inverted version of FadeOn()
     B& FadeOff(uint16_t duration) {
-        return Init(new (brightness_eval_buf_) FadeOffBrightnessEvaluator(duration));
+        return Init(new ((void*)brightness_eval_buf_) FadeOffBrightnessEvaluator(duration));
     }
 
     // Set effect to Breathe, with the given period time in ms.
     B& Breathe(uint16_t period) {
-        return Init(new (brightness_eval_buf_) BreatheBrightnessEvaluator(period));
+        return Init(new ((void*)brightness_eval_buf_) BreatheBrightnessEvaluator(period));
     }
 
     // Set effect to Blink, with the given on- and off- duration values.
     B& Blink(uint16_t duration_on, uint16_t duration_off) {
-        return Init(new (brightness_eval_buf_) BlinkBrightnessEvaluator(duration_on, duration_off));
+        return Init(new ((void*)brightness_eval_buf_) BlinkBrightnessEvaluator(duration_on, duration_off));
     }
 
     // Use user provided function func as brightness function.
@@ -313,7 +319,9 @@ class TJLed {
     }
 
     uint8_t EvalBrightness(uint32_t t) const {
-        const auto val = brightness_eval_->Eval(t);
+        auto brightness_eval = (BrightnessEvaluator*)brightness_eval_buf_;
+        const auto val = brightness_eval->Eval(t);
+        //const auto val = brightness_eval_->Eval(t);
         return IsInverted() ? kFullBrightness - val : val;
     }
 

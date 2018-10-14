@@ -1,5 +1,16 @@
 #include <Arduino.h>
 
+// placement new and delete for Arduino
+#if !defined(NO_PLACEMENT_NEW) 
+void *operator new( size_t size, void *ptr ){
+  return ptr;
+}
+ 
+void operator delete( void *obj, void *alloc ){
+  return;
+}
+#endif
+
 // pre-calculated fade-on function. This table samples the function
 //   y(x) =  exp(sin((t - period / 2.) * PI / period)) - 0.36787944)
 //   * 108.
