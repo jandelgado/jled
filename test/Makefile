@@ -6,10 +6,10 @@ CFLAGS=-std=c++11 -c -Wall -I. -I../src --coverage -fno-inline \
 
 LDFLAGS=-fprofile-arcs -ftest-coverage 
 
-TEST_JLED_SOURCES=Arduino.cpp test_jled.cpp test_mock.cpp test_main.cpp
+TEST_JLED_SOURCES=Arduino.cpp test_jled.cpp test_mock.cpp test_main.cpp ../src/jled.cpp
 TEST_JLED_OBJECTS=$(TEST_JLED_SOURCES:.cpp=.o) 
 
-TEST_JLED_SEQUENCE_SOURCES=Arduino.cpp test_jled_sequence.cpp test_mock.cpp test_main.cpp
+TEST_JLED_SEQUENCE_SOURCES=Arduino.cpp test_jled_sequence.cpp test_mock.cpp test_main.cpp ../src/jled.cpp
 TEST_JLED_SEQUENCE_OBJECTS=$(TEST_JLED_SEQUENCE_SOURCES:.cpp=.o)
 
 TEST_ESP32_SOURCES=Arduino.cpp test_esp32_analog_writer.cpp ../src/esp32_analog_writer.cpp test_main.cpp
