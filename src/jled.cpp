@@ -1,15 +1,17 @@
 #include <Arduino.h>
+#include <jled.h>
 
-// placement new and delete for Arduino
-#if !defined(NO_PLACEMENT_NEW) 
-void *operator new( size_t size, void *ptr ){
-  return ptr;
+// placement new and delete for Arduino - not needed when e.g. running host
+// based unit tests.
+#if !defined(NO_PLACEMENT_NEW)
+void *operator new(size_t size, void *ptr) { 
+    ptr = malloc(size);
+    return ptr; 
 }
- 
-void operator delete( void *obj, void *alloc ){
-  return;
-}
+void operator delete(void *obj, void *alloc) { return; }
 #endif
+
+namespace jled {
 
 // pre-calculated fade-on function. This table samples the function
 //   y(x) =  exp(sin((t - period / 2.) * PI / period)) - 0.36787944)
@@ -41,3 +43,5 @@ uint8_t jled_fadeon_func(uint32_t t, uint16_t period) {
     // y(t) = mt+b, with m = dy/dx = (y1-y0)/32 = (y1-y0) >> 5
     return (((t - x0) * (y1 - y0)) >> 5) + y0;
 }
+
+};  // namespace jled

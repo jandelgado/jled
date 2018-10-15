@@ -4,8 +4,9 @@
 #include <map>
 
 #include "catch.hpp"
-
 #include <jled.h>  // NOLINT
+
+using namespace jled;
 
 TEST_CASE("jled ctor set pin mode to OUTPUT", "[jled]") {
     constexpr auto kTestPin = 10;
@@ -79,72 +80,61 @@ TEST_CASE("jled ctor set pin mode to OUTPUT", "[jled]") {
 //     TestableJLed::testFadeOff();
 // }
 
-// TEST_CASE("brightness functions calculate correct values", "[jled]") {
-//     class TestableJLed : JLed {
-//      public:
-//         static void test() {
-//             SECTION("OffFunc()") {
-//                 // OffFunc returns always 0
-//                 REQUIRE(JLed::OffFunc(0, 0, 0) == 0);
-//                 REQUIRE(JLed::OffFunc((uint32_t)(-1), 0, 0) == 0);
-//             }
+TEST_CASE("ConstantBrightnessEvaluator calculates correct values", "[jled]") {
+    auto cbZero = ConstantBrightnessEvaluator(0);
+    REQUIRE(1 == cbZero.Period());
+    REQUIRE(0 == cbZero.Eval(0));
+    REQUIRE(0 == cbZero.Eval(1000));
 
-//             SECTION("OnFunc()") {
-//                 // OnFunc returns effect_param
-//                 REQUIRE(JLed::OnFunc(0, 0, 0) == 0);
-//                 REQUIRE(JLed::OnFunc(0, 0, 255) == 255);
-//                 REQUIRE(JLed::OnFunc((uint32_t)(-1), 0, 255) == 255);
-//             }
+    auto cbFull = ConstantBrightnessEvaluator(255);
+    REQUIRE(1 == cbFull.Period());
+    REQUIRE(255 == cbFull.Eval(0));
+    REQUIRE(255 == cbFull.Eval(1000));
+}
 
-//             SECTION("BreatheFunc()") {
-//                 constexpr auto kPeriod = 2000;
-//                 const std::map<uint32_t, uint8_t> test_values = {
-//                     {0, 0},     {500, 68}, {1000, 255},
-//                     {1500, 68}, {1999, 0}, {2000, 0}};
-//                 for (const auto &x : test_values) {
-//                     auto val = JLed::BreatheFunc(x.first, kPeriod, 0);
-//                     REQUIRE((int)x.second == (int)val);
-//                 }
-//             }
+TEST_CASE("BlinkBrightnessEvaluator calculates correct values", "[jled]") {
+    auto eval = BlinkBrightnessEvaluator(10, 5);
+    REQUIRE(10+5 == eval.Period());
+    REQUIRE(255 == eval.Eval(0));
+    REQUIRE(255 == eval.Eval(9));
+    REQUIRE(0 == eval.Eval(10));
+    REQUIRE(0 == eval.Eval(14));
+}
 
-//             SECTION("BlinkFunc()") {
-//                 constexpr auto kPeriod = 2000;
-//                 constexpr auto kDurationOn = 500;
-//                 REQUIRE(JLed::BlinkFunc(0, kPeriod, kDurationOn) == 255);
-//                 REQUIRE(JLed::BlinkFunc(kDurationOn - 1, kPeriod,
-//                                         kDurationOn) == 255);
-//                 REQUIRE(JLed::BlinkFunc(kDurationOn, kPeriod, kDurationOn) ==
-//                         0);
-//                 REQUIRE(JLed::BlinkFunc((uint32_t)(-1), kPeriod, kDurationOn)
-//                 ==
-//                         0);
-//             }
+TEST_CASE("FadeOnOffEvaluator calculates correct values", "[jled]") {
+    constexpr auto kPeriod = 2000;
+    // since FadeOffFunc is just mirrored FadeOffFunc inverted
+    // we test both together.
+    auto evalOn = FadeOnBrightnessEvaluator(kPeriod);
+    auto evalOff = FadeOffBrightnessEvaluator(kPeriod);
 
-//             SECTION("FadeOnFunc() and FadeOffFunc()") {
-//                 // since FadeOffFunc is just mirrored FadeOffFunc inverted,
-//                 we
-//                 // test both together.
-//                 constexpr auto kPeriod = 2000;
-//                 const std::map<uint32_t, uint8_t> test_values = {
-//                     {0, 0},      {500, 13},   {1000, 68},  {1500, 179},
-//                     {1999, 255}, {2000, 255}, {10000, 255}};
-//                 for (auto &x : test_values) {
-//                     auto valFadeOn = JLed::FadeOnFunc(x.first, kPeriod, 0);
-//                     auto valFadeOff =
-//                         JLed::FadeOffFunc(kPeriod - x.first, kPeriod, 0);
-//                     REQUIRE(x.second == valFadeOn);
-//                     REQUIRE(x.second == valFadeOff);
-//                 }
-//             }
-//         }
-//     };
-//     TestableJLed::test();
-// }
+    REQUIRE(kPeriod == evalOn.Period());
+    REQUIRE(kPeriod == evalOff.Period());
+    const std::map<uint32_t, uint8_t> test_values = {
+        {0, 0},      {500, 13},   {1000, 68},  {1500, 179},
+        {1999, 255}, {2000, 255}, {10000, 255}};
+
+    for (auto &x : test_values) {
+        REQUIRE(x.second == evalOn.Eval(x.first));
+        REQUIRE(x.second == evalOff.Eval(kPeriod - x.first));
+    }
+}
+
+TEST_CASE("BreatheEvaluator calculates correct values", "[jled]") {
+    constexpr auto kPeriod = 2000;
+    auto eval = BreatheBrightnessEvaluator(kPeriod);
+    REQUIRE(kPeriod == eval.Period());
+    const std::map<uint32_t, uint8_t> test_values = {
+        {0, 0}, {500, 68}, {1000, 255}, {1500, 68}, {1999, 0}, {2000, 0}};
+
+    for (const auto &x : test_values) {
+        REQUIRE((int)x.second == (int)eval.Eval(x.first));
+    }
+}
 
 TEST_CASE("EvalBrightness()", "[jled]") {
     static constexpr auto kTimeProbe = 100;
     static constexpr auto kPeriod = 1000;
-    static constexpr auto kUserParam = 1337;
     static constexpr auto kBrightness = 100;
     static constexpr auto kBrightnessLast = 10;
 
@@ -193,12 +183,12 @@ TEST_CASE("set and test forever", "[jled]") {
 }
 
 TEST_CASE("dont evalute twice during one time tick", "[jled]") {
-
-    class CustomBrightnessEvaluator : public BrightnessEvaluator {
+    class CountingCustomBrightnessEvaluator : public BrightnessEvaluator {
         uint16_t count_ = 0;
+
      public:
         uint16_t Period() const { return 1000; }
-        uint16_t Count() const {return count_;}
+        uint16_t Count() const { return count_; }
         uint8_t Eval(uint32_t t) {
             count_++;
             return 0;
@@ -206,7 +196,7 @@ TEST_CASE("dont evalute twice during one time tick", "[jled]") {
     };
 
     uint16_t num_times_called = 0;
-    auto eval = CustomBrightnessEvaluator();
+    auto eval = CountingCustomBrightnessEvaluator();
     JLed jled = JLed(1).UserFunc(&eval);
     arduinoMockSetMillis(0);
 
@@ -303,22 +293,21 @@ TEST_CASE("blink led forever", "[jled]") {
     }
 }
 
-// TEST_CASE("construct Jled object with custom ctor", "[jled]") {
-//     arduinoMockInit();
+TEST_CASE("construct Jled object with custom ctor", "[jled]") {
+    arduinoMockInit();
 
-//     constexpr auto kTestPin = 1;
-//     JLed jled = JLed(ArduinoAnalogWriter(kTestPin)).Blink(1,1);
-//     //JLed jled = JLed(kTestPin).Blink(1,1);
+    constexpr auto kTestPin = 1;
+    JLed jled = JLed(ArduinoAnalogWriter(kTestPin)).Blink(1, 1);
 
-//     // test with a simple on-off sequence
-//     uint32_t time = 0;
-//     REQUIRE(jled.Update());
-//     REQUIRE(arduinoMockGetPinState(kTestPin) == 255);
-//     arduinoMockSetMillis(++time);
-//     REQUIRE(!jled.Update());
-//     REQUIRE(arduinoMockGetPinState(kTestPin) == 0);
-//     arduinoMockSetMillis(++time);
-// }
+    // test with a simple on-off sequence
+    uint32_t time = 0;
+    REQUIRE(jled.Update());
+    REQUIRE(arduinoMockGetPinState(kTestPin) == 255);
+    arduinoMockSetMillis(++time);
+    REQUIRE(!jled.Update());
+    REQUIRE(arduinoMockGetPinState(kTestPin) == 0);
+    arduinoMockSetMillis(++time);
+}
 
 TEST_CASE("Update returns true while updating, else false", "[jled]") {
     arduinoMockInit();
