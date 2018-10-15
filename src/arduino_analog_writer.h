@@ -32,5 +32,4 @@ class ArduinoAnalogWriter /*: public AnalogWriter */ {
  private:
     uint8_t pin_;
 };
-
 #endif  // SRC_ARDUINO_ANALOG_WRITER_H_

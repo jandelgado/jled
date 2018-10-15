@@ -23,7 +23,6 @@
 #define SRC_ESP8266_ANALOG_WRITER_H_
 
 #include <Arduino.h>
-
 class Esp8266AnalogWriter /*: public AnalogWriter */ {
  public:
     explicit Esp8266AnalogWriter(uint8_t pin) noexcept : pin_(pin) {
@@ -44,5 +43,4 @@ class Esp8266AnalogWriter /*: public AnalogWriter */ {
  private:
     uint8_t pin_;
 };
-
 #endif  // SRC_ESP8266_ANALOG_WRITER_H_

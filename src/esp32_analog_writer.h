@@ -23,7 +23,6 @@
 #define SRC_ESP32_ANALOG_WRITER_H_
 
 #include <Arduino.h>
-
 class Esp32AnalogWriter /*: public AnalogWriter */ {
     static constexpr auto kLedcTimer8Bit = 8;
 
@@ -53,5 +52,4 @@ class Esp32AnalogWriter /*: public AnalogWriter */ {
     static uint8_t nextChan_;
     uint8_t chan_;
 };
-
 #endif  // SRC_ESP32_ANALOG_WRITER_H_
