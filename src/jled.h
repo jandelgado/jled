@@ -152,7 +152,7 @@ class TJLed {
     //                       | func(t)    |
     //                       |<- num_repetitions times  ->
     bool Update() {
-        if (IsStopped()) {  // TODO || !brightness_eval_) {
+        if (IsStopped()) {  
             return false;
         }
         const auto now = millis();
@@ -163,8 +163,7 @@ class TJLed {
         }
 
         // last_update_time_ will be 0 on initialization, so this fails
-        // on
-        // first call to this method.
+        // on first call to this method.
         if (last_update_time_ == kTimeUndef) {
             last_update_time_ = now;
             time_start_ = now + delay_before_;
@@ -311,7 +310,7 @@ class TJLed {
     }
 
  protected:
-    // returns the brightness evaluator to use.
+    // TODO returns the brightness evaluator to use.
     BrightnessEvaluator* XBrightnessEvaluator() const {
         return user_brightness_eval_
                    ? user_brightness_eval_
