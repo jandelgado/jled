@@ -47,6 +47,9 @@ void operator delete(void* obj, void* alloc);
 namespace jled {
 using namespace jled;
 //
+static constexpr uint8_t kFullBrightness = 255;
+static constexpr uint8_t kZeroBrightness = 0;
+
 uint8_t jled_fadeon_func(uint32_t t, uint16_t period);
 
 // a function f(t,period,param) that calculates the LEDs brightness for a given
@@ -106,7 +109,9 @@ class FadeOffBrightnessEvaluator : public BrightnessEvaluator {
  public:
     FadeOffBrightnessEvaluator(uint16_t period) : period_(period) {}
     uint16_t Period() const override { return period_; }
-    uint8_t Eval(uint32_t t) override { return jled_fadeon_func(period_ - t, period_); }
+    uint8_t Eval(uint32_t t) override {
+        return jled_fadeon_func(period_ - t, period_);
+    }
 };
 
 // The breathe func is composed by fadein and fade-out with one each
@@ -128,7 +133,7 @@ class BreatheBrightnessEvaluator : public BrightnessEvaluator {
         if (t + 1 >= period_) return 0;  // kZeroBrightness;
         const uint16_t periodh = period_ >> 1;
         return t < periodh ? jled_fadeon_func(t, periodh)
-                           : jled_fadeon_func(period_-t, periodh);
+                           : jled_fadeon_func(period_ - t, periodh);
     }
 };
 
@@ -136,12 +141,8 @@ class BreatheBrightnessEvaluator : public BrightnessEvaluator {
 constexpr auto MAX_SIZE = sizeof(BlinkBrightnessEvaluator) + 10;
 
 template <typename PortType, typename B>
-class TJLed {
+class TJLedController {
  public:
-    TJLed() = delete;
-    TJLed(const PortType& port) : port_(port) {}
-    TJLed(uint8_t pin) : port_(PortType(pin)) {}
-
     // update brightness of LED using the given brightness function
     //  (brightness)                     _________________
     // on 255 |                       ¸-'
@@ -151,8 +152,8 @@ class TJLed {
     //        |<delay before>|<--period-->|<-delay after-> (time)
     //                       | func(t)    |
     //                       |<- num_repetitions times  ->
-    bool Update() {
-        if (IsStopped()) {  
+    bool Update(PortType* port, BrightnessEvaluator* eval) {
+        if (IsStopped()) {
             return false;
         }
         const auto now = millis();
@@ -175,18 +176,18 @@ class TJLed {
         }
 
         // t cycles in range [0..period+delay_after-1]
-        const auto period = XBrightnessEvaluator()->Period();
+        const auto period = eval->Period();
         const auto t = (now - time_start_) % (period + delay_after_);
 
         if (t < period) {
             SetInDelayAfterPhase(false);
-            AnalogWrite(EvalBrightness(t));
+            AnalogWrite(port, EvalBrightness(eval, t));
         } else {
             if (!IsInDelayAfterPhase()) {
                 // when in delay after phase, just call AnalogWrite()
                 // once at the beginning.
                 SetInDelayAfterPhase(true);
-                AnalogWrite(EvalBrightness(period - 1));
+                AnalogWrite(port, EvalBrightness(eval, period - 1));
             }
         }
 
@@ -197,13 +198,147 @@ class TJLed {
 
             if (now >= time_end) {
                 // make sure final value of t = period-1 is set
-                AnalogWrite(EvalBrightness(period - 1));
+                AnalogWrite(port, EvalBrightness(eval, period - 1));
                 SetFlags(FL_STOPPED, true);
                 return false;
             }
         }
         return true;
     }
+
+    // set number of repetitions for effect.
+    B& Repeat(uint16_t num_repetitions) {
+        num_repetitions_ = num_repetitions;
+        return static_cast<B&>(*this);
+    }
+
+    // repeat Forever
+    B& Forever() { return Repeat(kRepeatForever); }
+    bool IsForever() const { return num_repetitions_ == kRepeatForever; }
+
+    // Set amount of time to initially wait before effect starts. Time
+    // is
+    // relative to first call of Update() method and specified in ms.
+    B& DelayBefore(uint16_t delay_before) {
+        delay_before_ = delay_before;
+        return static_cast<B&>(*this);
+    }
+
+    // Set amount of time to wait in ms after each iteration.
+    B& DelayAfter(uint16_t delay_after) {
+        delay_after_ = delay_after;
+        return static_cast<B&>(*this);
+    }
+
+    // Invert effect. If set, every effect calculation will be inverted,
+    // i.e.
+    // instead of a, 255-a will be used.
+    B& Invert() { return SetFlags(FL_INVERTED, true); }
+    bool IsInverted() const { return GetFlag(FL_INVERTED); }
+
+    // Set physical LED polarity to be low active. This inverts every
+    // signal
+    // physically output to a pin.
+    B& LowActive() { return SetFlags(FL_LOW_ACTIVE, true); }
+    bool IsLowActive() const { return GetFlag(FL_LOW_ACTIVE); }
+
+    // Stop current effect and turn LED immeadiately off
+    void Stop(PortType* port) {
+        // Immediately turn LED off and stop effect.
+        SetFlags(FL_STOPPED, true);
+        AnalogWrite(port, kZeroBrightness);
+    }
+    bool IsStopped() const { return GetFlag(FL_STOPPED); }
+
+    // Reset to inital state
+    void Reset() {
+        time_start_ = kTimeUndef;
+        last_update_time_ = kTimeUndef;
+        SetFlags(FL_STOPPED | FL_IN_DELAY_AFTER_PHASE, false);
+    }
+
+ protected:
+    // internal control of the LED, does not affect
+    // state and honors low_active_ flag
+    void AnalogWrite(PortType* port, uint8_t val) {
+        auto new_val = IsLowActive() ? kFullBrightness - val : val;
+        port->analogWrite(new_val);
+    }
+
+    B& SetFlags(uint8_t f, bool val) {
+        if (val) {
+            flags_ |= f;
+        } else {
+            flags_ &= ~f;
+        }
+        return static_cast<B&>(*this);
+    }
+    bool GetFlag(uint8_t f) const { return (flags_ & f) != 0; }
+
+    void SetInDelayAfterPhase(bool f) { SetFlags(FL_IN_DELAY_AFTER_PHASE, f); }
+    bool IsInDelayAfterPhase() const {
+        return GetFlag(FL_IN_DELAY_AFTER_PHASE);
+    }
+
+    uint8_t EvalBrightness(BrightnessEvaluator* eval, uint32_t t) const {
+        const auto val = eval->Eval(t);
+        return IsInverted() ? kFullBrightness - val : val;
+    }
+
+ private:
+    static constexpr uint16_t kRepeatForever = 65535;
+    static constexpr uint32_t kTimeUndef = -1;
+    static constexpr uint8_t FL_INVERTED = (1 << 0);
+    static constexpr uint8_t FL_LOW_ACTIVE = (1 << 1);
+    static constexpr uint8_t FL_IN_DELAY_AFTER_PHASE = (1 << 2);
+    static constexpr uint8_t FL_STOPPED = (1 << 3);
+    uint8_t flags_ = 0;
+    uint16_t num_repetitions_ = 1;
+    uint32_t last_update_time_ = kTimeUndef;
+    uint16_t delay_before_ = 0;  // delay before the first effect starts
+    uint16_t delay_after_ = 0;   // delay after each repetition
+    uint32_t time_start_ = kTimeUndef;
+};
+
+#ifdef ESP32
+#include "esp32_analog_writer.h"  // NOLINT
+using JLedPortType = Esp32AnalogWriter;
+#elif ESP8266
+#include "esp8266_analog_writer.h"  // NOLINT
+using JLedPortType = Esp8266AnalogWriter;
+#else
+#include "arduino_analog_writer.h"  // NOLINT
+using JLedPortType = ArduinoAnalogWriter;
+#endif
+
+template <typename B, typename PortType>
+class TJLed : public TJLedController<PortType, B> {
+    using TJLedController<PortType, B>::TJLedController;
+
+    // this is where the BrightnessEvaluator will be stored using
+    // placment new.
+    char brightness_eval_buf_[MAX_SIZE];
+    BrightnessEvaluator* user_brightness_eval_ = nullptr;
+    PortType port_;
+
+ protected:
+    BrightnessEvaluator* XBrightnessEvaluator() const {
+        return user_brightness_eval_
+                   ? user_brightness_eval_
+                   : (BrightnessEvaluator*)brightness_eval_buf_;
+    };
+
+ public:
+    TJLed() = delete;
+    TJLed(const PortType& port) : port_(port) {}
+    TJLed(uint8_t pin) : port_(PortType(pin)) {}
+
+    bool Update() {
+        return TJLedController<PortType, B>::Update(&port_,
+                                                    XBrightnessEvaluator());
+    }
+
+    void Stop() { return TJLedController<PortType, B>::Stop(&port_); }
 
     // turn LED on
     B& On(uint8_t brightness = kFullBrightness) {
@@ -257,129 +392,10 @@ class TJLed {
         user_brightness_eval_ = ube;
         return static_cast<B&>(*this);
     }
-
-    // set number of repetitions for effect.
-    B& Repeat(uint16_t num_repetitions) {
-        num_repetitions_ = num_repetitions;
-        return static_cast<B&>(*this);
-    }
-
-    // repeat Forever
-    B& Forever() { return Repeat(kRepeatForever); }
-    bool IsForever() const { return num_repetitions_ == kRepeatForever; }
-
-    // Set amount of time to initially wait before effect starts. Time
-    // is
-    // relative to first call of Update() method and specified in ms.
-    B& DelayBefore(uint16_t delay_before) {
-        delay_before_ = delay_before;
-        return static_cast<B&>(*this);
-    }
-
-    // Set amount of time to wait in ms after each iteration.
-    B& DelayAfter(uint16_t delay_after) {
-        delay_after_ = delay_after;
-        return static_cast<B&>(*this);
-    }
-
-    // Invert effect. If set, every effect calculation will be inverted,
-    // i.e.
-    // instead of a, 255-a will be used.
-    B& Invert() { return SetFlags(FL_INVERTED, true); }
-    bool IsInverted() const { return GetFlag(FL_INVERTED); }
-
-    // Set physical LED polarity to be low active. This inverts every
-    // signal
-    // physically output to a pin.
-    B& LowActive() { return SetFlags(FL_LOW_ACTIVE, true); }
-    bool IsLowActive() const { return GetFlag(FL_LOW_ACTIVE); }
-
-    // Stop current effect and turn LED immeadiately off
-    void Stop() {
-        // Immediately turn LED off and stop effect.
-        SetFlags(FL_STOPPED, true);
-        AnalogWrite(kZeroBrightness);
-    }
-    bool IsStopped() const { return GetFlag(FL_STOPPED); }
-
-    // Reset to inital state
-    void Reset() {
-        time_start_ = kTimeUndef;
-        last_update_time_ = kTimeUndef;
-        SetFlags(FL_STOPPED | FL_IN_DELAY_AFTER_PHASE, false);
-    }
-
- protected:
-    // TODO returns the brightness evaluator to use.
-    BrightnessEvaluator* XBrightnessEvaluator() const {
-        return user_brightness_eval_
-                   ? user_brightness_eval_
-                   : (BrightnessEvaluator*)brightness_eval_buf_;
-    };
-
-    // internal control of the LED, does not affect
-    // state and honors low_active_ flag
-    void AnalogWrite(uint8_t val) {
-        auto new_val = IsLowActive() ? kFullBrightness - val : val;
-        port_.analogWrite(new_val);
-    }
-
-    B& SetFlags(uint8_t f, bool val) {
-        if (val) {
-            flags_ |= f;
-        } else {
-            flags_ &= ~f;
-        }
-        return static_cast<B&>(*this);
-    }
-    bool GetFlag(uint8_t f) const { return (flags_ & f) != 0; }
-
-    void SetInDelayAfterPhase(bool f) { SetFlags(FL_IN_DELAY_AFTER_PHASE, f); }
-    bool IsInDelayAfterPhase() const {
-        return GetFlag(FL_IN_DELAY_AFTER_PHASE);
-    }
-
-    uint8_t EvalBrightness(uint32_t t) const {
-        const auto val = XBrightnessEvaluator()->Eval(t);
-        return IsInverted() ? kFullBrightness - val : val;
-    }
-
- private:
-    // this is where the BrightnessEvaluator will be stored using
-    // placment new.
-    char brightness_eval_buf_[MAX_SIZE];
-    BrightnessEvaluator* user_brightness_eval_ = nullptr;
-
-    static constexpr uint16_t kRepeatForever = 65535;
-    static constexpr uint32_t kTimeUndef = -1;
-    static constexpr uint8_t FL_INVERTED = (1 << 0);
-    static constexpr uint8_t FL_LOW_ACTIVE = (1 << 1);
-    static constexpr uint8_t FL_IN_DELAY_AFTER_PHASE = (1 << 2);
-    static constexpr uint8_t FL_STOPPED = (1 << 3);
-    static constexpr uint8_t kFullBrightness = 255;
-    static constexpr uint8_t kZeroBrightness = 0;
-    uint8_t flags_ = 0;
-    uint16_t num_repetitions_ = 1;
-    uint32_t last_update_time_ = kTimeUndef;
-    uint16_t delay_before_ = 0;  // delay before the first effect starts
-    uint16_t delay_after_ = 0;   // delay after each repetition
-    uint32_t time_start_ = kTimeUndef;
-    PortType port_;
 };
 
-#ifdef ESP32
-#include "esp32_analog_writer.h"  // NOLINT
-using JLedPortType = Esp32AnalogWriter;
-#elif ESP8266
-#include "esp8266_analog_writer.h"  // NOLINT
-using JLedPortType = Esp8266AnalogWriter;
-#else
-#include "arduino_analog_writer.h"  // NOLINT
-using JLedPortType = ArduinoAnalogWriter;
-#endif
-
-class JLed : public TJLed<JLedPortType, JLed> {
-    using TJLed::TJLed;
+class JLed : public TJLed<JLed, JLedPortType> {
+    using TJLed<JLed, JLedPortType>::TJLed;
 };
 
 template <class T>
@@ -409,6 +425,7 @@ class TJLedSequence {
 };  // namespace jled
 
 using JLed = jled::JLed;
-using JLedSequence = jled::TJLedSequence<JLed>;
+
+using JLedSequence = jled::TJLedSequence<jled::JLed>;
 
 #endif  // SRC_JLED_H_
