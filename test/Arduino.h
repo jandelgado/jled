@@ -20,8 +20,8 @@ int arduinoMockGetPinState(uint8_t pin);
 uint32_t millis(void);
 void arduinoMockSetMillis(uint32_t value);
 
-#define min(a, b) ((a) < (b) ? (a) : (b))
-#define max(a, b) ((a) > (b) ? (a) : (b))
+//#define min(a, b) ((a) < (b) ? (a) : (b))
+//#define max(a, b) ((a) > (b) ? (a) : (b))
 
 #define PI 3.1415926535897932384626433832795
 #define OUTPUT 0x1

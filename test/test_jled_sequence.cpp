@@ -4,6 +4,7 @@
 
 #include <jled.h>  // NOLINT
 
+// TODO
 TEST_CASE("empty sequence returns false on Update()", "[jled_sequence]") {}
 
 TEST_CASE("simple sequence performs all updates", "[jled_sequence]") {
