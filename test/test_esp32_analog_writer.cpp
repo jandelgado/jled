@@ -3,6 +3,8 @@
 #include "catch.hpp"
 #include <esp32_analog_writer.h>  // NOLINT
 
+using jled::Esp32AnalogWriter;
+
 TEST_CASE("ledc ctor correctly initializes hardware", "[esp32_analog_writer]") {
     arduinoMockInit();
 

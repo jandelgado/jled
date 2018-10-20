@@ -22,6 +22,8 @@
 #ifndef SRC_ARDUINO_ANALOG_WRITER_H_
 #define SRC_ARDUINO_ANALOG_WRITER_H_
 
+namespace jled {
+
 class ArduinoAnalogWriter /*: public AnalogWriter */ {
  public:
     explicit ArduinoAnalogWriter(uint8_t pin) noexcept : pin_(pin) {
@@ -32,4 +34,5 @@ class ArduinoAnalogWriter /*: public AnalogWriter */ {
  private:
     uint8_t pin_;
 };
+}  // namespace jled
 #endif  // SRC_ARDUINO_ANALOG_WRITER_H_

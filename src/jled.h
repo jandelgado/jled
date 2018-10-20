@@ -35,12 +35,12 @@
 //     led.Update();
 //   }
 
-// placement new and delete for Arduino - not defined in Arduino sdk
-#if !defined(NO_PLACEMENT_NEW)
-void* operator new(size_t size, void* ptr);
-void operator delete(void* obj, void* alloc);
+#ifdef ESP32
+#include "esp32_analog_writer.h"  // NOLINT
+#elif ESP8266
+#include "esp8266_analog_writer.h"  // NOLINT
 #else
-#include <new>  // only for unit tests
+#include "arduino_analog_writer.h"  // NOLINT
 #endif
 
 namespace jled {
@@ -48,7 +48,7 @@ namespace jled {
 static constexpr uint8_t kFullBrightness = 255;
 static constexpr uint8_t kZeroBrightness = 0;
 
-uint8_t jled_fadeon_func(uint32_t t, uint16_t period);
+uint8_t fadeon_func(uint32_t t, uint16_t period);
 
 // a function f(t,period,param) that calculates the LEDs brightness for a given
 // point in time and the given period. param is an optionally user provided
@@ -59,6 +59,8 @@ class BrightnessEvaluator {
  public:
     virtual uint16_t Period() const = 0;
     virtual uint8_t Eval(uint32_t t) = 0;
+    // placement new used to avoid dynamic memory allocations
+    void *operator new(size_t size, void* ptr);
 };
 
 class ConstantBrightnessEvaluator : public BrightnessEvaluator {
@@ -93,7 +95,7 @@ class FadeOnBrightnessEvaluator : public BrightnessEvaluator {
  public:
     explicit FadeOnBrightnessEvaluator(uint16_t period) : period_(period) {}
     uint16_t Period() const override { return period_; }
-    uint8_t Eval(uint32_t t) override { return jled_fadeon_func(t, period_); }
+    uint8_t Eval(uint32_t t) override { return fadeon_func(t, period_); }
 };
 
 // fade LED off
@@ -105,7 +107,7 @@ class FadeOffBrightnessEvaluator : public BrightnessEvaluator {
     explicit FadeOffBrightnessEvaluator(uint16_t period) : period_(period) {}
     uint16_t Period() const override { return period_; }
     uint8_t Eval(uint32_t t) override {
-        return jled_fadeon_func(period_ - t, period_);
+        return fadeon_func(period_ - t, period_);
     }
 };
 
@@ -127,8 +129,8 @@ class BreatheBrightnessEvaluator : public BrightnessEvaluator {
     uint8_t Eval(uint32_t t) override {
         if (t + 1 >= period_) return kZeroBrightness;
         const uint16_t periodh = period_ >> 1;
-        return t < periodh ? jled_fadeon_func(t, periodh)
-                           : jled_fadeon_func(period_ - t, periodh);
+        return t < periodh ? fadeon_func(t, periodh)
+                           : fadeon_func(period_ - t, periodh);
     }
 };
 
@@ -377,13 +379,10 @@ class TJLed : public TJLedController<PortType, B> {
 };
 
 #ifdef ESP32
-#include "esp32_analog_writer.h"  // NOLINT
 using JLedPortType = Esp32AnalogWriter;
 #elif ESP8266
-#include "esp8266_analog_writer.h"  // NOLINT
 using JLedPortType = Esp8266AnalogWriter;
 #else
-#include "arduino_analog_writer.h"  // NOLINT
 using JLedPortType = ArduinoAnalogWriter;
 #endif
 

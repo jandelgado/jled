@@ -21,6 +21,6 @@
 //
 #ifdef ESP32
 #include "esp32_analog_writer.h"  // NOLINT
-
+using jled::Esp32AnalogWriter;
 uint8_t Esp32AnalogWriter::nextChan_ = 0;
 #endif
