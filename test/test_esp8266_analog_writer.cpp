@@ -3,6 +3,7 @@
 #include "catch.hpp"
 #include <esp8266_analog_writer.h>  // NOLINT
 
+using jled::Esp8266AnalogWriter;
 
 TEST_CASE("properly scale 8bit to 10bit for ESP8266 support",
           "[esp8266_analog_writer]") {

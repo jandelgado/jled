@@ -3,7 +3,7 @@
 .PHONY: all clean upload monitor lint test ci
 
 CIOPTS=--board=uno --board=esp01 --lib="src"
-CIOPTS_ESP32=--board=uno --board=esp01 --lib="src"
+CIOPTS_ESP32=--board=esp32dev --lib="src"
 
 all:
 	pio run

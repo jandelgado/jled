@@ -23,6 +23,8 @@
 #define SRC_ESP32_ANALOG_WRITER_H_
 
 #include <Arduino.h>
+
+namespace jled {
 class Esp32AnalogWriter /*: public AnalogWriter */ {
     static constexpr auto kLedcTimer8Bit = 8;
 
@@ -52,4 +54,5 @@ class Esp32AnalogWriter /*: public AnalogWriter */ {
     static uint8_t nextChan_;
     uint8_t chan_;
 };
+}  // namespace jled
 #endif  // SRC_ESP32_ANALOG_WRITER_H_

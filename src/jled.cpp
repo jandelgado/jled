@@ -22,15 +22,6 @@
 #include <Arduino.h>
 #include <jled.h>
 
-// placement new and delete for Arduino - not needed when e.g. running host
-// based unit tests.
-#if !defined(NO_PLACEMENT_NEW)
-void *operator new(size_t size, void *ptr) {
-    ptr = malloc(size);
-    return ptr;
-}
-void operator delete(void *obj, void *alloc) { return; }
-#endif
 
 namespace jled {
 
@@ -50,7 +41,7 @@ static constexpr uint8_t kFadeOnTable[] = {0,   3,   13,  33, 68,
 // https://www.wolframalpha.com/input/?i=plot+(exp(sin((x-100%2F2.)*PI%2F100))-0.36787944)*108.0++x%3D0+to+100
 // The fade-on func is an approximation of
 //   y(x) = exp(sin((t-period/2.) * PI / period)) - 0.36787944) * 108.)
-uint8_t jled_fadeon_func(uint32_t t, uint16_t period) {
+uint8_t fadeon_func(uint32_t t, uint16_t period) {
     if (t + 1 >= period) return 255;  // kFullBrightness;
 
     // approximate by linear interpolation.
@@ -63,6 +54,10 @@ uint8_t jled_fadeon_func(uint32_t t, uint16_t period) {
 
     // y(t) = mt+b, with m = dy/dx = (y1-y0)/32 = (y1-y0) >> 5
     return (((t - x0) * (y1 - y0)) >> 5) + y0;
+}
+
+void* BrightnessEvaluator::operator new(size_t, void *ptr) {
+    return ptr;
 }
 
 };  // namespace jled
