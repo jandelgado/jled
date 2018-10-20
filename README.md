@@ -38,20 +38,27 @@ void loop() {
     * [Arduino IDE](#arduino-ide)
     * [PlatformIO](#platformio)
 * [Usage](#usage)
-    * [Static on](#static-on)
-        * [Static on example](#static-on-example)
-    * [Static off](#static-off)
-    * [Blinking](#blinking)
-        * [Blinking example](#blinking-example)
-    * [Breathing](#breathing)
-        * [Breathing example](#breathing-example)
-    * [FadeOn](#fadeon)
-        * [FadeOn example](#fadeon-example)
-    * [FadeOff](#fadeoff)
-    * [User provided brightness function](#user-provided-brightness-function)
-        * [User provided brightness function example](#user-provided-brightness-function-example)
-    * [Immediate Stop](#immediate-stop)
-* [Parameter overview](#parameter-overview)
+    * [Effects](#effects)
+        * [Static on](#static-on)
+            * [Static on example](#static-on-example)
+        * [Static off](#static-off)
+        * [Blinking](#blinking)
+            * [Blinking example](#blinking-example)
+        * [Breathing](#breathing)
+            * [Breathing example](#breathing-example)
+        * [FadeOn](#fadeon)
+            * [FadeOn example](#fadeon-example)
+        * [FadeOff](#fadeoff)
+        * [User provided brightness function](#user-provided-brightness-function)
+            * [User provided brightness function example](#user-provided-brightness-function-example)
+        * [Delays and repeatitions](#delays-and-repeatitions)
+            * [Initial delay before effect starts](#initial-delay-before-effect-starts)
+            * [Delay after effect finished](#delay-after-effect-finished)
+            * [Repetitions](#repetitions)
+        * [Misc functions](#misc-functions)
+            * [Low active (inverted output)](#low-active-inverted-output)
+            * [Reset](#reset)
+            * [Immediate Stop](#immediate-stop)
 * [Platform notes](#platform-notes)
     * [ESP8266](#esp8266)
     * [ESP32](#esp32)
@@ -60,6 +67,10 @@ void loop() {
     * [Arduino IDE](#arduino-ide-1)
 * [Unit tests](#unit-tests)
 * [Contributing](#contributing)
+* [FAQ](#faq)
+    * [How do I check if an JLed object is still being updated?](#how-do-i-check-if-an-jled-object-is-still-being-updated)
+    * [How do I restart a effect?](#how-do-i-restart-a-effect)
+    * [How do I change a running effect?](#how-do-i-change-a-running-effect)
 * [Author](#author)
 * [License](#license)
 
@@ -110,7 +121,7 @@ lib_deps=jled
 First the LED object is constructed and configured, then the state is updated
 with subsequent calls to the `Update()` method, typically from the `loop()`
 function. While the effect is active, `Update` returns `true`, otherwise
-false.
+`false`.
 
 The constructor takes the pin, to which the LED is connected to as
 only parameter. Further configuration of the LED object is done using a fluent
@@ -118,13 +129,15 @@ interface, e.g. `JLed led = JLed(13).Breathe(2000).DelayAfter(1000).Repeat(5)`.
 See examples and [Parameter overview](#parameter-oveview) section below for
 further details.
 
-### Static on
+### Effects
 
-Calling `On()` turns the LED on on after an optional time, specified by
-`DelayBefore()`, has elapsed. To immediately turn a LED on, make a call
-like `JLed(LED_BUILTIN).On().Update()`.
+#### Static on
 
-#### Static on example
+Calling `On()` turns the LED on. An optional brightness value can be supplied,
+the default value is 255, which is full brightness.
+To immediately turn a LED on, make a call like `JLed(LED_BUILTIN).On().Update()`.
+
+##### Static on example
 
 ```c++
 #include <jled.h>
@@ -139,21 +152,23 @@ void loop() {
 }
 ```
 
-### Static off
+#### Static off
 
-`Off()` works like `On()`, except that it turns the LED off.
+`Off()` works like `On()`, except that it turns the LED off, i.e. sets the
+brightness to 0.
 
-### Blinking
+#### Blinking
 
-In blinking mode, the LED cycles through a given number of on-off cycles.
+In blinking mode, the LED cycles through a given number of on-off cycles, on-
+and off-cycle duration are specified independently.
 
-#### Blinking example
+##### Blinking example
 
 ```c++
 #include <jled.h>
 
 // blink internal LED every second.
-JLed led = JLed(LED_BUILTIN).Blink(1000, 1000).Forever();
+JLed led = JLed(LED_BUILTIN).Blink(1000, 500).Forever();
 
 void setup() { }
 
@@ -162,11 +177,11 @@ void loop() {
 }
 ```
 
-### Breathing
+#### Breathing
 
 In breathing mode, the LED smoothly changes brightness using PWM.
 
-#### Breathing example
+##### Breathing example
 
 ```c++
 #include <jled.h>
@@ -182,11 +197,11 @@ void loop() {
 }
 ```
 
-### FadeOn
+#### FadeOn
 
 In FadeOn mode, the LED is smoothly faded on to 100% brightness using PWM.
 
-#### FadeOn example
+##### FadeOn example
 
 ```c++
 #include <jled.h>
@@ -201,62 +216,68 @@ void loop() {
 }
 ```
 
-### FadeOff
+#### FadeOff
 
 In FadeOff mode, the LED is smoothly faded off using PWM. The fade starts
 at 100% brightness. Internally it is implemented as a mirrored version of 
 the FadeOn function, i.e. FadeOn(t) = FadeOff(period-t)
 
-### User provided brightness function
+#### User provided brightness function
 
-It is also possible to provide a user defined brightness function. The
-signature of such a function is `unit8_t func(unit32_t t, uint16_t period, uintptr_t param)`.
-The function must return the brightness in range 0..255 in dependence of the
-current time t.
+It is also possible to provide a user defined brightness evaluator. The class
+must be derived from the `BrightnessEvaluator` class and implement
+two methods:
 
-#### User provided brightness function example
+* `uint8_t Èval(uint32_t t)` - the brightness evaluation function that calculates
+  a brightness for the given point in time t. The brighness must be returned as
+  an unsigned byte, where 0 means led off and 255 means full brightness.
+* `uint16_t Period() const` - period of the effect.
+
+All times are specified in milliseconds.
+
+##### User provided brightness function example
 
 The example uses a user provided function to calculate the brightness.
 
 ```c++
-#include <jled.h>
-
-// this function returns changes between 0 and 255 and vice versa every 250 ms.
-uint8_t blinkFunc(uint32_t t, uint16_t /*period*/, uintptr_t /*param*/) {
-  return 255*((t/250)%2);
-}
-
-// Run blinkUserFunc for 5000ms
-JLed led = JLed(LED_BUILTIN).UserFunc(blinkFunc, 5000);
-
-void setup() {
-}
-
-void loop() {
-  led.Update();
-}
+TODO
 ```
 
-### Immediate Stop
+#### Delays and repeatitions
+
+##### Initial delay before effect starts
+
+Use the `DelayBefore()` method to specify a delay before the first effect starts.
+The default value is 0 ms.
+
+##### Delay after effect finished
+
+Use the `DelayAfter()` method to specify a delay after each repetition of 
+an effect. The default value is 0 ms.
+
+##### Repetitions
+
+Use the `Repeat()` method to specify the number of repetition. The default
+value is 1 repetition. The `Forever()` methods sets to repeat the effect
+forever. Each repetition 
+
+#### Misc functions
+
+##### Low active (inverted output)
+
+Use the `LowActive()` modifier  when the connected LED is low active. All output
+will be inverted by JLed (i.e. instead of x, the value of 255-x will be set).
+
+##### Reset 
+
+A call to `Reset()` bring the JLed object to it's initial state. Use it when
+you want to start-over an effect.
+
+##### Immediate Stop
 
 Call `Stop()` to immediately turn the LED off and stop any running effects.
-
-## Parameter overview
-
-The following table shows the applicability of the various parameters in
-dependence of the chosen effect:
-
-| Method         | Description                                      | Default | On  | Off | Blink | Breath | FadeOn | FadeOff | UserFunc |
-|----------------|--------------------------------------------------|---------|:---:|:---:|:-----:|:------:|:------:|:-------:|:--------:|
-| DelayBefore(t) | time to wait before state is initially changed   | 0       | Yes | Yes | Yes   | Yes    | Yes    | Yes     | Yes      |
-| DelayAfter(t)  | time to wait after each period                   | 0       |     |     |       | Yes    | Yes    | Yes     | Yes      |
-| Repeat(n)      | repeat effect for given number of periods        | 1       |     |     | Yes   | Yes    | Yes    | Yes     | Yes      |
-| Forever()      | repeat infinitely                                | false   |     |     | Yes   | Yes    | Yes    | Yes     | Yes      |
-| LowActive()    | set output to be low-active (i.e. invert output) | false   | Yes | Yes | Yes   | Yes    | Yes    | Yes     | Yes      |
-
-* all times are specified in milliseconds
-* time specified by `DelayBefore()` is relative to first invocation of 
-  `Update()`
+Further calls to `Update()` will have no effect unless the Led is reset (using
+`Reset()`) or a new effect activated.
 
 ## Platform notes
 
@@ -317,7 +338,7 @@ the `File` > `Examples` > `JLed` menu.
 
 ## Unit tests
 
-Jled comes with an exhaustive host based unit test suite. Info on how to run
+JLed comes with an exhaustive host based unit test suite. Info on how to run
 the host based provided unit tests [is provided here](test/README.md).
 
 ## Contributing
@@ -330,6 +351,18 @@ the host based provided unit tests [is provided here](test/README.md).
 * make sure linter does not report problems (make lint)
 * commit changes
 * submit a PR
+
+## FAQ
+
+### How do I check if an JLed object is still being updated?
+TODO
+
+### How do I restart a effect?
+TODO
+
+### How do I change a running effect?
+TODO
+
 
 ## Author
 
