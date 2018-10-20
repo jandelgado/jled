@@ -211,15 +211,6 @@ TEST_CASE("EvalBrightness() calculates correct values", "[jled]") {
                         jled.EvalBrightness(&eval, kTimeProbe));
                 REQUIRE(kTimeProbe == eval.RequestedTime());
             }
-
-            SECTION("inverted evaluation") {
-                TestableJLed jled(1);
-                auto eval = CustomBrightnessEvaluator(kTestBrightness);
-                jled.UserFunc(&eval).Invert();
-                REQUIRE(255 - kTestBrightness ==
-                        jled.EvalBrightness(&eval, kTimeProbe));
-                REQUIRE(kTimeProbe == eval.RequestedTime());
-            }
         }
     };
     TestableJLed::test();

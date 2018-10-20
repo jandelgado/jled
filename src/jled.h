@@ -24,7 +24,7 @@
 
 #include <Arduino.h>
 
-// Non-blocking LED abstraction class.
+// JLed - non-blocking LED abstraction library.
 //
 // Example Arduino sketch:
 //   JLed led = JLed(LED_BUILTIN).Blink(500, 500).Repeat(10).DelayBefore(1000);
@@ -40,7 +40,7 @@
 void* operator new(size_t size, void* ptr);
 void operator delete(void* obj, void* alloc);
 #else
-#include <new>
+#include <new>  // only for unit tests
 #endif
 
 namespace jled {
@@ -138,7 +138,7 @@ constexpr auto MAX_SIZE = sizeof(BlinkBrightnessEvaluator);
 template <typename PortType, typename B>
 class TJLedController {
  public:
-    // update brightness of LED using the given brightness function
+    // update brightness of LED using the given brightness evaluator
     //  (brightness)                     _________________
     // on 255 |                       ¸-'
     //        |                    ¸-'
@@ -225,15 +225,8 @@ class TJLedController {
         return static_cast<B&>(*this);
     }
 
-    // Invert effect. If set, every effect calculation will be inverted,
-    // i.e.
-    // instead of a, 255-a will be used.
-    B& Invert() { return SetFlags(FL_INVERTED, true); }
-    bool IsInverted() const { return GetFlag(FL_INVERTED); }
-
     // Set physical LED polarity to be low active. This inverts every
-    // signal
-    // physically output to a pin.
+    // signal physically output to a pin.
     B& LowActive() { return SetFlags(FL_LOW_ACTIVE, true); }
     bool IsLowActive() const { return GetFlag(FL_LOW_ACTIVE); }
 
@@ -255,9 +248,8 @@ class TJLedController {
  protected:
     // internal control of the LED, does not affect
     // state and honors low_active_ flag
-    void AnalogWrite(PortType* port, uint8_t val) {
-        auto new_val = IsLowActive() ? kFullBrightness - val : val;
-        port->analogWrite(new_val);
+    void AnalogWrite(PortType* port, uint8_t val) const {
+        port->analogWrite(IsLowActive() ? kFullBrightness - val : val);
     }
 
     B& SetFlags(uint8_t f, bool val) {
@@ -276,17 +268,15 @@ class TJLedController {
     }
 
     uint8_t EvalBrightness(BrightnessEvaluator* eval, uint32_t t) const {
-        const auto val = eval->Eval(t);
-        return IsInverted() ? kFullBrightness - val : val;
+        return eval->Eval(t);
     }
 
  private:
     static constexpr uint16_t kRepeatForever = 65535;
     static constexpr uint32_t kTimeUndef = -1;
-    static constexpr uint8_t FL_INVERTED = (1 << 0);
-    static constexpr uint8_t FL_LOW_ACTIVE = (1 << 1);
-    static constexpr uint8_t FL_IN_DELAY_AFTER_PHASE = (1 << 2);
-    static constexpr uint8_t FL_STOPPED = (1 << 3);
+    static constexpr uint8_t FL_LOW_ACTIVE = (1 << 0);
+    static constexpr uint8_t FL_IN_DELAY_AFTER_PHASE = (1 << 1);
+    static constexpr uint8_t FL_STOPPED = (1 << 2);
     uint8_t flags_ = 0;
     uint16_t num_repetitions_ = 1;
     uint32_t last_update_time_ = kTimeUndef;
@@ -308,7 +298,7 @@ class TJLed : public TJLedController<PortType, B> {
     PortType port_;
 
  protected:
-    BrightnessEvaluator* EffectiveBrightnessEvaluator()  {
+    BrightnessEvaluator* EffectiveBrightnessEvaluator() {
         return user_brightness_eval_ ? user_brightness_eval_
                                      : reinterpret_cast<BrightnessEvaluator*>(
                                            brightness_eval_buf_);
@@ -400,6 +390,7 @@ using JLedPortType = ArduinoAnalogWriter;
 class JLed : public TJLed<JLed, JLedPortType> {
     using TJLed<JLed, JLedPortType>::TJLed;
 };
+
 
 template <class T>
 class TJLedSequence {
