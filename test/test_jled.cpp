@@ -1,13 +1,22 @@
 // JLed Unit tests (run on host), using the ArduinoAnalogWriter and
 // an Arduino mock for testing.
 // Copyright 2017 Jan Delgado jdelgado@gmx.net
-// TODO replace arduino mock usage by mock port abstraction. 
+// TODO(jd) replace arduino mock usage by mock port abstraction.
 #include <map>
 
 #include <jled.h>  // NOLINT
 #include "catch.hpp"
 
-using namespace jled;
+using jled::JLedPortType;
+using jled::TJLed;
+using jled::TJLedController;
+using jled::BrightnessEvaluator;
+using jled::BlinkBrightnessEvaluator;
+using jled::ConstantBrightnessEvaluator;
+using jled::BreatheBrightnessEvaluator;
+using jled::FadeOnBrightnessEvaluator;
+using jled::FadeOffBrightnessEvaluator;
+using jled::ArduinoAnalogWriter;
 
 // instanciate for test coverage measurement
 template class TJLedController<JLedPortType, JLed>;
@@ -29,32 +38,32 @@ TEST_CASE("On/Off function configuration", "[jled]") {
                 TestableJLed jled(1);
                 jled.On();
                 REQUIRE(dynamic_cast<ConstantBrightnessEvaluator *>(
-                            jled.XBrightnessEvaluator()) != nullptr);
-                REQUIRE(jled.XBrightnessEvaluator()->Eval(0) == 255);
+                            jled.EffectiveBrightnessEvaluator()) != nullptr);
+                REQUIRE(jled.EffectiveBrightnessEvaluator()->Eval(0) == 255);
             }
 
             SECTION("Off()") {
                 TestableJLed jled(1);
                 jled.Off();
                 REQUIRE(dynamic_cast<ConstantBrightnessEvaluator *>(
-                            jled.XBrightnessEvaluator()) != nullptr);
-                REQUIRE(jled.XBrightnessEvaluator()->Eval(0) == 0);
+                            jled.EffectiveBrightnessEvaluator()) != nullptr);
+                REQUIRE(jled.EffectiveBrightnessEvaluator()->Eval(0) == 0);
             }
 
             SECTION("Set(true)") {
                 TestableJLed jled(1);
                 jled.Set(true);
                 REQUIRE(dynamic_cast<ConstantBrightnessEvaluator *>(
-                            jled.XBrightnessEvaluator()) != nullptr);
-                REQUIRE(jled.XBrightnessEvaluator()->Eval(0) == 255);
+                            jled.EffectiveBrightnessEvaluator()) != nullptr);
+                REQUIRE(jled.EffectiveBrightnessEvaluator()->Eval(0) == 255);
             }
 
             SECTION("Set(false)") {
                 TestableJLed jled(1);
                 jled.Set(false);
                 REQUIRE(dynamic_cast<ConstantBrightnessEvaluator *>(
-                            jled.XBrightnessEvaluator()) != nullptr);
-                REQUIRE(jled.XBrightnessEvaluator()->Eval(0) == 0);
+                            jled.EffectiveBrightnessEvaluator()) != nullptr);
+                REQUIRE(jled.EffectiveBrightnessEvaluator()->Eval(0) == 0);
             }
         }
     };
@@ -69,7 +78,7 @@ TEST_CASE("Breathe() function configuration", "[jled]") {
             TestableJLed jled(1);
             jled.Breathe(0);
             REQUIRE(dynamic_cast<BreatheBrightnessEvaluator *>(
-                        jled.XBrightnessEvaluator()) != nullptr);
+                        jled.EffectiveBrightnessEvaluator()) != nullptr);
         }
     };
     TestableJLed::test();
@@ -84,13 +93,13 @@ TEST_CASE("FadeOn()/FadeOff() function configuration", "[jled]") {
                 TestableJLed jled(1);
                 jled.FadeOff(0);
                 REQUIRE(dynamic_cast<FadeOffBrightnessEvaluator *>(
-                            jled.XBrightnessEvaluator()) != nullptr);
+                            jled.EffectiveBrightnessEvaluator()) != nullptr);
             }
             SECTION("FadeOn() correctly initializes") {
                 TestableJLed jled(1);
                 jled.FadeOn(0);
                 REQUIRE(dynamic_cast<FadeOnBrightnessEvaluator *>(
-                            jled.XBrightnessEvaluator()) != nullptr);
+                            jled.EffectiveBrightnessEvaluator()) != nullptr);
             }
         }
     };
@@ -101,7 +110,7 @@ TEST_CASE("UserFunc() provided brightness evaluator configuration", "[jled]") {
     class CustomBrightnessEvaluator : public BrightnessEvaluator {
      public:
         uint16_t Period() const { return 0; }
-        uint8_t Eval(uint32_t t) { return 0; }
+        uint8_t Eval(uint32_t) { return 0; }
     };
 
     class TestableJLed : public JLed {
@@ -112,7 +121,7 @@ TEST_CASE("UserFunc() provided brightness evaluator configuration", "[jled]") {
             auto cust = CustomBrightnessEvaluator();
             jled.UserFunc(&cust);
             REQUIRE(dynamic_cast<CustomBrightnessEvaluator *>(
-                        jled.XBrightnessEvaluator()) != nullptr);
+                        jled.EffectiveBrightnessEvaluator()) != nullptr);
         }
     };
     TestableJLed::test();
@@ -177,7 +186,7 @@ TEST_CASE("EvalBrightness() calculates correct values", "[jled]") {
         uint32_t requested_time_ = 0;
 
      public:
-        CustomBrightnessEvaluator(uint8_t val) : val_(val) {}
+        explicit CustomBrightnessEvaluator(uint8_t val) : val_(val) {}
         uint16_t Period() const { return period_; }
         uint8_t Eval(uint32_t t) {
             requested_time_ = t;
@@ -230,7 +239,7 @@ TEST_CASE("dont evalute twice during one time tick", "[jled]") {
      public:
         uint16_t Period() const { return 1000; }
         uint16_t Count() const { return count_; }
-        uint8_t Eval(uint32_t t) {
+        uint8_t Eval(uint32_t) {
             count_++;
             return 0;
         }
@@ -365,4 +374,33 @@ TEST_CASE("Update returns true while updating, else false", "[jled]") {
     // when effect is done, we expect still false to be returned
     arduinoMockSetMillis(time++);
     REQUIRE_FALSE(jled.Update());
+}
+
+TEST_CASE("After Reset() the effect can be restarted", "[jled]") {
+    constexpr auto kTestPin = 10;
+    arduinoMockInit();
+    JLed jled(kTestPin);
+
+    // 1 ms on, 2 ms off + 2 ms delay = 3ms off in total per iteration
+    jled.Blink(1, 1);
+    constexpr uint8_t expected[]{
+        /* 1ms on */ 255,
+        /* 1ms off */  0,
+        /* finally off */ 0 };
+    uint32_t time = 0;
+
+    for (const auto val : expected) {
+        jled.Update();
+        REQUIRE(arduinoMockGetPinState(kTestPin) == val);
+        arduinoMockSetMillis(++time);
+    }
+    REQUIRE(!jled.Update());
+    // after Reset() effect starts over
+    jled.Reset();
+    for (const auto val : expected) {
+        jled.Update();
+        REQUIRE(arduinoMockGetPinState(kTestPin) == val);
+        arduinoMockSetMillis(++time);
+    }
+    REQUIRE(!jled.Update());
 }

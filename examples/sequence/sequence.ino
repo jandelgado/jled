@@ -12,7 +12,8 @@ JLed leds[] = {
     JLed(3).Blink(2500, 500)
 };
 
-JLedSequence seq( leds, 6 );
+JLedSequence seq(leds, 6);
+
 void setup() {
 }
 
