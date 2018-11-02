@@ -26,6 +26,8 @@
 namespace jled {
 class Esp8266AnalogWriter /*: public AnalogWriter */ {
  public:
+    Esp8266AnalogWriter() {}
+
     explicit Esp8266AnalogWriter(uint8_t pin) noexcept : pin_(pin) {
         ::pinMode(pin_, OUTPUT);
     }

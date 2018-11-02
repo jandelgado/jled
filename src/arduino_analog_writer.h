@@ -26,6 +26,7 @@ namespace jled {
 
 class ArduinoAnalogWriter /*: public AnalogWriter */ {
  public:
+    ArduinoAnalogWriter() {}
     explicit ArduinoAnalogWriter(uint8_t pin) noexcept : pin_(pin) {
         ::pinMode(pin_, OUTPUT);
     }

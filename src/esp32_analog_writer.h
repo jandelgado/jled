@@ -32,6 +32,8 @@ class Esp32AnalogWriter /*: public AnalogWriter */ {
     static constexpr auto kLedcMaxChan = 16;
     static constexpr auto kAutoSelectChan = -1;
 
+    Esp32AnalogWriter() {}
+
     // construct an ESP32 analog write object connected to the given pin.
     // chan specifies the EPS32 ledc channel to use. If set to kAutoSelectChan,
     // the next available channel will be used, otherwise the specified one.
