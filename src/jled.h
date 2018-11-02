@@ -60,7 +60,7 @@ class BrightnessEvaluator {
     virtual uint16_t Period() const = 0;
     virtual uint8_t Eval(uint32_t t) = 0;
     // placement new used to avoid dynamic memory allocations
-    void *operator new(size_t size, void* ptr);
+    void* operator new(size_t size, void* ptr);
 };
 
 class ConstantBrightnessEvaluator : public BrightnessEvaluator {
@@ -140,6 +140,9 @@ constexpr auto MAX_SIZE = sizeof(BlinkBrightnessEvaluator);
 template <typename PortType, typename B>
 class TJLedController {
  public:
+    // TODO(jd) needed?
+    // TJLedController(const TJLedController<PortType, B> &rLed) = default;
+
     // update brightness of LED using the given brightness evaluator
     //  (brightness)                     _________________
     // on 255 |                       ¸-'
@@ -150,7 +153,7 @@ class TJLedController {
     //                       | func(t)    |
     //                       |<- num_repetitions times  ->
     bool Update(PortType* port, BrightnessEvaluator* eval) {
-        if (IsStopped()) {
+        if (!IsRunning() || !eval) {
             return false;
         }
         const auto now = millis();
@@ -238,7 +241,7 @@ class TJLedController {
         SetFlags(FL_STOPPED, true);
         AnalogWrite(port, kZeroBrightness);
     }
-    bool IsStopped() const { return GetFlag(FL_STOPPED); }
+    bool IsRunning() const { return !GetFlag(FL_STOPPED); }
 
     // Reset to inital state
     void Reset() {
@@ -293,27 +296,46 @@ class TJLed : public TJLedController<PortType, B> {
 
     // this is where the BrightnessEvaluator object will be stored using
     // placment new.
-    uint8_t brightness_eval_buf_[MAX_SIZE];
-    // optional pointer to a user defined brightness evaluator.
-    BrightnessEvaluator* user_brightness_eval_ = nullptr;
-    // Object controlling rhe GPIO port
-    PortType port_;
+    char brightness_eval_buf_[MAX_SIZE];
 
  protected:
-    BrightnessEvaluator* EffectiveBrightnessEvaluator() {
-        return user_brightness_eval_ ? user_brightness_eval_
-                                     : reinterpret_cast<BrightnessEvaluator*>(
-                                           brightness_eval_buf_);
-    }
+    // optional pointer to a user defined brightness evaluator.
+    BrightnessEvaluator* brightness_eval_ = nullptr;
+    // Object controlling the GPIO port
+    PortType port_;
 
  public:
     TJLed() = delete;
     explicit TJLed(const PortType& port) : port_(port) {}
     explicit TJLed(uint8_t pin) : port_(PortType(pin)) {}
+    TJLed(const TJLed<B, PortType>& rLed) : TJLedController<PortType, B>(rLed) {
+        if (rLed.brightness_eval_ !=
+            reinterpret_cast<BrightnessEvaluator*>(rLed.brightness_eval_buf_)) {
+            brightness_eval_ = rLed.brightness_eval_;
+        } else {
+            memcpy(brightness_eval_buf_, rLed.brightness_eval_buf_, MAX_SIZE);
+            brightness_eval_ =
+                reinterpret_cast<BrightnessEvaluator*>(brightness_eval_buf_);
+        }
+        port_ = rLed.port_;
+    }
+
+    B& operator=(const TJLed<B, PortType>& rLed) {
+        TJLedController<PortType, B>::operator=(rLed);
+        if (rLed.brightness_eval_ !=
+            reinterpret_cast<BrightnessEvaluator*>(rLed.brightness_eval_buf_)) {
+            brightness_eval_ = rLed.brightness_eval_;
+        } else {
+            memcpy(brightness_eval_buf_, rLed.brightness_eval_buf_, MAX_SIZE);
+            brightness_eval_ =
+                reinterpret_cast<BrightnessEvaluator*>(brightness_eval_buf_);
+        }
+        port_ = rLed.port_;
+        return static_cast<B&>(*this);
+    }
 
     bool Update() {
-        return TJLedController<PortType, B>::Update(
-            &port_, EffectiveBrightnessEvaluator());
+        return TJLedController<PortType, B>::Update(&port_, brightness_eval_);
     }
 
     void Stop() { return TJLedController<PortType, B>::Stop(&port_); }
@@ -322,17 +344,15 @@ class TJLed : public TJLedController<PortType, B> {
     B& On(uint8_t brightness = kFullBrightness) {
         // we use placement new and therefore not need to keep track of mem
         // allocated
-        new (reinterpret_cast<uint8_t*>(brightness_eval_buf_))
-            ConstantBrightnessEvaluator(brightness);
-        user_brightness_eval_ = nullptr;
+        brightness_eval_ =
+            new (brightness_eval_buf_) ConstantBrightnessEvaluator(brightness);
         return static_cast<B&>(*this);
     }
 
     // turn LED off
     B& Off() {
-        new (reinterpret_cast<uint8_t*>(brightness_eval_buf_))
+        brightness_eval_ = new (brightness_eval_buf_)
             ConstantBrightnessEvaluator(kZeroBrightness);
-        user_brightness_eval_ = nullptr;
         return static_cast<B&>(*this);
     }
 
@@ -341,39 +361,35 @@ class TJLed : public TJLedController<PortType, B> {
 
     // Fade LED on
     B& FadeOn(uint16_t duration) {
-        new (reinterpret_cast<uint8_t*>(brightness_eval_buf_))
-            FadeOnBrightnessEvaluator(duration);
-        user_brightness_eval_ = nullptr;
+        brightness_eval_ =
+            new (brightness_eval_buf_) FadeOnBrightnessEvaluator(duration);
         return static_cast<B&>(*this);
     }
 
     // Fade LED off - acutally is just inverted version of FadeOn()
     B& FadeOff(uint16_t duration) {
-        new (reinterpret_cast<uint8_t*>(brightness_eval_buf_))
-            FadeOffBrightnessEvaluator(duration);
-        user_brightness_eval_ = nullptr;
+        brightness_eval_ =
+            new (brightness_eval_buf_) FadeOffBrightnessEvaluator(duration);
         return static_cast<B&>(*this);
     }
 
     // Set effect to Breathe, with the given period time in ms.
     B& Breathe(uint16_t period) {
-        new (reinterpret_cast<uint8_t*>(brightness_eval_buf_))
-            BreatheBrightnessEvaluator(period);
-        user_brightness_eval_ = nullptr;
+        brightness_eval_ =
+            new (brightness_eval_buf_) BreatheBrightnessEvaluator(period);
         return static_cast<B&>(*this);
     }
 
     // Set effect to Blink, with the given on- and off- duration values.
     B& Blink(uint16_t duration_on, uint16_t duration_off) {
-        new (reinterpret_cast<uint8_t*>(brightness_eval_buf_))
+        brightness_eval_ = new (brightness_eval_buf_)
             BlinkBrightnessEvaluator(duration_on, duration_off);
-        user_brightness_eval_ = nullptr;
         return static_cast<B&>(*this);
     }
 
     // Use a user provided brightness evaluator.
     B& UserFunc(BrightnessEvaluator* ube) {
-        user_brightness_eval_ = ube;
+        brightness_eval_ = ube;
         return static_cast<B&>(*this);
     }
 };
@@ -389,7 +405,6 @@ using JLedPortType = ArduinoAnalogWriter;
 class JLed : public TJLed<JLed, JLedPortType> {
     using TJLed<JLed, JLedPortType>::TJLed;
 };
-
 
 template <class T>
 class TJLedSequence {
