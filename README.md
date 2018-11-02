@@ -8,7 +8,7 @@ control LEDs in simple (**on**/**off**) and complex (**blinking**,
 **breathing**) ways in a **time-driven** manner.
 
 JLed got some [coverage on Hackaday](https://hackaday.com/2018/06/13/simplifying-basic-led-effects/)
-and someone did a [video tutorial for JLed](https://youtu.be/x5V2vdpZq1w)  - Thanks! 
+and someone did a [video tutorial for JLed](https://youtu.be/x5V2vdpZq1w)  - Thanks!
 
 [![breathing, blinking, fadeon and -off at the same time](doc/jled.gif)](examples/multiled)
 
@@ -22,8 +22,8 @@ JLed led_blink = JLed(LED_BUILTIN).Blink(500, 500).Repeat(11).DelayBefore(1000);
 void setup() { }
 
 void loop() {
-  led_blink.Update();
-  led_breathe.Update();
+led_blink.Update();
+led_breathe.Update();
 }
 ```
 
@@ -32,6 +32,7 @@ void loop() {
 <!-- vim-markdown-toc GFM -->
 
 * [Features](#features)
+* [Cheat Sheet](#cheat-sheet)
 * [Installation](#installation)
     * [Arduino IDE](#arduino-ide)
     * [PlatformIO](#platformio)
@@ -53,10 +54,13 @@ void loop() {
             * [Initial delay before effect starts](#initial-delay-before-effect-starts)
             * [Delay after effect finished](#delay-after-effect-finished)
             * [Repetitions](#repetitions)
-        * [Misc functions](#misc-functions)
-            * [Low active (inverted output)](#low-active-inverted-output)
+        * [State functions](#state-functions)
+            * [Update](#update)
+            * [IsRunning](#isrunning)
             * [Reset](#reset)
             * [Immediate Stop](#immediate-stop)
+        * [Misc functions](#misc-functions)
+            * [Low active (inverted output)](#low-active-inverted-output)
 * [Platform notes](#platform-notes)
     * [ESP8266](#esp8266)
     * [ESP32](#esp32)
@@ -85,6 +89,10 @@ void loop() {
 * supports reversed polarity of LED
 * easy configuration using fluent interface
 * Arduino, ESP8266 and ESP32 platform compatible
+
+## Cheat Sheet
+
+![JLed Cheat Sheet](doc/cheat_sheet.png)
 
 ## Installation
 
@@ -140,7 +148,7 @@ JLed led = JLed(LED_BUILTIN).On().DelayBefore(1000);
 void setup() { }
 
 void loop() {
-  led.Update();
+led.Update();
 }
 ```
 
@@ -165,7 +173,7 @@ JLed led = JLed(LED_BUILTIN).Blink(1000, 500).Forever();
 void setup() { }
 
 void loop() {
-  led.Update();
+led.Update();
 }
 ```
 
@@ -185,7 +193,7 @@ JLed led = JLed(13).Breathe(2000).DelayAfter(1000).Forever();
 void setup() { }
 
 void loop() {
-  led.Update();
+led.Update();
 }
 ```
 
@@ -204,14 +212,14 @@ JLed led = JLed(9).FadeOn(1000).DelayBefore(2000);
 void setup() { }
 
 void loop() {
-  led.Update();
+led.Update();
 }
 ```
 
 #### FadeOff
 
 In FadeOff mode, the LED is smoothly faded off using PWM. The fade starts
-at 100% brightness. Internally it is implemented as a mirrored version of 
+at 100% brightness. Internally it is implemented as a mirrored version of
 the FadeOn function, i.e. FadeOn(t) = FadeOff(period-t)
 
 #### User provided brightness function
@@ -221,11 +229,11 @@ must be derived from the `BrightnessEvaluator` class and implement
 two methods:
 
 * `uint8_t Èval(uint32_t t)` - the brightness evaluation function that calculates
-  a brightness for the given point in time t. The brighness must be returned as
-  an unsigned byte, where 0 means led off and 255 means full brightness.
+    a brightness for the given point in time t. The brighness must be returned as
+    an unsigned byte, where 0 means led off and 255 means full brightness.
 * `uint16_t Period() const` - period of the effect.
 
-All times are specified in milliseconds.
+    All times are specified in milliseconds.
 
 ##### User provided brightness function example
 
@@ -244,23 +252,27 @@ The default value is 0 ms.
 
 ##### Delay after effect finished
 
-Use the `DelayAfter()` method to specify a delay after each repetition of 
+Use the `DelayAfter()` method to specify a delay after each repetition of
 an effect. The default value is 0 ms.
 
 ##### Repetitions
 
 Use the `Repeat()` method to specify the number of repetition. The default
 value is 1 repetition. The `Forever()` methods sets to repeat the effect
-forever. Each repetition 
+forever. Each repetition
 
-#### Misc functions
+#### State functions
 
-##### Low active (inverted output)
+##### Update
 
-Use the `LowActive()` modifier  when the connected LED is low active. All output
-will be inverted by JLed (i.e. instead of x, the value of 255-x will be set).
+Call `Update()` periodidcally to update the state of the LED. `Update` returns
+`true` if the effect is active, and `false` when it finished.
 
-##### Reset 
+##### IsRunning
+
+`IsRunning()` returns `true` if the current effect is running, else `false`.
+
+##### Reset
 
 A call to `Reset()` bring the JLed object to it's initial state. Use it when
 you want to start-over an effect.
@@ -270,6 +282,13 @@ you want to start-over an effect.
 Call `Stop()` to immediately turn the LED off and stop any running effects.
 Further calls to `Update()` will have no effect unless the Led is reset (using
 `Reset()`) or a new effect activated.
+
+#### Misc functions
+
+##### Low active (inverted output)
+
+Use the `LowActive()` modifier  when the connected LED is low active. All output
+will be inverted by JLed (i.e. instead of x, the value of 255-x will be set).
 
 ## Platform notes
 
@@ -285,7 +304,7 @@ JLed transparently for the application, yielding platform independent code.
 ### ESP32
 
 The ESP32 Arduino SDK does not provide an `analogWrite()` function. To
-be able to use PWM, we use the `ledc` functions of the ESP32 SDK. 
+be able to use PWM, we use the `ledc` functions of the ESP32 SDK.
 (See [esspressif documentation](https://docs.espressif.com/projects/esp-idf/en/latest/api-reference/peripherals/ledc.html) for details).
 
 The `ledc` API connects so called channels to GPIO pins, enabling them to use
@@ -306,7 +325,7 @@ See [ESP32 multi led example](examples/multiled_esp32).
 
 ## Example sketches
 
-Examples sketches are provided in the [examples](examples/) directory. 
+Examples sketches are provided in the [examples](examples/) directory.
 
 ### PlatformIO
 
@@ -338,7 +357,7 @@ the host based provided unit tests [is provided here](test/README.md).
 * fork this repository
 * create your feature branch
 * add code
-* add unit test(s) 
+* add unit test(s)
 * add documentation
 * make sure linter does not report problems (make lint)
 * commit changes
