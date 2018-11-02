@@ -79,12 +79,8 @@ void loop() {
 ## Features
 
 * non-blocking
-* simple on/off
-* breathe effect
-* blinking effect
-* fade-on and -off effect
-* user provided effects
-* supports reversed polarity of LED
+* effects: simple on/off, breathe, blink, fade-on, fade-off, user-defined
+* supports inverted  polarity of LED
 * easy configuration using fluent interface
 * Arduino, ESP8266 and ESP32 platform compatible
 
