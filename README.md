@@ -13,17 +13,15 @@ and someone did a [video tutorial for JLed](https://youtu.be/x5V2vdpZq1w)  - Tha
 [![breathing, blinking, fadeon and -off at the same time](doc/jled.gif)](examples/multiled)
 
 ```c++
-// blink and breathe two LEDs (builtin and gpio 9) for 12 seconds.
+// breathe an LED (gpio 9) for 12 seconds.
 #include <jled.h>
 
-JLed led_breathe = JLed(9).Breathe(1500).Repeat(6).DelayAfter(500);
-JLed led_blink = JLed(LED_BUILTIN).Blink(500, 500).Repeat(11).DelayBefore(1000);
+auto led_breathe = JLed(9).Breathe(1500).Repeat(6).DelayAfter(500);
 
 void setup() { }
 
 void loop() {
-led_blink.Update();
-led_breathe.Update();
+  led_breathe.Update();
 }
 ```
 
@@ -143,12 +141,12 @@ To immediately turn a LED on, make a call like `JLed(LED_BUILTIN).On().Update()`
 #include <jled.h>
 
 // turn builtin LED on after 1 second.
-JLed led = JLed(LED_BUILTIN).On().DelayBefore(1000);
+auto led = JLed(LED_BUILTIN).On().DelayBefore(1000);
 
 void setup() { }
 
 void loop() {
-led.Update();
+  led.Update();
 }
 ```
 
@@ -168,12 +166,12 @@ and off-cycle duration are specified independently.
 #include <jled.h>
 
 // blink internal LED every second.
-JLed led = JLed(LED_BUILTIN).Blink(1000, 500).Forever();
+auto led = JLed(LED_BUILTIN).Blink(1000, 500).Forever();
 
 void setup() { }
 
 void loop() {
-led.Update();
+  led.Update();
 }
 ```
 
@@ -188,12 +186,12 @@ In breathing mode, the LED smoothly changes brightness using PWM.
 
 // connect LED to pin 13 (PWM capable). LED will breathe with period of
 // 2000ms and a delay of 1000ms after each period.
-JLed led = JLed(13).Breathe(2000).DelayAfter(1000).Forever();
+auto led = JLed(13).Breathe(2000).DelayAfter(1000).Forever();
 
 void setup() { }
 
 void loop() {
-led.Update();
+  led.Update();
 }
 ```
 
@@ -207,12 +205,12 @@ In FadeOn mode, the LED is smoothly faded on to 100% brightness using PWM.
 #include <jled.h>
 
 // LED is connected to pin 9 (PWM capable) gpio
-JLed led = JLed(9).FadeOn(1000).DelayBefore(2000);
+auto led = JLed(9).FadeOn(1000).DelayBefore(2000);
 
 void setup() { }
 
 void loop() {
-led.Update();
+  led.Update();
 }
 ```
 
