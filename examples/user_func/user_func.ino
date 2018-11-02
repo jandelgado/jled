@@ -13,7 +13,7 @@ class UserEffect : public jled::BrightnessEvaluator {
 };
 
 UserEffect userEffect;
-JLed led = JLed(LED_BUILTIN).UserFunc(&userEffect);
+auto led = JLed(LED_BUILTIN).UserFunc(&userEffect);
 
 void setup() {}
 
