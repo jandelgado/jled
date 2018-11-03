@@ -1,13 +1,11 @@
-// JLed Unit tests (run on host), using the ArduinoAnalogWriter and
-// an Arduino mock for testing.
+// JLed Unit tests (runs on host)
 // Copyright 2017 Jan Delgado jdelgado@gmx.net
-// TODO(jd) replace arduino mock usage by mock port abstraction.
 #include <map>
-
 #include <jled.h>  // NOLINT
+#include "hal_mock.h"  // NOLINT
 #include "catch.hpp"
 
-using jled::JLedPortType;
+using jled::JLedHalType;
 using jled::TJLed;
 using jled::TJLedController;
 using jled::BrightnessEvaluator;
@@ -16,28 +14,28 @@ using jled::ConstantBrightnessEvaluator;
 using jled::BreatheBrightnessEvaluator;
 using jled::FadeOnBrightnessEvaluator;
 using jled::FadeOffBrightnessEvaluator;
-using jled::ArduinoAnalogWriter;
+using jled::ArduinoHal;
+
+// TestJLed is a JLed class using the HalMock for tests. This allows to
+// test the code abstracted from the actual hardware in use.
+class TestJLed : public TJLed<TestJLed, HalMock> {
+    using TJLed<TestJLed, HalMock>::TJLed;
+};
 
 // instanciate for test coverage measurement
-template class TJLedController<JLedPortType, JLed>;
-template class TJLed<JLed, JLedPortType>;
-
-TEST_CASE("jled ctor set pin mode to OUTPUT", "[jled]") {
-    constexpr auto kTestPin = 10;
-    REQUIRE(arduinoMockGetPinMode(kTestPin) == 0);
-    JLed jled(kTestPin);
-    REQUIRE(arduinoMockGetPinMode(kTestPin) == OUTPUT);
-}
+template class TJLedController<HalMock, TestJLed>;
+template class TJLed<TestJLed, HalMock>;
 
 TEST_CASE("jled without effect does nothing", "[jled]") {
-    auto led = JLed(1);
+    auto led = TestJLed(1);
     REQUIRE(!led.Update());
 }
 
 TEST_CASE("On/Off function configuration", "[jled]") {
-    class TestableJLed : public JLed {
+    // class used to access proteced fields during test
+    class TestableJLed : public TestJLed {
      public:
-        using JLed::JLed;
+        using TestJLed::TestJLed;
         static void test() {
             SECTION("On()") {
                 TestableJLed jled(1);
@@ -76,9 +74,9 @@ TEST_CASE("On/Off function configuration", "[jled]") {
 }
 
 TEST_CASE("Breathe() function configuration", "[jled]") {
-    class TestableJLed : public JLed {
+    class TestableJLed : public TestJLed {
      public:
-        using JLed::JLed;
+        using TestJLed::TestJLed;
         static void test() {
             TestableJLed jled(1);
             jled.Breathe(0);
@@ -90,9 +88,9 @@ TEST_CASE("Breathe() function configuration", "[jled]") {
 }
 
 TEST_CASE("FadeOn()/FadeOff() function configuration", "[jled]") {
-    class TestableJLed : public JLed {
+    class TestableJLed : public TestJLed {
      public:
-        using JLed::JLed;
+        using TestJLed::TestJLed;
         static void test() {
             SECTION("FadeOff() correctly initializes") {
                 TestableJLed jled(1);
@@ -118,9 +116,9 @@ TEST_CASE("UserFunc() provided brightness evaluator configuration", "[jled]") {
         uint8_t Eval(uint32_t) { return 0; }
     };
 
-    class TestableJLed : public JLed {
+    class TestableJLed : public TestJLed {
      public:
-        using JLed::JLed;
+        using TestJLed::TestJLed;
         static void test() {
             TestableJLed jled(1);
             auto cust = CustomBrightnessEvaluator();
@@ -203,8 +201,8 @@ TEST_CASE("EvalBrightness() calculates correct values", "[jled]") {
     static constexpr auto kTimeProbe = 1000;
     static constexpr auto kTestBrightness = 100;
 
-    class TestableJLed : public JLed {
-        using JLed::JLed;
+    class TestableJLed : public TestJLed {
+        using TestJLed::TestJLed;
 
      public:
         static void test() {
@@ -222,7 +220,7 @@ TEST_CASE("EvalBrightness() calculates correct values", "[jled]") {
 }
 
 TEST_CASE("set and test forever", "[jled]") {
-    JLed jled(1);
+    TestJLed jled(1);
     REQUIRE_FALSE(jled.IsForever());
     jled.Forever();
     REQUIRE(jled.IsForever());
@@ -243,55 +241,48 @@ TEST_CASE("dont evalute twice during one time tick", "[jled]") {
 
     uint16_t num_times_called = 0;
     auto eval = CountingCustomBrightnessEvaluator();
-    JLed jled = JLed(1).UserFunc(&eval);
-    arduinoMockSetMillis(0);
+    TestJLed jled = TestJLed(1).UserFunc(&eval);
+    jled.Hal().SetMillis(0);
 
     jled.Update();
     REQUIRE(eval.Count() == 1);
     jled.Update();
     REQUIRE(eval.Count() == 1);
 
-    arduinoMockSetMillis(1);
+    jled.Hal().SetMillis(1);
     jled.Update();
     REQUIRE(eval.Count() == 2);
 }
 
 TEST_CASE("Stop() stops the effect", "[jled]") {
-    constexpr auto kTestPin = 10;
     constexpr auto kDuration = 100;
-    arduinoMockInit();
 
     // we test that an effect that normally has high ouput for a longer
     // time (e.g. FadeOff()) stays off after Stop() was called.
-    JLed jled = JLed(kTestPin).FadeOff(kDuration);
+    TestJLed jled = TestJLed(10).FadeOff(kDuration);
     REQUIRE(jled.IsRunning());
     jled.Update();
-    REQUIRE(arduinoMockGetPinState(kTestPin) > 0);
+    REQUIRE(jled.Hal().Value() > 0);
     jled.Stop();
     REQUIRE(!jled.IsRunning());
     REQUIRE_FALSE(jled.Update());
-    REQUIRE(arduinoMockGetPinState(kTestPin) == 0);
+    REQUIRE(0 == jled.Hal().Value() );
     // update should not change anything
     REQUIRE_FALSE(jled.Update());
-    REQUIRE(arduinoMockGetPinState(kTestPin) == 0);
+    REQUIRE(0 == jled.Hal().Value() );
 }
 
 TEST_CASE("LowActive() inverts signal", "[jled]") {
-    constexpr auto kTestPin = 10;
-    arduinoMockInit();
-
-    JLed jled = JLed(kTestPin).On().LowActive();
-    REQUIRE(arduinoMockGetPinState(kTestPin) == 0);
+    TestJLed jled = TestJLed(10).On().LowActive();
+    REQUIRE(0 == jled.Hal().Value());
     jled.Update();
-    REQUIRE(arduinoMockGetPinState(kTestPin) == 0);
+    REQUIRE(0 == jled.Hal().Value());
     jled.Stop();
-    REQUIRE(arduinoMockGetPinState(kTestPin) == 255);
+    REQUIRE(255 == jled.Hal().Value());
 }
 
 TEST_CASE("blink led twice with delay and repeat", "[jled]") {
-    constexpr auto kTestPin = 10;
-    arduinoMockInit();
-    JLed jled(kTestPin);
+    TestJLed jled(10);
 
     // 1 ms on, 2 ms off + 2 ms delay = 3ms off in total per iteration
     jled.DelayBefore(5).Blink(1, 2).DelayAfter(2).Repeat(2);
@@ -305,15 +296,13 @@ TEST_CASE("blink led twice with delay and repeat", "[jled]") {
     uint32_t time = 0;
     for (const auto val : expected) {
         jled.Update();
-        REQUIRE(arduinoMockGetPinState(kTestPin) == val);
-        arduinoMockSetMillis(++time);
+        REQUIRE(val == jled.Hal().Value());
+        jled.Hal().SetMillis(++time);
     }
 }
 
 TEST_CASE("blink led forever", "[jled]") {
-    constexpr auto kTestPin = 10;
-    arduinoMockInit();
-    JLed jled(kTestPin);
+    TestJLed jled(10);
 
     SECTION("blink led forever") {
         constexpr auto kOnDuration = 5;
@@ -329,53 +318,47 @@ TEST_CASE("blink led forever", "[jled]") {
         for (auto i = 0; i < kRepetitions; i++) {
             jled.Update();
             auto state = (timer < kOnDuration);
-            REQUIRE(arduinoMockGetPinState(kTestPin) == (state ? 255 : 0));
+            auto expected = (state ? 255 : 0);
+            REQUIRE(expected == jled.Hal().Value());
             timer++;
             if (timer >= kOnDuration + kOffDuration) {
                 timer = 0;
             }
-            arduinoMockSetMillis(++time);
+            jled.Hal().SetMillis(++time);
         }
     }
 }
 
 TEST_CASE("construct Jled object with custom ctor", "[jled]") {
-    arduinoMockInit();
-
-    constexpr auto kTestPin = 1;
-    JLed jled = JLed(ArduinoAnalogWriter(kTestPin)).Blink(1, 1);
+    TestJLed jled = TestJLed(HalMock(10)).Blink(1, 1);
 
     // test with a simple on-off sequence
     uint32_t time = 0;
     REQUIRE(jled.Update());
-    REQUIRE(arduinoMockGetPinState(kTestPin) == 255);
-    arduinoMockSetMillis(++time);
+    REQUIRE(255 == jled.Hal().Value());
+    jled.Hal().SetMillis(++time);
     REQUIRE(!jled.Update());
-    REQUIRE(arduinoMockGetPinState(kTestPin) == 0);
-    arduinoMockSetMillis(++time);
+    REQUIRE(0 == jled.Hal().Value());
+    jled.Hal().SetMillis(++time);
 }
 
 TEST_CASE("Update returns true while updating, else false", "[jled]") {
-    arduinoMockInit();
-    JLed jled = JLed(10).Blink(2, 3);
+    TestJLed jled = TestJLed(10).Blink(2, 3);
     constexpr auto expectedTime = 2 + 3;
 
     uint32_t time = 0;
     for (auto i = 0; i < expectedTime - 1; i++) {
         // returns FALSE on last step and beyond, else TRUE
-        arduinoMockSetMillis(time++);
-        auto res = jled.Update();
-        REQUIRE(res);
+        jled.Hal().SetMillis(time++);
+        REQUIRE(jled.Update());
     }
     // when effect is done, we expect still false to be returned
-    arduinoMockSetMillis(time++);
+    jled.Hal().SetMillis(time++);
     REQUIRE_FALSE(jled.Update());
 }
 
 TEST_CASE("After Reset() the effect can be restarted", "[jled]") {
-    constexpr auto kTestPin = 10;
-    arduinoMockInit();
-    JLed jled(kTestPin);
+    TestJLed jled(10);
 
     // 1 ms on, 2 ms off + 2 ms delay = 3ms off in total per iteration
     jled.Blink(1, 1);
@@ -386,16 +369,16 @@ TEST_CASE("After Reset() the effect can be restarted", "[jled]") {
 
     for (const auto val : expected) {
         jled.Update();
-        REQUIRE(arduinoMockGetPinState(kTestPin) == val);
-        arduinoMockSetMillis(++time);
+        REQUIRE(val == jled.Hal().Value());
+        jled.Hal().SetMillis(++time);
     }
     REQUIRE(!jled.Update());
     // after Reset() effect starts over
     jled.Reset();
     for (const auto val : expected) {
         jled.Update();
-        REQUIRE(arduinoMockGetPinState(kTestPin) == val);
-        arduinoMockSetMillis(++time);
+        REQUIRE(val == jled.Hal().Value());
+        jled.Hal().SetMillis(++time);
     }
     REQUIRE(!jled.Update());
 }
