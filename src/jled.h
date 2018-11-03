@@ -22,8 +22,6 @@
 #ifndef SRC_JLED_H_
 #define SRC_JLED_H_
 
-#include <Arduino.h>
-
 // JLed - non-blocking LED abstraction library.
 //
 // Example Arduino sketch:
@@ -36,11 +34,11 @@
 //   }
 
 #ifdef ESP32
-#include "esp32_analog_writer.h"  // NOLINT
+#include "esp32_hal.h"  // NOLINT
 #elif ESP8266
-#include "esp8266_analog_writer.h"  // NOLINT
+#include "esp8266_hal.h"  // NOLINT
 #else
-#include "arduino_analog_writer.h"  // NOLINT
+#include "arduino_hal.h"  // NOLINT
 #endif
 
 namespace jled {
@@ -137,11 +135,11 @@ class BreatheBrightnessEvaluator : public BrightnessEvaluator {
 // set MAX_SIZE to class occupying most memory
 constexpr auto MAX_SIZE = sizeof(BlinkBrightnessEvaluator);
 
-template <typename PortType, typename B>
+template <typename HalType, typename B>
 class TJLedController {
  public:
     // TODO(jd) needed?
-    // TJLedController(const TJLedController<PortType, B> &rLed) = default;
+    // TJLedController(const TJLedController<HalType, B> &rLed) = default;
 
     // update brightness of LED using the given brightness evaluator
     //  (brightness)                     _________________
@@ -152,11 +150,11 @@ class TJLedController {
     //        |<delay before>|<--period-->|<-delay after-> (time)
     //                       | func(t)    |
     //                       |<- num_repetitions times  ->
-    bool Update(PortType* port, BrightnessEvaluator* eval) {
+    bool Update(HalType* hal, BrightnessEvaluator* eval) {
         if (!IsRunning() || !eval) {
             return false;
         }
-        const auto now = millis();
+        const auto now = hal->millis();
 
         // no need to process updates twice during one time tick.
         if (last_update_time_ == now) {
@@ -181,13 +179,13 @@ class TJLedController {
 
         if (t < period) {
             SetInDelayAfterPhase(false);
-            AnalogWrite(port, EvalBrightness(eval, t));
+            AnalogWrite(hal, EvalBrightness(eval, t));
         } else {
             if (!IsInDelayAfterPhase()) {
                 // when in delay after phase, just call AnalogWrite()
                 // once at the beginning.
                 SetInDelayAfterPhase(true);
-                AnalogWrite(port, EvalBrightness(eval, period - 1));
+                AnalogWrite(hal, EvalBrightness(eval, period - 1));
             }
         }
 
@@ -198,7 +196,7 @@ class TJLedController {
 
             if (now >= time_end) {
                 // make sure final value of t = period-1 is set
-                AnalogWrite(port, EvalBrightness(eval, period - 1));
+                AnalogWrite(hal, EvalBrightness(eval, period - 1));
                 SetFlags(FL_STOPPED, true);
                 return false;
             }
@@ -236,10 +234,10 @@ class TJLedController {
     bool IsLowActive() const { return GetFlag(FL_LOW_ACTIVE); }
 
     // Stop current effect and turn LED immeadiately off
-    void Stop(PortType* port) {
+    void Stop(HalType* hal) {
         // Immediately turn LED off and stop effect.
         SetFlags(FL_STOPPED, true);
-        AnalogWrite(port, kZeroBrightness);
+        AnalogWrite(hal, kZeroBrightness);
     }
     bool IsRunning() const { return !GetFlag(FL_STOPPED); }
 
@@ -253,8 +251,8 @@ class TJLedController {
  protected:
     // internal control of the LED, does not affect
     // state and honors low_active_ flag
-    void AnalogWrite(PortType* port, uint8_t val) const {
-        port->analogWrite(IsLowActive() ? kFullBrightness - val : val);
+    void AnalogWrite(HalType* hal, uint8_t val) const {
+        hal->analogWrite(IsLowActive() ? kFullBrightness - val : val);
     }
 
     B& SetFlags(uint8_t f, bool val) {
@@ -290,9 +288,9 @@ class TJLedController {
     uint32_t time_start_ = kTimeUndef;
 };
 
-template <typename B, typename PortType>
-class TJLed : public TJLedController<PortType, B> {
-    using TJLedController<PortType, B>::TJLedController;
+template <typename B, typename HalType>
+class TJLed : public TJLedController<HalType, B> {
+    using TJLedController<HalType, B>::TJLedController;
 
     // this is where the BrightnessEvaluator object will be stored using
     // placment new.
@@ -301,44 +299,38 @@ class TJLed : public TJLedController<PortType, B> {
  protected:
     // optional pointer to a user defined brightness evaluator.
     BrightnessEvaluator* brightness_eval_ = nullptr;
-    // Object controlling the GPIO port
-    PortType port_;
+    // Hardware abstraction giving access to the MCU
+    HalType hal_;
 
  public:
     TJLed() = delete;
-    explicit TJLed(const PortType& port) : port_(port) {}
-    explicit TJLed(uint8_t pin) : port_(PortType(pin)) {}
-    TJLed(const TJLed<B, PortType>& rLed) : TJLedController<PortType, B>(rLed) {
-        if (rLed.brightness_eval_ !=
-            reinterpret_cast<BrightnessEvaluator*>(rLed.brightness_eval_buf_)) {
-            brightness_eval_ = rLed.brightness_eval_;
-        } else {
-            memcpy(brightness_eval_buf_, rLed.brightness_eval_buf_, MAX_SIZE);
-            brightness_eval_ =
-                reinterpret_cast<BrightnessEvaluator*>(brightness_eval_buf_);
-        }
-        port_ = rLed.port_;
+    explicit TJLed(const HalType& hal) : hal_(hal) {}
+    explicit TJLed(uint8_t pin) : hal_(HalType(pin)) {}
+    TJLed(const TJLed<B, HalType>& rLed) {
+        *this = rLed;
     }
 
-    B& operator=(const TJLed<B, PortType>& rLed) {
-        TJLedController<PortType, B>::operator=(rLed);
+    HalType& Hal() {return hal_;}
+
+    B& operator=(const TJLed<B, HalType>& rLed) {
+        TJLedController<HalType, B>::operator=(rLed);
         if (rLed.brightness_eval_ !=
-            reinterpret_cast<BrightnessEvaluator*>(rLed.brightness_eval_buf_)) {
+            reinterpret_cast<const BrightnessEvaluator*>(rLed.brightness_eval_buf_)) {  // NOLINT
             brightness_eval_ = rLed.brightness_eval_;
         } else {
             memcpy(brightness_eval_buf_, rLed.brightness_eval_buf_, MAX_SIZE);
             brightness_eval_ =
                 reinterpret_cast<BrightnessEvaluator*>(brightness_eval_buf_);
         }
-        port_ = rLed.port_;
+        hal_ = rLed.hal_;
         return static_cast<B&>(*this);
     }
 
     bool Update() {
-        return TJLedController<PortType, B>::Update(&port_, brightness_eval_);
+        return TJLedController<HalType, B>::Update(&hal_, brightness_eval_);
     }
 
-    void Stop() { return TJLedController<PortType, B>::Stop(&port_); }
+    void Stop() { return TJLedController<HalType, B>::Stop(&hal_); }
 
     // turn LED on
     B& On(uint8_t brightness = kFullBrightness) {
@@ -395,29 +387,28 @@ class TJLed : public TJLedController<PortType, B> {
 };
 
 #ifdef ESP32
-using JLedPortType = Esp32AnalogWriter;
+using JLedHalType = Esp32Hal;
 #elif ESP8266
-using JLedPortType = Esp8266AnalogWriter;
+using JLedHalType = Esp8266Hal;
 #else
-using JLedPortType = ArduinoAnalogWriter;
+using JLedHalType = ArduinoHal;
 #endif
 
-class JLed : public TJLed<JLed, JLedPortType> {
-    using TJLed<JLed, JLedPortType>::TJLed;
+class JLed : public TJLed<JLed, JLedHalType> {
+    using TJLed<JLed, JLedHalType>::TJLed;
 };
 
-template <class T>
-class TJLedSequence {
+// a group of JLed objects which can be controlled simultanously
+class JLedSequence {
  public:
-    TJLedSequence() = delete;
-    TJLedSequence(T* items, size_t n) : items_(items), n_(n) {}
+    JLedSequence() = delete;
+    JLedSequence(JLed* items, size_t n) : items_(items), n_(n) {}
 
     bool Update() {
         if (cur_ >= n_) {
             return false;
         }
         auto& led = items_[cur_];
-        // port_ = led.Port() ? led.Port() : port_;
         if (!led.Update()) {
             cur_++;
         }
@@ -425,7 +416,7 @@ class TJLedSequence {
     }
 
  private:
-    T* items_;
+    JLed* items_;
     size_t cur_ = 0;
     size_t n_;
 };
@@ -433,6 +424,6 @@ class TJLedSequence {
 };  // namespace jled
 
 using JLed = jled::JLed;
-using JLedSequence = jled::TJLedSequence<jled::JLed>;
+using JLedSequence = jled::JLedSequence;
 
 #endif  // SRC_JLED_H_

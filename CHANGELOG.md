@@ -8,6 +8,9 @@
   to start over.
 * new class `JLedSequence` to update JLed objects simultanously or 
   sequentially. See [README](README.md) for details.
+* clean separation between hardware specific and common code, making
+  extendability easy
+* added STM32 support
 
 ### Changed
 
