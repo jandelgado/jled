@@ -166,6 +166,7 @@ class TJLedController {
         if (last_update_time_ == kTimeUndef) {
             last_update_time_ = now;
             time_start_ = now + delay_before_;
+            SetInDelayAfterPhase(false);
         }
         last_update_time_ = now;
 
@@ -178,7 +179,6 @@ class TJLedController {
         const auto t = (now - time_start_) % (period + delay_after_);
 
         if (t < period) {
-            SetInDelayAfterPhase(false);
             AnalogWrite(hal, EvalBrightness(eval, t));
         } else {
             if (!IsInDelayAfterPhase()) {
