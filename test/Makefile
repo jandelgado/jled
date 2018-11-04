@@ -21,22 +21,22 @@ TEST_ESP8266_OBJECTS=$(TEST_ESP8266_SOURCES:.cpp=.o)
 TEST_ARDUINO_SOURCES=Arduino.cpp test_arduino_hal.cpp test_main.cpp
 TEST_ARDUINO_OBJECTS=$(TEST_ARDUINO_SOURCES:.cpp=.o)
 
-all: test_jled test_jled_sequence test_esp32_hal test_esp8266_hal test_arduino_hal
+all: bin bin/test_jled bin/test_jled_sequence bin/test_esp32_hal bin/test_esp8266_hal bin/test_arduino_hal
 
-test_jled: $(TEST_JLED_OBJECTS)
+bin/test_jled: $(TEST_JLED_OBJECTS)
 	$(CXX) $(LDFLAGS) $(TEST_JLED_OBJECTS) -o $@
 
-test_jled_sequence: $(TEST_JLED_SEQUENCE_OBJECTS)
+bin/test_jled_sequence: $(TEST_JLED_SEQUENCE_OBJECTS)
 	$(CXX) $(LDFLAGS) $(TEST_JLED_SEQUENCE_OBJECTS) -o $@
 
-test_esp32_hal: CFLAGS += -DESP32
-test_esp32_hal: $(TEST_ESP32_OBJECTS)
+bin/test_esp32_hal: CFLAGS += -DESP32
+bin/test_esp32_hal: $(TEST_ESP32_OBJECTS)
 	$(CXX) $(LDFLAGS) $(TEST_ESP32_OBJECTS) -o $@
 
-test_esp8266_hal: $(TEST_ESP8266_OBJECTS)
+bin/test_esp8266_hal: $(TEST_ESP8266_OBJECTS)
 	$(CXX) $(LDFLAGS) $(TEST_ESP8266_OBJECTS) -o $@
 
-test_arduino_hal: $(TEST_ARDUINO_OBJECTS)
+bin/test_arduino_hal: $(TEST_ARDUINO_OBJECTS)
 	$(CXX) $(LDFLAGS) $(TEST_ARDUINO_OBJECTS) -o $@
 
 
@@ -47,11 +47,11 @@ coverage: test
 	genhtml coverage.info -o report
 
 test: all
-	./test_jled
-	./test_jled_sequence
-	./test_esp32_hal
-	./test_esp8266_hal
-	./test_arduino_hal
+	./bin/test_jled
+	./bin/test_jled_sequence
+	./bin/test_esp32_hal
+	./bin/test_esp8266_hal
+	./bin/test_arduino_hal
 
 .cpp.o:
 	$(CXX) $(CFLAGS) $< -o $@
@@ -59,9 +59,12 @@ test: all
 .hpp.pch:
 	$(CXX) $(CFLAGS) $< -o $@
 
+bin:
+	mkdir -p bin
+
 clean:
 	rm -f coverage.info *.{gcov,gcda,gcno,o} ../src/*.{gcov,gcda,gcno,o} 
 
 clobber: clean
-	rm -f test_jled test_jled_sequence test_esp32_hal test_esp8266_hal
+	rm -f bin/*
 

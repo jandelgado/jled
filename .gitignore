@@ -5,10 +5,7 @@
 .gcc-flags.json
 *~
 lib
-test/test_jled
-test/test_esp32_analog_writer
-test/test_esp8266_analog_writer
-test/test_jled_sequence
+test/bin
 *.gcov
 *.gcno
 *.gcda
