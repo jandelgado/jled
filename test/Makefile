@@ -2,7 +2,7 @@
 # run `make coverage` to run all test and calculate coverage
 CFLAGS=-std=c++11 -c -Wall -Wextra -I. -I../src --coverage -fno-inline \
 	   -fno-inline-small-functions -fno-default-inline -g -fmax-errors=5 \
-	   -O0 -fno-omit-frame-pointer -fno-optimize-sibling-calls 
+	   -fno-omit-frame-pointer -fno-optimize-sibling-calls $(OPT)
 
 LDFLAGS=-fprofile-arcs -ftest-coverage 
 

@@ -13,6 +13,7 @@ lint:
 		       -type f -a \( -name "*\.cpp" -o -name "*\.h" -o -name "*\.ino" \) )
 
 ci:
+	platformio ci $(CIOPTS) examples/multiled/multiled.ino 
 	platformio ci $(CIOPTS_ESP32) examples/multiled_esp32/multiled_esp32.ino src/esp32_hal.cpp 
 	platformio ci $(CIOPTS) examples/user_func/user_func.ino 
 	platformio ci $(CIOPTS) examples/hello/hello.ino 
@@ -20,7 +21,6 @@ ci:
 	platformio ci $(CIOPTS) examples/simple_on/simple_on.ino
 	platformio ci $(CIOPTS) examples/fade_on/fade_on.ino
 	platformio ci $(CIOPTS) examples/fade_off/fade_off.ino 
-	platformio ci $(CIOPTS) examples/multiled/multiled.ino 
 
 clean:
 	-pio run --target clean
