@@ -50,7 +50,6 @@ uint8_t fadeon_func(uint32_t t, uint16_t period);
 // the LED.
 class BrightnessEvaluator {
  public:
-    BrightnessEvaluator() {}
     virtual ~BrightnessEvaluator() {}
     virtual uint16_t Period() const = 0;
     virtual uint8_t Eval(uint32_t t) = 0;
@@ -152,9 +151,8 @@ class TJLedController {
     //                       | func(t)    |
     //                       |<- num_repetitions times  ->
     bool Update(HalType* hal, BrightnessEvaluator* eval) {
-        if (!IsRunning() || !eval) {
-            return false;
-        }
+        if (!IsRunning() || !eval) return false;
+
         const auto now = hal->millis();
 
         // no need to process updates twice during one time tick.
@@ -162,8 +160,6 @@ class TJLedController {
             return true;
         }
 
-        // last_update_time_ will be 0 on initialization, so this fails
-        // on first call to this method.
         if (last_update_time_ == kTimeUndef) {
             last_update_time_ = now;
             time_start_ = now + delay_before_;
@@ -171,9 +167,7 @@ class TJLedController {
         }
         last_update_time_ = now;
 
-        if (now < time_start_) {
-            return true;
-        }
+        if (now < time_start_) return true;
 
         // t cycles in range [0..period+delay_after-1]
         const auto period = eval->Period();
@@ -181,26 +175,24 @@ class TJLedController {
 
         if (t < period) {
             AnalogWrite(hal, EvalBrightness(eval, t));
-        } else {
-            if (!IsInDelayAfterPhase()) {
-                // when in delay after phase, just call AnalogWrite()
-                // once at the beginning.
-                SetInDelayAfterPhase(true);
-                AnalogWrite(hal, EvalBrightness(eval, period - 1));
-            }
+        } else if (!IsInDelayAfterPhase()) {
+            // when in delay after phase, just call AnalogWrite()
+            // once at the beginning.
+            SetInDelayAfterPhase(true);
+            AnalogWrite(hal, EvalBrightness(eval, period - 1));
         }
 
-        if (!IsForever()) {
-            const auto time_end =
-                time_start_ +
-                (uint32_t)(period + delay_after_) * num_repetitions_ - 1;
+        if (IsForever()) return true;
 
-            if (now >= time_end) {
-                // make sure final value of t = period-1 is set
-                AnalogWrite(hal, EvalBrightness(eval, period - 1));
-                SetFlags(FL_STOPPED, true);
-                return false;
-            }
+        const auto time_end =
+            time_start_ + (uint32_t)(period + delay_after_) * num_repetitions_ -
+            1;
+
+        if (now >= time_end) {
+            // make sure final value of t = (period-1) is set
+            AnalogWrite(hal, EvalBrightness(eval, period - 1));
+            SetFlags(FL_STOPPED, true);
+            return false;
         }
         return true;
     }

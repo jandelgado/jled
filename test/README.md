@@ -2,4 +2,7 @@
 
 The tests are using the [catch unit testing framework](https://github.com/catchorg/Catch2).
 
-Run tests with `make clean && make test`.
+Pass `OPT` argument to make to control optimization, which affects code
+coverage, e.g.:
+* `make clean coverage OPT=-O0`
+* `make clean test OPT=-O2` 

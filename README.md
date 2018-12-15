@@ -71,7 +71,7 @@ void loop() {
     * [How do I check if an JLed object is still being updated?](#how-do-i-check-if-an-jled-object-is-still-being-updated)
     * [How do I restart a effect?](#how-do-i-restart-a-effect)
     * [How do I change a running effect?](#how-do-i-change-a-running-effect)
-* [Author](#author)
+* [Author and Copyright](#author-and-copyright)
 * [License](#license)
 
 <!-- vim-markdown-toc -->
@@ -360,18 +360,22 @@ the host based provided unit tests [is provided here](test/README.md).
 ## FAQ
 
 ### How do I check if an JLed object is still being updated?
-TODO
+
+Check the return value of the `Update()` method: the method returns `true` if
+the effect is still running, otherwise `false'.
 
 ### How do I restart a effect?
-TODO
+
+Call `Reset()` on a `JLed` object to start over.
 
 ### How do I change a running effect?
+
 TODO
 
 
-## Author
+## Author and Copyright
 
-Jan Delgado, jdelgado[at]gmx.net.
+Copyright 2017, 2018 by Jan Delgado, jdelgado[at]gmx.net.
 
 ## License
 
