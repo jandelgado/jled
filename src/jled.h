@@ -40,8 +40,7 @@
 namespace jled {using JLedHalType = Esp32Hal;}
 #elif ESP8266
 #include "esp8266_hal.h"  // NOLINT
-using JLedHalType = Esp8266Hal;
-namespace jled {using JLedHalType = Esp3266Hal;}
+namespace jled {using JLedHalType = Esp8266Hal;}
 #else
 #include "arduino_hal.h"  // NOLINT
 namespace jled {using JLedHalType = ArduinoHal;}
@@ -53,26 +52,8 @@ class JLed : public TJLed<JLed, JLedHalType> {
 };
 
 // a group of JLed objects which can be controlled simultanously
-class JLedSequence {
- public:
-    JLedSequence() = delete;
-    JLedSequence(JLed* items, size_t n) : items_(items), n_(n) {}
-
-    bool Update() {
-        if (cur_ >= n_) {
-            return false;
-        }
-        auto& led = items_[cur_];
-        if (!led.Update()) {
-            cur_++;
-        }
-        return true;
-    }
-
- private:
-    JLed* items_;
-    size_t cur_ = 0;
-    size_t n_;
+class JLedSequence : public TJLedSequence<JLed> {
+    using TJLedSequence<JLed>::TJLedSequence;
 };
 
 };  // namespace jled

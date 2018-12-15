@@ -22,7 +22,8 @@
 #ifndef SRC_JLED_BASE_H_
 #define SRC_JLED_BASE_H_
 
-#include <Arduino.h>  // types
+#include <inttypes.h>  // types, e.g. uint8_t
+#include <stddef.h>    // size_t
 
 // JLed - non-blocking LED abstraction library.
 //
@@ -306,19 +307,18 @@ class TJLed : public TJLedController<HalType, B> {
     TJLed() = delete;
     explicit TJLed(const HalType& hal) : hal_(hal) {}
     explicit TJLed(uint8_t pin) : hal_(HalType(pin)) {}
-    TJLed(const TJLed<B, HalType>& rLed) {
-        *this = rLed;
-    }
+    TJLed(const TJLed<B, HalType>& rLed) { *this = rLed; }
 
-    HalType& Hal() {return hal_;}
+    HalType& Hal() { return hal_; }
 
     B& operator=(const TJLed<B, HalType>& rLed) {
         TJLedController<HalType, B>::operator=(rLed);
         if (rLed.brightness_eval_ !=
-            reinterpret_cast<const BrightnessEvaluator*>(rLed.brightness_eval_buf_)) {  // NOLINT
+            reinterpret_cast<const BrightnessEvaluator*>(
+                rLed.brightness_eval_buf_)) {  // NOLINT
             brightness_eval_ = rLed.brightness_eval_;
         } else {
-            for (size_t i=0; i < MAX_SIZE; i++) {
+            for (size_t i = 0; i < MAX_SIZE; i++) {
                 brightness_eval_buf_[i] = rLed.brightness_eval_buf_[i];
             }
             brightness_eval_ =
@@ -388,7 +388,51 @@ class TJLed : public TJLedController<HalType, B> {
     }
 };
 
+// a group of JLed objects which can be controlled simultanously, in parallel
+// or sequentially.
+template <typename T>
+class TJLedSequence {
+ protected:
+    // update all leds parallel. Returns true while any of the JLeds is
+    // active, else false
+    bool UpdateParallel() {
+        bool result = false;
+        for (size_t i = 0; i < n_; i++) {
+            result |= leds_[i].Update();
+        }
+        return result;
+    }
+
+    // update all leds sequentially. Returns true while any of the JLeds is
+    // active, else false
+    bool UpdateSequentially() {
+        if (cur_ >= n_) {
+            return false;
+        }
+        if (!leds_[cur_].Update()) {
+            cur_++;
+        }
+        return true;
+    }
+
+ public:
+    enum eMode { SEQUENCE, PARALLEL };
+    TJLedSequence() = delete;
+    TJLedSequence(eMode mode, T* leds, size_t n)
+        : mode_(mode), leds_(leds), cur_(0), n_(n) {}
+
+    bool Update() {
+        return mode_ == eMode::PARALLEL ? UpdateParallel()
+                                        : UpdateSequentially();
+    }
+
+ private:
+    eMode mode_;
+    T* leds_;
+    size_t cur_;
+    size_t n_;
+};
+
 };  // namespace jled
 
 #endif  // SRC_JLED_BASE_H_
-
