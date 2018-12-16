@@ -62,6 +62,7 @@ void loop() {
 * [Platform notes](#platform-notes)
     * [ESP8266](#esp8266)
     * [ESP32](#esp32)
+* [STM32](#stm32)
 * [Example sketches](#example-sketches)
     * [PlatformIO](#platformio-1)
     * [Arduino IDE](#arduino-ide-1)
@@ -308,7 +309,8 @@ over after channel 15. To manually specify a channel, the JLed object must be
 constructed this way:
 
 ```
-JLed esp32Led = JLed(Esp32AnalogWriter(2, 7)).Blink(1000, 1000).Forever();
+TODO
+auto esp32Led = JLed(Esp32AnalogWriter(2, 7)).Blink(1000, 1000).Forever();
 ```
 
 The `Esp32AnalogWriter(pin, chan)` constructor takes the pin number as the
@@ -316,6 +318,18 @@ first argument and the channel number on second position. Note that using the
 above mentioned constructor yields non-platform independent code.
 
 See [ESP32 multi led example](examples/multiled_esp32).
+
+## STM32
+
+I had success running JLed on a [ST32 Nucleo64 F401RE
+board](https://www.st.com/en/evaluation-tools/nucleo-f401re.html) using this
+[STM32 Arduino
+core](https://github.com/rogerclarkmelbourne/Arduino_STM32/tree/master/STM32F4)
+and compiling from the Arduino IDE. Note that the `stlink` tool may be
+necessary to upload sketches to the micro controller.
+
+Unfortunately, [platformio does not support the Arduino platform for the F401RE](https://docs.platformio.org/en/latest/boards/ststm32/nucleo_f401re.html),
+so the examples can not directly be compiled there.
 
 ## Example sketches
 
