@@ -54,7 +54,7 @@ void loop() {
             * [Repetitions](#repetitions)
         * [State functions](#state-functions)
             * [Update](#update)
-            * [IsRunning](#isrunning)
+            * [Running](#running)
             * [Reset](#reset)
             * [Immediate Stop](#immediate-stop)
         * [Misc functions](#misc-functions)
@@ -86,6 +86,7 @@ void loop() {
 * supports inverted  polarity of LED
 * easy configuration using fluent interface
 * Arduino, ESP8266 and ESP32 platform compatible
+* portable
 
 ## Cheat Sheet
 
@@ -265,9 +266,9 @@ forever. Each repetition
 Call `Update()` periodidcally to update the state of the LED. `Update` returns
 `true` if the effect is active, and `false` when it finished.
 
-##### IsRunning
+##### Running
 
-`IsRunning()` returns `true` if the current effect is running, else `false`.
+`Running()` returns `true` if the current effect is running, else `false`.
 
 ##### Reset
 

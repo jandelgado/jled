@@ -154,7 +154,7 @@ class TJLedController {
     //                         | func(t)    |
     //                         |<- num_repetitions times  ->
     bool Update(HalType* hal, BrightnessEvaluator* eval) {
-        if (!IsRunning() || !eval) return false;
+        if (!Running() || !eval) return false;
 
         const auto now = hal->millis();
 
@@ -235,7 +235,7 @@ class TJLedController {
         AnalogWrite(hal, kZeroBrightness);
         return SetFlags(FL_STOPPED, true);
     }
-    bool IsRunning() const { return !GetFlag(FL_STOPPED); }
+    bool Running() const { return !GetFlag(FL_STOPPED); }
 
     // Reset to inital state
     B& Reset() {
