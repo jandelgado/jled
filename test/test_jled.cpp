@@ -1,11 +1,10 @@
 // JLed Unit tests (runs on host)
 // Copyright 2017 Jan Delgado jdelgado@gmx.net
 #include <map>
-#include <jled.h>  // NOLINT
+#include <jled_base.h>  // NOLINT
 #include "hal_mock.h"  // NOLINT
 #include "catch.hpp"
 
-using jled::JLedHalType;
 using jled::TJLed;
 using jled::TJLedController;
 using jled::BrightnessEvaluator;
@@ -14,17 +13,16 @@ using jled::ConstantBrightnessEvaluator;
 using jled::BreatheBrightnessEvaluator;
 using jled::FadeOnBrightnessEvaluator;
 using jled::FadeOffBrightnessEvaluator;
-using jled::ArduinoHal;
 
 // TestJLed is a JLed class using the HalMock for tests. This allows to
 // test the code abstracted from the actual hardware in use.
-class TestJLed : public TJLed<TestJLed, HalMock> {
-    using TJLed<TestJLed, HalMock>::TJLed;
+class TestJLed : public TJLed<HalMock, TestJLed> {
+    using TJLed<HalMock, TestJLed>::TJLed;
 };
 
 // instanciate for test coverage measurement
 template class TJLedController<HalMock, TestJLed>;
-template class TJLed<TestJLed, HalMock>;
+template class TJLed<HalMock, TestJLed>;
 
 TEST_CASE("jled without effect does nothing", "[jled]") {
     auto led = TestJLed(1);

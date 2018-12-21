@@ -24,6 +24,8 @@
 
 #include <inttypes.h>  // types, e.g. uint8_t
 #include <stddef.h>    // size_t
+// #include <type_traits>
+#include "jled_hal.h"
 
 // JLed - non-blocking LED abstraction library.
 //
@@ -137,6 +139,9 @@ constexpr auto MAX_SIZE = sizeof(BlinkBrightnessEvaluator);
 
 template <typename HalType, typename B>
 class TJLedController {
+    // static_assert(std::is_base_of<JLedHal, HalType>::value, 
+    //        "HalType must be of type JLedHal");
+
  public:
     // TODO(jd) needed?
     // TJLedController(const TJLedController<HalType, B> &rLed) = default;
@@ -281,7 +286,7 @@ class TJLedController {
     uint32_t time_start_ = kTimeUndef;
 };
 
-template <typename B, typename HalType>
+template <typename HalType, typename B>
 class TJLed : public TJLedController<HalType, B> {
     using TJLedController<HalType, B>::TJLedController;
 
@@ -290,7 +295,7 @@ class TJLed : public TJLedController<HalType, B> {
     char brightness_eval_buf_[MAX_SIZE];
 
  protected:
-    // optional pointer to a user defined brightness evaluator.
+    // pointer to a (user defined) brightness evaluator.
     BrightnessEvaluator* brightness_eval_ = nullptr;
     // Hardware abstraction giving access to the MCU
     HalType hal_;
@@ -299,11 +304,11 @@ class TJLed : public TJLedController<HalType, B> {
     TJLed() = delete;
     explicit TJLed(const HalType& hal) : hal_(hal) {}
     explicit TJLed(uint8_t pin) : hal_(HalType(pin)) {}
-    TJLed(const TJLed<B, HalType>& rLed) { *this = rLed; }
+    TJLed(const TJLed<HalType, B>& rLed) { *this = rLed; }
 
     HalType& Hal() { return hal_; }
 
-    B& operator=(const TJLed<B, HalType>& rLed) {
+    B& operator=(const TJLed<HalType, B>& rLed) {
         TJLedController<HalType, B>::operator=(rLed);
         if (rLed.brightness_eval_ !=
             reinterpret_cast<const BrightnessEvaluator*>(

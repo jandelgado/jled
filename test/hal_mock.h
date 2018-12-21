@@ -5,7 +5,9 @@
 #ifndef TEST_HAL_MOCK_H_
 #define TEST_HAL_MOCK_H_
 
-class HalMock {
+#include <jled_hal.h>
+
+class HalMock : public jled::JLedHal {
     time_t millis_ = 0;
     uint8_t val_ = 0;
     uint8_t pin_ = 0;
