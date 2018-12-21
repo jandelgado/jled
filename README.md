@@ -13,17 +13,14 @@ and someone did a [video tutorial for JLed](https://youtu.be/x5V2vdpZq1w)  - Tha
 [![breathing, blinking, fadeon and -off at the same time](doc/jled.gif)](examples/multiled)
 
 ```c++
-// blink and breathe two LEDs (builtin and gpio 9) for 12 seconds.
 #include <jled.h>
 
-JLed led_breathe = JLed(9).Breathe(1500).Repeat(6).DelayAfter(500);
-JLed led_blink = JLed(LED_BUILTIN).Blink(500, 500).Repeat(11).DelayBefore(1000);
+auto led_blink = JLed(LED_BUILTIN).Blink(500, 500).Repeat(11).DelayBefore(1000);
 
 void setup() { }
 
 void loop() {
   led_blink.Update();
-  led_breathe.Update();
 }
 ```
 
@@ -32,6 +29,7 @@ void loop() {
 <!-- vim-markdown-toc GFM -->
 
 * [Features](#features)
+* [Version information](#version-information)
 * [Installation](#installation)
     * [Arduino IDE](#arduino-ide)
     * [PlatformIO](#platformio)
@@ -74,6 +72,12 @@ void loop() {
 * supports reversed polarity of LED
 * easy configuration using fluent interface
 * Arduino, ESP8266 and ESP32 platform compatible
+
+## Version information
+
+* This is the stable version `3` of JLed
+* Check out [this branch](https://github.com/jandelgado/jled/tree/release_4_0_0-RC) 
+  for a preview of the upcoming release `4` of JLed - Feedback welcome.
 
 ## Installation
 
