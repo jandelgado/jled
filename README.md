@@ -12,6 +12,10 @@ and someone did a [video tutorial for JLed](https://youtu.be/x5V2vdpZq1w)  - Tha
 
 [![breathing, blinking, fadeon and -off at the same time](doc/jled.gif)](examples/multiled)
 
+## Example
+
+Blink the built-in led 11 time after an initial delay of 1s.
+
 ```c++
 #include <jled.h>
 
