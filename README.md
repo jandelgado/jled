@@ -90,6 +90,7 @@ void loop() {
 * easy configuration using fluent interface
 * Arduino, ESP8266 and ESP32 platform compatible
 * portable
+* well [tested](https://coveralls.io/github/jandelgado/jled)
 
 ## Cheat Sheet
 
