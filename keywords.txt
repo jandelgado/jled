@@ -10,6 +10,7 @@
 
 JLed	KEYWORD1
 JLedSequence	KEYWORD1
+BrightnessEvaluator	KEYWORD1
 
 #######################################
 # Methods and Functions (KEYWORD2)
@@ -30,6 +31,7 @@ Forever	KEYWORD2
 IsForever	KEYWORD2
 IsRunning	KEYWORD2
 LowActive	KEYWORD2
+IsLowActive	KEYWORD2
 Stop	KEYWORD2
 Update	KEYWORD2
 UserFunc	KEYWORD2
@@ -42,3 +44,6 @@ Reset	KEYWORD2
 #######################################
 # Constants (LITERAL1)
 #######################################
+SEQUENCE	LITERAL1
+PARALLEL	LITERLA1
+

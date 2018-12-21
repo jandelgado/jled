@@ -23,15 +23,13 @@
 #define SRC_ARDUINO_HAL_H_
 
 #include <Arduino.h>
-#include "jled_hal.h"
+#include "jled_hal.h"   // NOLINT
 
 namespace jled {
 
 class ArduinoHal : JLedHal {
  public:
-     using JLedHal::JLedHal;
-     ArduinoHal() {}
-  //  ArduinoHal() = delete;
+    ArduinoHal() {}
     explicit ArduinoHal(uint8_t pin) noexcept : pin_(pin) {
         ::pinMode(pin_, OUTPUT);
     }
