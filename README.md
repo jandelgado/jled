@@ -12,8 +12,10 @@ and someone did a [video tutorial for JLed](https://youtu.be/x5V2vdpZq1w)  - Tha
 
 [![breathing, blinking, fadeon and -off at the same time](doc/jled.gif)](examples/multiled)
 
+## Example
+
 ```c++
-// breathe an LED (gpio 9) for 12 seconds.
+// breathe an LED (on gpio 9) for 12 seconds, waiting for 500s after each run
 #include <jled.h>
 
 auto led_breathe = JLed(9).Breathe(1500).Repeat(6).DelayAfter(500);
@@ -59,6 +61,7 @@ void loop() {
             * [Immediate Stop](#immediate-stop)
         * [Misc functions](#misc-functions)
             * [Low active (inverted output)](#low-active-inverted-output)
+    * [Controlling a group of Leds](#controlling-a-group-of-leds)
 * [Platform notes](#platform-notes)
     * [ESP8266](#esp8266)
     * [ESP32](#esp32)
@@ -231,7 +234,7 @@ two methods:
     an unsigned byte, where 0 means led off and 255 means full brightness.
 * `uint16_t Period() const` - period of the effect.
 
-    All times are specified in milliseconds.
+All time values are specified in milliseconds.
 
 ##### User provided brightness function example
 
@@ -287,6 +290,10 @@ Further calls to `Update()` will have no effect unless the Led is reset (using
 
 Use the `LowActive()` modifier  when the connected LED is low active. All output
 will be inverted by JLed (i.e. instead of x, the value of 255-x will be set).
+
+### Controlling a group of Leds
+
+TODO - describe JLedSequence class
 
 ## Platform notes
 
