@@ -62,10 +62,12 @@ void loop() {
 * [Platform notes](#platform-notes)
     * [ESP8266](#esp8266)
     * [ESP32](#esp32)
-* [STM32](#stm32)
+    * [STM32](#stm32)
 * [Example sketches](#example-sketches)
     * [PlatformIO](#platformio-1)
     * [Arduino IDE](#arduino-ide-1)
+* [Extending](#extending)
+    * [Support new hardware](#support-new-hardware)
 * [Unit tests](#unit-tests)
 * [Contributing](#contributing)
 * [FAQ](#faq)
@@ -319,7 +321,7 @@ above mentioned constructor yields non-platform independent code.
 
 See [ESP32 multi led example](examples/multiled_esp32).
 
-## STM32
+### STM32
 
 I had success running JLed on a [ST32 Nucleo64 F401RE
 board](https://www.st.com/en/evaluation-tools/nucleo-f401re.html) using this
@@ -354,6 +356,16 @@ src_dir = examples/hello
 
 To build an example sketch in the Arduino IDE, simply select an example from
 the `File` > `Examples` > `JLed` menu.
+
+## Extending
+
+### Support new hardware
+
+JLed uses a very thin hardware abstration layer (hal) to abstract access to the
+acutal used MCU (e.g. ESP32, ESP8266). The hal objects encapsulate access to
+the GPIO and time functionality of the MCU under the framework being used.
+During unit test, mocked hal instances are used, enabling tests to check the
+generated output. 
 
 ## Unit tests
 

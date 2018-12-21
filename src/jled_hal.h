@@ -19,27 +19,16 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //
-#ifndef SRC_ARDUINO_HAL_H_
-#define SRC_ARDUINO_HAL_H_
-
-#include <Arduino.h>
-#include "jled_hal.h"
+#ifndef SRC_JLED_HAL_H_
+#define SRC_JLED_HAL_H_
 
 namespace jled {
 
-class ArduinoHal : JLedHal {
+class JLedHal {
  public:
-     using JLedHal::JLedHal;
-     ArduinoHal() {}
-  //  ArduinoHal() = delete;
-    explicit ArduinoHal(uint8_t pin) noexcept : pin_(pin) {
-        ::pinMode(pin_, OUTPUT);
-    }
-    void analogWrite(uint8_t val) { ::analogWrite(pin_, val); }
-    uint32_t millis() {return ::millis();}
-
- private:
-    uint8_t pin_;
+    JLedHal() {}
+    void analogWrite(uint8_t val);
+    uint32_t millis();
 };
 }  // namespace jled
-#endif  // SRC_ARDUINO_HAL_H_
+#endif  // SRC_JLED_HAL_H_

@@ -10,8 +10,8 @@ using jled::TJLedSequence;
 
 // TestJLed is a JLed class using the HalMock for tests. This allows to
 // test the code abstracted from the actual hardware in use.
-class TestJLed : public TJLed<TestJLed, HalMock> {
-    using TJLed<TestJLed, HalMock>::TJLed;
+class TestJLed : public TJLed<HalMock, TestJLed> {
+    using TJLed<HalMock, TestJLed>::TJLed;
 };
 
 // a group of JLed objects which can be controlled simultanously
@@ -20,7 +20,7 @@ class TestJLedSequence : public TJLedSequence<TestJLed> {
 };
 
 // instanciate for test coverage measurement
-template class TJLed<TestJLed, HalMock>;
+template class TJLed<HalMock, TestJLed>;
 template class TJLedSequence<TestJLed>;
 
 TEST_CASE("parallel sequence performs all updates", "[jled_sequence]") {

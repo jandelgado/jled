@@ -27,7 +27,7 @@
 namespace jled {
 class Esp8266Hal /*: public AnalogWriter */ {
  public:
-    Esp8266Hal() {}
+    Esp8266Hal() = delete;
 
     explicit Esp8266Hal(uint8_t pin) noexcept : pin_(pin) {
         ::pinMode(pin_, OUTPUT);

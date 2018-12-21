@@ -47,8 +47,8 @@ namespace jled {using JLedHalType = ArduinoHal;}
 #endif
 
 namespace jled {
-class JLed : public TJLed<JLed, JLedHalType> {
-    using TJLed<JLed, JLedHalType>::TJLed;
+class JLed : public TJLed<JLedHalType, JLed> {
+    using TJLed<JLedHalType, JLed>::TJLed;
 };
 
 // a group of JLed objects which can be controlled simultanously

@@ -32,13 +32,13 @@ class Esp32Hal /*: public AnalogWriter */ {
     static constexpr auto kLedcMaxChan = 16;
     static constexpr auto kAutoSelectChan = -1;
 
-    Esp32Hal() {}
+    Esp32Hal() = delete;
 
     // construct an ESP32 analog write object connected to the given pin.
     // chan specifies the EPS32 ledc channel to use. If set to kAutoSelectChan,
     // the next available channel will be used, otherwise the specified one.
     // freq defines the ledc base frequency to be used (default: 5000 Hz).
-    explicit Esp32Hal(uint8_t pin, int chan = kAutoSelectChan,
+    Esp32Hal(uint8_t pin, int chan = kAutoSelectChan,
                       uint16_t freq = 5000) noexcept {
         // ESP32 framework lacks analogWrite() support, but behaviour can
         // be achievedd using LEDC channels.
@@ -46,10 +46,10 @@ class Esp32Hal /*: public AnalogWriter */ {
         chan_ = (chan == kAutoSelectChan)
                     ? (Esp32Hal::nextChan_++) % kLedcMaxChan
                     : chan;
-        ledcSetup(chan_, freq, kLedcTimer8Bit);
-        ledcAttachPin(pin, chan_);
+        ::ledcSetup(chan_, freq, kLedcTimer8Bit);
+        ::ledcAttachPin(pin, chan_);
     }
-    void analogWrite(uint8_t val) { ledcWrite(chan_, val); }
+    void analogWrite(uint8_t val) { ::ledcWrite(chan_, val); }
     uint32_t millis() {return ::millis();}
 
     uint8_t chan() const { return chan_; }
