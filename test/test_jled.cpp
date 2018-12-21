@@ -258,11 +258,11 @@ TEST_CASE("Stop() stops the effect", "[jled]") {
     // we test that an effect that normally has high ouput for a longer
     // time (e.g. FadeOff()) stays off after Stop() was called.
     TestJLed jled = TestJLed(10).FadeOff(kDuration);
-    REQUIRE(jled.IsRunning());
+    REQUIRE(jled.Running());
     jled.Update();
     REQUIRE(jled.Hal().Value() > 0);
     jled.Stop();
-    REQUIRE(!jled.IsRunning());
+    REQUIRE(!jled.Running());
     REQUIRE_FALSE(jled.Update());
     REQUIRE(0 == jled.Hal().Value() );
     // update should not change anything
