@@ -52,11 +52,12 @@ uint8_t fadeon_func(uint32_t t, uint16_t period);
 // the LED.
 class BrightnessEvaluator {
  public:
-    virtual ~BrightnessEvaluator() {}
+    //virtual ~BrightnessEvaluator() {}
     virtual uint16_t Period() const = 0;
     virtual uint8_t Eval(uint32_t t) = 0;
     // placement new used to avoid dynamic memory allocations
-    static void* operator new(size_t size, void* ptr);
+    static void* operator new(size_t, void* ptr) {return ptr;}
+    static void operator delete(void *) {}
 };
 
 class ConstantBrightnessEvaluator : public BrightnessEvaluator {

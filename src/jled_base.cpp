@@ -55,8 +55,8 @@ uint8_t fadeon_func(uint32_t t, uint16_t period) {
     return (((t - x0) * (y1 - y0)) >> 5) + y0;
 }
 
-void* BrightnessEvaluator::operator new(size_t, void *ptr) {
-    return ptr;
-}
+// void* BrightnessEvaluator::operator new(size_t, void *ptr) {
+//     return ptr;
+// }
 
 };  // namespace jled
