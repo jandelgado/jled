@@ -389,9 +389,11 @@ the host based provided unit tests [is provided here](test/README.md).
 * fork this repository
 * create your feature branch
 * add code
-* add unit test(s)
-* add documentation
-* make sure linter does not report problems (make lint)
+* add [unit test(s)](test/)
+* add [documentation](README.md)
+* make sure the cpp [linter](https://github.com/cpplint/cpplint) does not 
+  report any problems (run `make lint`). Hint: use `clang-format` with the 
+  provided [settings](.clang-format)
 * commit changes
 * submit a PR
 
@@ -399,8 +401,9 @@ the host based provided unit tests [is provided here](test/README.md).
 
 ### How do I check if an JLed object is still being updated?
 
-Check the return value of the `Update()` method: the method returns `true` if
-the effect is still running, otherwise `false'.
+* Check the return value of the `JLed::Update` method: the method returns `true` if
+  the effect is still running, otherwise `false`.
+* The `JLed::Running` method returns `true` if an effect is running, else `false`.
 
 ### How do I restart a effect?
 
