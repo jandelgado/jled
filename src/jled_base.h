@@ -25,7 +25,8 @@
 #include <inttypes.h>  // types, e.g. uint8_t
 #include <stddef.h>    // size_t
 // #include <type_traits>
-#include "jled_hal.h"
+//
+#include "jled_hal.h"   // NOLINT
 
 // JLed - non-blocking LED abstraction library.
 //
@@ -52,7 +53,6 @@ uint8_t fadeon_func(uint32_t t, uint16_t period);
 // the LED.
 class BrightnessEvaluator {
  public:
-    //virtual ~BrightnessEvaluator() {}
     virtual uint16_t Period() const = 0;
     virtual uint8_t Eval(uint32_t t) = 0;
     // placement new used to avoid dynamic memory allocations
@@ -140,22 +140,19 @@ constexpr auto MAX_SIZE = sizeof(BlinkBrightnessEvaluator);
 
 template <typename HalType, typename B>
 class TJLedController {
-    // static_assert(std::is_base_of<JLedHal, HalType>::value, 
+    // static_assert(std::is_base_of<JLedHal, HalType>::value,
     //        "HalType must be of type JLedHal");
 
  public:
-    // TODO(jd) needed?
-    // TJLedController(const TJLedController<HalType, B> &rLed) = default;
-
     // update brightness of LED using the given brightness evaluator
-    //  (brightness)                     _________________
-    // on 255 |                       ¸-'
-    //        |                    ¸-'
-    //        |                 ¸-'
-    // off 0  |______________¸-'
-    //        |<delay before>|<--period-->|<-delay after-> (time)
-    //                       | func(t)    |
-    //                       |<- num_repetitions times  ->
+    //  (brightness)                       ________________
+    // on 255 |                         ¸-'
+    //        |                      ¸-'
+    //        |                   ¸-'
+    // off 0  |________________¸-'
+    //        |<-delay before->|<--period-->|<-delay after-> (time)
+    //                         | func(t)    |
+    //                         |<- num_repetitions times  ->
     bool Update(HalType* hal, BrightnessEvaluator* eval) {
         if (!IsRunning() || !eval) return false;
 
