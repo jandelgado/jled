@@ -21,7 +21,7 @@ class TestJLed : public TJLed<HalMock, TestJLed> {
 };
 
 // instanciate for test coverage measurement
-template class TJLedController<HalMock, TestJLed>;
+template class TJLedController<TestJLed>;
 template class TJLed<HalMock, TestJLed>;
 
 TEST_CASE("jled without effect does nothing", "[jled]") {
@@ -162,7 +162,7 @@ TEST_CASE("FadeOnOffEvaluator calculates correct values", "[jled]") {
         {0, 0},      {500, 13},   {1000, 68},  {1500, 179},
         {1999, 255}, {2000, 255}, {10000, 255}};
 
-    for (auto &x : test_values) {
+    for (const auto &x : test_values) {
         REQUIRE(x.second == evalOn.Eval(x.first));
         REQUIRE(x.second == evalOff.Eval(kPeriod - x.first));
     }

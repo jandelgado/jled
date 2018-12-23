@@ -24,9 +24,10 @@
 
 #include <inttypes.h>  // types, e.g. uint8_t
 #include <stddef.h>    // size_t
-// #include <type_traits>
-//
-#include "jled_hal.h"   // NOLINT
+#ifdef HAS_TYPE_TRAITS
+#include <type_traits>
+#endif
+#include "jled_hal.h"  // NOLINT
 
 // JLed - non-blocking LED abstraction library.
 //
@@ -56,8 +57,8 @@ class BrightnessEvaluator {
     virtual uint16_t Period() const = 0;
     virtual uint8_t Eval(uint32_t t) = 0;
     // placement new used to avoid dynamic memory allocations
-    static void* operator new(size_t, void* ptr) {return ptr;}
-    static void operator delete(void *) {}
+    static void* operator new(size_t, void* ptr) { return ptr; }
+    static void operator delete(void*) {}
 };
 
 class ConstantBrightnessEvaluator : public BrightnessEvaluator {
@@ -111,13 +112,11 @@ class FadeOffBrightnessEvaluator : public BrightnessEvaluator {
     }
 };
 
-// The breathe func is composed by fadein and fade-out with one each
-// half
+// The breathe func is composed by fadein and fade-out with one each half
 // period.  we approximate the following function:
-//   y(x) = exp(sin((t-period/4.) * 2. * PI / period)) - 0.36787944) *
-//   108.)
+//   y(x) = exp(sin((t-period/4.) * 2. * PI / period)) - 0.36787944) *  108.)
 // idea see:
-// http://sean.voisen.org/blog/2011/10/breathing-led-with-arduino/
+//   http://sean.voisen.org/blog/2011/10/breathing-led-with-arduino/
 // But we do it with integers only.
 class BreatheBrightnessEvaluator : public BrightnessEvaluator {
     uint16_t period_;
@@ -129,7 +128,7 @@ class BreatheBrightnessEvaluator : public BrightnessEvaluator {
     uint16_t Period() const override { return period_; }
     uint8_t Eval(uint32_t t) override {
         if (t + 1 >= period_) return kZeroBrightness;
-        const uint16_t periodh = period_ >> 1;
+        const decltype(period_) periodh = period_ >> 1;
         return t < periodh ? fadeon_func(t, periodh)
                            : fadeon_func(period_ - t, periodh);
     }
@@ -138,11 +137,8 @@ class BreatheBrightnessEvaluator : public BrightnessEvaluator {
 // set MAX_SIZE to class occupying most memory
 constexpr auto MAX_SIZE = sizeof(BlinkBrightnessEvaluator);
 
-template <typename HalType, typename B>
+template <typename B>
 class TJLedController {
-    // static_assert(std::is_base_of<JLedHal, HalType>::value,
-    //        "HalType must be of type JLedHal");
-
  public:
     // update brightness of LED using the given brightness evaluator
     //  (brightness)                       ________________
@@ -153,10 +149,8 @@ class TJLedController {
     //        |<-delay before->|<--period-->|<-delay after-> (time)
     //                         | func(t)    |
     //                         |<- num_repetitions times  ->
-    bool Update(HalType* hal, BrightnessEvaluator* eval) {
+    bool Update(uint32_t now, BrightnessEvaluator* eval) {
         if (!Running() || !eval) return false;
-
-        const auto now = hal->millis();
 
         // no need to process updates twice during one time tick.
         if (last_update_time_ == now) {
@@ -177,12 +171,12 @@ class TJLedController {
         const auto t = (now - time_start_) % (period + delay_after_);
 
         if (t < period) {
-            AnalogWrite(hal, EvalBrightness(eval, t));
+            Write(EvalBrightness(eval, t));
         } else if (!IsInDelayAfterPhase()) {
-            // when in delay after phase, just call AnalogWrite()
+            // when in delay after phase, just call Write()
             // once at the beginning.
             SetInDelayAfterPhase(true);
-            AnalogWrite(hal, EvalBrightness(eval, period - 1));
+            Write(EvalBrightness(eval, period - 1));
         }
 
         if (IsForever()) return true;
@@ -193,7 +187,7 @@ class TJLedController {
 
         if (now >= time_end) {
             // make sure final value of t = (period-1) is set
-            AnalogWrite(hal, EvalBrightness(eval, period - 1));
+            Write(EvalBrightness(eval, period - 1));
             SetFlags(FL_STOPPED, true);
             return false;
         }
@@ -224,15 +218,10 @@ class TJLedController {
         return static_cast<B&>(*this);
     }
 
-    // Set physical LED polarity to be low active. This inverts every
-    // signal physically output to a pin.
-    B& LowActive() { return SetFlags(FL_LOW_ACTIVE, true); }
-    bool IsLowActive() const { return GetFlag(FL_LOW_ACTIVE); }
-
     // Stop current effect and turn LED immeadiately off
-    B& Stop(HalType* hal) {
+    B& Stop() {
         // Immediately turn LED off and stop effect.
-        AnalogWrite(hal, kZeroBrightness);
+        Write(kZeroBrightness);
         return SetFlags(FL_STOPPED, true);
     }
     bool Running() const { return !GetFlag(FL_STOPPED); }
@@ -245,11 +234,8 @@ class TJLedController {
     }
 
  protected:
-    // internal control of the LED, does not affect
-    // state and honors low_active_ flag
-    void AnalogWrite(HalType* hal, uint8_t val) const {
-        hal->analogWrite(IsLowActive() ? kFullBrightness - val : val);
-    }
+    // override to write actual value to hw
+    virtual void Write(uint8_t val) = 0;
 
     B& SetFlags(uint8_t f, bool val) {
         if (val) {
@@ -273,9 +259,8 @@ class TJLedController {
  private:
     static constexpr uint16_t kRepeatForever = 65535;
     static constexpr uint32_t kTimeUndef = -1;
-    static constexpr uint8_t FL_LOW_ACTIVE = (1 << 0);
-    static constexpr uint8_t FL_IN_DELAY_AFTER_PHASE = (1 << 1);
-    static constexpr uint8_t FL_STOPPED = (1 << 2);
+    static constexpr uint8_t FL_IN_DELAY_AFTER_PHASE = (1 << 0);
+    static constexpr uint8_t FL_STOPPED = (1 << 1);
     uint8_t flags_ = 0;
     uint16_t num_repetitions_ = 1;
     uint32_t last_update_time_ = kTimeUndef;
@@ -285,8 +270,13 @@ class TJLedController {
 };
 
 template <typename HalType, typename B>
-class TJLed : public TJLedController<HalType, B> {
-    using TJLedController<HalType, B>::TJLedController;
+class TJLed : public TJLedController<B> {
+#ifdef HAS_TYPE_TRAITS
+    static_assert(std::is_base_of<JLedHal, HalType>::value,
+                  "HalType must be of type JLedHal");
+#endif
+
+    using TJLedController<B>::TJLedController;
 
     // this is where the BrightnessEvaluator object will be stored using
     // placment new.
@@ -298,6 +288,10 @@ class TJLed : public TJLedController<HalType, B> {
     // Hardware abstraction giving access to the MCU
     HalType hal_;
 
+    void Write(uint8_t val) {
+        hal_.analogWrite(IsLowActive() ? kFullBrightness - val : val);
+    }
+
  public:
     TJLed() = delete;
     explicit TJLed(const HalType& hal) : hal_(hal) {}
@@ -307,7 +301,7 @@ class TJLed : public TJLedController<HalType, B> {
     HalType& Hal() { return hal_; }
 
     B& operator=(const TJLed<HalType, B>& rLed) {
-        TJLedController<HalType, B>::operator=(rLed);
+        TJLedController<B>::operator=(rLed);
         if (rLed.brightness_eval_ !=
             reinterpret_cast<const BrightnessEvaluator*>(
                 rLed.brightness_eval_buf_)) {  // NOLINT
@@ -324,10 +318,8 @@ class TJLed : public TJLedController<HalType, B> {
     }
 
     bool Update() {
-        return TJLedController<HalType, B>::Update(&hal_, brightness_eval_);
+        return TJLedController<B>::Update(hal_.millis(), brightness_eval_);
     }
-
-    B& Stop() { return TJLedController<HalType, B>::Stop(&hal_); }
 
     // turn LED on
     B& On(uint8_t brightness = kFullBrightness) {
@@ -336,6 +328,13 @@ class TJLed : public TJLedController<HalType, B> {
         brightness_eval_ =
             new (brightness_eval_buf_) ConstantBrightnessEvaluator(brightness);
         return static_cast<B&>(*this);
+    }
+
+    // Set physical LED polarity to be low active. This inverts every
+    // signal physically output to a pin.
+    B& LowActive() { return TJLedController<B>::SetFlags(FL_LOW_ACTIVE, true); }
+    bool IsLowActive() const {
+        return TJLedController<B>::GetFlag(FL_LOW_ACTIVE);
     }
 
     // turn LED off
@@ -381,10 +380,15 @@ class TJLed : public TJLedController<HalType, B> {
         brightness_eval_ = ube;
         return static_cast<B&>(*this);
     }
+
+ private:
+    static constexpr uint8_t FL_LOW_ACTIVE = (1 << 4);
 };
 
 // a group of JLed objects which can be controlled simultanously, in parallel
 // or sequentially.
+// TODO(jd)  derive from TJLedController treat group of JLeds like a single
+//      JLed instance?
 template <typename T>
 class TJLedSequence {
  protected:
@@ -392,7 +396,7 @@ class TJLedSequence {
     // active, else false
     bool UpdateParallel() {
         bool result = false;
-        for (size_t i = 0; i < n_; i++) {
+        for (auto i = 0u; i < n_; i++) {
             result |= leds_[i].Update();
         }
         return result;
@@ -419,6 +423,19 @@ class TJLedSequence {
     bool Update() {
         return mode_ == eMode::PARALLEL ? UpdateParallel()
                                         : UpdateSequentially();
+    }
+
+    void Reset() {
+        for (auto i = 0u; i < n_; i++) {
+            leds_[i].Reset();
+        }
+        cur_ = 0;
+    }
+
+    void Stop() {
+        for (auto i = 0u; i < n_; i++) {
+            leds_[i].Stop();
+        }
     }
 
  private:

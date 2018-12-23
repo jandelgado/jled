@@ -3,7 +3,7 @@
 #include "catch.hpp"
 
 #include <jled_base.h>  // NOLINT
-#include "hal_mock.h"  // NOLINT
+#include "hal_mock.h"   // NOLINT
 
 using jled::TJLed;
 using jled::TJLedSequence;
@@ -33,7 +33,7 @@ TEST_CASE("parallel sequence performs all updates", "[jled_sequence]") {
             sizeof(expected2));  // otherwise test may be invalid
 
     uint32_t time = 0;
-    for (size_t i = 0; i < 3; i++) {
+    for (auto i = 0u; i < 3; i++) {
         auto res = seq.Update();
         // Update() returns false on last Update, our example does 2 updates.
         REQUIRE(res == (i < 1));
@@ -60,7 +60,7 @@ TEST_CASE("sequence performs all updates", "[jled_sequence]") {
 
     uint32_t time = 0;
     auto constexpr kSteps = sizeof(expected1);
-    for (size_t i = 0; i < kSteps; i++) {
+    for (auto i = 0u; i < kSteps; i++) {
         auto res = seq.Update();
         // Update() returns false on last Update, our example does 4 updates.
         REQUIRE(res == (i < kSteps - 1));
@@ -70,4 +70,13 @@ TEST_CASE("sequence performs all updates", "[jled_sequence]") {
         leds[0].Hal().SetMillis(time);
         leds[1].Hal().SetMillis(time);
     }
+}
+
+TEST_CASE("stop on sequence stops alle JLeds and turns them off",
+          "[jled_sequence]") {
+    // TODO(jd)
+}
+
+TEST_CASE("reset on sequence resets all JLeds", "[jled_sequence]") {
+    // TODO(jd)
 }
