@@ -1,11 +1,13 @@
 #include <Arduino.h>
 #include <inttypes.h>
 #include <stddef.h>
-#include "bitset.h" // NOLINT
+#include "bitset.h"  // NOLINT
 
 #ifndef EXAMPLES_MORSE_MORSE_H_
 #define EXAMPLES_MORSE_MORSE_H_
 
+// The Morse class converts a text sequence into a bit sequence representing
+// a morse code sequence.
 class Morse {
     // pre-ordered tree of morse codes. Bit 1 = 'dah',  0 = 'dit'.
     // see https://www.pocketmagic.net/morse-encoder/ for info on encoding
@@ -26,7 +28,8 @@ class Morse {
 
     size_t treepos(char c) const {
         auto i = 0u;
-        while (LATIN[i++] != c) {}
+        while (LATIN[i++] != c) {
+        }
         return i;
     }
 
@@ -61,7 +64,6 @@ class Morse {
         return duration;
     }
 
-
     // calculate duration in 'dits' of a string converted in morse code.
     // Duration between symbols in characteris is a 'dit', between characters
     // of a word is a 'dah' (== 3 'dits'), between words it is a 7 'dits'.
@@ -79,41 +81,60 @@ class Morse {
         return duration;
     }
 
- public:
-    // returns ith bit of morse sequence 
-    bool test(uint16_t i) const {return bits_->test(i);}
+    template <typename F>
+    uint16_t iterate_sequence(const char* p, F f) const {
+        // call f(count,val) num times, incrementing count each time
+        // and returning num afterwards.
+        auto set = [](int num, int count, bool val, F f) -> int {
+            for (auto i = 0; i < num; i++) f(count + i, val);
+            return num;
+        };
 
-    // length of complete morse sequence in in bits
-    size_t size() const {return bits_->size();}
-
-    explicit Morse(const char* s) {
-        bits_ = new Bitset(duration_str(s));
-        auto p = s;
         auto bitcount = 0;
         while (*p) {
             const auto c = upper(*p++);
             if (isspace(c)) {  // space not part of alphabet, treat separately
-                bitcount += DURATION_PAUSE_WORD;
+                bitcount += set(DURATION_PAUSE_WORD, bitcount, false, f);
                 continue;
             }
+
             const auto morse_code = pos_to_morse_code(treepos(upper(c)));
             auto code = morse_code & 0xff;  // dits (0) and dahs (1)
             auto size = morse_code >> 8;    // number of dits and dahs in code
-
             while (size--) {
-                for (auto i = 0; i < ((code & 1) ? DURATION_DAH : DURATION_DIT);
-                     i++) {
-                    bits_->set(bitcount++, true);
-                }
+                bitcount += set((code & 1) ? DURATION_DAH : DURATION_DIT,
+                                bitcount, true, f);
 
-                if (size)
-                    bitcount += DURATION_DIT;  // pause between symbols := 1 dit
+                // pause between symbols := 1 dit
+                if (size) {
+                    bitcount += set(DURATION_DIT, bitcount, false, f);
+                }
                 code >>= 1;
             }
 
-            if (*p && !isspace(*p)) bitcount += DURATION_PAUSE_CHAR;
+            if (*p && !isspace(*p)) {
+                bitcount += set(DURATION_PAUSE_CHAR, bitcount, false, f);
+            }
         }
+        return bitcount;
     }
+
+ public:
+    // returns ith bit of morse sequence
+    bool test(uint16_t i) const { return bits_->test(i); }
+
+    // length of complete morse sequence in in bits
+    size_t size() const { return bits_->size(); }
+
+    Morse() : bits_(new Bitset(0)) {}
+
+    explicit Morse(const char* s) {
+        const auto length = iterate_sequence(s, [](int, bool) -> void {});
+        auto bits = new Bitset(length);
+        iterate_sequence(s, [bits](int i, bool v) -> void { bits->set(i, v); });
+        bits_ = bits;
+    }
+
     ~Morse() { delete bits_; }
 
     // make sure that the following, currently not needed, methods are not used
