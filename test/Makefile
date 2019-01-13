@@ -22,7 +22,10 @@ TEST_ESP8266_OBJECTS=$(TEST_ESP8266_SOURCES:.cpp=.o)
 TEST_ARDUINO_SOURCES=Arduino.cpp test_arduino_hal.cpp test_main.cpp
 TEST_ARDUINO_OBJECTS=$(TEST_ARDUINO_SOURCES:.cpp=.o)
 
-all: bin bin/test_jled bin/test_jled_sequence bin/test_esp32_hal bin/test_esp8266_hal bin/test_arduino_hal
+TEST_MORSE_SOURCES=test_example_morse.cpp test_main.cpp 
+TEST_MORSE_OBJECTS=$(TEST_MORSE_SOURCES:.cpp=.o)
+
+all: bin bin/test_jled bin/test_jled_sequence bin/test_esp32_hal bin/test_esp8266_hal bin/test_arduino_hal bin/test_example_morse
 
 bin/test_jled: $(TEST_JLED_OBJECTS)
 	$(CXX) $(LDFLAGS) $(TEST_JLED_OBJECTS) -o $@
@@ -40,6 +43,9 @@ bin/test_esp8266_hal: $(TEST_ESP8266_OBJECTS)
 bin/test_arduino_hal: $(TEST_ARDUINO_OBJECTS)
 	$(CXX) $(LDFLAGS) $(TEST_ARDUINO_OBJECTS) -o $@
 
+bin/test_example_morse: CFLAGS += -I../examples/morse
+bin/test_example_morse: $(TEST_MORSE_OBJECTS)
+	$(CXX) $(LDFLAGS) $(TEST_MORSE_OBJECTS) -o $@
 
 coverage: test
 	lcov --config-file=.lcovrc --directory ../src --directory .. --capture --output-file coverage.info --no-external
@@ -53,6 +59,7 @@ test: all
 	./bin/test_esp32_hal
 	./bin/test_esp8266_hal
 	./bin/test_arduino_hal
+	./bin/test_example_morse
 
 .cpp.o:
 	$(CXX) $(CFLAGS) $< -o $@
