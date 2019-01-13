@@ -56,7 +56,6 @@ class BrightnessEvaluator {
  public:
     virtual uint16_t Period() const = 0;
     virtual uint8_t Eval(uint32_t t) = 0;
-    // placement new used to avoid dynamic memory allocations
     static void* operator new(size_t, void* ptr) { return ptr; }
     static void operator delete(void*) {}
 };
@@ -218,9 +217,9 @@ class TJLedController {
         return static_cast<B&>(*this);
     }
 
-    // Stop current effect and turn LED immeadiately off
+    // Stop current effect and turn LED immeadiately off. Further calls to
+    // Update() will have no effect.
     B& Stop() {
-        // Immediately turn LED off and stop effect.
         Write(kZeroBrightness);
         return SetFlags(FL_STOPPED, true);
     }
@@ -395,7 +394,7 @@ class TJLedSequence {
     // update all leds parallel. Returns true while any of the JLeds is
     // active, else false
     bool UpdateParallel() {
-        bool result = false;
+        auto result = false;
         for (auto i = 0u; i < n_; i++) {
             result |= leds_[i].Update();
         }

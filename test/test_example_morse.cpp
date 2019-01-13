@@ -55,11 +55,11 @@ TEST_CASE("string is encoded correctly into sequence", "[morse_example]") {
             1, 0, 1, 1, 1,               // A
             0, 0, 0,                     // pause between chars
             1,                           // E
-            0, 0, 0, 0, 0, 0, 0,         // 7 dits between words 
+            0, 0, 0, 0, 0, 0, 0,         // 7 dits between words
             1, 1, 1, 0, 1, 0, 1, 0, 1};  // B
     // clang-format on
-    REQUIRE(sizeof(expected)/sizeof(expected[0]) == m.size());
-    for(auto i = 0u; i<m.size(); i++)  {
-        REQUIRE( expected[i] == m.test(i) );
+    REQUIRE(sizeof(expected) / sizeof(expected[0]) == m.size());
+    for (auto i = 0u; i < m.size(); i++) {
+        REQUIRE(expected[i] == m.test(i));
     }
 }

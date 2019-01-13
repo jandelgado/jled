@@ -1,3 +1,5 @@
+// Copyright (c) 2019 Jan Delgado <jdelgado[at]gmx.net>
+// https://github.com/jandelgado/jled
 #include <Arduino.h>
 #include <inttypes.h>
 #include <stddef.h>
