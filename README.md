@@ -227,7 +227,7 @@ the FadeOn function, i.e. FadeOn(t) = FadeOff(period-t)
 #### User provided brightness function
 
 It is also possible to provide a user defined brightness evaluator. The class
-must be derived from the `BrightnessEvaluator` class and implement
+must be derived from the `jled::BrightnessEvaluator` class and implement
 two methods:
 
 * `uint8_t Èval(uint32_t t)` - the brightness evaluation function that calculates
@@ -235,14 +235,26 @@ two methods:
     an unsigned byte, where 0 means led off and 255 means full brightness.
 * `uint16_t Period() const` - period of the effect.
 
-All time values are specified in milliseconds.
+All time values are specified in milliseconds. 
+
+The [user_func](examples/user_func) example demonstrates a simple user provided
+brightness function, while the [morse](examples/morse) shows how a more complex
+application, allowing you to send morse codes (not neccessarily with an LED).
 
 ##### User provided brightness function example
 
 The example uses a user provided function to calculate the brightness.
 
 ```c++
-TODO
+class UserEffect : public jled::BrightnessEvaluator {
+    uint8_t Eval(uint32_t t) override {
+        // this function changes between 0 and 255 and
+        // vice versa every 250 ms.
+        return 255*((t/250)%2);
+    }
+    // duration of effect: 5 seconds.
+    uint16_t Period() const override { return 5000; }
+};
 ```
 
 #### Delays and repeatitions
@@ -294,7 +306,36 @@ will be inverted by JLed (i.e. instead of x, the value of 255-x will be set).
 
 ### Controlling a group of Leds
 
-TODO - describe JLedSequence class
+The `JLedSequence` class allows to control a group of `JLed` objects simultanously,
+eihter in parallel or sequentially, starting the next `JLed` effect when the 
+previous finished. The constructor takes the mode (`PARLLEL`, `SEQUENTIAL`), 
+an array of `JLed` objects and the size of the array, e.g.
+
+```c++
+JLed leds[] = {
+    JLed(4).Blink(750, 250).Forever(),
+    JLed(3).Breathe(2000).Forever()
+};
+
+JLedSequence sequence(JLedSequence::eMode::PARALLEL, leds, sizeof(leds));
+
+void setup() {
+}
+
+void loop() {
+    sequence.Update();
+}
+```
+
+The `JLedSequence` provides the following methods:
+
+* `Update()` - updates the active `JLed` objects controlled by the sequence.
+  like the `JLed::Update()` method, it return `true` if an effect is running,
+  else `false`.
+* `Stop()` - turns off all `JLed` objects controlled by the sequence and 
+   stops the sequence. Furhter calls to `Update()` will have no effect.
+* `Reset()` - Resets all `JLed` objects controlled by the sequence and 
+   the sequence, resulting in a stsart-over.
 
 ## Platform notes
 
@@ -320,15 +361,13 @@ over after channel 15. To manually specify a channel, the JLed object must be
 constructed this way:
 
 ```
-TODO
-auto esp32Led = JLed(Esp32AnalogWriter(2, 7)).Blink(1000, 1000).Forever();
+auto esp32Led = JLed(Esp32Hal(2, 7)).Blink(1000, 1000).Forever();
 ```
 
-The `Esp32AnalogWriter(pin, chan)` constructor takes the pin number as the
-first argument and the channel number on second position. Note that using the
-above mentioned constructor yields non-platform independent code.
-
-See [ESP32 multi led example](examples/multiled_esp32).
+The `Esp32Hal(pin, chan)` constructor takes the pin number as the first
+argument and the ESP32 ledc channel number on second position. Note that using
+the above mentioned constructor yields non-platform independent code, so it 
+should be avoided.
 
 ### STM32
 
@@ -349,6 +388,15 @@ this board.
 ## Example sketches
 
 Examples sketches are provided in the [examples](examples/) directory.
+
+* [Hello, world](examples/hello)
+* [Turn LED on after a delay](examples/simple_on)
+* [Fade LED on](examples/fade_on)
+* [Fade LED off](examples/fade_off)
+* [Controlling multiple LEDs in parallel](examples/multiled)
+* [Controlling multiple LEDs sequentially](examples/sequence)
+* [User provided effect](examples/user_func)
+* [Morsecode example](examples/morse)
 
 ### PlatformIO
 
@@ -404,7 +452,7 @@ the host based provided unit tests [is provided here](test/README.md).
 
 * Check the return value of the `JLed::Update` method: the method returns `true` if
   the effect is still running, otherwise `false`.
-* The `JLed::Running` method returns `true` if an effect is running, else `false`.
+* The `JLed::IsRunning` method returns `true` if an effect is running, else `false`.
 
 ### How do I restart a effect?
 
@@ -412,8 +460,8 @@ Call `Reset()` on a `JLed` object to start over.
 
 ### How do I change a running effect?
 
-TODO
-
+Just 'reconfigure' the `JLed` with any of the effect methods (e.g. `FadeOn`,
+`Breathe`, `Blink` etc). Time wise, the effect will start over.
 
 ## Author and Copyright
 

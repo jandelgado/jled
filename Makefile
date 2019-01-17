@@ -2,8 +2,9 @@
 #
 .PHONY: all clean upload monitor lint test ci
 
+# some of the examples use LED_BUILTIN which is not defined for ESP32
 CIOPTS=--board=uno --board=esp01 --lib="src"
-CIOPTS_ESP32=--board=esp32dev --lib="src"
+CIOPTSALL=--board=esp32dev --board=uno --board=esp01 --lib="src"
 
 all:
 	pio run
@@ -15,13 +16,12 @@ lint:
 ci:
 	platformio ci $(CIOPTS) --lib="examples/morse" examples/morse/morse.ino 
 	platformio ci $(CIOPTS) examples/multiled/multiled.ino 
-	platformio ci $(CIOPTS_ESP32) examples/multiled_esp32/multiled_esp32.ino src/esp32_hal.cpp 
 	platformio ci $(CIOPTS) examples/user_func/user_func.ino 
 	platformio ci $(CIOPTS) examples/hello/hello.ino 
-	platformio ci $(CIOPTS) examples/breathe/breathe.ino
+	platformio ci $(CIOPTSALL) examples/breathe/breathe.ino
 	platformio ci $(CIOPTS) examples/simple_on/simple_on.ino
-	platformio ci $(CIOPTS) examples/fade_on/fade_on.ino
-	platformio ci $(CIOPTS) examples/fade_off/fade_off.ino 
+	platformio ci $(CIOPTSALL) examples/fade_on/fade_on.ino
+	platformio ci $(CIOPTSALL) examples/sequence/sequence.ino 
 
 clean:
 	-pio run --target clean

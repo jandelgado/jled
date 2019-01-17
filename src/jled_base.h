@@ -149,7 +149,7 @@ class TJLedController {
     //                         | func(t)    |
     //                         |<- num_repetitions times  ->
     bool Update(uint32_t now, BrightnessEvaluator* eval) {
-        if (!Running() || !eval) return false;
+        if (!IsRunning() || !eval) return false;
 
         // no need to process updates twice during one time tick.
         if (last_update_time_ == now) {
@@ -223,7 +223,7 @@ class TJLedController {
         Write(kZeroBrightness);
         return SetFlags(FL_STOPPED, true);
     }
-    bool Running() const { return !GetFlag(FL_STOPPED); }
+    bool IsRunning() const { return !GetFlag(FL_STOPPED); }
 
     // Reset to inital state
     B& Reset() {
@@ -293,8 +293,8 @@ class TJLed : public TJLedController<B> {
 
  public:
     TJLed() = delete;
-    explicit TJLed(const HalType& hal) : hal_(hal) {}
-    explicit TJLed(uint8_t pin) : hal_(HalType(pin)) {}
+    explicit TJLed(const HalType& hal) : hal_{hal} {}
+    explicit TJLed(uint8_t pin) : hal_{HalType{pin}} {}
     TJLed(const TJLed<HalType, B>& rLed) { *this = rLed; }
 
     HalType& Hal() { return hal_; }
@@ -417,7 +417,7 @@ class TJLedSequence {
     enum eMode { SEQUENCE, PARALLEL };
     TJLedSequence() = delete;
     TJLedSequence(eMode mode, T* leds, size_t n)
-        : mode_(mode), leds_(leds), cur_(0), n_(n) {}
+        : mode_{mode}, leds_{leds}, cur_{0}, n_{n} {}
 
     bool Update() {
         return mode_ == eMode::PARALLEL ? UpdateParallel()
@@ -438,10 +438,10 @@ class TJLedSequence {
     }
 
  private:
-    eMode mode_;
+    const eMode mode_;
     T* leds_;
     size_t cur_;
-    size_t n_;
+    const size_t n_;
 };
 
 };  // namespace jled

@@ -19,6 +19,22 @@ TEST_CASE("set and test bits in the bitset", "[morse_example_bitset]") {
     REQUIRE(bf.test(17));
 }
 
+TEST_CASE("treepos returns correct position in tree", "[morse_example]") {
+    class TestMorse : public Morse {
+     public:
+        void test() {
+            REQUIRE(2 == treepos('E'));
+            REQUIRE(3 == treepos('T'));
+            REQUIRE(4 == treepos('I'));
+            REQUIRE(7 == treepos('M'));
+            REQUIRE(8 == treepos('S'));
+            REQUIRE(16 == treepos('H'));
+            REQUIRE(32 == treepos('5'));
+        }
+    };
+    TestMorse().test();
+}
+
 TEST_CASE("binary code of character is determined correctly",
           "[morse_example]") {
     class TestMorse : public Morse {
