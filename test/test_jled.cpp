@@ -6,7 +6,6 @@
 #include "catch.hpp"
 
 using jled::TJLed;
-using jled::TJLedController;
 using jled::BrightnessEvaluator;
 using jled::BlinkBrightnessEvaluator;
 using jled::ConstantBrightnessEvaluator;
@@ -21,7 +20,6 @@ class TestJLed : public TJLed<HalMock, TestJLed> {
 };
 
 // instanciate for test coverage measurement
-template class TJLedController<TestJLed>;
 template class TJLed<HalMock, TestJLed>;
 
 TEST_CASE("jled without effect does nothing", "[jled]") {
@@ -272,6 +270,8 @@ TEST_CASE("Stop() stops the effect", "[jled]") {
 
 TEST_CASE("LowActive() inverts signal", "[jled]") {
     TestJLed jled = TestJLed(10).On().LowActive();
+
+    REQUIRE(jled.IsLowActive());
     REQUIRE(0 == jled.Hal().Value());
     jled.Update();
     REQUIRE(0 == jled.Hal().Value());
