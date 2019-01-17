@@ -136,9 +136,174 @@ class BreatheBrightnessEvaluator : public BrightnessEvaluator {
 // set MAX_SIZE to class occupying most memory
 constexpr auto MAX_SIZE = sizeof(BlinkBrightnessEvaluator);
 
-template <typename B>
-class TJLedController {
+template <typename HalType, typename B>
+class TJLed {
+#ifdef HAS_TYPE_TRAITS
+    static_assert(std::is_base_of<JLedHal, HalType>::value,
+                  "HalType must be of type JLedHal");
+#endif
+
+ protected:
+    // pointer to a (user defined) brightness evaluator.
+    BrightnessEvaluator* brightness_eval_ = nullptr;
+    // Hardware abstraction giving access to the MCU
+    HalType hal_;
+
+    void Write(uint8_t val) {
+        hal_.analogWrite(IsLowActive() ? kFullBrightness - val : val);
+    }
+
+    B& SetFlags(uint8_t f, bool val) {
+        if (val) {
+            flags_ |= f;
+        } else {
+            flags_ &= ~f;
+        }
+        return static_cast<B&>(*this);
+    }
+    bool GetFlag(uint8_t f) const { return (flags_ & f) != 0; }
+
+    uint8_t EvalBrightness(BrightnessEvaluator* eval, uint32_t t) const {
+        return eval->Eval(t);
+    }
+
+    void SetInDelayAfterPhase(bool f) { SetFlags(FL_IN_DELAY_AFTER_PHASE, f); }
+    bool IsInDelayAfterPhase() const {
+        return GetFlag(FL_IN_DELAY_AFTER_PHASE);
+    }
+
  public:
+    TJLed() = delete;
+    explicit TJLed(const HalType& hal) : hal_{hal} {}
+    explicit TJLed(uint8_t pin) : hal_{HalType{pin}} {}
+    TJLed(const TJLed<HalType, B>& rLed) { *this = rLed; }
+
+    B& operator=(const TJLed<HalType, B>& rLed) {
+        flags_ = rLed.flags_;
+        num_repetitions_ = rLed.num_repetitions_;
+        last_update_time_ = rLed.last_update_time_;
+        delay_before_ = rLed.delay_before_;
+        delay_after_ = rLed.delay_after_;
+        time_start_ = rLed.time_start_;
+        hal_ = rLed.hal_;
+
+        if (rLed.brightness_eval_ !=
+            reinterpret_cast<const BrightnessEvaluator*>(
+                rLed.brightness_eval_buf_)) {  // NOLINT
+            // points to user provided evaluator
+            brightness_eval_ = rLed.brightness_eval_;
+        } else {
+            for (size_t i = 0; i < MAX_SIZE; i++) {
+                brightness_eval_buf_[i] = rLed.brightness_eval_buf_[i];
+            }
+            brightness_eval_ =
+                reinterpret_cast<BrightnessEvaluator*>(brightness_eval_buf_);
+        }
+        return static_cast<B&>(*this);
+    }
+
+    HalType& Hal() { return hal_; }
+
+    bool Update() { return Update(hal_.millis(), brightness_eval_); }
+
+    // turn LED on
+    B& On(uint8_t brightness = kFullBrightness) {
+        // we use placement new and therefore not need to keep track of mem
+        // allocated
+        brightness_eval_ =
+            new (brightness_eval_buf_) ConstantBrightnessEvaluator(brightness);
+        return static_cast<B&>(*this);
+    }
+
+    // Set physical LED polarity to be low active. This inverts every
+    // signal physically output to a pin.
+    B& LowActive() { return SetFlags(FL_LOW_ACTIVE, true); }
+    bool IsLowActive() const { return GetFlag(FL_LOW_ACTIVE); }
+
+    // turn LED off
+    B& Off() {
+        brightness_eval_ = new (brightness_eval_buf_)
+            ConstantBrightnessEvaluator(kZeroBrightness);
+        return static_cast<B&>(*this);
+    }
+
+    // turn LED on or off, calls On() / Off()
+    B& Set(bool on) { return on ? On() : Off(); }
+
+    // Fade LED on
+    B& FadeOn(uint16_t duration) {
+        brightness_eval_ =
+            new (brightness_eval_buf_) FadeOnBrightnessEvaluator(duration);
+        return static_cast<B&>(*this);
+    }
+
+    // Fade LED off - acutally is just inverted version of FadeOn()
+    B& FadeOff(uint16_t duration) {
+        brightness_eval_ =
+            new (brightness_eval_buf_) FadeOffBrightnessEvaluator(duration);
+        return static_cast<B&>(*this);
+    }
+
+    // Set effect to Breathe, with the given period time in ms.
+    B& Breathe(uint16_t period) {
+        brightness_eval_ =
+            new (brightness_eval_buf_) BreatheBrightnessEvaluator(period);
+        return static_cast<B&>(*this);
+    }
+
+    // Set effect to Blink, with the given on- and off- duration values.
+    B& Blink(uint16_t duration_on, uint16_t duration_off) {
+        brightness_eval_ = new (brightness_eval_buf_)
+            BlinkBrightnessEvaluator(duration_on, duration_off);
+        return static_cast<B&>(*this);
+    }
+
+    // Use a user provided brightness evaluator.
+    B& UserFunc(BrightnessEvaluator* ube) {
+        brightness_eval_ = ube;
+        return static_cast<B&>(*this);
+    }
+
+    // set number of repetitions for effect.
+    B& Repeat(uint16_t num_repetitions) {
+        num_repetitions_ = num_repetitions;
+        return static_cast<B&>(*this);
+    }
+
+    // repeat Forever
+    B& Forever() { return Repeat(kRepeatForever); }
+    bool IsForever() const { return num_repetitions_ == kRepeatForever; }
+
+    // Set amount of time to initially wait before effect starts. Time
+    // is
+    // relative to first call of Update() method and specified in ms.
+    B& DelayBefore(uint16_t delay_before) {
+        delay_before_ = delay_before;
+        return static_cast<B&>(*this);
+    }
+
+    // Set amount of time to wait in ms after each iteration.
+    B& DelayAfter(uint16_t delay_after) {
+        delay_after_ = delay_after;
+        return static_cast<B&>(*this);
+    }
+
+    // Stop current effect and turn LED immeadiately off. Further calls to
+    // Update() will have no effect.
+    B& Stop() {
+        Write(kZeroBrightness);
+        return SetFlags(FL_STOPPED, true);
+    }
+    bool IsRunning() const { return !GetFlag(FL_STOPPED); }
+
+    // Reset to inital state
+    B& Reset() {
+        time_start_ = kTimeUndef;
+        last_update_time_ = kTimeUndef;
+        return SetFlags(FL_STOPPED | FL_IN_DELAY_AFTER_PHASE, false);
+    }
+
+ protected:
     // update brightness of LED using the given brightness evaluator
     //  (brightness)                       ________________
     // on 255 |                         ¸-'
@@ -193,73 +358,16 @@ class TJLedController {
         return true;
     }
 
-    // set number of repetitions for effect.
-    B& Repeat(uint16_t num_repetitions) {
-        num_repetitions_ = num_repetitions;
-        return static_cast<B&>(*this);
-    }
-
-    // repeat Forever
-    B& Forever() { return Repeat(kRepeatForever); }
-    bool IsForever() const { return num_repetitions_ == kRepeatForever; }
-
-    // Set amount of time to initially wait before effect starts. Time
-    // is
-    // relative to first call of Update() method and specified in ms.
-    B& DelayBefore(uint16_t delay_before) {
-        delay_before_ = delay_before;
-        return static_cast<B&>(*this);
-    }
-
-    // Set amount of time to wait in ms after each iteration.
-    B& DelayAfter(uint16_t delay_after) {
-        delay_after_ = delay_after;
-        return static_cast<B&>(*this);
-    }
-
-    // Stop current effect and turn LED immeadiately off. Further calls to
-    // Update() will have no effect.
-    B& Stop() {
-        Write(kZeroBrightness);
-        return SetFlags(FL_STOPPED, true);
-    }
-    bool IsRunning() const { return !GetFlag(FL_STOPPED); }
-
-    // Reset to inital state
-    B& Reset() {
-        time_start_ = kTimeUndef;
-        last_update_time_ = kTimeUndef;
-        return SetFlags(FL_STOPPED | FL_IN_DELAY_AFTER_PHASE, false);
-    }
-
- protected:
-    // override to write actual value to hw
-    virtual void Write(uint8_t val) = 0;
-
-    B& SetFlags(uint8_t f, bool val) {
-        if (val) {
-            flags_ |= f;
-        } else {
-            flags_ &= ~f;
-        }
-        return static_cast<B&>(*this);
-    }
-    bool GetFlag(uint8_t f) const { return (flags_ & f) != 0; }
-
-    void SetInDelayAfterPhase(bool f) { SetFlags(FL_IN_DELAY_AFTER_PHASE, f); }
-    bool IsInDelayAfterPhase() const {
-        return GetFlag(FL_IN_DELAY_AFTER_PHASE);
-    }
-
-    uint8_t EvalBrightness(BrightnessEvaluator* eval, uint32_t t) const {
-        return eval->Eval(t);
-    }
-
  private:
-    static constexpr uint16_t kRepeatForever = 65535;
-    static constexpr uint32_t kTimeUndef = -1;
     static constexpr uint8_t FL_IN_DELAY_AFTER_PHASE = (1 << 0);
     static constexpr uint8_t FL_STOPPED = (1 << 1);
+    static constexpr uint8_t FL_LOW_ACTIVE = (1 << 3);
+    // this is where the BrightnessEvaluator object will be stored using
+    // placment new.
+    char brightness_eval_buf_[MAX_SIZE];
+
+    static constexpr uint16_t kRepeatForever = 65535;
+    static constexpr uint32_t kTimeUndef = -1;
     uint8_t flags_ = 0;
     uint16_t num_repetitions_ = 1;
     uint32_t last_update_time_ = kTimeUndef;
@@ -268,126 +376,8 @@ class TJLedController {
     uint32_t time_start_ = kTimeUndef;
 };
 
-template <typename HalType, typename B>
-class TJLed : public TJLedController<B> {
-#ifdef HAS_TYPE_TRAITS
-    static_assert(std::is_base_of<JLedHal, HalType>::value,
-                  "HalType must be of type JLedHal");
-#endif
-
-    using TJLedController<B>::TJLedController;
-
-    // this is where the BrightnessEvaluator object will be stored using
-    // placment new.
-    char brightness_eval_buf_[MAX_SIZE];
-
- protected:
-    // pointer to a (user defined) brightness evaluator.
-    BrightnessEvaluator* brightness_eval_ = nullptr;
-    // Hardware abstraction giving access to the MCU
-    HalType hal_;
-
-    void Write(uint8_t val) {
-        hal_.analogWrite(IsLowActive() ? kFullBrightness - val : val);
-    }
-
- public:
-    TJLed() = delete;
-    explicit TJLed(const HalType& hal) : hal_{hal} {}
-    explicit TJLed(uint8_t pin) : hal_{HalType{pin}} {}
-    TJLed(const TJLed<HalType, B>& rLed) { *this = rLed; }
-
-    HalType& Hal() { return hal_; }
-
-    B& operator=(const TJLed<HalType, B>& rLed) {
-        TJLedController<B>::operator=(rLed);
-        if (rLed.brightness_eval_ !=
-            reinterpret_cast<const BrightnessEvaluator*>(
-                rLed.brightness_eval_buf_)) {  // NOLINT
-            brightness_eval_ = rLed.brightness_eval_;
-        } else {
-            for (size_t i = 0; i < MAX_SIZE; i++) {
-                brightness_eval_buf_[i] = rLed.brightness_eval_buf_[i];
-            }
-            brightness_eval_ =
-                reinterpret_cast<BrightnessEvaluator*>(brightness_eval_buf_);
-        }
-        hal_ = rLed.hal_;
-        return static_cast<B&>(*this);
-    }
-
-    bool Update() {
-        return TJLedController<B>::Update(hal_.millis(), brightness_eval_);
-    }
-
-    // turn LED on
-    B& On(uint8_t brightness = kFullBrightness) {
-        // we use placement new and therefore not need to keep track of mem
-        // allocated
-        brightness_eval_ =
-            new (brightness_eval_buf_) ConstantBrightnessEvaluator(brightness);
-        return static_cast<B&>(*this);
-    }
-
-    // Set physical LED polarity to be low active. This inverts every
-    // signal physically output to a pin.
-    B& LowActive() { return TJLedController<B>::SetFlags(FL_LOW_ACTIVE, true); }
-    bool IsLowActive() const {
-        return TJLedController<B>::GetFlag(FL_LOW_ACTIVE);
-    }
-
-    // turn LED off
-    B& Off() {
-        brightness_eval_ = new (brightness_eval_buf_)
-            ConstantBrightnessEvaluator(kZeroBrightness);
-        return static_cast<B&>(*this);
-    }
-
-    // turn LED on or off, calls On() / Off()
-    B& Set(bool on) { return on ? On() : Off(); }
-
-    // Fade LED on
-    B& FadeOn(uint16_t duration) {
-        brightness_eval_ =
-            new (brightness_eval_buf_) FadeOnBrightnessEvaluator(duration);
-        return static_cast<B&>(*this);
-    }
-
-    // Fade LED off - acutally is just inverted version of FadeOn()
-    B& FadeOff(uint16_t duration) {
-        brightness_eval_ =
-            new (brightness_eval_buf_) FadeOffBrightnessEvaluator(duration);
-        return static_cast<B&>(*this);
-    }
-
-    // Set effect to Breathe, with the given period time in ms.
-    B& Breathe(uint16_t period) {
-        brightness_eval_ =
-            new (brightness_eval_buf_) BreatheBrightnessEvaluator(period);
-        return static_cast<B&>(*this);
-    }
-
-    // Set effect to Blink, with the given on- and off- duration values.
-    B& Blink(uint16_t duration_on, uint16_t duration_off) {
-        brightness_eval_ = new (brightness_eval_buf_)
-            BlinkBrightnessEvaluator(duration_on, duration_off);
-        return static_cast<B&>(*this);
-    }
-
-    // Use a user provided brightness evaluator.
-    B& UserFunc(BrightnessEvaluator* ube) {
-        brightness_eval_ = ube;
-        return static_cast<B&>(*this);
-    }
-
- private:
-    static constexpr uint8_t FL_LOW_ACTIVE = (1 << 4);
-};
-
 // a group of JLed objects which can be controlled simultanously, in parallel
 // or sequentially.
-// TODO(jd)  derive from TJLedController treat group of JLeds like a single
-//      JLed instance?
 template <typename T>
 class TJLedSequence {
  protected:
