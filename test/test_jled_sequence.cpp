@@ -74,9 +74,40 @@ TEST_CASE("sequence performs all updates", "[jled_sequence]") {
 
 TEST_CASE("stop on sequence stops alle JLeds and turns them off",
           "[jled_sequence]") {
-    // TODO(jd)
+    TestJLed leds[] = {TestJLed(HalMock(1)).Blink(100, 100),
+                       TestJLed(HalMock(2)).Blink(100, 100)};
+    TestJLedSequence seq(TestJLedSequence::eMode::PARALLEL, leds, 2);
+
+    seq.Update();
+    REQUIRE(255 == leds[0].Hal().Value());
+    REQUIRE(255 == leds[1].Hal().Value());
+    seq.Stop();
+    REQUIRE(0 == leds[0].Hal().Value());
+    REQUIRE(0 == leds[1].Hal().Value());
+    REQUIRE(!leds[0].IsRunning());
+    REQUIRE(!leds[1].IsRunning());
 }
 
 TEST_CASE("reset on sequence resets all JLeds", "[jled_sequence]") {
-    // TODO(jd)
+    // 1 ms on, 2 ms off + 2 ms delay = 3ms off in total per iteration
+    TestJLed leds[] = {TestJLed(HalMock(1)).Blink(1, 1),
+                       TestJLed(HalMock(2)).Blink(1, 1)};
+    TestJLedSequence seq(TestJLedSequence::eMode::PARALLEL, leds, 2);
+
+    constexpr uint8_t expected[]{/* 1ms on */ 255,
+                                 /* 1ms off */ 0,
+                                 /* finally off */ 0};
+    uint32_t time = 0;
+
+    for (auto runs = 0; runs < 2; runs++) {
+        for (const auto val : expected) {
+            seq.Update();
+            REQUIRE(val == leds[0].Hal().Value());
+            REQUIRE(val == leds[1].Hal().Value());
+            leds[0].Hal().SetMillis(++time);
+            leds[1].Hal().SetMillis(++time);
+        }
+        REQUIRE(!seq.Update());
+        seq.Reset();    // expected to start over in second iteration
+    }
 }

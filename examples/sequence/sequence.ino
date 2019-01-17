@@ -1,5 +1,5 @@
-// JLed multi LED demo. control multiple LEDs in-sync.
-// Copyright 2017 by Jan Delgado. All rights reserved.
+// JLed multi LED demo. 'Play' multiple LEDs, one after another,
+// Copyright 2019 by Jan Delgado. All rights reserved.
 // https://github.com/jandelgado/jled
 #include <jled.h>
 
@@ -12,12 +12,12 @@ JLed leds[] = {
     JLed(3).Blink(2500, 500)
 };
 
-JLedSequence seq(leds, 6);
+JLedSequence sequence(JLedSequence::eMode::PARALLEL, leds, sizeof(leds));
 
 void setup() {
 }
 
 void loop() {
-    seq.Update();
+    sequence.Update();
     delay(1);
 }

@@ -12,6 +12,7 @@
 // a morse code sequence.
 class Morse {
     // pre-ordered tree of morse codes. Bit 1 = 'dah',  0 = 'dit'.
+    // Position in string corresponds to position in binary tree starting w/ 1
     // see https://www.pocketmagic.net/morse-encoder/ for info on encoding
     static constexpr auto LATIN =
         "*ETIANMSURWDKGOHVF*L*PJBXCYZQ**54*3***2*******16*******7***8*90";
@@ -22,14 +23,16 @@ class Morse {
     static constexpr auto DURATION_PAUSE_WORD = 7 * DURATION_DIT;
 
     // stores morse bit sequence
-    Bitset* bits_ = nullptr;
+    const Bitset* bits_ = nullptr;
 
  protected:
     char upper(char c) const { return c >= 'a' && c <= 'z' ? c - 32 : c; }
     bool isspace(char c) const { return c == ' '; }
 
+    // returns position of char in morse tree. Count starts with 1, i.e.
+    // E=2, T=3, etc.
     size_t treepos(char c) const {
-        auto i = 0u;
+        auto i = 1u;
         while (LATIN[i++] != c) {
         }
         return i;
