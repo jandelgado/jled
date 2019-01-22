@@ -50,18 +50,18 @@ void loop() {
         * [FadeOff](#fadeoff)
         * [User provided brightness function](#user-provided-brightness-function)
             * [User provided brightness function example](#user-provided-brightness-function-example)
-        * [Delays and repeatitions](#delays-and-repeatitions)
+        * [Delays and repetitions](#delays-and-repetitions)
             * [Initial delay before effect starts](#initial-delay-before-effect-starts)
             * [Delay after effect finished](#delay-after-effect-finished)
             * [Repetitions](#repetitions)
         * [State functions](#state-functions)
             * [Update](#update)
-            * [Running](#running)
+            * [IsRunning](#isrunning)
             * [Reset](#reset)
             * [Immediate Stop](#immediate-stop)
         * [Misc functions](#misc-functions)
-            * [Low active (inverted output)](#low-active-inverted-output)
-    * [Controlling a group of Leds](#controlling-a-group-of-leds)
+            * [Low active for inverted output](#low-active-for-inverted-output)
+    * [Controlling a group of LEDs](#controlling-a-group-of-leds)
 * [Platform notes](#platform-notes)
     * [ESP8266](#esp8266)
     * [ESP32](#esp32)
@@ -75,7 +75,7 @@ void loop() {
 * [Contributing](#contributing)
 * [FAQ](#faq)
     * [How do I check if an JLed object is still being updated?](#how-do-i-check-if-an-jled-object-is-still-being-updated)
-    * [How do I restart a effect?](#how-do-i-restart-a-effect)
+    * [How do I restart an effect?](#how-do-i-restart-an-effect)
     * [How do I change a running effect?](#how-do-i-change-a-running-effect)
 * [Author and Copyright](#author-and-copyright)
 * [License](#license)
@@ -88,6 +88,7 @@ void loop() {
 * effects: simple on/off, breathe, blink, fade-on, fade-off, user-defined
 * supports inverted  polarity of LED
 * easy configuration using fluent interface
+* can control groups of LEDs sequentially or in parallel
 * Arduino, ESP8266 and ESP32 platform compatible
 * portable
 * well [tested](https://coveralls.io/github/jandelgado/jled)
@@ -156,7 +157,7 @@ void loop() {
 
 #### Static off
 
-`Off()` works like `On()`, except that it turns the LED off, i.e. sets the
+`Off()` works like `On()`, except that it turns the LED off, i.e. it sets the
 brightness to 0.
 
 #### Blinking
@@ -231,7 +232,7 @@ must be derived from the `jled::BrightnessEvaluator` class and implement
 two methods:
 
 * `uint8_t Èval(uint32_t t)` - the brightness evaluation function that calculates
-    a brightness for the given point in time t. The brighness must be returned as
+    a brightness for the given time `t`. The brightness must be returned as
     an unsigned byte, where 0 means led off and 255 means full brightness.
 * `uint16_t Period() const` - period of the effect.
 
@@ -239,7 +240,7 @@ All time values are specified in milliseconds.
 
 The [user_func](examples/user_func) example demonstrates a simple user provided
 brightness function, while the [morse](examples/morse) shows how a more complex
-application, allowing you to send morse codes (not neccessarily with an LED).
+application, allowing you to send morse codes (not necessarily with an LED).
 
 ##### User provided brightness function example
 
@@ -257,7 +258,7 @@ class UserEffect : public jled::BrightnessEvaluator {
 };
 ```
 
-#### Delays and repeatitions
+#### Delays and repetitions
 
 ##### Initial delay before effect starts
 
@@ -273,22 +274,23 @@ an effect. The default value is 0 ms.
 
 Use the `Repeat()` method to specify the number of repetition. The default
 value is 1 repetition. The `Forever()` methods sets to repeat the effect
-forever. Each repetition
+forever. Each repetition includes a full period of the effect and the time
+specified by `DelayAfter()` method.
 
 #### State functions
 
 ##### Update
 
-Call `Update()` periodidcally to update the state of the LED. `Update` returns
+Call `Update()` periodically to update the state of the LED. `Update` returns
 `true` if the effect is active, and `false` when it finished.
 
-##### Running
+##### IsRunning
 
-`Running()` returns `true` if the current effect is running, else `false`.
+`IsRunning()` returns `true` if the current effect is running, else `false`.
 
 ##### Reset
 
-A call to `Reset()` bring the JLed object to it's initial state. Use it when
+A call to `Reset()` brings the JLed object to it's initial state. Use it when
 you want to start-over an effect.
 
 ##### Immediate Stop
@@ -299,17 +301,17 @@ Further calls to `Update()` will have no effect unless the Led is reset (using
 
 #### Misc functions
 
-##### Low active (inverted output)
+##### Low active for inverted output
 
-Use the `LowActive()` modifier  when the connected LED is low active. All output
+Use the `LowActive()` method when the connected LED is low active. All output
 will be inverted by JLed (i.e. instead of x, the value of 255-x will be set).
 
-### Controlling a group of Leds
+### Controlling a group of LEDs
 
-The `JLedSequence` class allows to control a group of `JLed` objects simultanously,
-eihter in parallel or sequentially, starting the next `JLed` effect when the 
-previous finished. The constructor takes the mode (`PARLLEL`, `SEQUENTIAL`), 
-an array of `JLed` objects and the size of the array, e.g.
+The `JLedSequence` class allows to control a group of `JLed` objects
+simultaneously, either in parallel or sequentially, starting the next `JLed`
+effect when the previous finished. The constructor takes the mode (`PARALLEL`,
+`SEQUENTIAL`), an array of `JLed` objects and the size of the array, e.g.
 
 ```c++
 JLed leds[] = {
@@ -330,12 +332,12 @@ void loop() {
 The `JLedSequence` provides the following methods:
 
 * `Update()` - updates the active `JLed` objects controlled by the sequence.
-  like the `JLed::Update()` method, it return `true` if an effect is running,
+  Like the `JLed::Update()` method, it returns `true` if an effect is running,
   else `false`.
 * `Stop()` - turns off all `JLed` objects controlled by the sequence and 
-   stops the sequence. Furhter calls to `Update()` will have no effect.
+   stops the sequence. Further calls to `Update()` will have no effect.
 * `Reset()` - Resets all `JLed` objects controlled by the sequence and 
-   the sequence, resulting in a stsart-over.
+   the sequence, resulting in a start-over.
 
 ## Platform notes
 
@@ -367,7 +369,7 @@ auto esp32Led = JLed(Esp32Hal(2, 7)).Blink(1000, 1000).Forever();
 The `Esp32Hal(pin, chan)` constructor takes the pin number as the first
 argument and the ESP32 ledc channel number on second position. Note that using
 the above mentioned constructor yields non-platform independent code, so it 
-should be avoided.
+should be avoided and is normally not necessary.
 
 ### STM32
 
@@ -378,12 +380,12 @@ core](https://github.com/rogerclarkmelbourne/Arduino_STM32/tree/master/STM32F4)
 and compiling from the Arduino IDE. Note that the `stlink` tool may be
 necessary to upload sketches to the micro controller.
 
-Platformio does not support the Arduino platform for the F401RE in the [current
+PlatformIO does not support the Arduino platform for the F401RE in the [current
 version](https://docs.platformio.org/en/latest/boards/ststm32/nucleo_f401re.html),
 but has support on the [master
 branch](https://github.com/platformio/platform-ststm32.git). See
-[plaform.ini](platform.ini) for an example on how the arduino framework with
-this board.
+[plaform.ini](platform.ini) for an example on how to use the Arduino framework
+with this board.
 
 ## Example sketches
 
@@ -395,12 +397,12 @@ Examples sketches are provided in the [examples](examples/) directory.
 * [Fade LED off](examples/fade_off)
 * [Controlling multiple LEDs in parallel](examples/multiled)
 * [Controlling multiple LEDs sequentially](examples/sequence)
-* [User provided effect](examples/user_func)
+* [Simple User provided effect](examples/user_func)
 * [Morsecode example](examples/morse)
 
 ### PlatformIO
 
-To build an example using [the PlatformIO ide](http://platformio.org/), simply
+To build an example using [the PlatformIO ide](http://platformio.org/), 
 uncomment the example to be built in the [platformio.ini](platformio.ini)
 project file, e.g.:
 
@@ -415,14 +417,14 @@ src_dir = examples/hello
 
 ### Arduino IDE
 
-To build an example sketch in the Arduino IDE, simply select an example from
+To build an example sketch in the Arduino IDE, select an example from
 the `File` > `Examples` > `JLed` menu.
 
 ## Extending
 
 ### Support new hardware
 
-JLed uses a very thin hardware abstration layer (hal) to abstract access to the
+JLed uses a very thin hardware abstraction layer (hal) to abstract access to the
 acutal used MCU (e.g. ESP32, ESP8266). The hal objects encapsulate access to
 the GPIO and time functionality of the MCU under the framework being used.
 During unit test, mocked hal instances are used, enabling tests to check the
@@ -454,7 +456,7 @@ the host based provided unit tests [is provided here](test/README.md).
   the effect is still running, otherwise `false`.
 * The `JLed::IsRunning` method returns `true` if an effect is running, else `false`.
 
-### How do I restart a effect?
+### How do I restart an effect?
 
 Call `Reset()` on a `JLed` object to start over.
 
