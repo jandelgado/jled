@@ -1,16 +1,18 @@
 # JLed changelog
 
-## [2018-10-20] v4.0.0
+## [2019-01-23] v4.0.0
 
 ### Added
 
 * `JLed::Reset()` - resets the led to it's initial state allowing to 
-  to start over.
+  to start over
+* `JLed::IsRunning()` - return true if effect is active, else false
 * new class `JLedSequence` to update JLed objects simultanously or 
-  sequentially. See [README](README.md) for details.
+  sequentially. See [README](README.md#controlling-a-group-of-leds) for details.
+* added new [morse example](examples/morse)
 * clean separation between hardware specific and common code, making
   extendability easy
-* added STM32 support
+* added STM32 example to [platformio.ini](platform.ini)
 
 ### Changed
 
@@ -53,7 +55,7 @@ JLed led = JLed(LED_BUILTIN).UserFunc(&userEffect);
 
 ### Removed
 
-* JLed::Invert() method was removed since became redundant with LowActive()
+* `JLed::Invert()` method was removed since became redundant with LowActive()
 
 
 ## [2018-10-03] v3.0.0
