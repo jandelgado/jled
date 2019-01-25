@@ -22,9 +22,6 @@ class Morse {
     static constexpr auto DURATION_PAUSE_CHAR = DURATION_DAH;
     static constexpr auto DURATION_PAUSE_WORD = 7 * DURATION_DIT;
 
-    // stores morse bit sequence
-    const Bitset* bits_ = nullptr;
-
  protected:
     char upper(char c) const { return c >= 'a' && c <= 'z' ? c - 32 : c; }
     bool isspace(char c) const { return c == ' '; }
@@ -143,10 +140,16 @@ class Morse {
     ~Morse() { delete bits_; }
 
     // make sure that the following, currently not needed, methods are not used
-    Morse(const Morse&) = delete;
-    Morse(Morse&&) = delete;
-    Morse& operator=(const Morse&) = delete;
-    Morse& operator=(Morse&&) = delete;
+    Morse(const Morse&m) {*this = m;}
+    Morse& operator=(const Morse&m) {
+        delete bits_;
+        bits_ = new Bitset(*m.bits_);
+        return *this;
+    }
+
+ private:
+    // stores morse bit sequence
+    const Bitset* bits_ = nullptr;
 };
 
 #endif  // EXAMPLES_MORSE_MORSE_H_

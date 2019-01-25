@@ -7,20 +7,27 @@
 // a simple bit set with capacity of N bits, just enough for the morse demo
 class Bitset {
  private:
-    const size_t n_;
+    size_t n_;
     uint8_t* bits_;
 
  public:
     Bitset() = delete;
-    Bitset(const Bitset&) = delete;
-    Bitset(Bitset&&) = delete;
+    Bitset(const Bitset& b) { *this = b; }
     explicit Bitset(size_t N)
         : n_(N), bits_{N > 0 ? new uint8_t[((N - 1) >> 3) + 1] : nullptr} {
-        if (n_)
-            memset(bits_, 0, ((n_ - 1) >> 3) + 1);
+        if (n_) memset(bits_, 0, ((n_ - 1) >> 3) + 1);
     }
-    Bitset& operator=(const Bitset&) = delete;
-    Bitset& operator=(Bitset&&) = delete;
+    Bitset& operator=(const Bitset& b) {
+        n_ = b.n_;
+        auto size = n_ > 0 ? ((n_ - 1) >> 3) + 1 : 0;
+        if (size > 0) {
+            bits_ = new uint8_t[size];
+            memcpy(bits_, b.bits_, size);
+        } else {
+            bits_ = nullptr;
+        }
+        return *this;
+    }
     virtual ~Bitset() {
         delete[] bits_;
         bits_ = nullptr;

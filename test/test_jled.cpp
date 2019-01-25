@@ -1,24 +1,23 @@
 // JLed Unit tests (runs on host)
 // Copyright 2017 Jan Delgado jdelgado@gmx.net
-#include <map>
 #include <jled_base.h>  // NOLINT
-#include "hal_mock.h"  // NOLINT
+#include <map>
 #include "catch.hpp"
+#include "hal_mock.h"  // NOLINT
 
-using jled::TJLed;
-using jled::BrightnessEvaluator;
 using jled::BlinkBrightnessEvaluator;
-using jled::ConstantBrightnessEvaluator;
 using jled::BreatheBrightnessEvaluator;
-using jled::FadeOnBrightnessEvaluator;
+using jled::BrightnessEvaluator;
+using jled::ConstantBrightnessEvaluator;
 using jled::FadeOffBrightnessEvaluator;
+using jled::FadeOnBrightnessEvaluator;
+using jled::TJLed;
 
 // TestJLed is a JLed class using the HalMock for tests. This allows to
 // test the code abstracted from the actual hardware in use.
 class TestJLed : public TJLed<HalMock, TestJLed> {
     using TJLed<HalMock, TestJLed>::TJLed;
 };
-
 // instanciate for test coverage measurement
 template class TJLed<HalMock, TestJLed>;
 
@@ -109,7 +108,10 @@ TEST_CASE("UserFunc() provided brightness evaluator configuration", "[jled]") {
     class CustomBrightnessEvaluator : public BrightnessEvaluator {
      public:
         uint16_t Period() const { return 0; }
-        uint8_t Eval(uint32_t) { return 0; }
+        uint8_t Eval(uint32_t) const { return 0; }
+        BrightnessEvaluator *clone(void *p) const {
+            return new (p) CustomBrightnessEvaluator(*this);
+        }
     };
 
     class TestableJLed : public TestJLed {
@@ -179,23 +181,21 @@ TEST_CASE("BreatheEvaluator calculates correct values", "[jled]") {
 }
 
 TEST_CASE("EvalBrightness() calculates correct values", "[jled]") {
+    static constexpr auto kTimeProbe = 1000;
+    static constexpr auto kTestBrightness = 100;
+
     class CustomBrightnessEvaluator : public BrightnessEvaluator {
         uint16_t period_ = 0;
         uint8_t val_;
-        uint32_t requested_time_ = 0;
 
      public:
         explicit CustomBrightnessEvaluator(uint8_t val) : val_(val) {}
-        uint16_t Period() const { return period_; }
-        uint8_t Eval(uint32_t t) {
-            requested_time_ = t;
-            return val_;
+        BrightnessEvaluator *clone(void *p) const {
+            return new (p) CustomBrightnessEvaluator(*this);
         }
-        uint32_t RequestedTime() const { return requested_time_; }
+        uint16_t Period() const { return period_; }
+        uint8_t Eval(uint32_t t) const { return (t != kTimeProbe) ? 0 : val_; }
     };
-
-    static constexpr auto kTimeProbe = 1000;
-    static constexpr auto kTestBrightness = 100;
 
     class TestableJLed : public TestJLed {
         using TestJLed::TestJLed;
@@ -203,12 +203,11 @@ TEST_CASE("EvalBrightness() calculates correct values", "[jled]") {
      public:
         static void test() {
             SECTION("standard evaluation") {
-                TestableJLed jled(1);
+                auto jled = TestableJLed(1);
                 auto eval = CustomBrightnessEvaluator(kTestBrightness);
                 jled.UserFunc(&eval);
                 REQUIRE(kTestBrightness ==
                         jled.EvalBrightness(&eval, kTimeProbe));
-                REQUIRE(kTimeProbe == eval.RequestedTime());
             }
         }
     };
@@ -224,12 +223,15 @@ TEST_CASE("set and test forever", "[jled]") {
 
 TEST_CASE("dont evalute twice during one time tick", "[jled]") {
     class CountingCustomBrightnessEvaluator : public BrightnessEvaluator {
-        uint16_t count_ = 0;
+        mutable uint16_t count_ = 0;
 
      public:
+        BrightnessEvaluator *clone(void *p) const {
+            return new (p) CountingCustomBrightnessEvaluator(*this);
+        }
         uint16_t Period() const { return 1000; }
         uint16_t Count() const { return count_; }
-        uint8_t Eval(uint32_t) {
+        uint8_t Eval(uint32_t) const {
             count_++;
             return 0;
         }
@@ -262,10 +264,10 @@ TEST_CASE("Stop() stops the effect", "[jled]") {
     jled.Stop();
     REQUIRE(!jled.IsRunning());
     REQUIRE_FALSE(jled.Update());
-    REQUIRE(0 == jled.Hal().Value() );
+    REQUIRE(0 == jled.Hal().Value());
     // update should not change anything
     REQUIRE_FALSE(jled.Update());
-    REQUIRE(0 == jled.Hal().Value() );
+    REQUIRE(0 == jled.Hal().Value());
 }
 
 TEST_CASE("LowActive() inverts signal", "[jled]") {

@@ -55,7 +55,8 @@ uint8_t fadeon_func(uint32_t t, uint16_t period);
 class BrightnessEvaluator {
  public:
     virtual uint16_t Period() const = 0;
-    virtual uint8_t Eval(uint32_t t) = 0;
+    virtual uint8_t Eval(uint32_t t) const = 0;
+    virtual BrightnessEvaluator* clone(void* ptr) const = 0;
     static void* operator new(size_t, void* ptr) { return ptr; }
     static void operator delete(void*) {}
 };
@@ -67,8 +68,11 @@ class ConstantBrightnessEvaluator : public BrightnessEvaluator {
  public:
     ConstantBrightnessEvaluator() = delete;
     explicit ConstantBrightnessEvaluator(uint8_t val) : val_(val) {}
+    BrightnessEvaluator* clone(void* ptr) const override {
+        return new (ptr) ConstantBrightnessEvaluator(*this);
+    }
     uint16_t Period() const override { return 1; }
-    uint8_t Eval(uint32_t) override { return val_; }
+    uint8_t Eval(uint32_t) const override { return val_; }
 };
 
 // BlinkBrightnessEvaluator does one on-off cycle in the specified period
@@ -79,8 +83,11 @@ class BlinkBrightnessEvaluator : public BrightnessEvaluator {
     BlinkBrightnessEvaluator() = delete;
     BlinkBrightnessEvaluator(uint16_t duration_on, uint16_t duration_off)
         : duration_on_(duration_on), duration_off_(duration_off) {}
+    BrightnessEvaluator* clone(void* ptr) const override {
+        return new (ptr) BlinkBrightnessEvaluator(*this);
+    }
     uint16_t Period() const override { return duration_on_ + duration_off_; }
-    uint8_t Eval(uint32_t t) override {
+    uint8_t Eval(uint32_t t) const override {
         return (t < duration_on_) ? kFullBrightness : kZeroBrightness;
     }
 };
@@ -93,8 +100,11 @@ class FadeOnBrightnessEvaluator : public BrightnessEvaluator {
  public:
     FadeOnBrightnessEvaluator() = delete;
     explicit FadeOnBrightnessEvaluator(uint16_t period) : period_(period) {}
+    BrightnessEvaluator* clone(void* ptr) const override {
+        return new (ptr) FadeOnBrightnessEvaluator(*this);
+    }
     uint16_t Period() const override { return period_; }
-    uint8_t Eval(uint32_t t) override { return fadeon_func(t, period_); }
+    uint8_t Eval(uint32_t t) const override { return fadeon_func(t, period_); }
 };
 
 // fade LED off
@@ -105,8 +115,11 @@ class FadeOffBrightnessEvaluator : public BrightnessEvaluator {
  public:
     FadeOffBrightnessEvaluator() = delete;
     explicit FadeOffBrightnessEvaluator(uint16_t period) : period_(period) {}
+    BrightnessEvaluator* clone(void* ptr) const override {
+        return new (ptr) FadeOffBrightnessEvaluator(*this);
+    }
     uint16_t Period() const override { return period_; }
-    uint8_t Eval(uint32_t t) override {
+    uint8_t Eval(uint32_t t) const override {
         return fadeon_func(period_ - t, period_);
     }
 };
@@ -124,8 +137,11 @@ class BreatheBrightnessEvaluator : public BrightnessEvaluator {
  public:
     BreatheBrightnessEvaluator() = delete;
     explicit BreatheBrightnessEvaluator(uint16_t period) : period_(period) {}
+    BrightnessEvaluator* clone(void* ptr) const override {
+        return new (ptr) BreatheBrightnessEvaluator(*this);
+    }
     uint16_t Period() const override { return period_; }
-    uint8_t Eval(uint32_t t) override {
+    uint8_t Eval(uint32_t t) const override {
         if (t + 1 >= period_) return kZeroBrightness;
         const decltype(period_) periodh = period_ >> 1;
         return t < periodh ? fadeon_func(t, periodh)
@@ -193,11 +209,9 @@ class TJLed {
             // points to user provided evaluator
             brightness_eval_ = rLed.brightness_eval_;
         } else {
-            for (size_t i = 0; i < MAX_SIZE; i++) {
-                brightness_eval_buf_[i] = rLed.brightness_eval_buf_[i];
-            }
-            brightness_eval_ =
-                reinterpret_cast<BrightnessEvaluator*>(brightness_eval_buf_);
+            brightness_eval_ = (reinterpret_cast<const BrightnessEvaluator*>(
+                                    rLed.brightness_eval_))
+                                   ->clone(brightness_eval_buf_);
         }
         return static_cast<B&>(*this);
     }
