@@ -49,18 +49,6 @@ TEST_CASE("binary code of character is determined correctly",
     TestMorse().test();
 }
 
-TEST_CASE("duration of character is calculated correctly", "[morse_example]") {
-    class TestMorse : public Morse {
-     public:
-        void test() {
-            // B =  -   .   .   .
-            REQUIRE(3 + 1 + 1 + 1 + (3 * 1) ==
-                    duration_code(pos_to_morse_code(treepos('B'))));
-        }
-    };
-    TestMorse().test();
-}
-
 TEST_CASE("string is encoded correctly into sequence", "[morse_example]") {
     // A = . -   => 1 + 3 + (1) dits
     // E = . => 1 dit

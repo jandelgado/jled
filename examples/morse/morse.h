@@ -49,40 +49,6 @@ class Morse {
         return res | (size << 8);
     }
 
-    // calculate time in 'dits' for the given code. One 'dah' is three 'dits',
-    // the pause between two symbols is one 'dit' long. E.g.
-    //   duration( '.' ) = 1
-    //   duration( '-' ) = 3
-    //   duration( '-.-' ) = 3+1+1+1+3 = 9
-    uint16_t duration_code(uint16_t code) const {
-        uint8_t len = code >> 8;
-        code &= 0xff;
-        auto duration = 0;
-        duration += len - 1;  // pause of len 'dit' between symbols
-        while (len--) {
-            duration += (code & 1) ? DURATION_DAH : DURATION_DIT;
-            code >>= 1;
-        }
-        return duration;
-    }
-
-    // calculate duration in 'dits' of a string converted in morse code.
-    // Duration between symbols in characteris is a 'dit', between characters
-    // of a word is a 'dah' (== 3 'dits'), between words it is a 7 'dits'.
-    uint16_t duration_str(const char* p) const {
-        auto duration = 0;
-        while (*p) {
-            const auto c = upper(*p++);
-            if (isspace(c)) {
-                duration += DURATION_PAUSE_WORD;
-                continue;
-            }
-            duration += duration_code(pos_to_morse_code(treepos(upper(c))));
-            if (*p && !isspace(*p)) duration += DURATION_PAUSE_CHAR;
-        }
-        return duration;
-    }
-
     template <typename F>
     uint16_t iterate_sequence(const char* p, F f) const {
         // call f(count,val) num times, incrementing count each time
