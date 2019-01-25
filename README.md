@@ -85,7 +85,7 @@ void loop() {
 ## Features
 
 * non-blocking
-* effects: simple on/off, breathe, blink, fade-on, fade-off, [user-defined](examples/morse/README.md)
+* effects: simple on/off, breathe, blink, fade-on, fade-off, [user-defined](examples/morse)
 * supports inverted  polarity of LED
 * easy configuration using fluent interface
 * can control groups of LEDs sequentially or in parallel
