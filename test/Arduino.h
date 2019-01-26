@@ -5,6 +5,7 @@
 
 #include <math.h>
 #include <stdint.h>
+#include <cstring>
 
 constexpr auto ARDUINO_PINS = 32;
 constexpr auto LEDC_CHANNELS = 16;
@@ -19,9 +20,6 @@ int arduinoMockGetPinState(uint8_t pin);
 
 uint32_t millis(void);
 void arduinoMockSetMillis(uint32_t value);
-
-#define min(a, b) ((a) < (b) ? (a) : (b))
-#define max(a, b) ((a) > (b) ? (a) : (b))
 
 #define PI 3.1415926535897932384626433832795
 #define OUTPUT 0x1
@@ -43,6 +41,5 @@ uint8_t arduinoMockGetLedcAttachPin(uint8_t pin);
 
 void ledcWrite(uint8_t chan, uint32_t duty);
 uint32_t arduinoMockGetLedcState(uint8_t chan);
-
 
 #endif  // TEST_ARDUINO_H_

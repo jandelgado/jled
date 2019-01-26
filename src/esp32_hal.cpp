@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Jan Delgado <jdelgado[at]gmx.net>
+// Copyright (c) 2018 Jan Delgado <jdelgado[at]gmx.net>
 // https://github.com/jandelgado/jled
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -19,18 +19,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //
-#ifndef SRC_ARDUINO_ANALOG_WRITER_H_
-#define SRC_ARDUINO_ANALOG_WRITER_H_
-
-class ArduinoAnalogWriter /*: public AnalogWriter */ {
- public:
-    explicit ArduinoAnalogWriter(uint8_t pin) noexcept : pin_(pin) {
-        ::pinMode(pin_, OUTPUT);
-    }
-    void analogWrite(uint8_t val) { ::analogWrite(pin_, val); }
-
- private:
-    uint8_t pin_;
-};
-
-#endif  // SRC_ARDUINO_ANALOG_WRITER_H_
+#ifdef ESP32
+#include "esp32_hal.h"  // NOLINT
+using jled::Esp32Hal;
+uint8_t Esp32Hal::nextChan_ = 0;
+#endif

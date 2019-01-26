@@ -1,4 +1,4 @@
-// Minimal Arduino mock for testing JLed
+// Minimal Arduino mock for testing JLed hardware accessing functions
 // Copyright 2017 Jan Delgado jdelgado@gmx.net
 //
 #include "Arduino.h"  // NOLINT
@@ -66,4 +66,3 @@ void ledcWrite(uint8_t chan, uint32_t duty) {
 uint32_t arduinoMockGetLedcState(uint8_t chan) {
     return ArduinoState_.ledc_state[chan];
 }
-

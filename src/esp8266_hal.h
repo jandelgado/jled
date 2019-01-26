@@ -19,20 +19,24 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //
-#ifndef SRC_ESP8266_ANALOG_WRITER_H_
-#define SRC_ESP8266_ANALOG_WRITER_H_
+#ifndef SRC_ESP8266_HAL_H_
+#define SRC_ESP8266_HAL_H_
 
 #include <Arduino.h>
 
-class Esp8266AnalogWriter /*: public AnalogWriter */ {
+namespace jled {
+class Esp8266Hal /*: public AnalogWriter */ {
  public:
-    explicit Esp8266AnalogWriter(uint8_t pin) noexcept : pin_(pin) {
+    Esp8266Hal() {}
+
+    explicit Esp8266Hal(uint8_t pin) noexcept : pin_(pin) {
         ::pinMode(pin_, OUTPUT);
     }
     void analogWrite(uint8_t val) {
         // ESP8266 uses 10bit PWM range per default, scale value up
-        ::analogWrite(pin_, Esp8266AnalogWriter::ScaleTo10Bit(val));
+        ::analogWrite(pin_, Esp8266Hal::ScaleTo10Bit(val));
     }
+    uint32_t millis() {return ::millis();}
 
  protected:
     // scale an 8bit value to 10bit: 0 -> 0, ..., 255 -> 1023,
@@ -44,5 +48,5 @@ class Esp8266AnalogWriter /*: public AnalogWriter */ {
  private:
     uint8_t pin_;
 };
-
-#endif  // SRC_ESP8266_ANALOG_WRITER_H_
+}  // namespace jled
+#endif  // SRC_ESP8266_HAL_H_
