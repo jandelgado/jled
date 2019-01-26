@@ -1,4 +1,5 @@
 // Copyright (c) 2019 Jan Delgado <jdelgado[at]gmx.net>
+// JLed user defined brightness morse example
 // https://github.com/jandelgado/jled
 #include "morse_effect.h"  // NOLINT
 #include <Arduino.h>
