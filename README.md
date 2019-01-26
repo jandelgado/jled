@@ -311,7 +311,7 @@ will be inverted by JLed (i.e. instead of x, the value of 255-x will be set).
 The `JLedSequence` class allows to control a group of `JLed` objects
 simultaneously, either in parallel or sequentially, starting the next `JLed`
 effect when the previous finished. The constructor takes the mode (`PARALLEL`,
-`SEQUENTIAL`), an array of `JLed` objects and the size of the array, e.g.
+`SEQUENCE`), an array of `JLed` objects and the size of the array, e.g.
 
 ```c++
 JLed leds[] = {
@@ -319,7 +319,7 @@ JLed leds[] = {
     JLed(3).Breathe(2000).Forever()
 };
 
-JLedSequence sequence(JLedSequence::eMode::PARALLEL, leds, sizeof(leds));
+JLedSequence sequence(JLedSequence::eMode::PARALLEL, leds, 2);
 
 void setup() {
 }

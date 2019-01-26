@@ -12,7 +12,7 @@
 * added new [morse example](examples/morse)
 * clean separation between hardware specific and common code, making
   extendability easy
-* added STM32 example to [platformio.ini](platform.ini)
+* added STM32 example to [platformio.ini](platformio.ini)
 
 ### Changed
 
