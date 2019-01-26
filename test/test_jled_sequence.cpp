@@ -26,7 +26,7 @@ template class TJLedSequence<TestJLed>;
 TEST_CASE("parallel sequence performs all updates", "[jled_sequence]") {
     TestJLed leds[] = {TestJLed(HalMock(1)).Blink(1, 1).Repeat(1),
                        TestJLed(HalMock(2)).Blink(1, 1).Repeat(1).LowActive()};
-    TestJLedSequence seq(TestJLedSequence::eMode::PARALLEL, leds, 2);
+    TestJLedSequence seq(TestJLedSequence::eMode::PARALLEL, leds);
     constexpr uint8_t expected1[] = {255, 0, 0};
     constexpr uint8_t expected2[] = {0, 255, 255};
     REQUIRE(sizeof(expected1) ==
@@ -48,7 +48,7 @@ TEST_CASE("parallel sequence performs all updates", "[jled_sequence]") {
 TEST_CASE("sequence performs all updates", "[jled_sequence]") {
     TestJLed leds[] = {TestJLed(HalMock(1)).Blink(1, 1).Repeat(1),
                        TestJLed(HalMock(2)).Blink(1, 1).Repeat(1)};
-    TestJLedSequence seq(TestJLedSequence::eMode::SEQUENCE, leds, 2);
+    TestJLedSequence seq(TestJLedSequence::eMode::SEQUENCE, leds);
     constexpr uint8_t expected1[] = {255,  // first led turns on ...
                                      0,    // and off
                                      0, 0, 0};
@@ -76,7 +76,7 @@ TEST_CASE("stop on sequence stops alle JLeds and turns them off",
           "[jled_sequence]") {
     TestJLed leds[] = {TestJLed(HalMock(1)).Blink(100, 100),
                        TestJLed(HalMock(2)).Blink(100, 100)};
-    TestJLedSequence seq(TestJLedSequence::eMode::PARALLEL, leds, 2);
+    TestJLedSequence seq(TestJLedSequence::eMode::PARALLEL, leds);
 
     seq.Update();
     REQUIRE(255 == leds[0].Hal().Value());
@@ -92,7 +92,7 @@ TEST_CASE("reset on sequence resets all JLeds", "[jled_sequence]") {
     // 1 ms on, 2 ms off + 2 ms delay = 3ms off in total per iteration
     TestJLed leds[] = {TestJLed(HalMock(1)).Blink(1, 1),
                        TestJLed(HalMock(2)).Blink(1, 1)};
-    TestJLedSequence seq(TestJLedSequence::eMode::PARALLEL, leds, 2);
+    TestJLedSequence seq(TestJLedSequence::eMode::PARALLEL, leds);
 
     constexpr uint8_t expected[]{/* 1ms on */ 255,
                                  /* 1ms off */ 0,

@@ -11,7 +11,7 @@ JLed leds[] = {
     JLed(LED_BUILTIN).Blink(500, 500).Forever()
 };
 
-JLedSequence sequence(JLedSequence::eMode::PARALLEL, leds, 5);
+JLedSequence sequence(JLedSequence::eMode::PARALLEL, leds);
 
 void setup() { }
 

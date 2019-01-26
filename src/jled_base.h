@@ -420,6 +420,10 @@ class TJLedSequence {
  public:
     enum eMode { SEQUENCE, PARALLEL };
     TJLedSequence() = delete;
+
+    template<size_t N>
+    TJLedSequence(eMode mode, T (&leds)[N]) : TJLedSequence(mode, leds, N) {}
+
     TJLedSequence(eMode mode, T* leds, size_t n)
         : mode_{mode}, leds_{leds}, cur_{0}, n_{n} {}
 

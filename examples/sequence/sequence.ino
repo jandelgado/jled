@@ -13,7 +13,7 @@ JLed leds[] = {
     JLed(3).Off()
 };
 
-JLedSequence sequence(JLedSequence::eMode::SEQUENCE, leds, 6);
+JLedSequence sequence(JLedSequence::eMode::SEQUENCE, leds);
 
 void setup() { }
 

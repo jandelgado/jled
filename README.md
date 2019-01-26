@@ -319,7 +319,7 @@ JLed leds[] = {
     JLed(3).Breathe(2000).Forever()
 };
 
-JLedSequence sequence(JLedSequence::eMode::PARALLEL, leds, 2);
+JLedSequence sequence(JLedSequence::eMode::PARALLEL, leds);
 
 void setup() {
 }
@@ -329,8 +329,12 @@ void loop() {
 }
 ```
 
-The `JLedSequence` provides the following methods:
+Because the size of the array is known at compile time in this example, it is
+not necessary to pass the array size to the constructor. A second constructor
+is available in case the `JLed` array is created dynamically at runtime:
+`JLed(eMode mode, JLed* leds, size_t n)`.
 
+The `JLedSequence` provides the following methods:
 * `Update()` - updates the active `JLed` objects controlled by the sequence.
   Like the `JLed::Update()` method, it returns `true` if an effect is running,
   else `false`.
