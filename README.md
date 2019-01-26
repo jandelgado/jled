@@ -231,16 +231,19 @@ It is also possible to provide a user defined brightness evaluator. The class
 must be derived from the `jled::BrightnessEvaluator` class and implement
 two methods:
 
-* `uint8_t Èval(uint32_t t)` - the brightness evaluation function that calculates
-    a brightness for the given time `t`. The brightness must be returned as
-    an unsigned byte, where 0 means led off and 255 means full brightness.
+* `uint8_t Èval(uint32_t t) const` - the brightness evaluation function that
+  calculates a brightness for the given time `t`. The brightness must be returned
+  as an unsigned byte, where 0 means LED off and 255 means full brightness.
 * `uint16_t Period() const` - period of the effect.
+*  `BrightnessEvaluator* clone(void*p) const override` - clones the object
+   using placement new. See below for standard implementation.
 
 All time values are specified in milliseconds. 
 
 The [user_func](examples/user_func) example demonstrates a simple user provided
 brightness function, while the [morse](examples/morse) shows how a more complex
-application, allowing you to send morse codes (not necessarily with an LED).
+application, allowing you to send morse codes (not necessarily with an LED), can
+be realized.
 
 ##### User provided brightness function example
 
@@ -248,13 +251,14 @@ The example uses a user provided function to calculate the brightness.
 
 ```c++
 class UserEffect : public jled::BrightnessEvaluator {
-    uint8_t Eval(uint32_t t) override {
+    uint8_t Eval(uint32_t t) const override {
         // this function changes between 0 and 255 and
         // vice versa every 250 ms.
         return 255*((t/250)%2);
     }
     // duration of effect: 5 seconds.
     uint16_t Period() const override { return 5000; }
+    jled::BrightnessEvaluator* clone(void*p) const override {return new(p) UserEffect(*this);}
 };
 ```
 
