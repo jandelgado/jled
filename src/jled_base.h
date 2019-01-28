@@ -179,10 +179,6 @@ class TJLed {
     }
     bool GetFlag(uint8_t f) const { return (flags_ & f) != 0; }
 
-    uint8_t EvalBrightness(BrightnessEvaluator* eval, uint32_t t) const {
-        return eval->Eval(t);
-    }
-
     void SetInDelayAfterPhase(bool f) { SetFlags(FL_IN_DELAY_AFTER_PHASE, f); }
     bool IsInDelayAfterPhase() const {
         return GetFlag(FL_IN_DELAY_AFTER_PHASE);
@@ -218,7 +214,7 @@ class TJLed {
 
     HalType& Hal() { return hal_; }
 
-    bool Update() { return Update(hal_.millis(), brightness_eval_); }
+    bool Update() { return Update(hal_.millis()); }
 
     // turn LED on
     B& On(uint8_t brightness = kFullBrightness) {
@@ -327,8 +323,8 @@ class TJLed {
     //        |<-delay before->|<--period-->|<-delay after-> (time)
     //                         | func(t)    |
     //                         |<- num_repetitions times  ->
-    bool Update(uint32_t now, BrightnessEvaluator* eval) {
-        if (!IsRunning() || !eval) return false;
+    bool Update(uint32_t now) {
+        if (!IsRunning() || !brightness_eval_) return false;
 
         // no need to process updates twice during one time tick.
         if (last_update_time_ == now) {
@@ -345,16 +341,16 @@ class TJLed {
         if (now < time_start_) return true;
 
         // t cycles in range [0..period+delay_after-1]
-        const auto period = eval->Period();
+        const auto period = brightness_eval_->Period();
         const auto t = (now - time_start_) % (period + delay_after_);
 
         if (t < period) {
-            Write(EvalBrightness(eval, t));
+            Write(brightness_eval_->Eval(t));
         } else if (!IsInDelayAfterPhase()) {
             // when in delay after phase, just call Write()
             // once at the beginning.
             SetInDelayAfterPhase(true);
-            Write(EvalBrightness(eval, period - 1));
+            Write(brightness_eval_->Eval(period - 1));
         }
 
         if (IsForever()) return true;
@@ -365,7 +361,7 @@ class TJLed {
 
         if (now >= time_end) {
             // make sure final value of t = (period-1) is set
-            Write(EvalBrightness(eval, period - 1));
+            Write(brightness_eval_->Eval(period - 1));
             SetFlags(FL_STOPPED, true);
             return false;
         }

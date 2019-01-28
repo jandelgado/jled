@@ -180,40 +180,6 @@ TEST_CASE("BreatheEvaluator calculates correct values", "[jled]") {
     }
 }
 
-TEST_CASE("EvalBrightness() calculates correct values", "[jled]") {
-    static constexpr auto kTimeProbe = 1000;
-    static constexpr auto kTestBrightness = 100;
-
-    class CustomBrightnessEvaluator : public BrightnessEvaluator {
-        uint16_t period_ = 0;
-        uint8_t val_;
-
-     public:
-        explicit CustomBrightnessEvaluator(uint8_t val) : val_(val) {}
-        BrightnessEvaluator *clone(void *p) const {
-            return new (p) CustomBrightnessEvaluator(*this);
-        }
-        uint16_t Period() const { return period_; }
-        uint8_t Eval(uint32_t t) const { return (t != kTimeProbe) ? 0 : val_; }
-    };
-
-    class TestableJLed : public TestJLed {
-        using TestJLed::TestJLed;
-
-     public:
-        static void test() {
-            SECTION("standard evaluation") {
-                auto jled = TestableJLed(1);
-                auto eval = CustomBrightnessEvaluator(kTestBrightness);
-                jled.UserFunc(&eval);
-                REQUIRE(kTestBrightness ==
-                        jled.EvalBrightness(&eval, kTimeProbe));
-            }
-        }
-    };
-    TestableJLed::test();
-}
-
 TEST_CASE("set and test forever", "[jled]") {
     TestJLed jled(1);
     REQUIRE_FALSE(jled.IsForever());
