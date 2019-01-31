@@ -5,6 +5,22 @@
 
 #include <morse.h>  // NOLINT
 
+TEST_CASE("calc len of bit array", "[morse_example_bitset]") {
+    class TestBitset : public Bitset {
+     public:
+        static void test() {
+            REQUIRE(0 == num_bytes(0));
+            REQUIRE(1 == num_bytes(1));
+            REQUIRE(1 == num_bytes(7));
+            REQUIRE(1 == num_bytes(8));
+            REQUIRE(2 == num_bytes(9));
+            REQUIRE(2 == num_bytes(16));
+            REQUIRE(3 == num_bytes(17));
+        }
+    };
+    TestBitset::test();
+}
+
 TEST_CASE("set and test bits in the bitset", "[morse_example_bitset]") {
     Bitset bf(18);  // 3 bytes
     REQUIRE(18 == bf.size());

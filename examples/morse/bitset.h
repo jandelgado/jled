@@ -10,24 +10,33 @@ class Bitset {
     size_t n_;
     uint8_t* bits_;
 
- public:
-    Bitset() = delete;
-    Bitset(const Bitset& b) { *this = b; }
-    explicit Bitset(size_t N)
-        : n_(N), bits_{N > 0 ? new uint8_t[((N - 1) >> 3) + 1] : nullptr} {
-        if (n_) memset(bits_, 0, ((n_ - 1) >> 3) + 1);
+ protected:
+    // returns num bytes needed to store n bits.
+    static constexpr size_t num_bytes(size_t n) {
+        return n > 0 ? ((n - 1) >> 3) + 1 : 0;
     }
+
+ public:
+    Bitset() : Bitset(0) {}
+
+    Bitset(const Bitset& b) : Bitset() { *this = b; }
+
+    explicit Bitset(size_t n) : n_(n), bits_{new uint8_t[num_bytes(n)]} {
+        memset(bits_, 0, num_bytes(n_));
+    }
+
     Bitset& operator=(const Bitset& b) {
-        n_ = b.n_;
-        auto size = n_ > 0 ? ((n_ - 1) >> 3) + 1 : 0;
-        if (size > 0) {
-            bits_ = new uint8_t[size];
-            memcpy(bits_, b.bits_, size);
-        } else {
-            bits_ = nullptr;
+        if (&b == this) return *this;
+        const auto size_new = num_bytes(b.n_);
+        if (num_bytes(n_) != size_new) {
+            delete[] bits_;
+            bits_ = new uint8_t[size_new];
+            n_ = b.n_;
         }
+        memcpy(bits_, b.bits_, size_new);
         return *this;
     }
+
     virtual ~Bitset() {
         delete[] bits_;
         bits_ = nullptr;
