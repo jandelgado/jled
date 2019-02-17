@@ -27,8 +27,8 @@ namespace jled {
 class JLedHal {
  public:
     JLedHal() {}
-    void analogWrite(uint8_t val);
-    uint32_t millis();
+    void analogWrite(uint8_t val) const;
+    uint32_t millis() const;
 };
 }  // namespace jled
 #endif  // SRC_JLED_HAL_H_

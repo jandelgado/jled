@@ -23,20 +23,28 @@
 #define SRC_ARDUINO_HAL_H_
 
 #include <Arduino.h>
-#include "jled_hal.h"   // NOLINT
+#include "jled_hal.h"  // NOLINT
 
 namespace jled {
 
 class ArduinoHal : JLedHal {
  public:
     ArduinoHal() {}
-    explicit ArduinoHal(uint8_t pin) noexcept : pin_(pin) {
-        ::pinMode(pin_, OUTPUT);
+    explicit ArduinoHal(uint8_t pin) noexcept : pin_(pin) {}
+
+    void analogWrite(uint8_t val) const {
+        // some platforms, e.g. STM need lazy initialization
+        if (!setup_) {
+            ::pinMode(pin_, OUTPUT);
+            setup_ = true;
+        }
+        ::analogWrite(pin_, val);
     }
-    void analogWrite(uint8_t val) { ::analogWrite(pin_, val); }
-    uint32_t millis() {return ::millis();}
+
+    uint32_t millis() const { return ::millis(); }
 
  private:
+    mutable bool setup_ = false;
     uint8_t pin_;
 };
 }  // namespace jled

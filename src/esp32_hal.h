@@ -49,8 +49,8 @@ class Esp32Hal /*: public AnalogWriter */ {
         ::ledcSetup(chan_, freq, kLedcTimer8Bit);
         ::ledcAttachPin(pin, chan_);
     }
-    void analogWrite(uint8_t val) { ::ledcWrite(chan_, val); }
-    uint32_t millis() {return ::millis();}
+    void analogWrite(uint8_t val) const { ::ledcWrite(chan_, val); }
+    uint32_t millis() const {return ::millis();}
 
     uint8_t chan() const { return chan_; }
 

@@ -23,6 +23,9 @@ ci:
 	platformio ci $(CIOPTSALL) examples/fade_on/fade_on.ino
 	platformio ci $(CIOPTSALL) examples/sequence/sequence.ino 
 
+envdump:
+	-pio run --target envdump
+
 clean:
 	-pio run --target clean
 	rm -f {test,src}/{*.o,*.gcno,*.gcda}

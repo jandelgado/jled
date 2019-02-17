@@ -32,11 +32,11 @@ class Esp8266Hal /*: public AnalogWriter */ {
     explicit Esp8266Hal(uint8_t pin) noexcept : pin_(pin) {
         ::pinMode(pin_, OUTPUT);
     }
-    void analogWrite(uint8_t val) {
+    void analogWrite(uint8_t val) const {
         // ESP8266 uses 10bit PWM range per default, scale value up
         ::analogWrite(pin_, Esp8266Hal::ScaleTo10Bit(val));
     }
-    uint32_t millis() {return ::millis();}
+    uint32_t millis() const {return ::millis();}
 
  protected:
     // scale an 8bit value to 10bit: 0 -> 0, ..., 255 -> 1023,
