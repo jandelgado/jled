@@ -1,6 +1,15 @@
 # JLed changelog
 
-## [2019-01-23] v4.0.0
+## [2019-02-17] v4.0.0-rc1
+
+### Changed
+
+* fix: byte buffer alignment for ESP8266 set to DWORD boundary making ESP8266
+  run again with JLed 4.x
+* arduino HAL now does lazy call to pinMode() to prevent STM32 problems
+* simplified morse example code
+
+## [2019-01-23] v4.0.0-rc0
 
 ### Added
 
