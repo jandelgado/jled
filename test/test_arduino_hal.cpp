@@ -1,15 +1,17 @@
 // JLed Unit tests  (run on host).
 // Copyright 2017 Jan Delgado jdelgado@gmx.net
-#include "catch.hpp"
 #include <arduino_hal.h>  // NOLINT
+#include "catch.hpp"
 
 using jled::ArduinoHal;
 
-TEST_CASE("ctor sets pin mode to OUTPUT", "[arduino_hal]") {
+TEST_CASE("first call to analogWrite() sets pin mode to OUTPUT",
+          "[araduino_hal]") {
     arduinoMockInit();
     constexpr auto kPin = 10;
+    auto h = ArduinoHal(kPin);
     REQUIRE(arduinoMockGetPinMode(kPin) == 0);
-    auto h[[gnu::unused]] = ArduinoHal(kPin);
+    h.analogWrite(123);
     REQUIRE(arduinoMockGetPinMode(kPin) == OUTPUT);
 }
 
@@ -28,4 +30,3 @@ TEST_CASE("millis() returns correct time", "[arduino_hal]") {
     arduinoMockSetMillis(99);
     REQUIRE(h.millis() == 99);
 }
-
