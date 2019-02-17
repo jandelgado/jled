@@ -202,7 +202,7 @@ class TJLed {
         if (rLed.brightness_eval_ !=
             reinterpret_cast<const BrightnessEvaluator*>(
                 rLed.brightness_eval_buf_)) {  // NOLINT
-            // points to user provided evaluator
+            // nullptr or points to (external) user provided evaluator
             brightness_eval_ = rLed.brightness_eval_;
         } else {
             brightness_eval_ = (reinterpret_cast<const BrightnessEvaluator*>(
@@ -372,9 +372,15 @@ class TJLed {
     static constexpr uint8_t FL_IN_DELAY_AFTER_PHASE = (1 << 0);
     static constexpr uint8_t FL_STOPPED = (1 << 1);
     static constexpr uint8_t FL_LOW_ACTIVE = (1 << 3);
+
     // this is where the BrightnessEvaluator object will be stored using
     // placment new.
+#ifdef ESP8266
+    // ESP8266 needs DWORD-alignment
+    char brightness_eval_buf_[MAX_SIZE]  __attribute__ ((aligned (4)));  // NOLINT
+#else
     char brightness_eval_buf_[MAX_SIZE];
+#endif
 
     static constexpr uint16_t kRepeatForever = 65535;
     static constexpr uint32_t kTimeUndef = -1;
