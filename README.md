@@ -235,8 +235,6 @@ two methods:
   calculates a brightness for the given time `t`. The brightness must be returned
   as an unsigned byte, where 0 means LED off and 255 means full brightness.
 * `uint16_t Period() const` - period of the effect.
-*  `BrightnessEvaluator* clone(void*p) const override` - clones the object
-   using placement new. See below for standard implementation.
 
 All time values are specified in milliseconds. 
 
@@ -251,6 +249,7 @@ The example uses a user provided function to calculate the brightness.
 
 ```c++
 class UserEffect : public jled::BrightnessEvaluator {
+  public:
     uint8_t Eval(uint32_t t) const override {
         // this function changes between 0 and 255 and
         // vice versa every 250 ms.
@@ -258,7 +257,6 @@ class UserEffect : public jled::BrightnessEvaluator {
     }
     // duration of effect: 5 seconds.
     uint16_t Period() const override { return 5000; }
-    jled::BrightnessEvaluator* clone(void*p) const override {return new(p) UserEffect(*this);}
 };
 ```
 

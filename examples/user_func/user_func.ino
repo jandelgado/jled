@@ -10,9 +10,6 @@ class UserEffect : public jled::BrightnessEvaluator {
         return 255*((t/250)%2);
     }
     uint16_t Period() const override { return 5000; }
-    jled::BrightnessEvaluator* clone(void *p) const {
-        return new(p) UserEffect(*this);
-    }
 };
 
 UserEffect userEffect;

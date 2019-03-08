@@ -56,14 +56,17 @@ class BrightnessEvaluator {
  public:
     virtual uint16_t Period() const = 0;
     virtual uint8_t Eval(uint32_t t) const = 0;
+};
+
+class CloneableBrightnessEvaluator : public BrightnessEvaluator {
+ public:
     virtual BrightnessEvaluator* clone(void* ptr) const = 0;
     static void* operator new(size_t, void* ptr) { return ptr; }
     static void operator delete(void*) {}
 };
 
-class ConstantBrightnessEvaluator : public BrightnessEvaluator {
+class ConstantBrightnessEvaluator : public CloneableBrightnessEvaluator {
     uint8_t val_;
-    using BrightnessEvaluator::BrightnessEvaluator;
 
  public:
     ConstantBrightnessEvaluator() = delete;
@@ -76,7 +79,7 @@ class ConstantBrightnessEvaluator : public BrightnessEvaluator {
 };
 
 // BlinkBrightnessEvaluator does one on-off cycle in the specified period
-class BlinkBrightnessEvaluator : public BrightnessEvaluator {
+class BlinkBrightnessEvaluator : public CloneableBrightnessEvaluator {
     uint16_t duration_on_, duration_off_;
 
  public:
@@ -93,9 +96,8 @@ class BlinkBrightnessEvaluator : public BrightnessEvaluator {
 };
 
 // fade LED on
-class FadeOnBrightnessEvaluator : public BrightnessEvaluator {
+class FadeOnBrightnessEvaluator : public CloneableBrightnessEvaluator {
     uint16_t period_;
-    using BrightnessEvaluator::BrightnessEvaluator;
 
  public:
     FadeOnBrightnessEvaluator() = delete;
@@ -108,9 +110,8 @@ class FadeOnBrightnessEvaluator : public BrightnessEvaluator {
 };
 
 // fade LED off
-class FadeOffBrightnessEvaluator : public BrightnessEvaluator {
+class FadeOffBrightnessEvaluator : public CloneableBrightnessEvaluator {
     uint16_t period_;
-    using BrightnessEvaluator::BrightnessEvaluator;
 
  public:
     FadeOffBrightnessEvaluator() = delete;
@@ -130,9 +131,8 @@ class FadeOffBrightnessEvaluator : public BrightnessEvaluator {
 // idea see:
 //   http://sean.voisen.org/blog/2011/10/breathing-led-with-arduino/
 // But we do it with integers only.
-class BreatheBrightnessEvaluator : public BrightnessEvaluator {
+class BreatheBrightnessEvaluator : public CloneableBrightnessEvaluator {
     uint16_t period_;
-    using BrightnessEvaluator::BrightnessEvaluator;
 
  public:
     BreatheBrightnessEvaluator() = delete;
@@ -201,13 +201,14 @@ class TJLed {
 
         if (rLed.brightness_eval_ !=
             reinterpret_cast<const BrightnessEvaluator*>(
-                rLed.brightness_eval_buf_)) {  // NOLINT
+                rLed.brightness_eval_buf_)) {
             // nullptr or points to (external) user provided evaluator
             brightness_eval_ = rLed.brightness_eval_;
         } else {
-            brightness_eval_ = (reinterpret_cast<const BrightnessEvaluator*>(
-                                    rLed.brightness_eval_))
-                                   ->clone(brightness_eval_buf_);
+            brightness_eval_ =
+                (reinterpret_cast<const CloneableBrightnessEvaluator*>(
+                     rLed.brightness_eval_))
+                    ->clone(brightness_eval_buf_);
         }
         return static_cast<B&>(*this);
     }
@@ -377,7 +378,7 @@ class TJLed {
     // placment new.
 #ifdef ESP8266
     // ESP8266 needs DWORD-alignment
-    char brightness_eval_buf_[MAX_SIZE]  __attribute__ ((aligned (4)));  // NOLINT
+    char brightness_eval_buf_[MAX_SIZE] __attribute__((aligned(4)));  // NOLINT
 #else
     char brightness_eval_buf_[MAX_SIZE];
 #endif
@@ -423,7 +424,7 @@ class TJLedSequence {
     enum eMode { SEQUENCE, PARALLEL };
     TJLedSequence() = delete;
 
-    template<size_t N>
+    template <size_t N>
     TJLedSequence(eMode mode, T (&leds)[N]) : TJLedSequence(mode, leds, N) {}
 
     TJLedSequence(eMode mode, T* leds, size_t n)
