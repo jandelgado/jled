@@ -45,6 +45,8 @@ void loop() {
             * [Blinking example](#blinking-example)
         * [Breathing](#breathing)
             * [Breathing example](#breathing-example)
+        * [Candle](#candle)
+            * [Candle example](#candle-example)
         * [FadeOn](#fadeon)
             * [FadeOn example](#fadeon-example)
         * [FadeOff](#fadeoff)
@@ -127,10 +129,9 @@ function. While the effect is active, `Update` returns `true`, otherwise
 `false`.
 
 The constructor takes the pin, to which the LED is connected to as
-only parameter. Further configuration of the LED object is done using a fluent
+only argument. Further configuration of the LED object is done using a fluent
 interface, e.g. `JLed led = JLed(13).Breathe(2000).DelayAfter(1000).Repeat(5)`.
-See examples and [Parameter overview](#parameter-oveview) section below for
-further details.
+See examples section below for further details.
 
 ### Effects
 
@@ -163,14 +164,15 @@ brightness to 0.
 #### Blinking
 
 In blinking mode, the LED cycles through a given number of on-off cycles, on-
-and off-cycle duration are specified independently.
+and off-cycle duration are specified independently. The `Blink()` method takes
+the duration for the on- and off cycle as arguments.
 
 ##### Blinking example
 
 ```c++
 #include <jled.h>
 
-// blink internal LED every second.
+// blink internal LED every second; 1 second on, 0.5 second off.
 auto led = JLed(LED_BUILTIN).Blink(1000, 500).Forever();
 
 void setup() { }
@@ -182,7 +184,8 @@ void loop() {
 
 #### Breathing
 
-In breathing mode, the LED smoothly changes brightness using PWM.
+In breathing mode, the LED smoothly changes brightness using PWM. The
+`Breathe()` method takes the period of the effect as argument.
 
 ##### Breathing example
 
@@ -200,9 +203,46 @@ void loop() {
 }
 ```
 
+#### Candle
+
+In candle mode the random flickering of a candle or fire is simulated. 
+The builder method has the following signature:
+  `Candle(uint8_t speed, uint8_t jitter, uin16_t period)`
+
+* `speed` - controls the speed of the effect. 0 for fastest, increasing speed 
+  divides into halve per increment. Default value is 7.
+* `jitter` - amount of jittering. 0 none (constant on), 255 maximum. Default
+  value is 15.
+* `period` - Period of effect in ms.  Default is 65535 ms.
+
+The default settings simulate a candle. For a fire effect for example use
+call the method with `Candle(5 /*speed*/, 100 /* jitter*/)`. 
+
+##### Candle example
+
+```c++
+#include <jled.h>
+
+// Candle on LED pin 13 (PWM capable). 
+auto led = JLed(13).Candle();
+
+void setup() { }
+
+void loop() {
+  led.Update();
+}
+```
+
 #### FadeOn
 
-In FadeOn mode, the LED is smoothly faded on to 100% brightness using PWM.
+In FadeOn mode, the LED is smoothly faded on to 100% brightness using PWM. The
+`FadeOn()` method takes the period of the effect as argument.
+
+The brightness function uses an approximation of this function (example with
+period 1000):
+
+[![fadeon function](doc/fadeon_plot.png)](https://www.wolframalpha.com/input/?i=plot+(exp(sin((t-1000%2F2.)*PI%2F1000))-0.36787944)*108.0++t%3D0+to+1000)
+
 
 ##### FadeOn example
 
@@ -221,9 +261,10 @@ void loop() {
 
 #### FadeOff
 
-In FadeOff mode, the LED is smoothly faded off using PWM. The fade starts
-at 100% brightness. Internally it is implemented as a mirrored version of
-the FadeOn function, i.e. FadeOn(t) = FadeOff(period-t)
+In FadeOff mode, the LED is smoothly faded off using PWM. The fade starts at
+100% brightness. Internally it is implemented as a mirrored version of the
+FadeOn function, i.e. FadeOn(t) = FadeOff(period-t).  The `FadeOff()` method
+takes the period of the effect as argument.
 
 #### User provided brightness function
 

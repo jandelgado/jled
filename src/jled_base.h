@@ -46,6 +46,8 @@ static constexpr uint8_t kFullBrightness = 255;
 static constexpr uint8_t kZeroBrightness = 0;
 
 uint8_t fadeon_func(uint32_t t, uint16_t period);
+uint8_t rand8();
+void rand_seed(uint32_t s);
 
 // a function f(t,period,param) that calculates the LEDs brightness for a given
 // point in time and the given period. param is an optionally user provided
@@ -133,7 +135,6 @@ class FadeOffBrightnessEvaluator : public CloneableBrightnessEvaluator {
 // But we do it with integers only.
 class BreatheBrightnessEvaluator : public CloneableBrightnessEvaluator {
     uint16_t period_;
-
  public:
     BreatheBrightnessEvaluator() = delete;
     explicit BreatheBrightnessEvaluator(uint16_t period) : period_(period) {}
@@ -149,8 +150,44 @@ class BreatheBrightnessEvaluator : public CloneableBrightnessEvaluator {
     }
 };
 
+class CandleBrightnessEvaluator : public CloneableBrightnessEvaluator {
+    uint8_t speed_;
+    uint8_t jitter_;
+    uint16_t period_;
+    mutable uint8_t last_ = 5;
+    mutable uint32_t last_t_ = 0;
+
+ public:
+    CandleBrightnessEvaluator() = delete;
+
+    // speed - speed of effect (0..15). 0 fastest. Each increment by 1
+    //         halfes the speed.
+    // jitter - amount of jittering to apply. 0 - no jitter, 15 - candle,
+    //                                        64 - fire, 255 - storm
+    CandleBrightnessEvaluator(uint8_t speed, uint8_t jitter, uint16_t period)
+        : speed_(speed), jitter_(jitter), period_(period) {}
+
+    BrightnessEvaluator* clone(void* ptr) const override {
+        return new (ptr) CandleBrightnessEvaluator(*this);
+    }
+
+    uint16_t Period() const override { return period_; }
+    uint8_t Eval(uint32_t t) const override {
+        // idea from
+        // https://cpldcpu.wordpress.com/2013/12/08/hacking-a-candleflicker-led/
+        // TODO(jd) finetune values
+        static constexpr uint8_t kCandleTable[] = {
+            5, 10, 20, 30, 50, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 255};
+        if ((t >> speed_) == last_t_) return last_;
+        last_t_ = (t >> speed_);
+        const auto rnd = rand8() & 255;
+        last_ = (rnd >= jitter_) ? 255 : (50 + kCandleTable[rnd & 0xf]);
+        return last_;
+    }
+};
+
 // set MAX_SIZE to class occupying most memory
-constexpr auto MAX_SIZE = sizeof(BlinkBrightnessEvaluator);
+constexpr auto MAX_SIZE = sizeof(CandleBrightnessEvaluator);
 
 template <typename HalType, typename B>
 class TJLed {
@@ -266,6 +303,14 @@ class TJLed {
     B& Blink(uint16_t duration_on, uint16_t duration_off) {
         brightness_eval_ = new (brightness_eval_buf_)
             BlinkBrightnessEvaluator(duration_on, duration_off);
+        return static_cast<B&>(*this);
+    }
+
+    // Set effect to Candle light simulation
+    B& Candle(uint8_t speed = 6, uint8_t jitter = 15,
+              uint16_t period = 0xffff) {
+        brightness_eval_ = new (brightness_eval_buf_)
+            CandleBrightnessEvaluator(speed, jitter, period);
         return static_cast<B&>(*this);
     }
 

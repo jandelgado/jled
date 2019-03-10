@@ -1,5 +1,23 @@
 # JLed changelog
 
+## [2019-03-10] v4.0.0
+
+In addition to the changes introduced with `v4.0.0-rc0` and `v4.0.0-rc1`, the
+`v4.0.0` relases adds/changes the following:
+
+### Added
+
+* new `Candle()` effect added for candles and fire like effects
+
+### Changed
+
+* The user provided brightness class no longer needs a `Clone()` method. See
+  [example](examples/user_func/user_func.ino) for an example
+
+### Fixed
+
+* Makefile (unit testing) dependency checking fixed
+
 ## [2019-02-17] v4.0.0-rc1
 
 ### Changed
@@ -33,7 +51,8 @@
 
 In JLed version prio to version 4.0.0, a function pointer was used to specify
 a user provided brightness function.
-```
+
+```c++
 // this function returns changes between 0 and 255 and vice versa every 250 ms.
 uint8_t blinkFunc(uint32_t t, uint16_t, uintptr_t) {
   return 255*((t/250)%2);
@@ -47,9 +66,9 @@ JLed led = JLed(LED_BUILTIN).UserFunc(blinkFunc, 5000);
 
 The user function is replaced by a class, which provides more flexibility:
 
-```
+```c++
 class UserEffect : public jled::BrightnessEvaluator {
-    uint8_t Eval(uint32_t t) {
+    uint8_t Eval(uint32_t t) const {
         // this function returns changes between 0 and 255 and
         // vice versa every 250 ms.
         return 255*((t/250)%2);
@@ -59,7 +78,6 @@ class UserEffect : public jled::BrightnessEvaluator {
 
 UserEffect userEffect;
 JLed led = JLed(LED_BUILTIN).UserFunc(&userEffect);
-
 ```
 
 ### Removed

@@ -8,6 +8,7 @@
 using jled::BlinkBrightnessEvaluator;
 using jled::BreatheBrightnessEvaluator;
 using jled::BrightnessEvaluator;
+using jled::CandleBrightnessEvaluator;
 using jled::ConstantBrightnessEvaluator;
 using jled::FadeOffBrightnessEvaluator;
 using jled::FadeOnBrightnessEvaluator;
@@ -82,6 +83,20 @@ TEST_CASE("Breathe() function configuration", "[jled]") {
     TestableJLed::test();
 }
 
+TEST_CASE("Candle() function configuration", "[jled]") {
+    class TestableJLed : public TestJLed {
+     public:
+        using TestJLed::TestJLed;
+        static void test() {
+            TestableJLed jled(1);
+            jled.Candle(1, 2, 3);
+            REQUIRE(dynamic_cast<CandleBrightnessEvaluator *>(
+                        jled.brightness_eval_) != nullptr);
+        }
+    };
+    TestableJLed::test();
+}
+
 TEST_CASE("FadeOn()/FadeOff() function configuration", "[jled]") {
     class TestableJLed : public TestJLed {
      public:
@@ -109,9 +124,6 @@ TEST_CASE("UserFunc() provided brightness evaluator configuration", "[jled]") {
      public:
         uint16_t Period() const { return 0; }
         uint8_t Eval(uint32_t) const { return 0; }
-        BrightnessEvaluator *clone(void *p) const {
-            return new (p) CustomBrightnessEvaluator(*this);
-        }
     };
 
     class TestableJLed : public TestJLed {
@@ -147,6 +159,14 @@ TEST_CASE("BlinkBrightnessEvaluator calculates correct values", "[jled]") {
     REQUIRE(255 == eval.Eval(9));
     REQUIRE(0 == eval.Eval(10));
     REQUIRE(0 == eval.Eval(14));
+}
+
+TEST_CASE("CandleBrightnessEvaluator calculates correct values", "[jled]") {
+    auto eval = CandleBrightnessEvaluator(7, 15, 1000);
+    REQUIRE(1000 == eval.Period());
+    // TODO(jd) do further and better tests
+    REQUIRE(eval.Eval(0) > 0);
+    REQUIRE(eval.Eval(999) > 0);
 }
 
 TEST_CASE("FadeOnOffEvaluator calculates correct values", "[jled]") {
@@ -347,4 +367,10 @@ TEST_CASE("After Reset() the effect can be restarted", "[jled]") {
         jled.Hal().SetMillis(++time);
     }
     REQUIRE(!jled.Update());
+}
+
+TEST_CASE("random generator delivers PRN's as expected", "[jled]") {
+    jled::rand_seed(0);
+    REQUIRE(0x59 == jled::rand8());
+    REQUIRE(0x159>>1 == jled::rand8());
 }

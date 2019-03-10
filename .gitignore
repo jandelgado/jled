@@ -1,5 +1,6 @@
 **/.vscode
 test/bin
+test/.depend
 *.o
 .pioenvs
 .piolibdeps
