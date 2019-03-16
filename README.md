@@ -5,7 +5,7 @@
 
 An Arduino library to control LEDs. It uses a **non-blocking** approach and can
 control LEDs in simple (**on**/**off**) and complex (**blinking**,
-**breathing**) ways in a **time-driven** manner.
+**breathing** and more) ways in a **time-driven** manner.
 
 JLed got some [coverage on Hackaday](https://hackaday.com/2018/06/13/simplifying-basic-led-effects/)
 and someone did a [video tutorial for JLed](https://youtu.be/x5V2vdpZq1w)  - Thanks!
@@ -38,9 +38,8 @@ void loop() {
     * [PlatformIO](#platformio)
 * [Usage](#usage)
     * [Effects](#effects)
-        * [Static on](#static-on)
+        * [Static on and off](#static-on-and-off)
             * [Static on example](#static-on-example)
-        * [Static off](#static-off)
         * [Blinking](#blinking)
             * [Blinking example](#blinking-example)
         * [Breathing](#breathing)
@@ -135,11 +134,17 @@ See examples section below for further details.
 
 ### Effects
 
-#### Static on
+#### Static on and off
 
-Calling `On()` turns the LED on. An optional brightness value can be supplied,
-the default value is 255, which is full brightness.
-To immediately turn a LED on, make a call like `JLed(LED_BUILTIN).On().Update()`.
+Calling `On()` turns the LED on.  To immediately turn a LED on, make a call
+like `JLed(LED_BUILTIN).On().Update()`.
+
+`Off()` works like `On()`, except that it turns the LED off, i.e. it sets the
+brightness to 0.
+
+Use the `Set(uint8_t brightness)` method to set the brightness to the given
+value, i.e. `Set(255)` is equivalent to calling `On()` and `Set(0)` is
+equivalent to calling `Off()`.
 
 ##### Static on example
 
@@ -155,11 +160,6 @@ void loop() {
   led.Update();
 }
 ```
-
-#### Static off
-
-`Off()` works like `On()`, except that it turns the LED off, i.e. it sets the
-brightness to 0.
 
 #### Blinking
 
@@ -280,9 +280,9 @@ two methods:
 All time values are specified in milliseconds. 
 
 The [user_func](examples/user_func) example demonstrates a simple user provided
-brightness function, while the [morse](examples/morse) shows how a more complex
-application, allowing you to send morse codes (not necessarily with an LED), can
-be realized.
+brightness function, while the [morse](examples/morse) example shows how a more
+complex application, allowing you to send morse codes (not necessarily with an
+LED), can be realized.
 
 ##### User provided brightness function example
 

@@ -254,29 +254,29 @@ class TJLed {
 
     bool Update() { return Update(hal_.millis()); }
 
-    // turn LED on
-    B& On(uint8_t brightness = kFullBrightness) {
-        // we use placement new and therefore not need to keep track of mem
-        // allocated
-        brightness_eval_ =
-            new (brightness_eval_buf_) ConstantBrightnessEvaluator(brightness);
-        return static_cast<B&>(*this);
-    }
-
     // Set physical LED polarity to be low active. This inverts every
     // signal physically output to a pin.
     B& LowActive() { return SetFlags(FL_LOW_ACTIVE, true); }
     bool IsLowActive() const { return GetFlag(FL_LOW_ACTIVE); }
 
-    // turn LED off
-    B& Off() {
-        brightness_eval_ = new (brightness_eval_buf_)
-            ConstantBrightnessEvaluator(kZeroBrightness);
-        return static_cast<B&>(*this);
+    // turn LED on
+    B& On() {
+        return Set(kFullBrightness);
     }
 
-    // turn LED on or off, calls On() / Off()
-    B& Set(bool on) { return on ? On() : Off(); }
+    // turn LED off
+    B& Off() {
+        return Set(kZeroBrightness);
+    }
+
+    // Sets LED to given brightness
+    B& Set(uint8_t brightness) {
+        // note: we use placement new and therefore not need to keep track of
+        // mem allocated
+        brightness_eval_ =
+            new (brightness_eval_buf_) ConstantBrightnessEvaluator(brightness);
+        return static_cast<B&>(*this);
+    }
 
     // Fade LED on
     B& FadeOn(uint16_t duration) {

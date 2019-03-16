@@ -49,17 +49,17 @@ TEST_CASE("On/Off function configuration", "[jled]") {
                 REQUIRE(jled.brightness_eval_->Eval(0) == 0);
             }
 
-            SECTION("Set(true)") {
+            SECTION("Set(255)") {
                 TestableJLed jled(1);
-                jled.Set(true);
+                jled.Set(255);
                 REQUIRE(dynamic_cast<ConstantBrightnessEvaluator *>(
                             jled.brightness_eval_) != nullptr);
                 REQUIRE(jled.brightness_eval_->Eval(0) == 255);
             }
 
-            SECTION("Set(false)") {
+            SECTION("Set(0)") {
                 TestableJLed jled(1);
-                jled.Set(false);
+                jled.Set(0);
                 REQUIRE(dynamic_cast<ConstantBrightnessEvaluator *>(
                             jled.brightness_eval_) != nullptr);
                 REQUIRE(jled.brightness_eval_->Eval(0) == 0);

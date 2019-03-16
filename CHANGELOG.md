@@ -1,5 +1,11 @@
 # JLed changelog
 
+## [2019-03-10] v4.1.0
+
+* change: clean up interface and simplify code: `On()` no longer takes an
+  optional brightness argument. Call `Set(uint8_t brightness)` instead.
+* documentation update
+
 ## [2019-03-10] v4.0.0
 
 In addition to the changes introduced with `v4.0.0-rc0` and `v4.0.0-rc1`, the
