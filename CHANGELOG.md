@@ -1,5 +1,14 @@
 # JLed changelog
 
+## [2019-05-11] 4.1.2
+
+* fix: ESP32 dynamic channel assignment fixed. Sequence demo now working
+       as expected.
+
+## [2019-05-07] 4.1.1
+
+* fix: version format in library.properties (removed leading `v`)
+
 ## [2019-03-10] v4.1.0
 
 * change: clean up interface and simplify code: `On()` no longer takes an
