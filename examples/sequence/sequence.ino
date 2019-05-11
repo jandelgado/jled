@@ -3,14 +3,15 @@
 // https://github.com/jandelgado/jled
 #include <jled.h>
 
-// LEDs are connected to GPIO 3
+constexpr auto PIN_LED = 3;
+
 JLed leds[] = {
-    JLed(3).Breathe(2000).Repeat(3),
-    JLed(3).Blink(750, 250).Repeat(3),
-    JLed(3).FadeOff(1000).Repeat(3),
-    JLed(3).Blink(500, 500).Repeat(3),
-    JLed(3).FadeOn(1000).Repeat(3),
-    JLed(3).Off()
+    JLed(PIN_LED).Breathe(2000).Repeat(3),
+    JLed(PIN_LED).Blink(750, 250).Repeat(3),
+    JLed(PIN_LED).FadeOff(1000).Repeat(3),
+    JLed(PIN_LED).Blink(500, 500).Repeat(3),
+    JLed(PIN_LED).FadeOn(1000).Repeat(3),
+    JLed(PIN_LED).Off()
 };
 
 JLedSequence sequence(JLedSequence::eMode::SEQUENCE, leds);
