@@ -25,11 +25,44 @@
 #include <Arduino.h>
 
 namespace jled {
-class Esp32Hal /*: public AnalogWriter */ {
-    static constexpr auto kLedcTimer8Bit = 8;
+
+class Esp32ChanMapper {
+    static constexpr auto kFreeChan = 0xff;
 
  public:
     static constexpr auto kLedcMaxChan = 16;
+
+    Esp32ChanMapper() {
+        for (auto i = 0; i < kLedcMaxChan; i++) chanMap_[i] = 0xff;
+    }
+    uint8_t chanForPin(uint8_t pin) {
+        // find existing channel for given pin
+        for (auto i = 0; i < kLedcMaxChan; i++) {
+            if (chanMap_[i] == pin) return i;
+        }
+        // find and return first free slot
+        for (auto i = 0; i < kLedcMaxChan; i++) {
+            if (chanMap_[i] == kFreeChan) {
+                chanMap_[i] = pin;
+                return i;
+            }
+        }
+        // no more free slots, start over
+        auto i = nextChan_;
+        chanMap_[i] = pin;
+        nextChan_ = (nextChan_+1) % kLedcMaxChan;
+        return i;
+    }
+
+ private:
+    uint8_t nextChan_ = 0;
+    uint8_t chanMap_[kLedcMaxChan];
+};
+
+class Esp32Hal {
+    static constexpr auto kLedcTimer8Bit = 8;
+
+ public:
     static constexpr auto kAutoSelectChan = -1;
 
     Esp32Hal() {}
@@ -39,23 +72,23 @@ class Esp32Hal /*: public AnalogWriter */ {
     // the next available channel will be used, otherwise the specified one.
     // freq defines the ledc base frequency to be used (default: 5000 Hz).
     Esp32Hal(uint8_t pin, int chan = kAutoSelectChan,
-                      uint16_t freq = 5000) noexcept {
+             uint16_t freq = 5000) noexcept {
         // ESP32 framework lacks analogWrite() support, but behaviour can
         // be achievedd using LEDC channels.
         // https://docs.espressif.com/projects/esp-idf/en/latest/api-reference/peripherals/ledc.html
         chan_ = (chan == kAutoSelectChan)
-                    ? (Esp32Hal::nextChan_++) % kLedcMaxChan
+                    ? Esp32Hal::chanMapper_.chanForPin(pin)
                     : chan;
         ::ledcSetup(chan_, freq, kLedcTimer8Bit);
         ::ledcAttachPin(pin, chan_);
     }
     void analogWrite(uint8_t val) const { ::ledcWrite(chan_, val); }
-    uint32_t millis() const {return ::millis();}
+    uint32_t millis() const { return ::millis(); }
 
     uint8_t chan() const { return chan_; }
 
  private:
-    static uint8_t nextChan_;
+    static Esp32ChanMapper chanMapper_;
     uint8_t chan_;
 };
 }  // namespace jled

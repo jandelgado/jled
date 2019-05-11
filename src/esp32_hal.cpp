@@ -21,6 +21,9 @@
 //
 #ifdef ESP32
 #include "esp32_hal.h"  // NOLINT
+
+using jled::Esp32ChanMapper;
 using jled::Esp32Hal;
-uint8_t Esp32Hal::nextChan_ = 0;
+
+Esp32ChanMapper Esp32Hal::chanMapper_ = Esp32ChanMapper();
 #endif
