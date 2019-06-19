@@ -15,7 +15,7 @@ and someone did a [video tutorial for JLed](https://youtu.be/x5V2vdpZq1w)  - Tha
 ## Example
 
 ```c++
-// breathe an LED (on gpio 9) for 12 seconds, waiting for 500s after each run
+// breathe LED (on gpio 9) 6 times for 1500ms, waiting for 500ms after each run
 #include <jled.h>
 
 auto led_breathe = JLed(9).Breathe(1500).Repeat(6).DelayAfter(500);
