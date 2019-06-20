@@ -135,6 +135,7 @@ class FadeOffBrightnessEvaluator : public CloneableBrightnessEvaluator {
 // But we do it with integers only.
 class BreatheBrightnessEvaluator : public CloneableBrightnessEvaluator {
     uint16_t period_;
+
  public:
     BreatheBrightnessEvaluator() = delete;
     explicit BreatheBrightnessEvaluator(uint16_t period) : period_(period) {}
@@ -260,64 +261,55 @@ class TJLed {
     bool IsLowActive() const { return GetFlag(FL_LOW_ACTIVE); }
 
     // turn LED on
-    B& On() {
-        return Set(kFullBrightness);
-    }
+    B& On() { return Set(kFullBrightness); }
 
     // turn LED off
-    B& Off() {
-        return Set(kZeroBrightness);
-    }
+    B& Off() { return Set(kZeroBrightness); }
 
     // Sets LED to given brightness
     B& Set(uint8_t brightness) {
         // note: we use placement new and therefore not need to keep track of
         // mem allocated
-        brightness_eval_ =
-            new (brightness_eval_buf_) ConstantBrightnessEvaluator(brightness);
-        return static_cast<B&>(*this);
+        return SetBrightnessEval(new (brightness_eval_buf_)
+                                     ConstantBrightnessEvaluator(brightness));
     }
 
     // Fade LED on
     B& FadeOn(uint16_t duration) {
-        brightness_eval_ =
-            new (brightness_eval_buf_) FadeOnBrightnessEvaluator(duration);
-        return static_cast<B&>(*this);
+        return SetBrightnessEval(new (brightness_eval_buf_)
+                                     FadeOnBrightnessEvaluator(duration));
     }
 
     // Fade LED off - acutally is just inverted version of FadeOn()
     B& FadeOff(uint16_t duration) {
-        brightness_eval_ =
-            new (brightness_eval_buf_) FadeOffBrightnessEvaluator(duration);
-        return static_cast<B&>(*this);
+        return SetBrightnessEval(new (brightness_eval_buf_)
+                                     FadeOffBrightnessEvaluator(duration));
     }
 
     // Set effect to Breathe, with the given period time in ms.
     B& Breathe(uint16_t period) {
-        brightness_eval_ =
-            new (brightness_eval_buf_) BreatheBrightnessEvaluator(period);
-        return static_cast<B&>(*this);
+        return SetBrightnessEval(new (brightness_eval_buf_)
+                                     BreatheBrightnessEvaluator(period));
     }
 
     // Set effect to Blink, with the given on- and off- duration values.
     B& Blink(uint16_t duration_on, uint16_t duration_off) {
-        brightness_eval_ = new (brightness_eval_buf_)
-            BlinkBrightnessEvaluator(duration_on, duration_off);
-        return static_cast<B&>(*this);
+        return SetBrightnessEval(
+            new (brightness_eval_buf_)
+                BlinkBrightnessEvaluator(duration_on, duration_off));
     }
 
     // Set effect to Candle light simulation
     B& Candle(uint8_t speed = 6, uint8_t jitter = 15,
               uint16_t period = 0xffff) {
-        brightness_eval_ = new (brightness_eval_buf_)
-            CandleBrightnessEvaluator(speed, jitter, period);
-        return static_cast<B&>(*this);
+        return SetBrightnessEval(
+            new (brightness_eval_buf_)
+                CandleBrightnessEvaluator(speed, jitter, period));
     }
 
     // Use a user provided brightness evaluator.
-    B& UserFunc(BrightnessEvaluator* ube) {
-        brightness_eval_ = ube;
-        return static_cast<B&>(*this);
+    B& UserFunc(BrightnessEvaluator* user_eval) {
+        return SetBrightnessEval(user_eval);
     }
 
     // set number of repetitions for effect.
@@ -412,6 +404,12 @@ class TJLed {
             return false;
         }
         return true;
+    }
+
+    B& SetBrightnessEval(BrightnessEvaluator* be) {
+        brightness_eval_ = be;
+        // start over after the brightness evaluator changed
+        return Reset();
     }
 
  private:

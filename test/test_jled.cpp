@@ -2,6 +2,7 @@
 // Copyright 2017 Jan Delgado jdelgado@gmx.net
 #include <jled_base.h>  // NOLINT
 #include <map>
+#include <utility>
 #include "catch.hpp"
 #include "hal_mock.h"  // NOLINT
 
@@ -345,32 +346,52 @@ TEST_CASE("Update returns true while updating, else false", "[jled]") {
 
 TEST_CASE("After Reset() the effect can be restarted", "[jled]") {
     TestJLed jled(10);
+    uint32_t time = 0;
+    typedef std::pair<bool, uint8_t> p;
 
     // 1 ms on, 2 ms off + 2 ms delay = 3ms off in total per iteration
-    jled.Blink(1, 1);
-    constexpr uint8_t expected[]{/* 1ms on */ 255,
-                                 /* 1ms off */ 0,
-                                 /* finally off */ 0};
-    uint32_t time = 0;
+    jled.Blink(1, 2);
+    constexpr p expected[]{p{true, 255}, p{true, 0}, p{false, 0}, p{false, 0}};
 
-    for (const auto val : expected) {
-        jled.Update();
-        REQUIRE(val == jled.Hal().Value());
-        jled.Hal().SetMillis(++time);
+    for (const auto x : expected) {
+        jled.Hal().SetMillis(time++);
+        REQUIRE(x.first == jled.Update());
+        REQUIRE(x.second == jled.Hal().Value());
     }
-    REQUIRE(!jled.Update());
+
     // after Reset() effect starts over
     jled.Reset();
-    for (const auto val : expected) {
-        jled.Update();
-        REQUIRE(val == jled.Hal().Value());
-        jled.Hal().SetMillis(++time);
+    for (const auto x : expected) {
+        jled.Hal().SetMillis(time++);
+        REQUIRE(x.first == jled.Update());
+        REQUIRE(x.second == jled.Hal().Value());
     }
-    REQUIRE(!jled.Update());
+}
+
+TEST_CASE("Changing the effect resets object and starts over", "[jled]") {
+    TestJLed jled(10);
+    uint32_t time = 0;
+    typedef std::pair<bool, uint8_t> p;
+
+    // 1 ms on, 2 ms off + 2 ms delay = 3ms off in total per iteration
+    jled.Blink(1, 2);
+    constexpr p expected_blink[]{p{true, 255}, p{true, 0}, p{false, 0},
+                                 p{false, 0}};
+
+    for (const auto x : expected_blink) {
+        jled.Hal().SetMillis(time++);
+        REQUIRE(x.first == jled.Update());
+        REQUIRE(x.second == jled.Hal().Value());
+    }
+
+    // expect to start over after changing effect.
+    jled.FadeOff(1000);
+    REQUIRE(jled.Update());
+    REQUIRE(0 < jled.Hal().Value());
 }
 
 TEST_CASE("random generator delivers PRN's as expected", "[jled]") {
     jled::rand_seed(0);
     REQUIRE(0x59 == jled::rand8());
-    REQUIRE(0x159>>1 == jled::rand8());
+    REQUIRE(0x159 >> 1 == jled::rand8());
 }
