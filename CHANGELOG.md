@@ -1,5 +1,10 @@
 # JLed changelog
 
+## [2019-08-30] 4.2.1
+
+* fix: make sure memory alignment is correct (caused hard fault on 
+  SAMD21). Fixes #27.
+
 ## [2019-06-20] 4.2.0
 
 * changing an effect resets the Jled object so it starts over with the 
