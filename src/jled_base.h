@@ -419,12 +419,8 @@ class TJLed {
 
     // this is where the BrightnessEvaluator object will be stored using
     // placment new.
-#ifdef ESP8266
-    // ESP8266 needs DWORD-alignment
-    char brightness_eval_buf_[MAX_SIZE] __attribute__((aligned(4)));  // NOLINT
-#else
-    char brightness_eval_buf_[MAX_SIZE];
-#endif
+    alignas(alignof(
+        CloneableBrightnessEvaluator)) char brightness_eval_buf_[MAX_SIZE];
 
     static constexpr uint16_t kRepeatForever = 65535;
     static constexpr uint32_t kTimeUndef = -1;
