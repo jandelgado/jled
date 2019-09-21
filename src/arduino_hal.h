@@ -28,8 +28,12 @@
 namespace jled {
 
 class ArduinoHal : JLedHal {
- public:
+ private:
+    template <typename T, typename B>
+    friend class TJLed;
     ArduinoHal() {}
+
+ public:
     explicit ArduinoHal(uint8_t pin) noexcept : pin_(pin) {}
 
     void analogWrite(uint8_t val) const {
