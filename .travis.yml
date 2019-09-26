@@ -44,8 +44,8 @@ script:
   - make ci
   - cd test && make clean test OPT=-O2
   - make clean coverage OPT=-O0
-  - 'if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then coveralls-lcov --repo-token "$COVERALLS_TOKEN" coverage.info; fi'
-  - 'if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then coveralls-lcov coverage.info; fi'
+  - 'if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then coveralls-lcov --repo-token "$COVERALLS_TOKEN" coverage.info; fi'
+  - 'if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then coveralls-lcov coverage.info; fi'
 
 env:
   global:
