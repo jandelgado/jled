@@ -122,15 +122,15 @@ lib_deps=jled
 
 ## Usage
 
-First the LED object is constructed and configured, then the state is updated
+First, the LED object is constructed and configured, then the state is updated
 with subsequent calls to the `Update()` method, typically from the `loop()`
 function. While the effect is active, `Update` returns `true`, otherwise
 `false`.
 
 The constructor takes the pin, to which the LED is connected to as
-only argument. Further configuration of the LED object is done using a fluent
+the only argument. Further configuration of the LED object is done using a fluent
 interface, e.g. `JLed led = JLed(13).Breathe(2000).DelayAfter(1000).Repeat(5)`.
-See examples section below for further details.
+See the examples section below for further details.
 
 ### Effects
 
@@ -164,7 +164,7 @@ void loop() {
 #### Blinking
 
 In blinking mode, the LED cycles through a given number of on-off cycles, on-
-and off-cycle duration are specified independently. The `Blink()` method takes
+and off-cycle durations are specified independently. The `Blink()` method takes
 the duration for the on- and off cycle as arguments.
 
 ##### Blinking example
@@ -184,8 +184,8 @@ void loop() {
 
 #### Breathing
 
-In breathing mode, the LED smoothly changes brightness using PWM. The
-`Breathe()` method takes the period of the effect as argument.
+In breathing mode, the LED smoothly changes the brightness using PWM. The
+`Breathe()` method takes the period of the effect as an argument.
 
 ##### Breathing example
 
@@ -205,15 +205,15 @@ void loop() {
 
 #### Candle
 
-In candle mode the random flickering of a candle or fire is simulated. 
+In candle mode, the random flickering of a candle or fire is simulated. 
 The builder method has the following signature:
   `Candle(uint8_t speed, uint8_t jitter, uin16_t period)`
 
 * `speed` - controls the speed of the effect. 0 for fastest, increasing speed 
-  divides into halve per increment. Default value is 7.
-* `jitter` - amount of jittering. 0 none (constant on), 255 maximum. Default
+  divides into halve per increment. The default value is 7.
+* `jitter` - the amount of jittering. 0 none (constant on), 255 maximum. Default
   value is 15.
-* `period` - Period of effect in ms.  Default is 65535 ms.
+* `period` - Period of effect in ms.  The default value is 65535 ms.
 
 The default settings simulate a candle. For a fire effect for example use
 call the method with `Candle(5 /*speed*/, 100 /* jitter*/)`. 
@@ -236,7 +236,7 @@ void loop() {
 #### FadeOn
 
 In FadeOn mode, the LED is smoothly faded on to 100% brightness using PWM. The
-`FadeOn()` method takes the period of the effect as argument.
+`FadeOn()` method takes the period of the effect as an argument.
 
 The brightness function uses an approximation of this function (example with
 period 1000):
@@ -333,7 +333,7 @@ Call `Update()` periodically to update the state of the LED. `Update` returns
 
 ##### Reset
 
-A call to `Reset()` brings the JLed object to it's initial state. Use it when
+A call to `Reset()` brings the JLed object to its initial state. Use it when
 you want to start-over an effect.
 
 ##### Immediate Stop
@@ -351,7 +351,7 @@ will be inverted by JLed (i.e. instead of x, the value of 255-x will be set).
 
 ### Controlling a group of LEDs
 
-The `JLedSequence` class allows to control a group of `JLed` objects
+The `JLedSequence` class allows controlling a group of `JLed` objects
 simultaneously, either in parallel or sequentially, starting the next `JLed`
 effect when the previous finished. The constructor takes the mode (`PARALLEL`,
 `SEQUENCE`), an array of `JLed` objects and the size of the array, e.g.
@@ -392,10 +392,10 @@ The `JLedSequence` provides the following methods:
 
 The DAC of the ESP8266 operates with 10 bits, every value JLed writes out gets
 automatically scaled to 10 bits, since JLed internally only uses 8 bits.  The
-scaling methods makes sure that min/max relationships are preserved, i.e. 0 is
-mapped to 0 and 255 is mapped to 1023. When using a user defined brightness
-function on the ESP8266, 8 bit values must be returned, all scaling is done by
-JLed transparently for the application, yielding platform independent code.
+scaling methods make sure that min/max relationships are preserved, i.e. 0 is
+mapped to 0 and 255 is mapped to 1023. When using a user-defined brightness
+function on the ESP8266, 8-bit values must be returned, all scaling is done by
+JLed transparently for the application, yielding platform-independent code.
 
 ### ESP32
 
@@ -403,7 +403,7 @@ The ESP32 Arduino SDK does not provide an `analogWrite()` function. To
 be able to use PWM, we use the `ledc` functions of the ESP32 SDK.
 (See [esspressif documentation](https://docs.espressif.com/projects/esp-idf/en/latest/api-reference/peripherals/ledc.html) for details).
 
-The `ledc` API connects so called channels to GPIO pins, enabling them to use
+The `ledc` API connects so-called channels to GPIO pins, enabling them to use
 PWM. There are 16 channels available. Unless otherwise specified, JLed
 automatically picks the next free channel, starting with channel 0 and wrapping
 over after channel 15. To manually specify a channel, the JLed object must be
@@ -414,8 +414,8 @@ auto esp32Led = JLed(Esp32Hal(2, 7)).Blink(1000, 1000).Forever();
 ```
 
 The `Esp32Hal(pin, chan)` constructor takes the pin number as the first
-argument and the ESP32 ledc channel number on second position. Note that using
-the above mentioned constructor yields non-platform independent code, so it 
+argument and the ESP32 ledc channel number on the second position. Note that using
+the above-mentioned constructor yields non-platform independent code, so it 
 should be avoided and is normally not necessary.
 
 ### STM32
@@ -424,8 +424,8 @@ I had success running JLed on a [STM32 Nucleo64 F401RE
 board](https://www.st.com/en/evaluation-tools/nucleo-f401re.html) using this
 [STM32 Arduino
 core](https://github.com/rogerclarkmelbourne/Arduino_STM32/tree/master/STM32F4)
-and compiling from the Arduino IDE. Note that the `stlink` tool may be
-necessary to upload sketches to the micro controller.
+and compiling from the Arduino IDE. Note that the `stlink` tool might be
+necessary to upload sketches to the microcontroller.
 
 PlatformIO does not support the Arduino platform for the F401RE in the [current
 version](https://docs.platformio.org/en/latest/boards/ststm32/nucleo_f401re.html),
@@ -436,7 +436,7 @@ with this board.
 
 ## Example sketches
 
-Examples sketches are provided in the [examples](examples/) directory.
+Example sketches are provided in the [examples](examples/) directory.
 
 * [Hello, world](examples/hello)
 * [Turn LED on after a delay](examples/simple_on)
@@ -472,15 +472,15 @@ the `File` > `Examples` > `JLed` menu.
 ### Support new hardware
 
 JLed uses a very thin hardware abstraction layer (hal) to abstract access to the
-acutal used MCU (e.g. ESP32, ESP8266). The hal objects encapsulate access to
+actual used MCU (e.g. ESP32, ESP8266). The hal objects encapsulate access to
 the GPIO and time functionality of the MCU under the framework being used.
-During unit test, mocked hal instances are used, enabling tests to check the
+During the unit test, mocked hal instances are used, enabling tests to check the
 generated output. 
 
 ## Unit tests
 
-JLed comes with an exhaustive host based unit test suite. Info on how to run
-the host based provided unit tests [is provided here](test/README.md).
+JLed comes with an exhaustive host-based unit test suite. Info on how to run
+the host-based provided unit tests [is provided here](test/README.md).
 
 ## Contributing
 
@@ -497,7 +497,7 @@ the host based provided unit tests [is provided here](test/README.md).
 
 ## FAQ
 
-### How do I check if an JLed object is still being updated?
+### How do I check if a JLed object is still being updated?
 
 * Check the return value of the `JLed::Update` method: the method returns `true` if
   the effect is still running, otherwise `false`.
@@ -510,7 +510,7 @@ Call `Reset()` on a `JLed` object to start over.
 ### How do I change a running effect?
 
 Just 'reconfigure' the `JLed` with any of the effect methods (e.g. `FadeOn`,
-`Breathe`, `Blink` etc). Time wise, the effect will start over.
+`Breathe`, `Blink` etc). Time-wise, the effect will start over.
 
 ## Author and Copyright
 
