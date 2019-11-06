@@ -23,12 +23,17 @@
 #define SRC_ESP8266_HAL_H_
 
 #include <Arduino.h>
+#include "jled_hal.h"  // NOLINT
 
 namespace jled {
-class Esp8266Hal /*: public AnalogWriter */ {
- public:
+
+class Esp8266Hal : JLedHal {
+ private:
+    template <typename T, typename B>
+    friend class TJLed;
     Esp8266Hal() {}
 
+ public:
     explicit Esp8266Hal(uint8_t pin) noexcept : pin_(pin) {
         ::pinMode(pin_, OUTPUT);
     }
@@ -36,7 +41,7 @@ class Esp8266Hal /*: public AnalogWriter */ {
         // ESP8266 uses 10bit PWM range per default, scale value up
         ::analogWrite(pin_, Esp8266Hal::ScaleTo10Bit(val));
     }
-    uint32_t millis() const {return ::millis();}
+    uint32_t millis() const { return ::millis(); }
 
  protected:
     // scale an 8bit value to 10bit: 0 -> 0, ..., 255 -> 1023,

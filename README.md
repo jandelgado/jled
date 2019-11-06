@@ -446,6 +446,7 @@ Example sketches are provided in the [examples](examples/) directory.
 * [Controlling multiple LEDs sequentially](examples/sequence)
 * [Simple User provided effect](examples/user_func)
 * [Morsecode example](examples/morse)
+* [Custom HAL example](examples/custom_hal)
 
 ### PlatformIO
 

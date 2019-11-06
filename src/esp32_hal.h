@@ -23,6 +23,7 @@
 #define SRC_ESP32_HAL_H_
 
 #include <Arduino.h>
+#include "jled_hal.h"  // NOLINT
 
 namespace jled {
 
@@ -50,7 +51,7 @@ class Esp32ChanMapper {
         // no more free slots, start over
         auto i = nextChan_;
         chanMap_[i] = pin;
-        nextChan_ = (nextChan_+1) % kLedcMaxChan;
+        nextChan_ = (nextChan_ + 1) % kLedcMaxChan;
         return i;
     }
 
@@ -59,13 +60,16 @@ class Esp32ChanMapper {
     uint8_t chanMap_[kLedcMaxChan];
 };
 
-class Esp32Hal {
+class Esp32Hal : JLedHal {
+ private:
+    template <typename T, typename B>
+    friend class TJLed;
+    Esp32Hal() {}
+
     static constexpr auto kLedcTimer8Bit = 8;
 
  public:
     static constexpr auto kAutoSelectChan = -1;
-
-    Esp32Hal() {}
 
     // construct an ESP32 analog write object connected to the given pin.
     // chan specifies the EPS32 ledc channel to use. If set to kAutoSelectChan,

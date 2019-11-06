@@ -1,5 +1,10 @@
 # JLed changelog
 
+## [2019-09-21] 4.3.0
+
+* new example: [custom HAL](examples/custom_hal/custom_hal.ino) showing
+  how to implment a custom HAL.
+
 ## [2019-08-30] 4.2.1
 
 * fix: make sure memory alignment is correct (caused hard fault on 
