@@ -31,12 +31,14 @@ class Esp32ChanMapper {
     static constexpr auto kFreeChan = 0xff;
 
  public:
+    using PinType = uint8_t;
+
     static constexpr auto kLedcMaxChan = 16;
 
     Esp32ChanMapper() {
         for (auto i = 0; i < kLedcMaxChan; i++) chanMap_[i] = 0xff;
     }
-    uint8_t chanForPin(uint8_t pin) {
+    PinType chanForPin(PinType pin) {
         // find existing channel for given pin
         for (auto i = 0; i < kLedcMaxChan; i++) {
             if (chanMap_[i] == pin) return i;
@@ -56,8 +58,8 @@ class Esp32ChanMapper {
     }
 
  private:
-    uint8_t nextChan_ = 0;
-    uint8_t chanMap_[kLedcMaxChan];
+    PinType nextChan_ = 0;
+    PinType chanMap_[kLedcMaxChan];
 };
 
 class Esp32Hal : JLedHal {
@@ -69,13 +71,15 @@ class Esp32Hal : JLedHal {
     static constexpr auto kLedcTimer8Bit = 8;
 
  public:
+    using PinType = Esp32ChanMapper::PinType;
+
     static constexpr auto kAutoSelectChan = -1;
 
     // construct an ESP32 analog write object connected to the given pin.
     // chan specifies the EPS32 ledc channel to use. If set to kAutoSelectChan,
     // the next available channel will be used, otherwise the specified one.
     // freq defines the ledc base frequency to be used (default: 5000 Hz).
-    Esp32Hal(uint8_t pin, int chan = kAutoSelectChan,
+    Esp32Hal(PinType pin, int chan = kAutoSelectChan,
              uint16_t freq = 5000) noexcept {
         // ESP32 framework lacks analogWrite() support, but behaviour can
         // be achievedd using LEDC channels.
@@ -89,11 +93,11 @@ class Esp32Hal : JLedHal {
     void analogWrite(uint8_t val) const { ::ledcWrite(chan_, val); }
     uint32_t millis() const { return ::millis(); }
 
-    uint8_t chan() const { return chan_; }
+    PinType chan() const { return chan_; }
 
  private:
     static Esp32ChanMapper chanMapper_;
-    uint8_t chan_;
+    PinType chan_;
 };
 }  // namespace jled
 #endif  // SRC_ESP32_HAL_H_

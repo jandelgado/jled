@@ -34,7 +34,9 @@ class ArduinoHal : JLedHal {
     ArduinoHal() {}
 
  public:
-    explicit ArduinoHal(uint8_t pin) noexcept : pin_(pin) {}
+    using PinType = uint8_t;
+
+    explicit ArduinoHal(PinType pin) noexcept : pin_(pin) {}
 
     void analogWrite(uint8_t val) const {
         // some platforms, e.g. STM need lazy initialization
@@ -49,7 +51,7 @@ class ArduinoHal : JLedHal {
 
  private:
     mutable bool setup_ = false;
-    uint8_t pin_;
+    PinType pin_;
 };
 }  // namespace jled
 #endif  // SRC_ARDUINO_HAL_H_

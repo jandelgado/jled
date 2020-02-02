@@ -67,6 +67,8 @@ void loop() {
     * [ESP8266](#esp8266)
     * [ESP32](#esp32)
     * [STM32](#stm32)
+        * [Arduino framework](#arduino-framework)
+        * [mbed framework](#mbed-framework)
 * [Example sketches](#example-sketches)
     * [PlatformIO](#platformio-1)
     * [Arduino IDE](#arduino-ide-1)
@@ -75,7 +77,7 @@ void loop() {
 * [Unit tests](#unit-tests)
 * [Contributing](#contributing)
 * [FAQ](#faq)
-    * [How do I check if an JLed object is still being updated?](#how-do-i-check-if-an-jled-object-is-still-being-updated)
+    * [How do I check if a JLed object is still being updated?](#how-do-i-check-if-a-jled-object-is-still-being-updated)
     * [How do I restart an effect?](#how-do-i-restart-an-effect)
     * [How do I change a running effect?](#how-do-i-change-a-running-effect)
 * [Author and Copyright](#author-and-copyright)
@@ -91,7 +93,7 @@ void loop() {
 * easy configuration using fluent interface
 * can control groups of LEDs sequentially or in parallel
 * Arduino, ESP8266 and ESP32 platform compatible
-* portable
+* portable: supports Arduino and mbed frameworks
 * well [tested](https://coveralls.io/github/jandelgado/jled)
 
 ## Cheat Sheet
@@ -420,6 +422,8 @@ should be avoided and is normally not necessary.
 
 ### STM32
 
+#### Arduino framework
+
 I had success running JLed on a [STM32 Nucleo64 F401RE
 board](https://www.st.com/en/evaluation-tools/nucleo-f401re.html) using this
 [STM32 Arduino
@@ -433,6 +437,20 @@ but has support on the [master
 branch](https://github.com/platformio/platform-ststm32.git). See
 [plaform.ini](platform.ini) for an example on how to use the Arduino framework
 with this board.
+
+#### mbed framework
+
+Since version 4.4.0 JLed also support the [mbed framework](https://www.mbed.com).
+An [example is provided here](/examples/multiled_mbed/multiled_mbed.cpp). To 
+compile it for the F401RE, modify your `plaform.ini` to look like:
+
+```ini
+...
+[platformio]
+env_default = nucleo_f401re_mbed
+src_dir = examples/multiled_mbed
+...
+```
 
 ## Example sketches
 

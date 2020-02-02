@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Jan Delgado <jdelgado[at]gmx.net>
+// Copyright (c) 2017-2020 Jan Delgado <jdelgado[at]gmx.net>
 // https://github.com/jandelgado/jled
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -19,41 +19,60 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //
-#ifndef SRC_ESP8266_HAL_H_
-#define SRC_ESP8266_HAL_H_
+#ifndef SRC_MBED_HAL_H_
+#define SRC_MBED_HAL_H_
 
-#include <Arduino.h>
+#ifdef __MBED__
+
+#include <mbed.h>
 #include "jled_hal.h"  // NOLINT
 
 namespace jled {
 
-class Esp8266Hal : JLedHal {
+class MbedHal : JLedHal {
  private:
     template <typename T, typename B>
     friend class TJLed;
-    Esp8266Hal() {}
+    MbedHal() {}
 
  public:
-    using PinType = uint8_t;
+    using PinType = ::PinName;
 
-    explicit Esp8266Hal(PinType pin) noexcept : pin_(pin) {
-        ::pinMode(pin_, OUTPUT);
+    explicit MbedHal(PinType pin) noexcept : pin_(pin) {}
+
+    MbedHal(const MbedHal& rhs) { pin_ = rhs.pin_; }
+
+    ~MbedHal() {
+        delete pwmout_;
+        pwmout_ = nullptr;
     }
+
     void analogWrite(uint8_t val) const {
-        // ESP8266 uses 10bit PWM range per default, scale value up
-        ::analogWrite(pin_, Esp8266Hal::ScaleTo10Bit(val));
+        if (!pwmout_) {
+            pwmout_ = new PwmOut(pin_);
+        }
+        pwmout_->write(val / 255.);
     }
-    uint32_t millis() const { return ::millis(); }
 
- protected:
-    // scale an 8bit value to 10bit: 0 -> 0, ..., 255 -> 1023,
-    // preserving min/max relationships in both ranges.
-    static uint16_t ScaleTo10Bit(uint8_t x) {
-        return (x == 0) ? 0 : (x << 2) + 3;
+    MbedHal& operator=(const MbedHal& rhs) {
+        delete pwmout_;
+        pwmout_ = nullptr;
+        pin_ = rhs.pin_;
+        return *this;
+    }
+
+    uint32_t millis() const {
+        // TODO(JD)
+        // us_ticker_read() returns an unsigned 32 bit value with the micro
+        // seconds elapsed since booting the mcu. This value wraps over after
+        // 4294 seconds, or approx. 71 minutes.
+        return us_ticker_read() / 1000;
     }
 
  private:
     PinType pin_;
+    mutable PwmOut* pwmout_ = nullptr;
 };
 }  // namespace jled
-#endif  // SRC_ESP8266_HAL_H_
+#endif  // __MBED__
+#endif  // SRC_MBED_HAL_H_

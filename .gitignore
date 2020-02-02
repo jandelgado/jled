@@ -1,3 +1,4 @@
+.pio/
 **/.vscode
 test/bin
 test/.depend

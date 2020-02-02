@@ -1,5 +1,10 @@
 # JLed changelog
 
+## [2019-09-21] 4.4.0
+
+* JLed now support the mbed framework. See README.md and `examples/multiled_mbed`
+  for examples.
+
 ## [2019-09-21] 4.3.0
 
 * new example: [custom HAL](examples/custom_hal/custom_hal.ino) showing

@@ -225,7 +225,7 @@ class TJLed {
  public:
     TJLed() = delete;
     explicit TJLed(const HalType& hal) : hal_{hal} {}
-    explicit TJLed(uint8_t pin) : hal_{HalType{pin}} {}
+    explicit TJLed(typename HalType::PinType pin) : hal_{HalType{pin}} {}
     TJLed(const TJLed<HalType, B>& rLed) { *this = rLed; }
 
     B& operator=(const TJLed<HalType, B>& rLed) {

@@ -4,6 +4,7 @@
 
 # some of the examples use LED_BUILTIN which is not defined for ESP32
 CIOPTS=--board=uno --board=esp01 --lib="src"
+CIOPTS_MBED=--board=nucleo_f401re -Oframework=mbed --lib="src"
 CIOPTSALL=--board=esp32dev --board=uno --board=esp01 --lib="src"
 
 all:
@@ -14,6 +15,7 @@ lint:
 		       -type f -a \( -name "*\.cpp" -o -name "*\.h" -o -name "*\.ino" \) )
 
 ci:
+	platformio ci $(CIOPTS_MBED) examples/multiled_mbed/multiled_mbed.cpp
 	platformio ci $(CIOPTS) --lib="examples/morse" examples/morse/morse.ino 
 	platformio ci $(CIOPTS) examples/candle/candle.ino
 	platformio ci $(CIOPTS) examples/multiled/multiled.ino 

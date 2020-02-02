@@ -35,7 +35,10 @@
 
 #include "jled_base.h"  // NOLINT
 
-#ifdef ESP32
+#ifdef __MBED__
+#include "mbed_hal.h"  // NOLINT
+namespace jled {using JLedHalType = MbedHal;}
+#elif ESP32
 #include "esp32_hal.h"  // NOLINT
 namespace jled {using JLedHalType = Esp32Hal;}
 #elif ESP8266
