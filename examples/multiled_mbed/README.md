@@ -1,4 +1,4 @@
-# Multi LED example
+# Multi LED example for mbed
 
 This example controls 4+1 LEDs, showing different effects, yet all synchronized:
 
@@ -10,8 +10,7 @@ This example controls 4+1 LEDs, showing different effects, yet all synchronized:
 
 ## Wiring
 
-![mutliled](../../doc/multiled_bb.png)
+The example uses a STM32 Nucleo F401RE and is wired like shown:
 
-## Result
+![mutliled](../../doc/multiled_mbed_bb.png)
 
-![multiled](../../doc/jled.gif)

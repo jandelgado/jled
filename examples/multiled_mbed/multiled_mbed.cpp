@@ -14,7 +14,7 @@
 int main() {
     JLed leds[] = {JLed(PB_5).Blink(750, 250).Forever(),
                    JLed(LED1).Breathe(2000).Forever(),
-                   JLed(PB_10).FadeOff(1000).Forever(),
+                   JLed(PA_8).FadeOff(1000).Forever(),
                    JLed(PB_6).FadeOn(1000).Forever(),
                    JLed(PC_7).Blink(500, 500).Forever()};
 
