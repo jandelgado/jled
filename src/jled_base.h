@@ -28,7 +28,7 @@
 // JLed - non-blocking LED abstraction library.
 //
 // Example Arduino sketch:
-//   JLed led = JLed(LED_BUILTIN).Blink(500, 500).Repeat(10).DelayBefore(1000);
+//   auto led = JLed(LED_BUILTIN).Blink(500, 500).Repeat(10).DelayBefore(1000);
 //
 //   void setup() {}
 //
@@ -354,9 +354,7 @@ class TJLed {
         if (!IsRunning() || !brightness_eval_) return false;
 
         // no need to process updates twice during one time tick.
-        if (last_update_time_ == now) {
-            return true;
-        }
+        if (last_update_time_ == now) return true;
 
         if (last_update_time_ == kTimeUndef) {
             last_update_time_ = now;
