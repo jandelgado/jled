@@ -12,10 +12,6 @@ struct ArduinoState {
     int pin_state[ARDUINO_PINS];
     uint8_t pin_modes[ARDUINO_PINS];
 
-    // records ESP32 specific calls to ledc* functions.
-    uint32_t ledc_state[LEDC_CHANNELS];
-    struct LedcSetupState ledc_setup[LEDC_CHANNELS];
-    uint8_t ledc_pin_attachments[ARDUINO_PINS];
 } ArduinoState_;
 
 void arduinoMockInit() {
@@ -39,30 +35,3 @@ uint32_t millis(void) { return ArduinoState_.millis; }
 
 void arduinoMockSetMillis(uint32_t value) { ArduinoState_.millis = value; }
 
-// EPS32 specific
-double ledcSetup(uint8_t chan, double freq, uint8_t bit_num) {
-    ArduinoState_.ledc_setup[chan] = {freq, bit_num};
-    return 0;  // not used.
-}
-
-struct LedcSetupState arduinoMockGetLedcSetup(uint8_t chan) {
-    return ArduinoState_.ledc_setup[chan];
-}
-
-// EPS32 specific
-void ledcAttachPin(uint8_t pin, uint8_t chan) {
-    ArduinoState_.ledc_pin_attachments[pin] = chan;
-}
-
-uint8_t arduinoMockGetLedcAttachPin(uint8_t pin) {
-    return ArduinoState_.ledc_pin_attachments[pin];
-}
-
-// EPS32 specific
-void ledcWrite(uint8_t chan, uint32_t duty) {
-    ArduinoState_.ledc_state[chan] = duty;
-}
-
-uint32_t arduinoMockGetLedcState(uint8_t chan) {
-    return ArduinoState_.ledc_state[chan];
-}

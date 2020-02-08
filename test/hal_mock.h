@@ -6,9 +6,7 @@
 #ifndef TEST_HAL_MOCK_H_
 #define TEST_HAL_MOCK_H_
 
-#include <jled_hal.h>
-
-class HalMock : public jled::JLedHal {
+class HalMock {
  public:
     using PinType = uint8_t;
 

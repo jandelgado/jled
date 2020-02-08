@@ -1,5 +1,6 @@
 // JLed Unit tests  (run on host).
 // Copyright 2017 Jan Delgado jdelgado@gmx.net
+#include "esp32.h"
 #include <esp32_hal.h>  // NOLINT
 #include "catch.hpp"
 
@@ -40,7 +41,7 @@ TEST_CASE("channel mapper starts over when channels are exhausted",
 }
 
 TEST_CASE("ledc ctor correctly initializes hardware", "[esp32_hal]") {
-    arduinoMockInit();
+    esp32MockInit();
 
     // attach channel 2 to pin 1
     constexpr auto kChan = 5;
@@ -77,7 +78,7 @@ TEST_CASE("ledc correctly autoselects channels", "[esp32_hal]") {
 }
 
 TEST_CASE("ledc analogWrite() writes correct value", "[esp32_hal]") {
-    arduinoMockInit();
+    esp32MockInit();
 
     // attach channel 2 to pin 1
     constexpr auto kChan = 5;
