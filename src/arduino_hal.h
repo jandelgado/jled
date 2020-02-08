@@ -31,7 +31,7 @@ class ArduinoHal {
     using PinType = uint8_t;
 
     explicit ArduinoHal(PinType pin) noexcept : pin_(pin) {}
-    ArduinoHal(const ArduinoHal &rHal) { }
+
     void analogWrite(uint8_t val) const {
         // some platforms, e.g. STM need lazy initialization
         if (!setup_) {
