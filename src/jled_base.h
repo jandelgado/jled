@@ -186,7 +186,6 @@ class CandleBrightnessEvaluator : public CloneableBrightnessEvaluator {
 
 template <typename HalType, typename B>
 class TJLed {
-
  protected:
     // pointer to a (user defined) brightness evaluator.
     BrightnessEvaluator* brightness_eval_ = nullptr;
@@ -213,7 +212,6 @@ class TJLed {
     }
 
  public:
-
     TJLed() = delete;
     explicit TJLed(const HalType& hal) : hal_{hal} {}
     explicit TJLed(typename HalType::PinType pin) : hal_{HalType{pin}} {}

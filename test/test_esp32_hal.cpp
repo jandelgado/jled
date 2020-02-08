@@ -1,6 +1,6 @@
 // JLed Unit tests  (run on host).
 // Copyright 2017 Jan Delgado jdelgado@gmx.net
-#include "esp32.h"
+#include "esp32.h"  // NOLINT
 #include <esp32_hal.h>  // NOLINT
 #include "catch.hpp"
 

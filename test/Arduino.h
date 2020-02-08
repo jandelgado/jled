@@ -6,7 +6,7 @@
 #include <math.h>
 #include <stdint.h>
 #include <cstring>
-#include "esp32.h"
+#include "esp32.h"  // NOLINT
 
 constexpr auto ARDUINO_PINS = 32;
 

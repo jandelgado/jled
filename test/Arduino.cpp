@@ -11,7 +11,6 @@ struct ArduinoState {
 
     int pin_state[ARDUINO_PINS];
     uint8_t pin_modes[ARDUINO_PINS];
-
 } ArduinoState_;
 
 void arduinoMockInit() {

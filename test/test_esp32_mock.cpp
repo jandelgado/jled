@@ -2,7 +2,7 @@
 // Copyright 2017 Jan Delgado jdelgado@gmx.net
 
 #include "catch.hpp"
-#include "esp32.h"
+#include "esp32.h"  // NOLINT
 
 TEST_CASE("esp32 mock correctly initialized", "[mock]") {
     esp32MockInit();
