@@ -25,16 +25,10 @@
 #ifdef __MBED__
 
 #include <mbed.h>
-#include "jled_hal.h"  // NOLINT
 
 namespace jled {
 
-class MbedHal : JLedHal {
- private:
-    template <typename T, typename B>
-    friend class TJLed;
-    MbedHal() {}
-
+class MbedHal {
  public:
     using PinType = ::PinName;
 

@@ -23,21 +23,15 @@
 #define SRC_ARDUINO_HAL_H_
 
 #include <Arduino.h>
-#include "jled_hal.h"  // NOLINT
 
 namespace jled {
 
-class ArduinoHal : JLedHal {
- private:
-    template <typename T, typename B>
-    friend class TJLed;
-    ArduinoHal() {}
-
+class ArduinoHal {
  public:
     using PinType = uint8_t;
 
     explicit ArduinoHal(PinType pin) noexcept : pin_(pin) {}
-
+    ArduinoHal(const ArduinoHal &rHal) { }
     void analogWrite(uint8_t val) const {
         // some platforms, e.g. STM need lazy initialization
         if (!setup_) {

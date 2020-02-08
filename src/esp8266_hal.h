@@ -23,16 +23,10 @@
 #define SRC_ESP8266_HAL_H_
 
 #include <Arduino.h>
-#include "jled_hal.h"  // NOLINT
 
 namespace jled {
 
-class Esp8266Hal : JLedHal {
- private:
-    template <typename T, typename B>
-    friend class TJLed;
-    Esp8266Hal() {}
-
+class Esp8266Hal {
  public:
     using PinType = uint8_t;
 

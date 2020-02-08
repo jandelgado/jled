@@ -23,7 +23,6 @@
 #define SRC_ESP32_HAL_H_
 
 #include <Arduino.h>
-#include "jled_hal.h"  // NOLINT
 
 namespace jled {
 
@@ -62,12 +61,7 @@ class Esp32ChanMapper {
     PinType chanMap_[kLedcMaxChan];
 };
 
-class Esp32Hal : JLedHal {
- private:
-    template <typename T, typename B>
-    friend class TJLed;
-    Esp32Hal() {}
-
+class Esp32Hal {
     static constexpr auto kLedcTimer8Bit = 8;
 
  public:

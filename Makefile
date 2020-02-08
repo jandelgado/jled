@@ -15,6 +15,7 @@ lint:
 		       -type f -a \( -name "*\.cpp" -o -name "*\.h" -o -name "*\.ino" \) )
 
 ci:
+	platformio ci $(CIOPTS) examples/custom_hal/custom_hal.ino
 	platformio ci $(CIOPTS_MBED) examples/multiled_mbed/multiled_mbed.cpp
 	platformio ci $(CIOPTS) --lib="examples/morse" examples/morse/morse.ino 
 	platformio ci $(CIOPTS) examples/candle/candle.ino
