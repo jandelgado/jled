@@ -63,12 +63,12 @@ void loop() {
         * [Misc functions](#misc-functions)
             * [Low active for inverted output](#low-active-for-inverted-output)
     * [Controlling a group of LEDs](#controlling-a-group-of-leds)
+* [Framework notes](#framework-notes)
 * [Platform notes](#platform-notes)
     * [ESP8266](#esp8266)
     * [ESP32](#esp32)
     * [STM32](#stm32)
         * [Arduino framework](#arduino-framework)
-        * [mbed framework](#mbed-framework)
 * [Example sketches](#example-sketches)
     * [PlatformIO](#platformio-1)
     * [Arduino IDE](#arduino-ide-1)
@@ -388,6 +388,33 @@ The `JLedSequence` provides the following methods:
 * `Reset()` - Resets all `JLed` objects controlled by the sequence and 
    the sequence, resulting in a start-over.
 
+## Framework notes
+
+JLed support the Arduino and [mbed](https://www.mbed.org) frameworks. When using
+platformio, the framework to be used is configured in the `platform.ini` file,
+as shown in the following example, which selects the `mbed` framework:
+
+```ini
+[env:nucleo_f401re_mbed]
+platform=ststm32
+board = nucleo_f401re
+framework = mbed
+build_flags = -Isrc 
+src_filter = +<../../src/>  +<./>
+upload_protocol=stlink
+```
+
+An [mbed example is provided here](/examples/multiled_mbed/multiled_mbed.cpp). To 
+compile it for the F401RE, modify your `plaform.ini` to look like:
+
+```ini
+...
+[platformio]
+default_envs = nucleo_f401re_mbed
+src_dir = examples/multiled_mbed
+...
+```
+
 ## Platform notes
 
 ### ESP8266
@@ -428,29 +455,8 @@ I had success running JLed on a [STM32 Nucleo64 F401RE
 board](https://www.st.com/en/evaluation-tools/nucleo-f401re.html) using this
 [STM32 Arduino
 core](https://github.com/rogerclarkmelbourne/Arduino_STM32/tree/master/STM32F4)
-and compiling from the Arduino IDE. Note that the `stlink` tool might be
+and compiling examples from the Arduino IDE. Note that the `stlink` tool might be
 necessary to upload sketches to the microcontroller.
-
-PlatformIO does not support the Arduino platform for the F401RE in the [current
-version](https://docs.platformio.org/en/latest/boards/ststm32/nucleo_f401re.html),
-but has support on the [master
-branch](https://github.com/platformio/platform-ststm32.git). See
-[plaform.ini](platform.ini) for an example on how to use the Arduino framework
-with this board.
-
-#### mbed framework
-
-Since version 4.4.0 JLed also support the [mbed framework](https://www.mbed.com).
-An [example is provided here](/examples/multiled_mbed/multiled_mbed.cpp). To 
-compile it for the F401RE, modify your `plaform.ini` to look like:
-
-```ini
-...
-[platformio]
-env_default = nucleo_f401re_mbed
-src_dir = examples/multiled_mbed
-...
-```
 
 ## Example sketches
 
@@ -461,6 +467,7 @@ Example sketches are provided in the [examples](examples/) directory.
 * [Fade LED on](examples/fade_on)
 * [Fade LED off](examples/fade_off)
 * [Controlling multiple LEDs in parallel](examples/multiled)
+* [Controlling multiple LEDs in parallel (mbed)](examples/multiled_mbed)
 * [Controlling multiple LEDs sequentially](examples/sequence)
 * [Simple User provided effect](examples/user_func)
 * [Morsecode example](examples/morse)
@@ -473,12 +480,10 @@ uncomment the example to be built in the [platformio.ini](platformio.ini)
 project file, e.g.:
 
 ```ini
-...
 [platformio]
 ; uncomment example to build
 src_dir = examples/hello
 ;src_dir = examples/breathe
-...
 ```
 
 ### Arduino IDE
