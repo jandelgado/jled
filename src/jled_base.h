@@ -44,6 +44,7 @@ static constexpr uint8_t kZeroBrightness = 0;
 uint8_t fadeon_func(uint32_t t, uint16_t period);
 uint8_t rand8();
 void rand_seed(uint32_t s);
+uint8_t scale8(uint8_t val, uint8_t factor);
 
 // a function f(t,period,param) that calculates the LEDs brightness for a given
 // point in time and the given period. param is an optionally user provided

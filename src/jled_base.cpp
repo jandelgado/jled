@@ -66,4 +66,8 @@ uint8_t rand8() {
     return (uint8_t)rand_;
 }
 
+uint8_t scale8(uint8_t val, uint8_t factor) {
+    return ((uint16_t)val * (1+(uint16_t)factor)) >> 8;
+}
+
 };  // namespace jled
