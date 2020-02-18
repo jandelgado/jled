@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.org/jandelgado/jled.svg?branch=master)](https://travis-ci.org/jandelgado/jled)
 [![Coverage Status](https://coveralls.io/repos/github/jandelgado/jled/badge.svg?branch=master&dummy=1)](https://coveralls.io/github/jandelgado/jled?branch=master)
 
-An Arduino library to control LEDs. It uses a **non-blocking** approach and can
+A library to control LEDs. It uses a **non-blocking** approach and can
 control LEDs in simple (**on**/**off**) and complex (**blinking**,
 **breathing** and more) ways in a **time-driven** manner.
 
@@ -93,7 +93,7 @@ void loop() {
 * easy configuration using fluent interface
 * can control groups of LEDs sequentially or in parallel
 * Arduino, ESP8266 and ESP32 platform compatible
-* portable: supports Arduino and mbed frameworks
+* supports Arduino and [mbed](www.mbed.com) frameworks
 * well [tested](https://coveralls.io/github/jandelgado/jled)
 
 ## Cheat Sheet
@@ -390,7 +390,7 @@ The `JLedSequence` provides the following methods:
 
 ## Framework notes
 
-JLed support the Arduino and [mbed](https://www.mbed.org) frameworks. When using
+JLed supports the Arduino and [mbed](https://www.mbed.org) frameworks. When using
 platformio, the framework to be used is configured in the `platform.ini` file,
 as shown in the following example, which selects the `mbed` framework:
 
