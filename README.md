@@ -390,9 +390,10 @@ The `JLedSequence` provides the following methods:
 
 ## Framework notes
 
-JLed supports the Arduino and [mbed](https://www.mbed.org) frameworks. When using
-platformio, the framework to be used is configured in the `platform.ini` file,
-as shown in the following example, which selects the `mbed` framework:
+JLed supports the Arduino and [mbed](https://www.mbed.org) frameworks. When
+using platformio, the framework to be used is configured in the `platform.ini`
+file, as shown in the following example, which for example selects the `mbed`
+framework:
 
 ```ini
 [env:nucleo_f401re_mbed]
@@ -404,8 +405,8 @@ src_filter = +<../../src/>  +<./>
 upload_protocol=stlink
 ```
 
-An [mbed example is provided here](/examples/multiled_mbed/multiled_mbed.cpp). To 
-compile it for the F401RE, modify your `plaform.ini` to look like:
+An [mbed example is provided here](examples/multiled_mbed/multiled_mbed.cpp).
+To compile it for the F401RE, make your [plaform.ini](platform.ini) look like:
 
 ```ini
 ...
@@ -438,14 +439,14 @@ automatically picks the next free channel, starting with channel 0 and wrapping
 over after channel 15. To manually specify a channel, the JLed object must be
 constructed this way:
 
-```
+```c++
 auto esp32Led = JLed(Esp32Hal(2, 7)).Blink(1000, 1000).Forever();
 ```
 
 The `Esp32Hal(pin, chan)` constructor takes the pin number as the first
-argument and the ESP32 ledc channel number on the second position. Note that using
-the above-mentioned constructor yields non-platform independent code, so it 
-should be avoided and is normally not necessary.
+argument and the ESP32 ledc channel number on the second position. Note that
+using the above-mentioned constructor yields non-platform independent code, so
+it should be avoided and is normally not necessary.
 
 ### STM32
 
@@ -455,7 +456,7 @@ I had success running JLed on a [STM32 Nucleo64 F401RE
 board](https://www.st.com/en/evaluation-tools/nucleo-f401re.html) using this
 [STM32 Arduino
 core](https://github.com/rogerclarkmelbourne/Arduino_STM32/tree/master/STM32F4)
-and compiling examples from the Arduino IDE. Note that the `stlink` tool might be
+and compiling examples from the Arduino IDE. Note that the `stlink` is
 necessary to upload sketches to the microcontroller.
 
 ## Example sketches
@@ -464,6 +465,8 @@ Example sketches are provided in the [examples](examples/) directory.
 
 * [Hello, world](examples/hello)
 * [Turn LED on after a delay](examples/simple_on)
+* [Breathe effect](examples/breathe)
+* [Candle effect](examples/candle)
 * [Fade LED on](examples/fade_on)
 * [Fade LED off](examples/fade_off)
 * [Controlling multiple LEDs in parallel](examples/multiled)
@@ -495,11 +498,12 @@ the `File` > `Examples` > `JLed` menu.
 
 ### Support new hardware
 
-JLed uses a very thin hardware abstraction layer (hal) to abstract access to the
-actual used MCU (e.g. ESP32, ESP8266). The hal objects encapsulate access to
-the GPIO and time functionality of the MCU under the framework being used.
-During the unit test, mocked hal instances are used, enabling tests to check the
-generated output. 
+JLed uses a very thin hardware abstraction layer (hal) to abstract access to
+the actual MCU/framework used (e.g. ESP32, ESP8266). The hal object encapsulate
+access to the GPIO and time functionality of the MCU under the framework being
+used.  During the unit test, mocked hal instances are used, enabling tests to
+check the generated output.  The [Custom HAL project](examples/custom_hal)
+provides an example for a user define HAL.
 
 ## Unit tests
 
