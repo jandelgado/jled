@@ -24,15 +24,11 @@
 
 #include <inttypes.h>  // types, e.g. uint8_t
 #include <stddef.h>    // size_t
-#ifdef HAS_TYPE_TRAITS
-#include <type_traits>
-#endif
-#include "jled_hal.h"  // NOLINT
 
 // JLed - non-blocking LED abstraction library.
 //
 // Example Arduino sketch:
-//   JLed led = JLed(LED_BUILTIN).Blink(500, 500).Repeat(10).DelayBefore(1000);
+//   auto led = JLed(LED_BUILTIN).Blink(500, 500).Repeat(10).DelayBefore(1000);
 //
 //   void setup() {}
 //
@@ -187,16 +183,9 @@ class CandleBrightnessEvaluator : public CloneableBrightnessEvaluator {
     }
 };
 
-// set MAX_SIZE to class occupying most memory
-constexpr auto MAX_SIZE = sizeof(CandleBrightnessEvaluator);
 
 template <typename HalType, typename B>
 class TJLed {
-#ifdef HAS_TYPE_TRAITS
-    static_assert(std::is_base_of<JLedHal, HalType>::value,
-                  "HalType must be of type JLedHal");
-#endif
-
  protected:
     // pointer to a (user defined) brightness evaluator.
     BrightnessEvaluator* brightness_eval_ = nullptr;
@@ -225,8 +214,8 @@ class TJLed {
  public:
     TJLed() = delete;
     explicit TJLed(const HalType& hal) : hal_{hal} {}
-    explicit TJLed(uint8_t pin) : hal_{HalType{pin}} {}
-    TJLed(const TJLed<HalType, B>& rLed) { *this = rLed; }
+    explicit TJLed(typename HalType::PinType pin) : hal_{HalType{pin}} {}
+    TJLed(const TJLed& rLed) : hal_(rLed.hal_) {*this = rLed;}
 
     B& operator=(const TJLed<HalType, B>& rLed) {
         flags_ = rLed.flags_;
@@ -365,9 +354,7 @@ class TJLed {
         if (!IsRunning() || !brightness_eval_) return false;
 
         // no need to process updates twice during one time tick.
-        if (last_update_time_ == now) {
-            return true;
-        }
+        if (last_update_time_ == now) return true;
 
         if (last_update_time_ == kTimeUndef) {
             last_update_time_ = now;
@@ -419,6 +406,8 @@ class TJLed {
 
     // this is where the BrightnessEvaluator object will be stored using
     // placment new.
+    // set MAX_SIZE to class occupying most memory
+    static constexpr auto MAX_SIZE = sizeof(CandleBrightnessEvaluator);
     alignas(alignof(
         CloneableBrightnessEvaluator)) char brightness_eval_buf_[MAX_SIZE];
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Jan Delgado <jdelgado[at]gmx.net>
+// Copyright (c) 2017-2020 Jan Delgado <jdelgado[at]gmx.net>
 // https://github.com/jandelgado/jled
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -19,16 +19,54 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //
-#ifndef SRC_JLED_HAL_H_
-#define SRC_JLED_HAL_H_
+#ifndef SRC_MBED_HAL_H_
+#define SRC_MBED_HAL_H_
+
+#ifdef __MBED__
+
+#include <mbed.h>
 
 namespace jled {
 
-class JLedHal {
+class MbedHal {
  public:
-    JLedHal() {}
-    void analogWrite(uint8_t val) const;
-    uint32_t millis() const;
+    using PinType = ::PinName;
+
+    explicit MbedHal(PinType pin) noexcept : pin_(pin) {}
+
+    MbedHal(const MbedHal& rhs) { pin_ = rhs.pin_; }
+
+    ~MbedHal() {
+        delete pwmout_;
+        pwmout_ = nullptr;
+    }
+
+    void analogWrite(uint8_t val) const {
+        if (!pwmout_) {
+            pwmout_ = new PwmOut(pin_);
+        }
+        pwmout_->write(val / 255.);
+    }
+
+    MbedHal& operator=(const MbedHal& rhs) {
+        delete pwmout_;
+        pwmout_ = nullptr;
+        pin_ = rhs.pin_;
+        return *this;
+    }
+
+    uint32_t millis() const {
+        // TODO(JD)
+        // us_ticker_read() returns an unsigned 32 bit value with the micro
+        // seconds elapsed since booting the mcu. This value wraps over after
+        // 4294 seconds, or approx. 71 minutes.
+        return us_ticker_read() / 1000;
+    }
+
+ private:
+    PinType pin_;
+    mutable PwmOut* pwmout_ = nullptr;
 };
 }  // namespace jled
-#endif  // SRC_JLED_HAL_H_
+#endif  // __MBED__
+#endif  // SRC_MBED_HAL_H_

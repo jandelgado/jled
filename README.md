@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.org/jandelgado/jled.svg?branch=master)](https://travis-ci.org/jandelgado/jled)
 [![Coverage Status](https://coveralls.io/repos/github/jandelgado/jled/badge.svg?branch=master&dummy=1)](https://coveralls.io/github/jandelgado/jled?branch=master)
 
-An Arduino library to control LEDs. It uses a **non-blocking** approach and can
+A library to control LEDs. It uses a **non-blocking** approach and can
 control LEDs in simple (**on**/**off**) and complex (**blinking**,
 **breathing** and more) ways in a **time-driven** manner.
 
@@ -63,10 +63,12 @@ void loop() {
         * [Misc functions](#misc-functions)
             * [Low active for inverted output](#low-active-for-inverted-output)
     * [Controlling a group of LEDs](#controlling-a-group-of-leds)
+* [Framework notes](#framework-notes)
 * [Platform notes](#platform-notes)
     * [ESP8266](#esp8266)
     * [ESP32](#esp32)
     * [STM32](#stm32)
+        * [Arduino framework](#arduino-framework)
 * [Example sketches](#example-sketches)
     * [PlatformIO](#platformio-1)
     * [Arduino IDE](#arduino-ide-1)
@@ -75,7 +77,7 @@ void loop() {
 * [Unit tests](#unit-tests)
 * [Contributing](#contributing)
 * [FAQ](#faq)
-    * [How do I check if an JLed object is still being updated?](#how-do-i-check-if-an-jled-object-is-still-being-updated)
+    * [How do I check if a JLed object is still being updated?](#how-do-i-check-if-a-jled-object-is-still-being-updated)
     * [How do I restart an effect?](#how-do-i-restart-an-effect)
     * [How do I change a running effect?](#how-do-i-change-a-running-effect)
 * [Author and Copyright](#author-and-copyright)
@@ -91,7 +93,7 @@ void loop() {
 * easy configuration using fluent interface
 * can control groups of LEDs sequentially or in parallel
 * Arduino, ESP8266 and ESP32 platform compatible
-* portable
+* supports Arduino and [mbed](www.mbed.com) frameworks
 * well [tested](https://coveralls.io/github/jandelgado/jled)
 
 ## Cheat Sheet
@@ -386,6 +388,34 @@ The `JLedSequence` provides the following methods:
 * `Reset()` - Resets all `JLed` objects controlled by the sequence and 
    the sequence, resulting in a start-over.
 
+## Framework notes
+
+JLed supports the Arduino and [mbed](https://www.mbed.org) frameworks. When
+using platformio, the framework to be used is configured in the `platform.ini`
+file, as shown in the following example, which for example selects the `mbed`
+framework:
+
+```ini
+[env:nucleo_f401re_mbed]
+platform=ststm32
+board = nucleo_f401re
+framework = mbed
+build_flags = -Isrc 
+src_filter = +<../../src/>  +<./>
+upload_protocol=stlink
+```
+
+An [mbed example is provided here](examples/multiled_mbed/multiled_mbed.cpp).
+To compile it for the F401RE, make your [plaform.ini](platform.ini) look like:
+
+```ini
+...
+[platformio]
+default_envs = nucleo_f401re_mbed
+src_dir = examples/multiled_mbed
+...
+```
+
 ## Platform notes
 
 ### ESP8266
@@ -409,30 +439,25 @@ automatically picks the next free channel, starting with channel 0 and wrapping
 over after channel 15. To manually specify a channel, the JLed object must be
 constructed this way:
 
-```
+```c++
 auto esp32Led = JLed(Esp32Hal(2, 7)).Blink(1000, 1000).Forever();
 ```
 
 The `Esp32Hal(pin, chan)` constructor takes the pin number as the first
-argument and the ESP32 ledc channel number on the second position. Note that using
-the above-mentioned constructor yields non-platform independent code, so it 
-should be avoided and is normally not necessary.
+argument and the ESP32 ledc channel number on the second position. Note that
+using the above-mentioned constructor yields non-platform independent code, so
+it should be avoided and is normally not necessary.
 
 ### STM32
+
+#### Arduino framework
 
 I had success running JLed on a [STM32 Nucleo64 F401RE
 board](https://www.st.com/en/evaluation-tools/nucleo-f401re.html) using this
 [STM32 Arduino
 core](https://github.com/rogerclarkmelbourne/Arduino_STM32/tree/master/STM32F4)
-and compiling from the Arduino IDE. Note that the `stlink` tool might be
+and compiling examples from the Arduino IDE. Note that the `stlink` is
 necessary to upload sketches to the microcontroller.
-
-PlatformIO does not support the Arduino platform for the F401RE in the [current
-version](https://docs.platformio.org/en/latest/boards/ststm32/nucleo_f401re.html),
-but has support on the [master
-branch](https://github.com/platformio/platform-ststm32.git). See
-[plaform.ini](platform.ini) for an example on how to use the Arduino framework
-with this board.
 
 ## Example sketches
 
@@ -440,9 +465,12 @@ Example sketches are provided in the [examples](examples/) directory.
 
 * [Hello, world](examples/hello)
 * [Turn LED on after a delay](examples/simple_on)
+* [Breathe effect](examples/breathe)
+* [Candle effect](examples/candle)
 * [Fade LED on](examples/fade_on)
 * [Fade LED off](examples/fade_off)
 * [Controlling multiple LEDs in parallel](examples/multiled)
+* [Controlling multiple LEDs in parallel (mbed)](examples/multiled_mbed)
 * [Controlling multiple LEDs sequentially](examples/sequence)
 * [Simple User provided effect](examples/user_func)
 * [Morsecode example](examples/morse)
@@ -455,12 +483,10 @@ uncomment the example to be built in the [platformio.ini](platformio.ini)
 project file, e.g.:
 
 ```ini
-...
 [platformio]
 ; uncomment example to build
 src_dir = examples/hello
 ;src_dir = examples/breathe
-...
 ```
 
 ### Arduino IDE
@@ -472,11 +498,12 @@ the `File` > `Examples` > `JLed` menu.
 
 ### Support new hardware
 
-JLed uses a very thin hardware abstraction layer (hal) to abstract access to the
-actual used MCU (e.g. ESP32, ESP8266). The hal objects encapsulate access to
-the GPIO and time functionality of the MCU under the framework being used.
-During the unit test, mocked hal instances are used, enabling tests to check the
-generated output. 
+JLed uses a very thin hardware abstraction layer (hal) to abstract access to
+the actual MCU/framework used (e.g. ESP32, ESP8266). The hal object encapsulate
+access to the GPIO and time functionality of the MCU under the framework being
+used.  During the unit test, mocked hal instances are used, enabling tests to
+check the generated output.  The [Custom HAL project](examples/custom_hal)
+provides an example for a user define HAL.
 
 ## Unit tests
 

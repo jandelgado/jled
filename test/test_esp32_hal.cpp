@@ -1,5 +1,6 @@
 // JLed Unit tests  (run on host).
 // Copyright 2017 Jan Delgado jdelgado@gmx.net
+#include "esp32.h"  // NOLINT
 #include <esp32_hal.h>  // NOLINT
 #include "catch.hpp"
 
@@ -40,7 +41,7 @@ TEST_CASE("channel mapper starts over when channels are exhausted",
 }
 
 TEST_CASE("ledc ctor correctly initializes hardware", "[esp32_hal]") {
-    arduinoMockInit();
+    esp32MockInit();
 
     // attach channel 2 to pin 1
     constexpr auto kChan = 5;
@@ -54,7 +55,7 @@ TEST_CASE("ledc ctor correctly initializes hardware", "[esp32_hal]") {
     REQUIRE(arduinoMockGetLedcAttachPin(kPin) == kChan);
 }
 
-TEST_CASE("ledc correctly selects channel for same pin", "[esp32_hal]") {
+TEST_CASE("ledc selects same channel for same pin", "[esp32_hal]") {
     constexpr auto kPin = 10;
 
     // note: we test a static property here (auto incremented next channel
@@ -66,18 +67,17 @@ TEST_CASE("ledc correctly selects channel for same pin", "[esp32_hal]") {
     REQUIRE(h1.chan() == h2.chan());
 }
 
-TEST_CASE("ledc correctly autoselects channels", "[esp32_hal]") {
+TEST_CASE("ledc selects different channels for different pins", "[esp32_hal]") {
     constexpr auto kPin = 10;
 
     auto h1 = Esp32Hal(kPin);
     auto h2 = Esp32Hal(kPin + 1);
 
-    // same channel is to be selected, since pin did not change
     REQUIRE(h1.chan() != h2.chan());
 }
 
-TEST_CASE("ledc analogWrite() writes correct value", "[esp32_hal]") {
-    arduinoMockInit();
+TEST_CASE("ledc analogWrite() writes value using analogWrite", "[esp32_hal]") {
+    esp32MockInit();
 
     // attach channel 2 to pin 1
     constexpr auto kChan = 5;

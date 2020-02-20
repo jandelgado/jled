@@ -7,15 +7,21 @@
 #include <jled_base.h>
 
 // a custom HAL for the Arduino, inverting output and ticking with half
-// the speed.
-class CustomHal : jled::JLedHal {
- private:
-    template <typename T, typename B>
-    friend class jled::TJLed;
-    CustomHal() {}
-
+// the speed. In general, a JLed HAL class must satisfy the following
+// interface:
+//
+// class JledHal {
+//   public:
+//     JledHal(PinType pin);
+//     void analogWrite(uint8_t val) const;
+//     uint32_t millis() const;
+//  }
+//
+class CustomHal {
  public:
-    explicit CustomHal(uint8_t pin) noexcept : pin_(pin) {}
+    using PinType = uint8_t;
+
+    explicit CustomHal(PinType pin) noexcept : pin_(pin) {}
 
     void analogWrite(uint8_t val) const {
         // some platforms, e.g. STM need lazy initialization
@@ -30,7 +36,7 @@ class CustomHal : jled::JLedHal {
 
  private:
     mutable bool setup_ = false;
-    uint8_t pin_;
+    PinType pin_;
 };
 
 class JLed : public jled::TJLed<CustomHal, JLed> {

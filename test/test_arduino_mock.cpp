@@ -9,15 +9,7 @@ TEST_CASE("arduino mock correctly initialized", "[mock]") {
     for (auto i = 0; i < ARDUINO_PINS; i++) {
         REQUIRE(arduinoMockGetPinMode(i) == 0);
         REQUIRE(arduinoMockGetPinState(i) == 0);
-        REQUIRE(arduinoMockGetLedcAttachPin(i) == 0);
-        REQUIRE(arduinoMockGetLedcAttachPin(i) == 0);
     }
-    for (auto i = 0; i < LEDC_CHANNELS; i++) {
-        REQUIRE(arduinoMockGetLedcState(i) == 0);
-        REQUIRE(arduinoMockGetLedcSetup(i).freq == 0);
-        REQUIRE(arduinoMockGetLedcSetup(i).bit_num == 0);
-    }
-
     REQUIRE(millis() == 0);
 }
 

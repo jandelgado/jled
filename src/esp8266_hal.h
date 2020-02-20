@@ -23,18 +23,14 @@
 #define SRC_ESP8266_HAL_H_
 
 #include <Arduino.h>
-#include "jled_hal.h"  // NOLINT
 
 namespace jled {
 
-class Esp8266Hal : JLedHal {
- private:
-    template <typename T, typename B>
-    friend class TJLed;
-    Esp8266Hal() {}
-
+class Esp8266Hal {
  public:
-    explicit Esp8266Hal(uint8_t pin) noexcept : pin_(pin) {
+    using PinType = uint8_t;
+
+    explicit Esp8266Hal(PinType pin) noexcept : pin_(pin) {
         ::pinMode(pin_, OUTPUT);
     }
     void analogWrite(uint8_t val) const {
@@ -51,7 +47,7 @@ class Esp8266Hal : JLedHal {
     }
 
  private:
-    uint8_t pin_;
+    PinType pin_;
 };
 }  // namespace jled
 #endif  // SRC_ESP8266_HAL_H_
