@@ -62,6 +62,7 @@ void loop() {
             * [Immediate Stop](#immediate-stop)
         * [Misc functions](#misc-functions)
             * [Low active for inverted output](#low-active-for-inverted-output)
+            * [Set maximum brightness](#set-maximum-brightness)
     * [Controlling a group of LEDs](#controlling-a-group-of-leds)
 * [Framework notes](#framework-notes)
 * [Platform notes](#platform-notes)
@@ -350,6 +351,12 @@ Further calls to `Update()` will have no effect unless the Led is reset (using
 
 Use the `LowActive()` method when the connected LED is low active. All output
 will be inverted by JLed (i.e. instead of x, the value of 255-x will be set).
+
+##### Set maximum brightness 
+
+The `MaxBrightness(uint8_t level)` method is used to set the maximum brightness 
+level of the LED. A level of 255 (the default) is full brightness, while 0 
+effectively turns the LED off.
 
 ### Controlling a group of LEDs
 

@@ -66,7 +66,10 @@ uint8_t rand8() {
     return (uint8_t)rand_;
 }
 
-uint8_t scale8(uint8_t val, uint8_t factor) {
+// scale a byte by a factor, where only the lower 5 bits are used. i.e.
+// the scaling factor is in the range [0,31].
+uint8_t scale5(uint8_t val, uint8_t factor) {
+    factor = (factor << 3)|factor;
     return ((uint16_t)val * (1+(uint16_t)factor)) >> 8;
 }
 

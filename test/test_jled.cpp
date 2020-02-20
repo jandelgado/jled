@@ -125,9 +125,7 @@ TEST_CASE("using Fadeon(), FadeOff() configures Fade-BrightnessEvaluators",
     TestableJLed::test();
 }
 
-TEST_CASE(
-    "UserFunc() allows to use a custom brightness evaluator",
-    "[jled]") {
+TEST_CASE("UserFunc() allows to use a custom brightness evaluator", "[jled]") {
     class CustomBrightnessEvaluator : public BrightnessEvaluator {
      public:
         uint16_t Period() const { return 0; }
@@ -214,7 +212,7 @@ TEST_CASE("FadeOffEvaluator evaluates to expected brightness curve", "[jled]") {
 }
 
 TEST_CASE(
-    "BreatheEvaluator evaluates to bell curve distributed brightness cureve",
+    "BreatheEvaluator evaluates to bell curve distributed brightness curve",
     "[jled]") {
     constexpr auto kPeriod = 2000;
     auto eval = BreatheBrightnessEvaluator(kPeriod);
@@ -419,26 +417,77 @@ TEST_CASE("Changing the effect resets object and starts over", "[jled]") {
     REQUIRE(0 < jled.Hal().Value());
 }
 
+TEST_CASE("Setting max brightness level limits brightness value written to HAL",
+          "[jled]") {
+    class TestableJLed : public TestJLed {
+     public:
+        using TestJLed::TestJLed;
+        static void test() {
+            SECTION(
+                "After setting max brightness to 0, always 0 is written to the "
+                "HAL",
+                "max level is 0") {
+                TestableJLed jled(1);
+
+                jled.MaxBrightness(0);
+
+                for (auto b = 0; b <= 255; b++) {
+                    jled.Write(b);
+                    REQUIRE(0 == jled.Hal().Value());
+                }
+            }
+
+            SECTION(
+                "After setting max brightness to 255, the original value is "
+                "written to the HAL",
+                "max level is 255") {
+                TestableJLed jled(1);
+
+                jled.MaxBrightness(255);
+
+                for (auto b = 0; b <= 255; b++) {
+                    jled.Write(b);
+                    REQUIRE(b == jled.Hal().Value());
+                }
+            }
+
+            SECTION(
+                "After setting max brightness to 127, the original value is "
+                "scaled by 50% when written to the HAL",
+                "max level is 127") {
+                TestableJLed jled(1);
+
+                jled.MaxBrightness(127);
+
+                for (auto b = 0; b <= 255; b++) {
+                    jled.Write(b);
+                    REQUIRE(b >> 1 == jled.Hal().Value());
+                }
+            }
+        }
+    };
+    TestableJLed::test();
+}
+
 TEST_CASE("random generator delivers pseudo random numbers", "[rand]") {
     jled::rand_seed(0);
     REQUIRE(0x59 == jled::rand8());
     REQUIRE(0x159 >> 1 == jled::rand8());
 }
 
-TEST_CASE("scaling a value with factor 0 scales it to 0", "[scale8]") {
-    REQUIRE(0 == jled::scale8(0, 0));
-    REQUIRE(0 == jled::scale8(255, 0));
+TEST_CASE("scaling a value with factor 0 scales it to 0", "[scale5]") {
+    REQUIRE(0 == jled::scale5(0, 0));
+    REQUIRE(0 == jled::scale5(255, 0));
 }
 
-TEST_CASE("scaling a value with factor 128 halfes the value", "[scale8]") {
-    REQUIRE(0 == jled::scale8(0, 128));
-    REQUIRE(10 == jled::scale8(20, 128));
-    REQUIRE(128 == jled::scale8(255, 128));
+TEST_CASE("scaling a value with factor 15 halfes the value", "[scale5]") {
+    REQUIRE(0 == jled::scale5(0, 15));
+    REQUIRE(10 == jled::scale5(20, 15));
+    REQUIRE(127 == jled::scale5(255, 15));
 }
 
-TEST_CASE("scaling a value with factor 255 returns original value",
-          "[scale8]") {
-    REQUIRE(0 == jled::scale8(0, 255));
-    REQUIRE(127 == jled::scale8(127, 255));
-    REQUIRE(255 == jled::scale8(255, 255));
+TEST_CASE("scaling a value with factor 31 returns original value", "[scale5]") {
+    REQUIRE(0 == jled::scale5(0, 31));
+    REQUIRE(127 == jled::scale5(127, 31));
+    REQUIRE(255 == jled::scale5(255, 31));
 }
