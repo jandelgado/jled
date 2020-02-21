@@ -99,7 +99,7 @@ void loop() {
 
 ## Cheat Sheet
 
-![JLed Cheat Sheet](doc/cheat_sheet.png)
+![JLed Cheat Sheet](doc/cheat_sheet.jpg)
 
 ## Installation
 
