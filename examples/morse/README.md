@@ -9,7 +9,7 @@ to be morsed is transformed into morse code and then transformed into a
 sequence of `1` and `0` which are written out to a GPIO controlling a LED or
 a sound generator. 
 
-![morse example](../../doc/morse.png)
+![morse example](../../doc/morse.jpg)
 
 ## Author 
 
