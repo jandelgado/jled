@@ -37,6 +37,7 @@ Stop	KEYWORD2
 Update	KEYWORD2
 UserFunc	KEYWORD2
 Reset	KEYWORD2
+MaxBrightness	KEYWORD2
 
 #######################################
 # Instances (KEYWORD2)
