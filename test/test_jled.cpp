@@ -417,6 +417,33 @@ TEST_CASE("Changing the effect resets object and starts over", "[jled]") {
     REQUIRE(0 < jled.Hal().Value());
 }
 
+TEST_CASE("Max brightness level is initialized to 255 within accuracy",
+          "[jled]") {
+    // maximum brightness is only stored with kBitsBrightness. Lower bits
+    // will always be 0 when the current value is read
+    constexpr uint8_t mask = (1 << (8 - TestJLed::kBitsBrightness)) - 1;
+
+    TestJLed jled(10);
+
+    REQUIRE(jled.MaxBrightness() == (255 & ~mask));
+}
+
+TEST_CASE("Setting max brightness level can be read back within accuracy",
+          "[jled]") {
+    constexpr uint8_t mask = (1 << (8 - TestJLed::kBitsBrightness)) - 1;
+
+    TestJLed jled(10);
+
+    jled.MaxBrightness(0);
+    REQUIRE(jled.MaxBrightness() == 0);
+
+    jled.MaxBrightness(100);
+    REQUIRE(jled.MaxBrightness() == (100 & ~mask));
+
+    jled.MaxBrightness(255);
+    REQUIRE(jled.MaxBrightness() == (255 & ~mask));
+}
+
 TEST_CASE("Setting max brightness level limits brightness value written to HAL",
           "[jled]") {
     class TestableJLed : public TestJLed {
@@ -452,12 +479,12 @@ TEST_CASE("Setting max brightness level limits brightness value written to HAL",
             }
 
             SECTION(
-                "After setting max brightness to 127, the original value is "
+                "After setting max brightness to 128, the original value is "
                 "scaled by 50% when written to the HAL",
-                "max level is 127") {
+                "max level is 128") {
                 TestableJLed jled(1);
 
-                jled.MaxBrightness(127);
+                jled.MaxBrightness(128);
 
                 for (auto b = 0; b <= 255; b++) {
                     jled.Write(b);
@@ -480,10 +507,10 @@ TEST_CASE("scaling a value with factor 0 scales it to 0", "[scale5]") {
     REQUIRE(0 == jled::scale5(255, 0));
 }
 
-TEST_CASE("scaling a value with factor 15 halfes the value", "[scale5]") {
-    REQUIRE(0 == jled::scale5(0, 15));
-    REQUIRE(10 == jled::scale5(20, 15));
-    REQUIRE(127 == jled::scale5(255, 15));
+TEST_CASE("scaling a value with factor 16 halfes the value", "[scale5]") {
+    REQUIRE(0 == jled::scale5(0, 16));
+    REQUIRE(50 == jled::scale5(100, 16));
+    REQUIRE(127 == jled::scale5(255, 16));
 }
 
 TEST_CASE("scaling a value with factor 31 returns original value", "[scale5]") {

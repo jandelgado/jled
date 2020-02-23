@@ -203,7 +203,7 @@ class TJLed {
         : hal_{hal},
           state_{ST_STOPPED},
           bLowActive_{false},
-          maxLevel_{MAX_BRIGHTNESS} {}
+          maxLevel_{(1 << kBitsBrightness) - 1} {}
 
     explicit TJLed(typename HalType::PinType pin) : TJLed{HalType{pin}} {}
 
@@ -340,12 +340,17 @@ class TJLed {
         return static_cast<B&>(*this);
     }
 
-    // Sets the maximum brightness level. 255 is full brightness, 0 turns
-    // the effect off. Only upper 5 bits of the provided value are used.
+    // Sets the maximum brightness level. 255 is full brightness, 0 turns the
+    // effect off. Currently, only upper 5 bits of the provided value are used
+    // and stored.
     B& MaxBrightness(uint8_t level) {
-        maxLevel_ = level >> 3;
+        maxLevel_ = level >> (8 - kBitsBrightness);
         return static_cast<B&>(*this);
     }
+
+    // Returns current maximum brightness level. Since currently only upper 5
+    // bits are used, lower 3 bits will always be 0.
+    uint8_t MaxBrightness() const { return maxLevel_ << (8 - kBitsBrightness); }
 
  protected:
     // update brightness of LED using the given brightness evaluator
@@ -410,27 +415,34 @@ class TJLed {
     static constexpr uint8_t ST_STOPPED = 0;
     static constexpr uint8_t ST_RUNNING = 1;
     static constexpr uint8_t ST_IN_DELAY_AFTER_PHASE = 2;
+
     uint8_t state_ : 2;
     uint8_t bLowActive_ : 1;
 
-    static constexpr uint8_t MAX_BRIGHTNESS = 31;
-    uint8_t maxLevel_ : 5;
+    // Number of bits used to control brightness with MaxBrightness(). Using
+    // only 5 bits here saves us a byte, since summing up with previous defs.
+ public:
+    static constexpr uint8_t kBitsBrightness = 5;
+    static constexpr uint8_t kBrightnessStep = (8 - kBitsBrightness) << 3;
+
+ private:
+    uint8_t maxLevel_ : kBitsBrightness;
 
     // this is where the BrightnessEvaluator object will be stored using
-    // placment new.
-    // set MAX_SIZE to class occupying most memory
+    // placment new.  Set MAX_SIZE to class occupying most memory
     static constexpr auto MAX_SIZE = sizeof(CandleBrightnessEvaluator);
     alignas(alignof(
         CloneableBrightnessEvaluator)) char brightness_eval_buf_[MAX_SIZE];
 
     static constexpr uint16_t kRepeatForever = 65535;
-    static constexpr uint32_t kTimeUndef = -1;
-    uint8_t flags_ = 0;
     uint16_t num_repetitions_ = 1;
+
+    static constexpr uint32_t kTimeUndef = -1;
     uint32_t last_update_time_ = kTimeUndef;
+    uint32_t time_start_ = kTimeUndef;
+
     uint16_t delay_before_ = 0;  // delay before the first effect starts
     uint16_t delay_after_ = 0;   // delay after each repetition
-    uint32_t time_start_ = kTimeUndef;
 };
 
 // a group of JLed objects which can be controlled simultanously, in parallel
