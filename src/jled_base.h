@@ -201,7 +201,7 @@ class TJLed {
     TJLed() = delete;
     explicit TJLed(const HalType& hal)
         : hal_{hal},
-          state_{ST_STOPPED},
+          state_{ST_RUNNING},
           bLowActive_{false},
           maxLevel_{(1 << kBitsBrightness) - 1} {}
 
@@ -369,9 +369,7 @@ class TJLed {
         if (last_update_time_ == now) return true;
 
         if (last_update_time_ == kTimeUndef) {
-            last_update_time_ = now;
             time_start_ = now + delay_before_;
-            state_ = ST_RUNNING;
         }
         last_update_time_ = now;
 
@@ -382,12 +380,15 @@ class TJLed {
         const auto t = (now - time_start_) % (period + delay_after_);
 
         if (t < period) {
+            state_ = ST_RUNNING;
             Write(brightness_eval_->Eval(t));
-        } else if (state_ != ST_IN_DELAY_AFTER_PHASE) {
-            // when in delay after phase, just call Write()
-            // once at the beginning.
-            state_ = ST_IN_DELAY_AFTER_PHASE;
-            Write(brightness_eval_->Eval(period - 1));
+        } else {
+            if (state_ == ST_RUNNING) {
+                // when in delay after phase, just call Write()
+                // once at the beginning.
+                state_ = ST_IN_DELAY_AFTER_PHASE;
+                Write(brightness_eval_->Eval(period - 1));
+            }
         }
 
         if (IsForever()) return true;
