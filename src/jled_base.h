@@ -193,7 +193,7 @@ class TJLed {
     HalType hal_;
 
     void Write(uint8_t val) {
-        val = scale5(val, maxLevel_);
+        val = scale5(val, maxBrightness_);
         hal_.analogWrite(IsLowActive() ? kFullBrightness - val : val);
     }
 
@@ -203,7 +203,7 @@ class TJLed {
         : hal_{hal},
           state_{ST_RUNNING},
           bLowActive_{false},
-          maxLevel_{(1 << kBitsBrightness) - 1} {}
+          maxBrightness_{(1 << kBitsBrightness) - 1} {}
 
     explicit TJLed(typename HalType::PinType pin) : TJLed{HalType{pin}} {}
 
@@ -212,7 +212,7 @@ class TJLed {
     B& operator=(const TJLed<HalType, B>& rLed) {
         state_ = rLed.state_;
         bLowActive_ = rLed.bLowActive_;
-        maxLevel_ = rLed.maxLevel_;
+        maxBrightness_ = rLed.maxBrightness_;
         num_repetitions_ = rLed.num_repetitions_;
         last_update_time_ = rLed.last_update_time_;
         delay_before_ = rLed.delay_before_;
@@ -344,13 +344,15 @@ class TJLed {
     // effect off. Currently, only upper 5 bits of the provided value are used
     // and stored.
     B& MaxBrightness(uint8_t level) {
-        maxLevel_ = level >> (8 - kBitsBrightness);
+        maxBrightness_ = level >> (8 - kBitsBrightness);
         return static_cast<B&>(*this);
     }
 
     // Returns current maximum brightness level. Since currently only upper 5
     // bits are used, lower 3 bits will always be 0.
-    uint8_t MaxBrightness() const { return maxLevel_ << (8 - kBitsBrightness); }
+    uint8_t MaxBrightness() const {
+        return maxBrightness_ << (8 - kBitsBrightness);
+    }
 
  protected:
     // update brightness of LED using the given brightness evaluator
@@ -424,10 +426,10 @@ class TJLed {
     // only 5 bits here saves us a byte, since summing up with previous defs.
  public:
     static constexpr uint8_t kBitsBrightness = 5;
-    static constexpr uint8_t kBrightnessStep = (8 - kBitsBrightness) << 3;
+    static constexpr uint8_t kBrightnessStep = 1 << (8 - kBitsBrightness);
 
  private:
-    uint8_t maxLevel_ : kBitsBrightness;
+    uint8_t maxBrightness_ : kBitsBrightness;
 
     // this is where the BrightnessEvaluator object will be stored using
     // placment new.  Set MAX_SIZE to class occupying most memory
