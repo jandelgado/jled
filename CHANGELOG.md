@@ -1,8 +1,13 @@
 # JLed changelog
 
-## [2019-09-21] 4.4.0
+## [2020-02-23] 4.5.0
 
-* JLed now support the mbed framework. See README.md and `examples/multiled_mbed`
+* new: `JLed::MaxBrightness(uint8_t level)` method to limit output of effects
+  (implements #43).
+
+## [2020-02-21] 4.4.0
+
+* JLed now supports the mbed framework. See README.md and `examples/multiled_mbed`
   for examples.
 
 ## [2019-09-21] 4.3.0

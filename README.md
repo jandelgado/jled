@@ -62,6 +62,7 @@ void loop() {
             * [Immediate Stop](#immediate-stop)
         * [Misc functions](#misc-functions)
             * [Low active for inverted output](#low-active-for-inverted-output)
+            * [Maximum brightness level](#maximum-brightness-level)
     * [Controlling a group of LEDs](#controlling-a-group-of-leds)
 * [Framework notes](#framework-notes)
 * [Platform notes](#platform-notes)
@@ -98,7 +99,7 @@ void loop() {
 
 ## Cheat Sheet
 
-![JLed Cheat Sheet](doc/cheat_sheet.png)
+![JLed Cheat Sheet](doc/cheat_sheet.jpg)
 
 ## Installation
 
@@ -274,7 +275,7 @@ It is also possible to provide a user defined brightness evaluator. The class
 must be derived from the `jled::BrightnessEvaluator` class and implement
 two methods:
 
-* `uint8_t Èval(uint32_t t) const` - the brightness evaluation function that
+* `uint8_t Eval(uint32_t t) const` - the brightness evaluation function that
   calculates a brightness for the given time `t`. The brightness must be returned
   as an unsigned byte, where 0 means LED off and 255 means full brightness.
 * `uint16_t Period() const` - period of the effect.
@@ -350,6 +351,21 @@ Further calls to `Update()` will have no effect unless the Led is reset (using
 
 Use the `LowActive()` method when the connected LED is low active. All output
 will be inverted by JLed (i.e. instead of x, the value of 255-x will be set).
+
+##### Maximum brightness level
+
+The `MaxBrightness(uint8_t level)` method is used to set the maximum brightness 
+level of the LED. A level of 255 (the default) is full brightness, while 0 
+effectively turns the LED off.
+
+The `uint_8 MaxBrightness() const` method returns the current maximum 
+brightness level. Since currently only the upper 5 bits of the provided 
+brighness value are used, the lower 3 bits returned are always 0.
+
+If you want to programmatically increment or decrement the maximum brightness
+level, use the `JLed::kBrightnessStep` constant (which is defined as `1 <<
+(8-JLed::kBitsBrightness)` as the increment (instead of the hard wired value
+`8`) to be independent of the current JLed implementation using 5 bits.
 
 ### Controlling a group of LEDs
 
