@@ -236,7 +236,7 @@ TEST_CASE("Forever flag is set by call to Forever()", "[jled]") {
     REQUIRE(jled.IsForever());
 }
 
-TEST_CASE("dont evalute twice during one time tick", "[jled]") {
+TEST_CASE("don't evaluate twice during one time tick", "[jled]") {
     class CountingCustomBrightnessEvaluator : public BrightnessEvaluator {
         mutable uint16_t count_ = 0;
 
@@ -296,7 +296,8 @@ TEST_CASE("LowActive() inverts signal", "[jled]") {
     REQUIRE(255 == jled.Hal().Value());
 }
 
-TEST_CASE("blink led twice with delay and repeat", "[jled]") {
+TEST_CASE("blink led twice with delay and repeat generates expected writes",
+          "[jled]") {
     TestJLed jled(10);
 
     // 1 ms on, 2 ms off + 2 ms delay = 3ms off in total per iteration
@@ -314,6 +315,7 @@ TEST_CASE("blink led twice with delay and repeat", "[jled]") {
         REQUIRE(val == jled.Hal().Value());
         jled.Hal().SetMillis(++time);
     }
+    REQUIRE(9 == jled.Hal().NumWrites());
 }
 
 TEST_CASE("After calling Forever() the effect is repeated over and over again ",
@@ -342,33 +344,50 @@ TEST_CASE("After calling Forever() the effect is repeated over and over again ",
 
 TEST_CASE("The Hal object provided in the ctor is used during update",
           "[jled]") {
-    TestJLed jled = TestJLed(HalMock(10)).Blink(1, 1);
+    TestJLed jled = TestJLed(HalMock(10)).On();
 
-    // test with a simple on-off sequence
+    // TODO(jd) need a more direct test
+    jled.Hal().SetMillis(123);
+    jled.Update();
+    REQUIRE(255 == jled.Hal().Value());
+    REQUIRE(10 == jled.Hal().Pin());
+    REQUIRE(123 == jled.Hal().millis());
+}
+
+TEST_CASE("Update returns true while updating, else false", "[jled]") {
+    TestJLed jled = TestJLed(10).Blink(1, 1);
+
     uint32_t time = 0;
 
     jled.Hal().SetMillis(time);
     REQUIRE(jled.Update());
-    REQUIRE(255 == jled.Hal().Value());
 
     jled.Hal().SetMillis(++time);
-    REQUIRE(!jled.Update());
-    REQUIRE(0 == jled.Hal().Value());
+    REQUIRE_FALSE(jled.Update());
+
+    jled.Hal().SetMillis(++time);
+    REQUIRE_FALSE(jled.Update());
 }
 
-TEST_CASE("Update returns true while updating, else false", "[jled]") {
-    TestJLed jled = TestJLed(10).Blink(2, 3);
-    constexpr auto expectedTime = 2 + 3;
+TEST_CASE(
+    "If t is greater then the period, the value of f(period-1)"
+    "is expected to be written",
+    "[jled]") {
+    // f(t) = 255  for t=0
+    // f(t) = 0    for t>0
+    TestJLed jled = TestJLed(10).Blink(1, 1);
 
     uint32_t time = 0;
-    for (auto i = 0; i < expectedTime - 1; i++) {
-        // returns FALSE on last step and beyond, else TRUE
-        jled.Hal().SetMillis(time++);
-        REQUIRE(jled.Update());
-    }
-    // when effect is done, we expect still false to be returned
-    jled.Hal().SetMillis(time++);
-    REQUIRE_FALSE(jled.Update());
+
+    jled.Hal().SetMillis(0);
+    jled.Update();
+    REQUIRE(255 == jled.Hal().Value());
+
+    jled.Hal().SetMillis(2);
+    jled.Update();
+    REQUIRE(0 == jled.Hal().Value());
+
+    REQUIRE(2 == jled.Hal().NumWrites());
 }
 
 TEST_CASE("After Reset() the effect can be restarted", "[jled]") {

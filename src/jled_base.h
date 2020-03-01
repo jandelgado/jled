@@ -380,6 +380,16 @@ class TJLed {
         // t cycles in range [0..period+delay_after-1]
         const auto period = brightness_eval_->Period();
         const auto t = (now - time_start_) % (period + delay_after_);
+        const auto time_end =
+            time_start_ + (uint32_t)(period + delay_after_) * num_repetitions_ -
+            1;
+
+        if (!IsForever() && now >= time_end) {
+            // make sure final value of t = (period-1) is set
+            state_ = ST_STOPPED;
+            Write(brightness_eval_->Eval(period - 1));
+            return false;
+        }
 
         if (t < period) {
             state_ = ST_RUNNING;
@@ -391,19 +401,6 @@ class TJLed {
                 state_ = ST_IN_DELAY_AFTER_PHASE;
                 Write(brightness_eval_->Eval(period - 1));
             }
-        }
-
-        if (IsForever()) return true;
-
-        const auto time_end =
-            time_start_ + (uint32_t)(period + delay_after_) * num_repetitions_ -
-            1;
-
-        if (now >= time_end) {
-            // make sure final value of t = (period-1) is set
-            state_ = ST_STOPPED;
-            Write(brightness_eval_->Eval(period - 1));
-            return false;
         }
         return true;
     }
