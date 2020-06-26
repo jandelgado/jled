@@ -35,7 +35,7 @@
 
 #include "jled_base.h"  // NOLINT
 
-#ifdef __MBED__
+#if defined(__MBED__) && !defined(ARDUINO_API_VERSION)
 #include "mbed_hal.h"  // NOLINT
 namespace jled {using JLedHalType = MbedHal;}
 #elif ESP32
