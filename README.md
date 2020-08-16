@@ -149,6 +149,9 @@ Use the `Set(uint8_t brightness)` method to set the brightness to the given
 value, i.e. `Set(255)` is equivalent to calling `On()` and `Set(0)` is
 equivalent to calling `Off()`.
 
+Technically `Set`,  `On` and `Off` are effects with a period of 1ms that 
+set the brightness to a constant value.
+
 ##### Static on example
 
 ```c++
