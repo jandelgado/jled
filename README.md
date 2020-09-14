@@ -3,14 +3,17 @@
 [![Build Status](https://travis-ci.org/jandelgado/jled.svg?branch=master)](https://travis-ci.org/jandelgado/jled)
 [![Coverage Status](https://coveralls.io/repos/github/jandelgado/jled/badge.svg?branch=master&dummy=1)](https://coveralls.io/github/jandelgado/jled?branch=master)
 
-A library to control LEDs. It uses a **non-blocking** approach and can
+An embedded C++ library to control LEDs. It uses a **non-blocking** approach and can
 control LEDs in simple (**on**/**off**) and complex (**blinking**,
 **breathing** and more) ways in a **time-driven** manner.
 
 JLed got some [coverage on Hackaday](https://hackaday.com/2018/06/13/simplifying-basic-led-effects/)
 and someone did a [video tutorial for JLed](https://youtu.be/x5V2vdpZq1w)  - Thanks!
 
-[![breathing, blinking, fadeon and -off at the same time](doc/jled.gif)](examples/multiled)
+<p float="left">
+<a href="examples/multiled"><img alt="breathing, blinking, fadeon and -off at the same time" height=200 src="doc/jled.gif"></a>
+<a href="https://jandelgado.github.io/jled-wasm"><img alt="jled running in the browser" height=200  src="doc/jled-wasm.png"></a>
+</p>
 
 ## Example
 
@@ -93,7 +96,7 @@ void loop() {
 * supports inverted  polarity of LED
 * easy configuration using fluent interface
 * can control groups of LEDs sequentially or in parallel
-* Arduino, ESP8266 and ESP32 platform compatible
+* Portable: Arduino, ESP8266, ESP32, Mbed etc platform compatible, runs even in the [browser](https://jandelgado.github.io/jled-wasm)
 * supports Arduino and [mbed](www.mbed.com) frameworks
 * well [tested](https://coveralls.io/github/jandelgado/jled)
 
@@ -494,6 +497,7 @@ Example sketches are provided in the [examples](examples/) directory.
 * [Simple User provided effect](examples/user_func)
 * [Morsecode example](examples/morse)
 * [Custom HAL example](examples/custom_hal)
+* [JLed compiled for WASM and running in the browser](https://jandelgado.github.io/jled-wasm)
 
 ### PlatformIO
 
