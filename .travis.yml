@@ -33,7 +33,7 @@ install:
   - tar xf lcov_1.13.orig.tar.gz
   - make -C lcov-1.13 "PREFIX=${HOME}/.local" install
   - rm -rf lcov-1.13
-  - pip install --user platformio
+  - pip install --user platformio==4.3.4
   - gem install coveralls-lcov
   - mkdir -p ~/.local/bin
   - wget -O ~/.local/bin/cpplint "$CPP_LINT_URL" && chmod 755 ~/.local/bin/cpplint
