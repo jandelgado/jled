@@ -1,5 +1,7 @@
-// Copyright (c) 2017 Jan Delgado <jdelgado[at]gmx.net>
+// Copyright (c) 2017-2020 Jan Delgado <jdelgado[at]gmx.net>
 // https://github.com/jandelgado/jled
+// HAL for the ESP32
+// https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/ledc.html
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -84,7 +86,9 @@ class Esp32Hal {
         ::ledcSetup(chan_, freq, kLedcTimer8Bit);
         ::ledcAttachPin(pin, chan_);
     }
-    void analogWrite(uint8_t val) const { ::ledcWrite(chan_, val); }
+    void analogWrite(uint8_t val) const {
+        ::ledcWrite(chan_, (val == 255)? 256 : val);
+    }
     uint32_t millis() const { return ::millis(); }
 
     PinType chan() const { return chan_; }

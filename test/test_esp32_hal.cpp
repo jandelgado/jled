@@ -1,5 +1,5 @@
-// JLed Unit tests  (run on host).
-// Copyright 2017 Jan Delgado jdelgado@gmx.net
+// JLed Unit tests for the ESP32 HAL (run on host).
+// Copyright 2017-2020 Jan Delgado jdelgado@gmx.net
 #include "esp32.h"  // NOLINT
 #include <esp32_hal.h>  // NOLINT
 #include "catch.hpp"
@@ -46,7 +46,7 @@ TEST_CASE("ledc ctor correctly initializes hardware", "[esp32_hal]") {
     // attach channel 2 to pin 1
     constexpr auto kChan = 5;
     constexpr auto kPin = 10;
-    auto aw[[gnu::unused]] = Esp32Hal(kPin, kChan);
+    auto hal[[gnu::unused]] = Esp32Hal(kPin, kChan);
 
     // writer expected to used 5000Hz and 8 bits
     REQUIRE(arduinoMockGetLedcSetup(kChan).freq == 5000);
@@ -60,40 +60,63 @@ TEST_CASE("ledc selects same channel for same pin", "[esp32_hal]") {
 
     // note: we test a static property here (auto incremented next channel
     // number). so test has side effects. TODO avoid?
-    auto h1 = Esp32Hal(kPin);
-    auto h2 = Esp32Hal(kPin);
+    auto hal1 = Esp32Hal(kPin);
+    auto hal2 = Esp32Hal(kPin);
 
     // same channel is to be selected, since pin did not change
-    REQUIRE(h1.chan() == h2.chan());
+    REQUIRE(hal1.chan() == hal2.chan());
 }
 
 TEST_CASE("ledc selects different channels for different pins", "[esp32_hal]") {
     constexpr auto kPin = 10;
 
-    auto h1 = Esp32Hal(kPin);
-    auto h2 = Esp32Hal(kPin + 1);
+    auto hal1 = Esp32Hal(kPin);
+    auto hal2 = Esp32Hal(kPin + 1);
 
-    REQUIRE(h1.chan() != h2.chan());
+    REQUIRE(hal1.chan() != hal2.chan());
 }
 
-TEST_CASE("ledc analogWrite() writes value using analogWrite", "[esp32_hal]") {
+TEST_CASE("analogWrite() writes value using analogWrite", "[esp32_hal]") {
     esp32MockInit();
 
     // attach channel 2 to pin 1
     constexpr auto kChan = 5;
     constexpr auto kPin = 10;
-    auto aw = Esp32Hal(kPin, kChan);
+    auto hal = Esp32Hal(kPin, kChan);
 
-    aw.analogWrite(123);
+    hal.analogWrite(123);
 
     // note: value is written to channel, not pin.
     REQUIRE(arduinoMockGetLedcState(kChan) == 123);
 }
 
+TEST_CASE("analogWrite() writes 0 as 0", "[esp32_hal]") {
+    esp32MockInit();
+
+    // attach channel 2 to pin 1
+    constexpr auto kChan = 5;
+    constexpr auto kPin = 10;
+    auto hal = Esp32Hal(kPin, kChan);
+
+    hal.analogWrite(0);
+    REQUIRE(arduinoMockGetLedcState(kChan) == 0);
+}
+
+TEST_CASE("analogWrite() writes 255 as 256", "[esp32_hal]") {
+    esp32MockInit();
+
+    constexpr auto kChan = 5;
+    constexpr auto kPin = 10;
+    auto hal = Esp32Hal(kPin, kChan);
+
+    hal.analogWrite(255);
+    REQUIRE(arduinoMockGetLedcState(kChan) == 256);
+}
+
 TEST_CASE("millis() returns correct time", "[esp32_hal]") {
     arduinoMockInit();
-    auto h = Esp32Hal(1);
-    REQUIRE(h.millis() == 0);
+    auto hal = Esp32Hal(1);
+    REQUIRE(hal.millis() == 0);
     arduinoMockSetMillis(99);
-    REQUIRE(h.millis() == 99);
+    REQUIRE(hal.millis() == 99);
 }

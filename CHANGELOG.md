@@ -1,5 +1,13 @@
 # JLed changelog
 
+## [2020-10-24] 4.5.2
+
+* fix: ESP32 led glimming when using low-active connection (#60)
+
+## [2020-07-01] 4.5.1
+
+* fix: support for Nano 33 BLE (#53)
+
 ## [2020-02-23] 4.5.0
 
 * new: `JLed::MaxBrightness(uint8_t level)` method to limit output of effects
