@@ -462,10 +462,10 @@ over after channel 15. To manually specify a channel, the JLed object must be
 constructed this way:
 
 ```c++
-auto esp32Led = JLed(Esp32Hal(2, 7)).Blink(1000, 1000).Forever();
+auto esp32Led = JLed(jled::Esp32Hal(2, 7)).Blink(1000, 1000).Forever();
 ```
 
-The `Esp32Hal(pin, chan)` constructor takes the pin number as the first
+The `jled::Esp32Hal(pin, chan)` constructor takes the pin number as the first
 argument and the ESP32 ledc channel number on the second position. Note that
 using the above-mentioned constructor yields non-platform independent code, so
 it should be avoided and is normally not necessary.
