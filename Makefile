@@ -15,17 +15,17 @@ lint:
 		       -type f -a \( -name "*\.cpp" -o -name "*\.h" -o -name "*\.ino" \) )
 
 ci:
-	platformio ci $(CIOPTS) examples/custom_hal/custom_hal.ino
-	platformio ci $(CIOPTS_MBED) examples/multiled_mbed/multiled_mbed.cpp
-	platformio ci $(CIOPTS) --lib="examples/morse" examples/morse/morse.ino
-	platformio ci $(CIOPTS) examples/candle/candle.ino
-	platformio ci $(CIOPTS) examples/multiled/multiled.ino
-	platformio ci $(CIOPTS) examples/user_func/user_func.ino
-	platformio ci $(CIOPTS) examples/hello/hello.ino
-	platformio ci $(CIOPTSALL) examples/breathe/breathe.ino
-	platformio ci $(CIOPTS) examples/simple_on/simple_on.ino
-	platformio ci $(CIOPTSALL) examples/fade_on/fade_on.ino
-	platformio ci $(CIOPTSALL) examples/sequence/sequence.ino
+	pio ci $(CIOPTS) examples/custom_hal/custom_hal.ino
+	pio ci $(CIOPTS_MBED) examples/multiled_mbed/multiled_mbed.cpp
+	pio ci $(CIOPTS) --lib="examples/morse" examples/morse/morse.ino
+	pio ci $(CIOPTS) examples/candle/candle.ino
+	pio ci $(CIOPTS) examples/multiled/multiled.ino
+	pio ci $(CIOPTS) examples/user_func/user_func.ino
+	pio ci $(CIOPTS) examples/hello/hello.ino
+	pio ci $(CIOPTSALL) examples/breathe/breathe.ino
+	pio ci $(CIOPTS) examples/simple_on/simple_on.ino
+	pio ci $(CIOPTSALL) examples/fade_on/fade_on.ino
+	pio ci $(CIOPTSALL) examples/sequence/sequence.ino
 
 envdump:
 	-pio run --target envdump
