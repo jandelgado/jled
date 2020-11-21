@@ -1,5 +1,9 @@
 # JLed changelog
 
+## [tbd] 4.5.3
+
+* drop travis-ci, use github actions
+
 ## [2020-10-24] 4.5.2
 
 * fix: ESP32 led glimming when using low-active connection (#60)
