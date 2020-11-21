@@ -1,0 +1,57 @@
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+name: run tests
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout code
+      uses: actions/checkout@v2
+
+    - name: install python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.8'
+
+    - name: linter
+      run: |
+        pip install cpplint
+        make lint
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout code
+      uses: actions/checkout@v2
+
+    - name: install python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.8'
+
+    - name: install tools
+      run: |
+        pip install platformio==5.0.3
+        sudo apt-get update && sudo apt-get install -y lcov
+
+    - name: run tests
+      run: |
+        cd test
+        make clean test OPT=-O2
+        make clean coverage OPT=-O0
+
+    - name: Upload coverage to coveralls
+      uses: coverallsapp/github-action@v1.1.2
+      with:
+        github-token: ${{ secrets.github_token }}
+        path-to-lcov: test/coverage.info
+
+    - name: build examples
+      run: make ci
+
