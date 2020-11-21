@@ -1,6 +1,6 @@
 # JLed - Advanced LED Library
 
-[![Build Status](https://travis-ci.org/jandelgado/jled.svg?branch=master)](https://travis-ci.org/jandelgado/jled)
+![run tests](https://github.com/jandelgado/jled/workflows/run%20tests/badge.svg)
 [![Coverage Status](https://coveralls.io/repos/github/jandelgado/jled/badge.svg?branch=master&dummy=1)](https://coveralls.io/github/jandelgado/jled?branch=master)
 
 An embedded C++ library to control LEDs. It uses a **non-blocking** approach and can
