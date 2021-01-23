@@ -324,7 +324,7 @@ an effect. The default value is 0 ms.
 
 ##### Repetitions
 
-Use the `Repeat()` method to specify the number of repetition. The default
+Use the `Repeat()` method to specify the number of repetitions. The default
 value is 1 repetition. The `Forever()` methods sets to repeat the effect
 forever. Each repetition includes a full period of the effect and the time
 specified by `DelayAfter()` method.
@@ -382,11 +382,11 @@ effect when the previous finished. The constructor takes the mode (`PARALLEL`,
 
 ```c++
 JLed leds[] = {
-    JLed(4).Blink(750, 250).Forever(),
-    JLed(3).Breathe(2000).Forever()
+    JLed(4).Blink(750, 250).Repeat(10),
+    JLed(3).Breathe(2000).Repeat(5);
 };
 
-JLedSequence sequence(JLedSequence::eMode::PARALLEL, leds);
+auto sequence = JLedSequence(JLedSequence::eMode::PARALLEL, leds).Repeat(2);
 
 void setup() {
 }
@@ -405,6 +405,9 @@ The `JLedSequence` provides the following methods:
 * `Update()` - updates the active `JLed` objects controlled by the sequence.
   Like the `JLed::Update()` method, it returns `true` if an effect is running,
   else `false`.
+* Use the `Repeat(n)` method to specify the number of repetitions. The default
+  value is 1 repetition. The `Forever()` methods sets to repeat the sequence
+  forever. 
 * `Stop()` - turns off all `JLed` objects controlled by the sequence and 
    stops the sequence. Further calls to `Update()` will have no effect.
 * `Reset()` - Resets all `JLed` objects controlled by the sequence and 

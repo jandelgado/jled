@@ -1,5 +1,5 @@
 // JLed Unit tests  (run on host).
-// Copyright 2017 Jan Delgado jdelgado@gmx.net
+// Copyright 2017-2021 Jan Delgado jdelgado@gmx.net
 #include "catch.hpp"
 
 #include <jled_base.h>  // NOLINT
@@ -88,26 +88,61 @@ TEST_CASE("stop on sequence stops alle JLeds and turns them off",
     REQUIRE(!leds[1].IsRunning());
 }
 
+TEST_CASE("repeat plays the sequence N times", "[jled_sequence]") {
+    // 1 ms on, 1 ms off = 2ms off in total per iteration
+    TestJLed leds[] = {TestJLed(HalMock(1)).Blink(1, 1)};
+    auto seq = TestJLedSequence(TestJLedSequence::eMode::PARALLEL, leds)
+                 .Repeat(2);
+
+    constexpr uint8_t expected[]{255, 0, 255, 0, 0};
+    uint32_t time = 0;
+
+    for (const auto val : expected) {
+            seq.Update();
+            REQUIRE(val == leds[0].Hal().Value());
+            leds[0].Hal().SetMillis(++time);
+    }
+    REQUIRE(!seq.Update());
+}
+
+TEST_CASE("Forever flag is initially set to false", "[jled_sequence]") {
+    TestJLed leds[] = {TestJLed(HalMock(1)).Blink(1, 1)};
+    auto seq = TestJLedSequence(TestJLedSequence::eMode::PARALLEL, leds);
+    REQUIRE_FALSE(seq.IsForever());
+}
+
+TEST_CASE("Forever flag is set by call to Forever()", "[jled_sequence]") {
+    TestJLed leds[] = {TestJLed(HalMock(1)).Blink(1, 1)};
+    auto seq = TestJLedSequence(TestJLedSequence::eMode::PARALLEL, leds)
+                  .Forever();
+    REQUIRE(seq.IsForever());
+}
+
 TEST_CASE("reset on sequence resets all JLeds", "[jled_sequence]") {
-    // 1 ms on, 2 ms off + 2 ms delay = 3ms off in total per iteration
     TestJLed leds[] = {TestJLed(HalMock(1)).Blink(1, 1),
                        TestJLed(HalMock(2)).Blink(1, 1)};
     TestJLedSequence seq(TestJLedSequence::eMode::PARALLEL, leds);
 
     constexpr uint8_t expected[]{/* 1ms on */ 255,
                                  /* 1ms off */ 0,
+                                 255,
+                                 0,
                                  /* finally off */ 0};
     uint32_t time = 0;
+    for (const auto val : expected) {
+        seq.Update();
 
-    for (auto runs = 0; runs < 2; runs++) {
-        for (const auto val : expected) {
-            seq.Update();
-            REQUIRE(val == leds[0].Hal().Value());
-            REQUIRE(val == leds[1].Hal().Value());
-            leds[0].Hal().SetMillis(++time);
-            leds[1].Hal().SetMillis(++time);
+        REQUIRE(val == leds[0].Hal().Value());
+        REQUIRE(val == leds[1].Hal().Value());
+
+        ++time;
+        leds[0].Hal().SetMillis(time);
+        leds[1].Hal().SetMillis(time);
+
+        if (time == 2) {
+            // expect sequence to stop after 2ms
+            REQUIRE(!seq.Update());
+            seq.Reset();
         }
-        REQUIRE(!seq.Update());
-        seq.Reset();    // expected to start over in second iteration
     }
 }

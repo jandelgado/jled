@@ -1,17 +1,17 @@
 // JLed multi LED demo. control multiple LEDs in-sync.
-// Copyright 2017 by Jan Delgado. All rights reserved.
+// Copyright (c) 2017-2021 by Jan Delgado. All rights reserved.
 // https://github.com/jandelgado/jled
 #include <jled.h>
 
 JLed leds[] = {
-    JLed(4).Blink(750, 250).Forever(),
-    JLed(3).Breathe(2000).Forever(),
-    JLed(5).FadeOff(1000).Forever(),
-    JLed(6).FadeOn(1000).Forever(),
-    JLed(LED_BUILTIN).Blink(500, 500).Forever()
+    JLed(4).Blink(750, 250).Repeat(2),
+    JLed(3).Breathe(2000),
+    JLed(5).FadeOff(1000).Repeat(2),
+    JLed(6).FadeOn(1000).Repeat(2),
+    JLed(LED_BUILTIN).Blink(500, 500).Repeat(2)
 };
 
-JLedSequence sequence(JLedSequence::eMode::PARALLEL, leds);
+auto sequence = JLedSequence(JLedSequence::eMode::PARALLEL, leds).Repeat(5);
 
 void setup() { }
 
