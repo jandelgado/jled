@@ -1,7 +1,9 @@
-# JLed changelog
+# JLed changelog (github.com/jandelgado/jled)
 
-## [tbd] 4.5.3
+## [2021-01-24] 4.6.0
 
+* new: JLedSequence can be configured to play the sequence multiple times
+       using the `Repeat()` and `Forever()` methods
 * drop travis-ci, use github actions
 
 ## [2020-10-24] 4.5.2

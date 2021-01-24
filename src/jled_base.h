@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Jan Delgado <jdelgado[at]gmx.net>
+// Copyright (c) 2017-2021 Jan Delgado <jdelgado[at]gmx.net>
 // https://github.com/jandelgado/jled
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -475,6 +475,13 @@ class TJLedSequence {
         return true;
     }
 
+    void ResetLeds() {
+        for (auto i = 0u; i < n_; i++) {
+            leds_[i].Reset();
+        }
+    }
+
+
  public:
     enum eMode { SEQUENCE, PARALLEL };
     TJLedSequence() = delete;
@@ -486,15 +493,31 @@ class TJLedSequence {
         : mode_{mode}, leds_{leds}, cur_{0}, n_{n} {}
 
     bool Update() {
-        return mode_ == eMode::PARALLEL ? UpdateParallel()
-                                        : UpdateSequentially();
+        if (!is_running_) {
+            return false;
+        }
+
+        const auto led_running = (mode_ == eMode::PARALLEL) ? UpdateParallel()
+                                                  : UpdateSequentially();
+        if (led_running) {
+            return true;
+        }
+
+        // start next iteration of sequence
+        cur_ = 0;
+        ResetLeds();
+
+        is_running_ = ++iteration_ < num_repetitions_ &&
+                      num_repetitions_ != kRepeatForever;
+
+        return is_running_;
     }
 
     void Reset() {
-        for (auto i = 0u; i < n_; i++) {
-            leds_[i].Reset();
-        }
+        ResetLeds();
         cur_ = 0;
+        iteration_ = 0;
+        is_running_ = true;
     }
 
     void Stop() {
@@ -503,11 +526,25 @@ class TJLedSequence {
         }
     }
 
+    // set number of repetitions for the sequence
+    TJLedSequence<T> Repeat(uint16_t num_repetitions) {
+        num_repetitions_ = num_repetitions;
+        return *this;
+    }
+
+    // repeat Forever
+    TJLedSequence<T> Forever() { return Repeat(kRepeatForever); }
+    bool IsForever() const { return num_repetitions_ == kRepeatForever; }
+
  private:
     const eMode mode_;
     T* leds_;
     size_t cur_;
     const size_t n_;
+    static constexpr uint16_t kRepeatForever = 65535;
+    uint16_t num_repetitions_ = 1;
+    uint16_t iteration_ = 0;
+    bool is_running_ = true;
 };
 
 };  // namespace jled
