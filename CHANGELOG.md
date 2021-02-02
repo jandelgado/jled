@@ -1,5 +1,9 @@
 # JLed changelog (github.com/jandelgado/jled)
 
+## [2021-02-02] 4.6.1
+
+* fix: `Forever()` on sequence had no effect (#68)
+
 ## [2021-01-24] 4.6.0
 
 * new: JLedSequence can be configured to play the sequence multiple times
