@@ -470,9 +470,9 @@ class TJLedSequence {
             return false;
         }
         if (!leds_[cur_].Update()) {
-            cur_++;
+            return ++cur_ < n_;
         }
-        return true;
+        return true;;
     }
 
     void ResetLeds() {
@@ -507,8 +507,8 @@ class TJLedSequence {
         cur_ = 0;
         ResetLeds();
 
-        is_running_ = ++iteration_ < num_repetitions_ &&
-                      num_repetitions_ != kRepeatForever;
+        is_running_ = ++iteration_ < num_repetitions_  ||
+                      num_repetitions_ == kRepeatForever;
 
         return is_running_;
     }

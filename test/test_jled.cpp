@@ -252,7 +252,6 @@ TEST_CASE("dont evalute twice during one time tick", "[jled]") {
         }
     };
 
-    uint16_t num_times_called = 0;
     auto eval = CountingCustomBrightnessEvaluator();
     TestJLed jled = TestJLed(1).UserFunc(&eval);
     jled.Hal().SetMillis(0);
