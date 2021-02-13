@@ -1,5 +1,9 @@
 # JLed changelog (github.com/jandelgado/jled)
 
+## [2021-02-02] 4.7.0
+
+* new: support for Raspberry Pi Pico added
+
 ## [2021-02-02] 4.6.1
 
 * fix: `Forever()` on sequence had no effect (#68)
