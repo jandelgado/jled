@@ -10,10 +10,9 @@ control LEDs in simple (**on**/**off**) and complex (**blinking**,
 JLed got some [coverage on Hackaday](https://hackaday.com/2018/06/13/simplifying-basic-led-effects/)
 and someone did a [video tutorial for JLed](https://youtu.be/x5V2vdpZq1w)  - Thanks!
 
-<p float="left">
-<a href="examples/multiled"><img alt="breathing, blinking, fadeon and -off at the same time" height=200 src="doc/jled.gif"></a>
-<a href="https://jandelgado.github.io/jled-wasm"><img alt="jled running in the browser" height=200  src="doc/jled-wasm.png"></a>
-</p>
+JLed in action | Interactive JLed playground
+:-------------:|:--------------------------------------------------:
+<a href="examples/multiled"><img alt="breathing, blinking, fadeon and -off at the same time" height=200 src="doc/jled.gif"></a>|<a href="https://jandelgado.github.io/jled-wasm"><img alt="jled running in the browser" height=200  src="doc/jled-wasm.png"></a>
 
 ## Example
 
@@ -73,6 +72,7 @@ void loop() {
     * [ESP32](#esp32)
     * [STM32](#stm32)
         * [Arduino framework](#arduino-framework)
+    * [Raspberry Pi Pico](#raspberry-pi-pico)
 * [Example sketches](#example-sketches)
     * [PlatformIO](#platformio-1)
     * [Arduino IDE](#arduino-ide-1)
@@ -96,8 +96,9 @@ void loop() {
 * supports inverted  polarity of LED
 * easy configuration using fluent interface
 * can control groups of LEDs sequentially or in parallel
-* Portable: Arduino, ESP8266, ESP32, Mbed etc platform compatible, runs even in the [browser](https://jandelgado.github.io/jled-wasm)
-* supports Arduino and [mbed](www.mbed.com) frameworks
+* Portable: Arduino, ESP8266, ESP32, Mbed, Raspberry Pi Pico and more platforms
+  compatible, runs even in the [browser](https://jandelgado.github.io/jled-wasm)
+* supports Arduino, [mbed](https://www.mbed.com) and Raspberry Pi Pico SDKs
 * well [tested](https://coveralls.io/github/jandelgado/jled)
 
 ## Cheat Sheet
@@ -484,6 +485,12 @@ core](https://github.com/rogerclarkmelbourne/Arduino_STM32/tree/master/STM32F4)
 and compiling examples from the Arduino IDE. Note that the `stlink` is
 necessary to upload sketches to the microcontroller.
 
+### Raspberry Pi Pico
+
+When using JLed on a Raspberry Pi Pico, the Pico-SDK and tools must be
+installed.  The Pico supports up to 16 PWM channels in parallel. See
+the [pico-demo](examples/raspi_pico) for an example and build instructions.
+
 ## Example sketches
 
 Example sketches are provided in the [examples](examples/) directory.
@@ -501,6 +508,7 @@ Example sketches are provided in the [examples](examples/) directory.
 * [Morsecode example](examples/morse)
 * [Custom HAL example](examples/custom_hal)
 * [JLed compiled for WASM and running in the browser](https://jandelgado.github.io/jled-wasm)
+* [Raspberry Pi Pico Demo](examples/raspi_pico)
 
 ### PlatformIO
 

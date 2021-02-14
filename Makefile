@@ -11,7 +11,7 @@ all:
 	pio run
 
 lint:
-	cpplint --extensions=cpp,h,ino $(shell find .  \( ! -regex '.*/\..*' \) \
+	cpplint --extensions=cpp,h,ino $(shell find .  -maxdepth 3 \( ! -regex '.*/\..*' \) \
 		       -type f -a \( -name "*\.cpp" -o -name "*\.h" -o -name "*\.ino" \) )
 
 ci:
