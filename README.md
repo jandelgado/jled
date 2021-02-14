@@ -10,11 +10,9 @@ control LEDs in simple (**on**/**off**) and complex (**blinking**,
 JLed got some [coverage on Hackaday](https://hackaday.com/2018/06/13/simplifying-basic-led-effects/)
 and someone did a [video tutorial for JLed](https://youtu.be/x5V2vdpZq1w)  - Thanks!
 
-<p float="left">
-<a href="examples/multiled"><img alt="breathing, blinking, fadeon and -off at the same time" height=200 src="doc/jled.gif"></a>
-<a href="https://jandelgado.github.io/jled-wasm"><img alt="jled running in the browser" height=200  src="doc/jled-wasm.png"></a>
-(click on the image for a demo)
-</p>
+JLed in action | Interactive JLed playground
+:-------------:|:--------------------------------------------------:
+<a href="examples/multiled"><img alt="breathing, blinking, fadeon and -off at the same time" height=200 src="doc/jled.gif"></a>|<a href="https://jandelgado.github.io/jled-wasm"><img alt="jled running in the browser" height=200  src="doc/jled-wasm.png"></a>
 
 ## Example
 
@@ -100,7 +98,7 @@ void loop() {
 * can control groups of LEDs sequentially or in parallel
 * Portable: Arduino, ESP8266, ESP32, Mbed, Raspberry Pi Pico and more platforms
   compatible, runs even in the [browser](https://jandelgado.github.io/jled-wasm)
-* supports Arduino, [mbed](www.mbed.com) and Raspberry Pi Pico SDKs
+* supports Arduino, [mbed](https://www.mbed.com) and Raspberry Pi Pico SDKs
 * well [tested](https://coveralls.io/github/jandelgado/jled)
 
 ## Cheat Sheet
