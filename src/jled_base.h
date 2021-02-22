@@ -448,6 +448,9 @@ class TJLed {
     uint16_t delay_after_ = 0;   // delay after each repetition
 };
 
+template<typename T> T* ptr(T &obj) {return &obj;}  // NOLINT
+template<typename T> T* ptr(T *obj) {return obj;}
+
 // a group of JLed objects which can be controlled simultanously, in parallel
 // or sequentially.
 template <typename T>
@@ -458,7 +461,7 @@ class TJLedSequence {
     bool UpdateParallel() {
         auto result = false;
         for (auto i = 0u; i < n_; i++) {
-            result |= leds_[i].Update();
+            result |= ptr(leds_[i])->Update();
         }
         return result;
     }
@@ -469,7 +472,7 @@ class TJLedSequence {
         if (cur_ >= n_) {
             return false;
         }
-        if (!leds_[cur_].Update()) {
+        if (!ptr(leds_[cur_])->Update()) {
             return ++cur_ < n_;
         }
         return true;;
@@ -477,7 +480,7 @@ class TJLedSequence {
 
     void ResetLeds() {
         for (auto i = 0u; i < n_; i++) {
-            leds_[i].Reset();
+            ptr(leds_[i])->Reset();
         }
     }
 
