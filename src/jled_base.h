@@ -375,7 +375,7 @@ class TJLed {
         }
         last_update_time_ = now;
 
-        if (now < time_start_) return true;
+        if (now >= last_update_time_ && now < time_start_) return true;
 
         // t cycles in range [0..period+delay_after-1]
         const auto period = brightness_eval_->Period();
