@@ -375,7 +375,7 @@ class TJLed {
         }
         last_update_time_ = now;
 
-        if (now < time_start_) return true;
+        if ((int32_t)(now - time_start_) < 0) return true;
 
         // t cycles in range [0..period+delay_after-1]
         const auto period = brightness_eval_->Period();
@@ -399,7 +399,7 @@ class TJLed {
             time_start_ + (uint32_t)(period + delay_after_) * num_repetitions_ -
             1;
 
-        if (now >= time_end) {
+        if ((int32_t)(now - time_end) >= 0) {
             // make sure final value of t = (period-1) is set
             state_ = ST_STOPPED;
             Write(brightness_eval_->Eval(period - 1));

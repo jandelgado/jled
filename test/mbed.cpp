@@ -28,3 +28,8 @@ void mbedMockSetUsTicks(uint32_t ticks) { MbedState_.us_ticks = ticks; }
 uint32_t us_ticker_read() { return MbedState_.us_ticks; }
 
 void PwmOut::write(float val) { mbedMockWrite(pin_, val); }
+
+Kernel::Clock::time_point Kernel::Clock::now() {
+    return Kernel::Clock::time_point(
+        std::chrono::microseconds(MbedState_.us_ticks));
+}

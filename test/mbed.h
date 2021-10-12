@@ -6,6 +6,7 @@
 #define TEST_MBED_H_
 
 #include <stdint.h>
+#include <chrono>
 
 using PinName = uint8_t;
 
@@ -25,5 +26,12 @@ class PwmOut {
 void mbedMockInit();
 void mbedMockSetUsTicks(uint32_t ticks);
 float mbedMockGetPinState(uint8_t pin);
+
+namespace Kernel {
+struct Clock {
+    using time_point = std::chrono::time_point<std::chrono::system_clock>;
+    static time_point now();
+};
+};  // namespace Kernel
 
 #endif  // TEST_MBED_H_

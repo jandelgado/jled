@@ -1,6 +1,7 @@
 // JLed Unit tests (runs on host)
 // Copyright 2017 Jan Delgado jdelgado@gmx.net
 #include <jled_base.h>  // NOLINT
+#include <limits>
 #include <map>
 #include <utility>
 #include "catch.hpp"
@@ -264,6 +265,29 @@ TEST_CASE("dont evalute twice during one time tick", "[jled]") {
     jled.Hal().SetMillis(1);
     jled.Update();
     REQUIRE(eval.Count() == 2);
+}
+
+TEST_CASE("Handles millis overflow during effect", "[jled]") {
+    TestJLed jled = TestJLed(10);
+    // Set time close to overflow
+    auto time = std::numeric_limits<uint32_t>::max() - 25;
+    jled.Hal().SetMillis(time);
+    REQUIRE_FALSE(jled.Update());
+    // Start fade off
+    jled.FadeOff(100);
+    REQUIRE(jled.Update());
+    REQUIRE(jled.IsRunning());
+    REQUIRE(jled.Hal().Value() > 0);
+    // Set time after overflow, before effect ends
+    jled.Hal().SetMillis(time + 50);
+    REQUIRE(jled.Update());
+    REQUIRE(jled.IsRunning());
+    REQUIRE(jled.Hal().Value() > 0);
+    // Set time after effect ends
+    jled.Hal().SetMillis(time + 150);
+    REQUIRE_FALSE(jled.Update());
+    REQUIRE_FALSE(jled.IsRunning());
+    REQUIRE(0 == jled.Hal().Value());
 }
 
 TEST_CASE("Stop() stops the effect", "[jled]") {

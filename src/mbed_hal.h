@@ -56,11 +56,7 @@ class MbedHal {
     }
 
     uint32_t millis() const {
-        // TODO(JD)
-        // us_ticker_read() returns an unsigned 32 bit value with the micro
-        // seconds elapsed since booting the mcu. This value wraps over after
-        // 4294 seconds, or approx. 71 minutes.
-        return us_ticker_read() / 1000;
+        return Kernel::Clock::now().time_since_epoch().count();
     }
 
  private:
