@@ -6,7 +6,7 @@
 #define TEST_MBED_H_
 
 #include <stdint.h>
-#include <chrono>
+#include <chrono>  // NOLINT
 
 using PinName = uint8_t;
 
