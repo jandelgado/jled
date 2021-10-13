@@ -1,5 +1,9 @@
 # JLed changelog (github.com/jandelgado/jled)
 
+## [2021-10-13] 4.7.1
+
+* fix: correct handling of time rollover (#80)
+
 ## [2021-02-02] 4.7.0
 
 * new: support for Raspberry Pi Pico added
