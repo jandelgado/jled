@@ -124,27 +124,40 @@ class FadeOffBrightnessEvaluator : public CloneableBrightnessEvaluator {
     }
 };
 
-// The breathe func is composed by fadein and fade-out with one each half
-// period.  we approximate the following function:
+// The breathe func is composed by fade-on, on and fade-off phases. For fading
+// we approximate the following function:
 //   y(x) = exp(sin((t-period/4.) * 2. * PI / period)) - 0.36787944) *  108.)
 // idea see:
 //   http://sean.voisen.org/blog/2011/10/breathing-led-with-arduino/
 // But we do it with integers only.
 class BreatheBrightnessEvaluator : public CloneableBrightnessEvaluator {
-    uint16_t period_;
+    uint16_t duration_fade_on_;
+    uint16_t duration_on_;
+    uint16_t duration_fade_off_;
 
  public:
     BreatheBrightnessEvaluator() = delete;
-    explicit BreatheBrightnessEvaluator(uint16_t period) : period_(period) {}
+    explicit BreatheBrightnessEvaluator(uint16_t duration_fade_on,
+                                        uint16_t duration_on,
+                                        uint16_t duration_fade_off)
+        : duration_fade_on_(duration_fade_on),
+          duration_on_(duration_on),
+          duration_fade_off_(duration_fade_off) {}
     BrightnessEvaluator* clone(void* ptr) const override {
         return new (ptr) BreatheBrightnessEvaluator(*this);
     }
-    uint16_t Period() const override { return period_; }
+    uint16_t Period() const override {
+        return duration_fade_on_ + duration_on_ + duration_fade_off_;
+    }
     uint8_t Eval(uint32_t t) const override {
-        if (t + 1 >= period_) return kZeroBrightness;
-        const decltype(period_) periodh = period_ >> 1;
-        return t < periodh ? fadeon_func(t, periodh)
-                           : fadeon_func(period_ - t, periodh);
+        if (t < duration_fade_on_)
+            return fadeon_func(t, duration_fade_on_);
+        else if (t < duration_fade_on_ + duration_on_)
+            return kFullBrightness;
+        else if (t < Period())
+            return fadeon_func(Period() - t, duration_fade_off_);
+        else
+            return kZeroBrightness;
     }
 };
 
@@ -274,9 +287,15 @@ class TJLed {
     }
 
     // Set effect to Breathe, with the given period time in ms.
-    B& Breathe(uint16_t period) {
-        return SetBrightnessEval(new (brightness_eval_buf_)
-                                     BreatheBrightnessEvaluator(period));
+    B& Breathe(uint16_t period) { return Breathe(period / 2, 0, period / 2); }
+
+    // Set effect to Breathe, with the given fade on-, on- and fade off-
+    // duration values.
+    B& Breathe(uint16_t duration_fade_on, uint16_t duration_on,
+               uint16_t duration_fade_off) {
+        return SetBrightnessEval(
+            new (brightness_eval_buf_) BreatheBrightnessEvaluator(
+                duration_fade_on, duration_on, duration_fade_off));
     }
 
     // Set effect to Blink, with the given on- and off- duration values.

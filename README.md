@@ -213,6 +213,14 @@ void loop() {
 }
 ```
 
+It is also possible to specify fade-on, on and fade-off durations for the breathing mode to customize the effect.
+
+```c++
+// LED will fade-on in 500ms, stay on for 1000ms, and fade-off in 500ms.
+// It will delay for 1000ms afterwards and continue the pattern.
+auto led = JLed(13).Breathe(500, 1000, 500).DelayAfter(1000).Forever();
+```
+
 #### Candle
 
 In candle mode, the random flickering of a candle or fire is simulated. 
