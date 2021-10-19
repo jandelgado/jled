@@ -1,8 +1,12 @@
 # JLed changelog (github.com/jandelgado/jled)
 
+## [2021-10-18] 4.8.0
+
+* new: make `Breathe` method more flexible (#78, thanks to @boraozgen)
+
 ## [2021-10-13] 4.7.1
 
-* fix: correct handling of time rollover (#80)
+* fix: correct handling of time rollover (#80, thanks to @boraozgen)
 
 ## [2021-02-02] 4.7.0
 
