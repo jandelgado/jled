@@ -216,7 +216,7 @@ TEST_CASE(
     "BreatheEvaluator evaluates to bell curve distributed brightness curve",
     "[jled]") {
     constexpr auto kPeriod = 2000;
-    auto eval = BreatheBrightnessEvaluator(kPeriod);
+    auto eval = BreatheBrightnessEvaluator(kPeriod / 2, 0, kPeriod / 2);
     REQUIRE(kPeriod == eval.Period());
     const std::map<uint32_t, uint8_t> test_values = {
         {0, 0}, {500, 68}, {1000, 255}, {1500, 68}, {1999, 0}, {2000, 0}};
