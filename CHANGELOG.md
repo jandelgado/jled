@@ -12,6 +12,11 @@
        https://github.com/jandelgado/jled-esp-idf-example and
        https://github.com/jandelgado/jled-esp-idf-platformio-example
        
+## [2021-12-12] 4.9.0
+
+* new: `JLed::UpdateAndFinally` method allowing to trigger custom code after
+       an effect is finished. See [README.md#updateandfinally] for details.
+
 ## [2021-10-18] 4.8.0
 
 * new: make `Breathe` method more flexible (#78, thanks to @boraozgen)
