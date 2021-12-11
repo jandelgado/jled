@@ -149,12 +149,12 @@ TEST_CASE("UserFunc() allows to use a custom brightness evaluator", "[jled]") {
 
 TEST_CASE("ConstantBrightnessEvaluator returns constant provided value",
           "[jled]") {
-    auto cbZero = ConstantBrightnessEvaluator(0);
+    const auto cbZero = ConstantBrightnessEvaluator(0);
     REQUIRE(1 == cbZero.Period());
     REQUIRE(0 == cbZero.Eval(0));
     REQUIRE(0 == cbZero.Eval(1000));
 
-    auto cbFull = ConstantBrightnessEvaluator(255);
+    const auto cbFull = ConstantBrightnessEvaluator(255);
     REQUIRE(1 == cbFull.Period());
     REQUIRE(255 == cbFull.Eval(0));
     REQUIRE(255 == cbFull.Eval(1000));
@@ -164,7 +164,7 @@ TEST_CASE(
     "BlinkBrightnessEvaluator calculates switches betwen on and off in given "
     "time frames",
     "[jled]") {
-    auto eval = BlinkBrightnessEvaluator(10, 5);
+    const auto eval = BlinkBrightnessEvaluator(10, 5);
     REQUIRE(10 + 5 == eval.Period());
     REQUIRE(255 == eval.Eval(0));
     REQUIRE(255 == eval.Eval(9));
@@ -173,7 +173,7 @@ TEST_CASE(
 }
 
 TEST_CASE("CandleBrightnessEvaluator simulated candle flickering", "[jled]") {
-    auto eval = CandleBrightnessEvaluator(7, 15, 1000);
+    const auto eval = CandleBrightnessEvaluator(7, 15, 1000);
     REQUIRE(1000 == eval.Period());
     // TODO(jd) do further and better tests
     REQUIRE(eval.Eval(0) > 0);
@@ -183,7 +183,7 @@ TEST_CASE("CandleBrightnessEvaluator simulated candle flickering", "[jled]") {
 TEST_CASE("FadeOnEvaluator evaluates to expected brightness curve", "[jled]") {
     constexpr auto kPeriod = 2000;
 
-    auto evalOn = FadeOnBrightnessEvaluator(kPeriod);
+    const auto evalOn = FadeOnBrightnessEvaluator(kPeriod);
 
     REQUIRE(kPeriod == evalOn.Period());
 
@@ -200,7 +200,7 @@ TEST_CASE("FadeOffEvaluator evaluates to expected brightness curve", "[jled]") {
     constexpr auto kPeriod = 2000;
 
     // note: FadeOff is invervted FadeOn
-    auto evalOff = FadeOffBrightnessEvaluator(kPeriod);
+    const auto evalOff = FadeOffBrightnessEvaluator(kPeriod);
 
     REQUIRE(kPeriod == evalOff.Period());
     const std::map<uint32_t, uint8_t> test_values = {
@@ -213,13 +213,12 @@ TEST_CASE("FadeOffEvaluator evaluates to expected brightness curve", "[jled]") {
 }
 
 TEST_CASE(
-    "BreatheEvaluator evaluates to bell curve distributed brightness curve",
+    "BreatheEvaluator evaluates to flattened bell curve distributed brightness curve",
     "[jled]") {
-    constexpr auto kPeriod = 2000;
-    auto eval = BreatheBrightnessEvaluator(kPeriod / 2, 0, kPeriod / 2);
-    REQUIRE(kPeriod == eval.Period());
+    const auto eval = BreatheBrightnessEvaluator(1000, 2000, 500);
+    REQUIRE(1000+2000+500 == eval.Period());
     const std::map<uint32_t, uint8_t> test_values = {
-        {0, 0}, {500, 68}, {1000, 255}, {1500, 68}, {1999, 0}, {2000, 0}};
+        {0, 0}, {500, 68}, {1000, 255}, {2000, 255}, {3000, 255}, {3250, 68}, {3499, 0}, {3500, 0}};
 
     for (const auto &x : test_values) {
         REQUIRE((int)x.second == (int)eval.Eval(x.first));
@@ -270,7 +269,7 @@ TEST_CASE("dont evalute twice during one time tick", "[jled]") {
 TEST_CASE("Handles millis overflow during effect", "[jled]") {
     TestJLed jled = TestJLed(10);
     // Set time close to overflow
-    auto time = std::numeric_limits<uint32_t>::max() - 25;
+    const auto time = std::numeric_limits<uint32_t>::max() - 25;
     jled.Hal().SetMillis(time);
     REQUIRE_FALSE(jled.Update());
     // Start fade off
@@ -392,6 +391,28 @@ TEST_CASE("Update returns true while updating, else false", "[jled]") {
     // when effect is done, we expect still false to be returned
     jled.Hal().SetMillis(time++);
     REQUIRE_FALSE(jled.Update());
+}
+
+TEST_CASE("UpdateAndFinally triggers the callback once on the last iteration", "[jled]") {
+    TestJLed jled = TestJLed(10).Blink(1, 1);
+
+    int cbCalled = 0;
+    auto cb = [] (TestJLed&, void* p) {
+        // gets &cbCalled passed in as void* p
+        (*(int*)p)++;
+    };
+
+    jled.Hal().SetMillis(0);
+    REQUIRE(jled.UpdateAndFinally(cb, &cbCalled));
+    REQUIRE( cbCalled == 0 );
+
+    jled.Hal().SetMillis(1);
+    REQUIRE(!jled.UpdateAndFinally(cb, &cbCalled));
+    REQUIRE( cbCalled == 1 );
+
+    jled.Hal().SetMillis(2);
+    REQUIRE(!jled.UpdateAndFinally(cb, &cbCalled));
+    REQUIRE( cbCalled == 1 );
 }
 
 TEST_CASE("After Reset() the effect can be restarted", "[jled]") {
@@ -541,3 +562,4 @@ TEST_CASE("scaling a value with factor 31 returns original value", "[scale5]") {
     REQUIRE(127 == jled::scale5(127, 31));
     REQUIRE(255 == jled::scale5(255, 31));
 }
+

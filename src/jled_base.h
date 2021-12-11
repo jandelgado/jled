@@ -249,6 +249,29 @@ class TJLed {
 
     HalType& Hal() { return hal_; }
 
+    // The Callback declartion for function to be called when an effect is
+    // finished.  We can not use std::function<void(B& led)> f) here, since the
+    // functional header is not available for AVR. That means we can only use
+    // lambdas without captures. As a workaround, we allow an additional void*
+    // pointer to be passed, which can point to arbitrary data.
+    typedef void (*FinallyCallback)(B& led, void* data);
+
+    // Call Update and when the effect is finished, call the provided function
+    // f, which gets a reference to this JLed object and an optional data
+    // pointer.  Use e.g. to reconfigure & restart after an effect was played.
+    bool UpdateAndFinally(FinallyCallback f, void* data=nullptr) {
+        if (!IsRunning()) {
+            return false;
+        }
+        if (!Update()) {
+            f(static_cast<B&>(*this), data);
+            return false;
+        }
+        return true;
+    }
+
+    // Update the effect, return true if the effect is running, false if the
+    // effect finished.
     bool Update() { return Update(hal_.millis()); }
 
     // Set physical LED polarity to be low active. This inverts every
