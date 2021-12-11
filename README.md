@@ -68,6 +68,7 @@ void loop() {
             * [Repetitions](#repetitions)
         * [State functions](#state-functions)
             * [Update](#update)
+            * [UpdateAndFinally](#updateandfinally)
             * [IsRunning](#isrunning)
             * [Reset](#reset)
             * [Immediate Stop](#immediate-stop)
@@ -356,6 +357,32 @@ specified by `DelayAfter()` method.
 
 Call `Update()` periodically to update the state of the LED. `Update` returns
 `true` if the effect is active, and `false` when it finished.
+
+##### UpdateAndFinally
+
+`UpdateAndFinally` first calls `Update`, and if the effect is finished, the
+provided callback function is called once. This allows for e.g. reconfiguration
+of an effect, when the effect is finished.  The callback function can be either
+be specified as a lambda `[] (JLed&, void*) { /* code */ }` or as a function
+with a definition like `void callback(JLed&, void*)`.  The callback function
+gets a reference to the `JLed` object as well as a `void*` pointer, for
+additional optional user specified data, passed. Note that we can not use
+full-fledged lambda functions here because the `<funtional>` header is not
+available available for the AVR platform. Example:
+
+```c++
+  led.UpdateAndFinally(
+          [] (JLed& led, void*) {
+            const auto d = random(50,5000);
+            led.Breathe(d);
+            led.Reset();
+    }
+  );
+
+```
+
+The example uses a lambda function to set a new random duration for the breate
+effect and restarts the effect by calling `Reset()`.
 
 ##### IsRunning
 
