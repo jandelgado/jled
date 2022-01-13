@@ -24,7 +24,10 @@
 #ifndef SRC_ESP32_HAL_H_
 #define SRC_ESP32_HAL_H_
 
-#include <Arduino.h>
+#include <stdio.h>
+#include <stdint.h>
+#include "driver/ledc.h"
+#include "esp_timer.h"
 
 namespace jled {
 
@@ -64,7 +67,7 @@ class Esp32ChanMapper {
 };
 
 class Esp32Hal {
-    static constexpr auto kLedcTimer8Bit = 8;
+    static constexpr auto kLedcTimerResolution = LEDC_TIMER_8_BIT;
 
  public:
     using PinType = Esp32ChanMapper::PinType;
@@ -83,13 +86,40 @@ class Esp32Hal {
         chan_ = (chan == kAutoSelectChan)
                     ? Esp32Hal::chanMapper_.chanForPin(pin)
                     : chan;
-        ::ledcSetup(chan_, freq, kLedcTimer8Bit);
-        ::ledcAttachPin(pin, chan_);
+        ledc_mode_t group = (ledc_mode_t) (chan_ / 8);
+        ledc_timer_t timer = (ledc_timer_t) (chan_  % LEDC_TIMER_MAX);
+        ledc_timer_config_t ledc_timer = {
+                .speed_mode = group,
+                .duty_resolution = kLedcTimerResolution,
+                .timer_num = timer,
+                .freq_hz = freq,
+                .clk_cfg = LEDC_AUTO_CLK
+        };
+        ledc_timer_config(&ledc_timer);
+        
+        ledc_channel_t channel = (ledc_channel_t) (chan_ % LEDC_CHANNEL_MAX);
+        ledc_channel_config_t ledc_channel = {
+                .gpio_num = pin,
+                .speed_mode = group,
+                .channel = channel,
+                .intr_type = LEDC_INTR_DISABLE,
+                .timer_sel = timer,
+                .duty = 0,
+                .hpoint = 0,
+                .flags = { 0 }
+        };
+
+        ledc_channel_config(&ledc_channel);
     }
-    void analogWrite(uint8_t val) const {
-        ::ledcWrite(chan_, (val == 255)? 256 : val);
+    void analogWrite(uint8_t duty) const {
+        ledc_mode_t group = (ledc_mode_t) (chan_ / 8);
+        // Fixing if all bits in resolution is set = LEDC FULL ON
+        uint32_t _duty = (duty == (1 << kLedcTimerResolution) - 1) ? 1 << kLedcTimerResolution : duty;
+
+        ledc_set_duty(group, (ledc_channel_t) chan_, _duty);
+        ledc_update_duty(group, (ledc_channel_t) chan_);
     }
-    uint32_t millis() const { return ::millis(); }
+    uint32_t millis() const { return (uint32_t) (esp_timer_get_time() / 1000ULL); }
 
     PinType chan() const { return chan_; }
 
