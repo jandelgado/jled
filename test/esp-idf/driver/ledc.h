@@ -9,22 +9,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// #include "esp_err.h"
-// #include "esp_intr_alloc.h"
-// #include "hal/ledc_types.h"
-// #include "driver/gpio.h"
-
-// #define LEDC_REF_CLK_HZ         (REF_CLK_FREQ)
-// #define LEDC_ERR_DUTY           (0xFFFFFFFF)
-// #define LEDC_ERR_VAL            (-1)
-
 typedef int esp_err_t;
-
-
-
-// #include <stdint.h>
-// #include <stdbool.h>
-// #include "soc/soc_caps.h"
 
 typedef enum {
     LEDC_HIGH_SPEED_MODE = 0, /*!< LEDC high speed speed_mode */
@@ -37,20 +22,6 @@ typedef enum {
     LEDC_INTR_FADE_END,       /*!< Enable LEDC interrupt */
     LEDC_INTR_MAX,
 } ledc_intr_type_t;
-
-// typedef enum {
-//     LEDC_DUTY_DIR_DECREASE = 0,    [>!< LEDC duty decrease direction <]
-//     LEDC_DUTY_DIR_INCREASE = 1,    [>!< LEDC duty increase direction <]
-//     LEDC_DUTY_DIR_MAX,
-// } ledc_duty_direction_t;
-
-// typedef enum {
-//     LEDC_SLOW_CLK_RTC8M = 0,  [>!< LEDC low speed timer clock source is 8MHz RTC clock<]
-//     LEDC_SLOW_CLK_APB,     [>!< LEDC low speed timer clock source is 80MHz APB clock<]
-// #if SOC_LEDC_SUPPORT_XTAL_CLOCK
-//     LEDC_SLOW_CLK_XTAL,    [>!< LEDC low speed timer clock source XTAL clock<]
-// #endif
-// } ledc_slow_clk_sel_t;
 
 typedef enum {
     LEDC_AUTO_CLK = 0

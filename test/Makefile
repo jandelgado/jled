@@ -34,7 +34,7 @@ TEST_MORSE_SRC=test_example_morse.cpp test_main.cpp
 TEST_MORSE_OBJECTS=$(TEST_MORSE_SRC:.cpp=.o)
 
 
-all: bin bin/test_arduino_mock bin/test_esp32_mock \
+all: bin bin/test_arduino_mock  \
 	 bin/test_jled bin/test_jled_sequence \
 	 bin/test_esp32_hal bin/test_esp8266_hal bin/test_arduino_hal bin/test_mbed_hal \
 	 bin/test_example_morse
