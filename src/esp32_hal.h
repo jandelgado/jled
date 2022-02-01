@@ -1,9 +1,14 @@
 // Copyright (c) 2017-2022 Jan Delgado <jdelgado[at]gmx.net>
 // https://github.com/jandelgado/jled
+//
 // HAL for the ESP32 compatible with Arduino and ESP-IDF framework. Uses
 // ESP-IDF SDK under the hood.
 //
+// Documentation:
 // https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/ledc.html
+//
+// Inspiration from:
+// https://github.com/espressif/arduino-esp32/blob/master/cores/esp32/esp32-hal-ledc.c
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to
@@ -26,9 +31,9 @@
 #ifndef SRC_ESP32_HAL_H_
 #define SRC_ESP32_HAL_H_
 
-#include <stdint.h>
 #include <driver/ledc.h>
 #include <esp_timer.h>
+#include <stdint.h>
 
 namespace jled {
 
@@ -77,23 +82,23 @@ class Esp32Hal {
     static constexpr auto kAutoSelectChan = -1;
 
     // construct an ESP32 analog write object connected
-    // pin    gpio pin to connect to 
-    // chan   specifies the EPS32 ledc channel to use. If set to kAutoSelectChan,
-    //        the next available channel will be used, otherwise the specified one.
+    // pin    gpio pin to connect to
+    // chan   specifies the EPS32 ledc channel to use. If set to
+    // kAutoSelectChan,
+    //        the next available channel will be used, otherwise the specified
+    //        one.
     // freq   defines the ledc base frequency to be used (default: 5000 Hz).
-    // timer is the ledc timer to use (default: LEDC_TIMER_0). When different 
+    // timer is the ledc timer to use (default: LEDC_TIMER_0). When different
     //       frequencies are used, also different timers must be used.
-    Esp32Hal(PinType pin, 
-             int chan = kAutoSelectChan,
-             uint16_t freq = 5000, 
-             ledc_timer_t timer= LEDC_TIMER_0) noexcept {
-
+    Esp32Hal(PinType pin, int chan = kAutoSelectChan, uint16_t freq = 5000,
+             ledc_timer_t timer = LEDC_TIMER_0) noexcept {
         chan_ = (chan == kAutoSelectChan)
                     ? Esp32Hal::chanMapper_.chanForPin(pin)
                     : (ledc_channel_t)chan;
 
+        constexpr auto speed_mode = LEDC_LOW_SPEED_MODE;
         ledc_timer_config_t ledc_timer{};
-        ledc_timer.speed_mode = LEDC_LOW_SPEED_MODE;
+        ledc_timer.speed_mode = speed_mode;
         ledc_timer.duty_resolution = kLedcTimerResolution;
         ledc_timer.timer_num = timer;
         ledc_timer.freq_hz = freq;
@@ -105,26 +110,27 @@ class Esp32Hal {
         ledc_channel_t channel = (ledc_channel_t)(chan_ % LEDC_CHANNEL_MAX);
         ledc_channel_config_t ledc_channel{};
         ledc_channel.gpio_num = pin;
-        ledc_channel.speed_mode = LEDC_LOW_SPEED_MODE;
+        ledc_channel.speed_mode = speed_mode;
         ledc_channel.channel = channel;
         ledc_channel.intr_type = LEDC_INTR_DISABLE;
         ledc_channel.timer_sel = timer;
         ledc_channel.duty = 0;
         ledc_channel.hpoint = 0;
 #if ESP_IDF_VERSION_MAJOR > 4
-        ledc_channel.flags = {0};
+        ledc_channel.flags.output_invert = 0;
 #endif
         ledc_channel_config(&ledc_channel);
     }
 
     void analogWrite(uint8_t duty) const {
+        constexpr auto speed_mode = LEDC_LOW_SPEED_MODE;
         // Fixing if all bits in resolution is set = LEDC FULL ON
         uint32_t _duty = (duty == (1 << kLedcTimerResolution) - 1)
                              ? 1 << kLedcTimerResolution
                              : duty;
 
-        ledc_set_duty(LEDC_LOW_SPEED_MODE, chan_, _duty);
-        ledc_update_duty(LEDC_LOW_SPEED_MODE, chan_);
+        ledc_set_duty(speed_mode, chan_, _duty);
+        ledc_update_duty(speed_mode, chan_);
     }
 
     uint32_t millis() const {
