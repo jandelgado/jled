@@ -10,9 +10,18 @@ control LEDs in simple (**on**/**off**) and complex (**blinking**,
 JLed got some [coverage on Hackaday](https://hackaday.com/2018/06/13/simplifying-basic-led-effects/)
 and someone did a [video tutorial for JLed](https://youtu.be/x5V2vdpZq1w)  - Thanks!
 
-JLed in action | Interactive JLed playground
-:-------------:|:--------------------------------------------------:
-<a href="examples/multiled"><img alt="breathing, blinking, fadeon and -off at the same time" height=200 src="doc/jled.gif"></a>|<a href="https://jandelgado.github.io/jled-wasm"><img alt="jled running in the browser" height=200  src="doc/jled-wasm.png"></a>
+<table>
+ <tr>
+  <th>JLed in action</th>
+  <th>Interactive JLed playground</th>
+ </tr>
+<tr>
+  <td><a href="examples/multiled"><img alt="JLed in action" src="doc/jled.gif" style="width: 280px"></a></td>
+  <td><a href="https://jandelgado.github.io/jled-wasm"><img alt="jled running in the browser" src="doc/jled-wasm.png" style="width: 300px"></a>
+  </td>
+ </tr>
+</table>
+
 
 ## Example
 
@@ -70,6 +79,7 @@ void loop() {
 * [Platform notes](#platform-notes)
     * [ESP8266](#esp8266)
     * [ESP32](#esp32)
+        * [Using ESP-IDF](#using-esp-idf)
     * [STM32](#stm32)
         * [Arduino framework](#arduino-framework)
     * [Raspberry Pi Pico](#raspberry-pi-pico)
@@ -98,7 +108,9 @@ void loop() {
 * can control groups of LEDs sequentially or in parallel
 * Portable: Arduino, ESP8266, ESP32, Mbed, Raspberry Pi Pico and more platforms
   compatible, runs even in the [browser](https://jandelgado.github.io/jled-wasm)
-* supports Arduino, [mbed](https://www.mbed.com) and Raspberry Pi Pico SDKs
+* supports Arduino, [mbed](https://www.mbed.com), [Raspberry Pi
+  Pico](https://github.com/raspberrypi/pico-sdk) and ESP32
+  [ESP-IDF](https://www.espressif.com/en/products/sdks/esp-idf) SDK's
 * well [tested](https://coveralls.io/github/jandelgado/jled)
 
 ## Cheat Sheet
@@ -463,9 +475,10 @@ JLed transparently for the application, yielding platform-independent code.
 
 ### ESP32
 
-The ESP32 Arduino SDK does not provide an `analogWrite()` function. To
-be able to use PWM, we use the `ledc` functions of the ESP32 SDK.
-(See [esspressif documentation](https://docs.espressif.com/projects/esp-idf/en/latest/api-reference/peripherals/ledc.html) for details).
+When compiling for the ESP32, JLed uses `ledc` functions provided by the ESP32
+ESP-IDF SDK.  (See [esspressif
+documentation](https://docs.espressif.com/projects/esp-idf/en/latest/api-reference/peripherals/ledc.html)
+for details).
 
 The `ledc` API connects so-called channels to GPIO pins, enabling them to use
 PWM. There are 16 channels available. Unless otherwise specified, JLed
@@ -479,8 +492,28 @@ auto esp32Led = JLed(jled::Esp32Hal(2, 7)).Blink(1000, 1000).Forever();
 
 The `jled::Esp32Hal(pin, chan)` constructor takes the pin number as the first
 argument and the ESP32 ledc channel number on the second position. Note that
-using the above-mentioned constructor yields non-platform independent code, so
-it should be avoided and is normally not necessary.
+using the above-mentioned constructor results in non-platform independent code,
+so it should be avoided and is normally not necessary.
+
+For completeness, the full signature of the Esp32Hal constructor is
+
+```
+Esp32Hal(PinType pin, 
+         int chan = kAutoSelectChan, 
+         uint16_t freq = 5000,
+         ledc_timer_t timer = LEDC_TIMER_0)
+```
+
+which also allows to override the default frequency and timer used, when needed.
+
+#### Using ESP-IDF
+
+Since JLed uses the ESP-IDF SDK, JLed can also be directly used in ESP-IDF
+projects, without the need of using the Arduino Framework (which is also
+possible). See these repositories for example projects:
+
+* https://github.com/jandelgado/jled-esp-idf-example
+* https://github.com/jandelgado/jled-esp-idf-platformio-example
 
 ### STM32
 
@@ -515,8 +548,10 @@ Example sketches are provided in the [examples](examples/) directory.
 * [Simple User provided effect](examples/user_func)
 * [Morsecode example](examples/morse)
 * [Custom HAL example](examples/custom_hal)
-* [JLed compiled for WASM and running in the browser](https://jandelgado.github.io/jled-wasm)
+* [JLed compiled to WASM and running in the browser](https://jandelgado.github.io/jled-wasm)
 * [Raspberry Pi Pico Demo](examples/raspi_pico)
+* [ESP32 ESP-IDF example](https://github.com/jandelgado/jled-esp-idf-example)
+* [ESP32 ESP-IDF PlatformIO example](https://github.com/jandelgado/jled-esp-idf-platformio-example)
 
 ### PlatformIO
 

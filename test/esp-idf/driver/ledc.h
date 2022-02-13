@@ -1,12 +1,12 @@
+// Minimal ESP-IDF ledc mock for testing JLed ESP32 hardware accessing functions
+// Copyright 2022 Jan Delgado jdelgado@gmx.net
 #pragma once
 
 #include <stdint.h>
 
 /*
  * adapted from https://github.com/espressif/esp-idf include files
-* SPDX-FileCopyrightText: 2015-2022 Espressif Systems (Shanghai) CO LTD
- *
- * SPDX-License-Identifier: Apache-2.0
+ * SPDX-FileCopyrightText: 2015-2022 Espressif Systems (Shanghai) CO LTD
  */
 
 typedef int esp_err_t;
