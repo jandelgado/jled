@@ -75,6 +75,7 @@ class Esp32ChanMapper {
 
 class Esp32Hal {
     static constexpr auto kLedcTimerResolution = LEDC_TIMER_8_BIT;
+    static constexpr auto kLedcSpeedMode = LEDC_LOW_SPEED_MODE;
 
  public:
     using PinType = Esp32ChanMapper::PinType;
@@ -96,9 +97,8 @@ class Esp32Hal {
                     ? Esp32Hal::chanMapper_.chanForPin(pin)
                     : (ledc_channel_t)chan;
 
-        constexpr auto speed_mode = LEDC_LOW_SPEED_MODE;
         ledc_timer_config_t ledc_timer{};
-        ledc_timer.speed_mode = speed_mode;
+        ledc_timer.speed_mode = kLedcSpeedMode;
         ledc_timer.duty_resolution = kLedcTimerResolution;
         ledc_timer.timer_num = timer;
         ledc_timer.freq_hz = freq;
@@ -110,7 +110,7 @@ class Esp32Hal {
         ledc_channel_t channel = (ledc_channel_t)(chan_ % LEDC_CHANNEL_MAX);
         ledc_channel_config_t ledc_channel{};
         ledc_channel.gpio_num = pin;
-        ledc_channel.speed_mode = speed_mode;
+        ledc_channel.speed_mode = kLedcSpeedMode;
         ledc_channel.channel = channel;
         ledc_channel.intr_type = LEDC_INTR_DISABLE;
         ledc_channel.timer_sel = timer;
@@ -123,14 +123,13 @@ class Esp32Hal {
     }
 
     void analogWrite(uint8_t duty) const {
-        constexpr auto speed_mode = LEDC_LOW_SPEED_MODE;
         // Fixing if all bits in resolution is set = LEDC FULL ON
-        uint32_t _duty = (duty == (1 << kLedcTimerResolution) - 1)
+        const uint32_t _duty = (duty == (1 << kLedcTimerResolution) - 1)
                              ? 1 << kLedcTimerResolution
                              : duty;
 
-        ledc_set_duty(speed_mode, chan_, _duty);
-        ledc_update_duty(speed_mode, chan_);
+        ledc_set_duty(kLedcSpeedMode, chan_, _duty);
+        ledc_update_duty(kLedcSpeedMode, chan_);
     }
 
     uint32_t millis() const {

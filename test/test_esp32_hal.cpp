@@ -63,7 +63,7 @@ TEST_CASE("ledc ctor correctly initializes hardware", "[esp32_hal]") {
     REQUIRE(chan_config.timer_sel == LEDC_TIMER_0);
     REQUIRE(chan_config.hpoint == 0);
     REQUIRE(chan_config.duty == 0);
-    // REQUIRE(chan.flags... == 0);
+    REQUIRE(chan_config.flags.output_invert == 0);
 }
 
 TEST_CASE("ledc selects same channel for same pin", "[esp32_hal]") {
