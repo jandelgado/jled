@@ -36,24 +36,24 @@ ledc_timer_config_t esp32_mock_get_ledc_timer_config_args() {
 }
 
 esp_err_t ledc_update_duty(ledc_mode_t speed_mode, ledc_channel_t channel) {
-    assert(channel >= LEDC_CHANNEL_0 && channel <= LEDC_CHANNEL_MAX);
+    assert(channel >= LEDC_CHANNEL_0 && channel < LEDC_CHANNEL_MAX);
     ESP32State_.update_duty[channel] = esp32_mock_ledc_update_duty_args{speed_mode};
     return (esp_err_t)0;
 }
 
 esp32_mock_ledc_update_duty_args esp32_mock_get_ledc_update_duty_args(ledc_channel_t channel) {
-    assert(channel >= LEDC_CHANNEL_0 && channel <= LEDC_CHANNEL_MAX);
+    assert(channel >= LEDC_CHANNEL_0 && channel < LEDC_CHANNEL_MAX);
     return ESP32State_.update_duty[channel];
 }
 
 esp_err_t ledc_set_duty(ledc_mode_t speed_mode, ledc_channel_t channel, uint32_t duty) {
-    assert(channel >= LEDC_CHANNEL_0 && channel <= LEDC_CHANNEL_MAX);
+    assert(channel >= LEDC_CHANNEL_0 && channel < LEDC_CHANNEL_MAX);
     ESP32State_.set_duty[channel] = esp32_mock_ledc_set_duty_args{speed_mode, duty};
     return (esp_err_t)0;
 }
 
 esp32_mock_ledc_set_duty_args esp32_mock_get_ledc_set_duty_args(ledc_channel_t channel) {
-    assert(channel >= LEDC_CHANNEL_0 && channel <= LEDC_CHANNEL_MAX);
+    assert(channel >= LEDC_CHANNEL_0 && channel < LEDC_CHANNEL_MAX);
     return ESP32State_.set_duty[channel];
 }
 
