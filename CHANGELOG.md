@@ -1,5 +1,12 @@
 # JLed changelog (github.com/jandelgado/jled)
 
+## [2022-02-13] 4.9.0
+
+* new: support ESP-IDF platform for the ESP32 (#87, thanks to @troky for the
+       initial work). See also repositories
+       https://github.com/jandelgado/jled-esp-idf-example and
+       https://github.com/jandelgado/jled-esp-idf-platformio-example
+       
 ## [2021-10-18] 4.8.0
 
 * new: make `Breathe` method more flexible (#78, thanks to @boraozgen)

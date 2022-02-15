@@ -6,7 +6,6 @@
 #include <math.h>
 #include <stdint.h>
 #include <cstring>
-#include "esp32.h"  // NOLINT
 
 constexpr auto ARDUINO_PINS = 32;
 
@@ -21,8 +20,6 @@ int arduinoMockGetPinState(uint8_t pin);
 uint32_t millis(void);
 void arduinoMockSetMillis(uint32_t value);
 
-#define PI 3.1415926535897932384626433832795
 #define OUTPUT 0x1
-
 
 #endif  // TEST_ARDUINO_H_

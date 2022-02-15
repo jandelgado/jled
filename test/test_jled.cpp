@@ -403,7 +403,7 @@ TEST_CASE("After Reset() the effect can be restarted", "[jled]") {
     jled.Blink(1, 2);
     constexpr p expected[]{p{true, 255}, p{true, 0}, p{false, 0}, p{false, 0}};
 
-    for (const auto x : expected) {
+    for (const auto &x : expected) {
         jled.Hal().SetMillis(time++);
         REQUIRE(x.first == jled.Update());
         REQUIRE(x.second == jled.Hal().Value());
@@ -411,7 +411,7 @@ TEST_CASE("After Reset() the effect can be restarted", "[jled]") {
 
     // after Reset() effect starts over
     jled.Reset();
-    for (const auto x : expected) {
+    for (const auto &x : expected) {
         jled.Hal().SetMillis(time++);
         REQUIRE(x.first == jled.Update());
         REQUIRE(x.second == jled.Hal().Value());
@@ -428,7 +428,7 @@ TEST_CASE("Changing the effect resets object and starts over", "[jled]") {
     constexpr p expected_blink[]{p{true, 255}, p{true, 0}, p{false, 0},
                                  p{false, 0}};
 
-    for (const auto x : expected_blink) {
+    for (const auto &x : expected_blink) {
         jled.Hal().SetMillis(time++);
         REQUIRE(x.first == jled.Update());
         REQUIRE(x.second == jled.Hal().Value());
