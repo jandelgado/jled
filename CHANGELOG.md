@@ -1,5 +1,10 @@
 # JLed changelog (github.com/jandelgado/jled)
 
+## [2022-02-24] 4.9.1
+
+* fix: make sure JLedSequence methods like `Repeat` and `Forever` are chainable
+  like in the `JLed` class
+
 ## [2022-02-13] 4.9.0
 
 * new: support ESP-IDF platform for the ESP32 (#87, thanks to @troky for the
