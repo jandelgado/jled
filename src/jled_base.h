@@ -472,7 +472,7 @@ template<typename T> T* ptr(T *obj) {return obj;}
 
 // a group of JLed objects which can be controlled simultanously, in parallel
 // or sequentially.
-template <typename T>
+template <typename L, typename B>
 class TJLedSequence {
  protected:
     // update all leds parallel. Returns true while any of the JLeds is
@@ -509,9 +509,9 @@ class TJLedSequence {
     TJLedSequence() = delete;
 
     template <size_t N>
-    TJLedSequence(eMode mode, T (&leds)[N]) : TJLedSequence(mode, leds, N) {}
+    TJLedSequence(eMode mode, L (&leds)[N]) : TJLedSequence(mode, leds, N) {}
 
-    TJLedSequence(eMode mode, T* leds, size_t n)
+    TJLedSequence(eMode mode, L* leds, size_t n)
         : mode_{mode}, leds_{leds}, cur_{0}, n_{n} {}
 
     bool Update() {
@@ -549,18 +549,18 @@ class TJLedSequence {
     }
 
     // set number of repetitions for the sequence
-    TJLedSequence<T> Repeat(uint16_t num_repetitions) {
+    B& Repeat(uint16_t num_repetitions) {
         num_repetitions_ = num_repetitions;
-        return *this;
+        return static_cast<B&>(*this);
     }
 
     // repeat Forever
-    TJLedSequence<T> Forever() { return Repeat(kRepeatForever); }
+    B& Forever() { return Repeat(kRepeatForever); }
     bool IsForever() const { return num_repetitions_ == kRepeatForever; }
 
  private:
     const eMode mode_;
-    T* leds_;
+    L* leds_;
     size_t cur_;
     const size_t n_;
     static constexpr uint16_t kRepeatForever = 65535;

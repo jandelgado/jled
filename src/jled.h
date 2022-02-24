@@ -58,8 +58,8 @@ class JLed : public TJLed<JLedHalType, JLed> {
 };
 
 // a group of JLed objects which can be controlled simultanously
-class JLedSequence : public TJLedSequence<JLed> {
-    using TJLedSequence<JLed>::TJLedSequence;
+class JLedSequence : public TJLedSequence<JLed, JLedSequence> {
+    using TJLedSequence<JLed, JLedSequence>::TJLedSequence;
 };
 
 };  // namespace jled

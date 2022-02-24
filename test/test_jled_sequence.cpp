@@ -15,13 +15,13 @@ class TestJLed : public TJLed<HalMock, TestJLed> {
 };
 
 // a group of JLed objects which can be controlled simultanously
-class TestJLedSequence : public TJLedSequence<TestJLed> {
-    using TJLedSequence<TestJLed>::TJLedSequence;
+class TestJLedSequence : public TJLedSequence<TestJLed, TestJLedSequence> {
+    using TJLedSequence<TestJLed, TestJLedSequence>::TJLedSequence;
 };
 
 // instanciate for test coverage measurement
 template class TJLed<HalMock, TestJLed>;
-template class TJLedSequence<TestJLed>;
+template class TJLedSequence<TestJLed, TestJLedSequence>;
 
 TEST_CASE("parallel sequence performs all updates", "[jled_sequence]") {
     constexpr uint8_t expected1[] = {255, 0, 0};
@@ -153,6 +153,15 @@ TEST_CASE("Forever flag is set by call to Forever()", "[jled_sequence]") {
         auto seq = TestJLedSequence(mode, leds).Forever();
         REQUIRE(seq.IsForever());
     }
+}
+
+TEST_CASE("Forever and Repeat calls can be chained", "[jled_sequence]") {
+    // this is a compile time check only
+    TestJLed leds[] = {TestJLed(0)};
+    TestJLedSequence hal[[gnu::unused]] =
+        TestJLedSequence(TestJLedSequence::eMode::PARALLEL, leds)
+            .Repeat(1)
+            .Forever();
 }
 
 TEST_CASE("reset on sequence resets all JLeds", "[jled_sequence]") {
