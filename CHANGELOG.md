@@ -1,5 +1,11 @@
 # JLed changelog (github.com/jandelgado/jled)
 
+## [2022-02-24] 4.10.0
+
+* new: `On`, `Off` and `Set` now take an optional `duration` value, making
+       these effects behave like any other in this regard. This allows to add 
+       an `On` effect to a `JLedSequence` for a specific amount of time.
+
 ## [2022-02-24] 4.9.1
 
 * fix: make sure JLedSequence methods like `Repeat` and `Forever` are chainable

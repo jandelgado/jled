@@ -66,14 +66,16 @@ class CloneableBrightnessEvaluator : public BrightnessEvaluator {
 
 class ConstantBrightnessEvaluator : public CloneableBrightnessEvaluator {
     uint8_t val_;
+    uint16_t duration_;
 
  public:
     ConstantBrightnessEvaluator() = delete;
-    explicit ConstantBrightnessEvaluator(uint8_t val) : val_(val) {}
+    explicit ConstantBrightnessEvaluator(uint8_t val, uint16_t duration = 1)
+        : val_(val), duration_(duration) {}
     BrightnessEvaluator* clone(void* ptr) const override {
         return new (ptr) ConstantBrightnessEvaluator(*this);
     }
-    uint16_t Period() const override { return 1; }
+    uint16_t Period() const override { return duration_; }
     uint8_t Eval(uint32_t) const override { return val_; }
 };
 
@@ -261,17 +263,19 @@ class TJLed {
     bool IsLowActive() const { return bLowActive_; }
 
     // turn LED on
-    B& On() { return Set(kFullBrightness); }
+    B& On(uint16_t duration = 1) { return Set(kFullBrightness, duration); }
 
     // turn LED off
-    B& Off() { return Set(kZeroBrightness); }
+    B& Off(uint16_t duration = 1) { return Set(kZeroBrightness, duration); }
 
-    // Sets LED to given brightness
-    B& Set(uint8_t brightness) {
+    // Sets LED to given brightness. As for every effect, a duration can be
+    // specified. Update() will return false after the duration elapsed.
+    B& Set(uint8_t brightness, uint16_t duration = 1) {
         // note: we use placement new and therefore not need to keep track of
         // mem allocated
-        return SetBrightnessEval(new (brightness_eval_buf_)
-                                     ConstantBrightnessEvaluator(brightness));
+        return SetBrightnessEval(
+            new (brightness_eval_buf_)
+                ConstantBrightnessEvaluator(brightness, duration));
     }
 
     // Fade LED on
@@ -467,8 +471,14 @@ class TJLed {
     uint16_t delay_after_ = 0;   // delay after each repetition
 };
 
-template<typename T> T* ptr(T &obj) {return &obj;}  // NOLINT
-template<typename T> T* ptr(T *obj) {return obj;}
+template <typename T>
+T* ptr(T& obj) {    // NOLINT
+    return &obj;
+}
+template <typename T>
+T* ptr(T* obj) {
+    return obj;
+}
 
 // a group of JLed objects which can be controlled simultanously, in parallel
 // or sequentially.
@@ -494,7 +504,7 @@ class TJLedSequence {
         if (!ptr(leds_[cur_])->Update()) {
             return ++cur_ < n_;
         }
-        return true;;
+        return true;
     }
 
     void ResetLeds() {
@@ -502,7 +512,6 @@ class TJLedSequence {
             ptr(leds_[i])->Reset();
         }
     }
-
 
  public:
     enum eMode { SEQUENCE, PARALLEL };
@@ -519,8 +528,9 @@ class TJLedSequence {
             return false;
         }
 
-        const auto led_running = (mode_ == eMode::PARALLEL) ? UpdateParallel()
-                                                  : UpdateSequentially();
+        const auto led_running = (mode_ == eMode::PARALLEL)
+                                     ? UpdateParallel()
+                                     : UpdateSequentially();
         if (led_running) {
             return true;
         }
@@ -529,7 +539,7 @@ class TJLedSequence {
         cur_ = 0;
         ResetLeds();
 
-        is_running_ = ++iteration_ < num_repetitions_  ||
+        is_running_ = ++iteration_ < num_repetitions_ ||
                       num_repetitions_ == kRepeatForever;
 
         return is_running_;

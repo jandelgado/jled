@@ -155,18 +155,22 @@ See the examples section below for further details.
 
 #### Static on and off
 
-Calling `On()` turns the LED on.  To immediately turn a LED on, make a call
-like `JLed(LED_BUILTIN).On().Update()`.
+Calling `On(uint16_t period=1)` turns the LED on. To immediately turn a LED on,
+make a call like `JLed(LED_BUILTIN).On().Update()`. The `period` is optional
+and defaults to 1ms.
 
 `Off()` works like `On()`, except that it turns the LED off, i.e. it sets the
 brightness to 0.
 
-Use the `Set(uint8_t brightness)` method to set the brightness to the given
-value, i.e. `Set(255)` is equivalent to calling `On()` and `Set(0)` is
-equivalent to calling `Off()`.
+Use the `Set(uint8_t brightness, uint16_t period=1)` method to set the
+brightness to the given value, i.e. `Set(255)` is equivalent to calling `On()`
+and `Set(0)` is equivalent to calling `Off()`.
 
-Technically `Set`,  `On` and `Off` are effects with a period of 1ms that 
-set the brightness to a constant value.
+Technically, `Set`, `On` and `Off` are effects with a default period of 1ms, that 
+set the brightness to a constant value. Specifiying a different period has an
+effect on when the `Update()` method will be done updating the effect and 
+return false (like for any other effects). This is important when for example
+in a `JLedSequence` the LED should stay on for a given amount of time.
 
 ##### Static on example
 
