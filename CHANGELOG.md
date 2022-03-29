@@ -1,6 +1,11 @@
 # JLed changelog (github.com/jandelgado/jled)
 
-## [2022-02-24] 4.10.0
+## [2022-03-29] 4.11.0
+
+* change: `JLedSequence` objects are now assignable, making switching 
+  effects easier. See https://github.com/jandelgado/jled-example-switch-sequence for an example.
+  
+## [2022-03-24] 4.10.0
 
 * new: `On`, `Off` and `Set` now take an optional `duration` value, making
        these effects behave like any other in this regard. This allows to add 

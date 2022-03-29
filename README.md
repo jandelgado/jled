@@ -552,6 +552,7 @@ Example sketches are provided in the [examples](examples/) directory.
 * [Simple User provided effect](examples/user_func)
 * [Morsecode example](examples/morse)
 * [Custom HAL example](examples/custom_hal)
+* [Dynamically switch sequences](https://github.com/jandelgado/jled-example-switch-sequence)
 * [JLed compiled to WASM and running in the browser](https://jandelgado.github.io/jled-wasm)
 * [Raspberry Pi Pico Demo](examples/raspi_pico)
 * [ESP32 ESP-IDF example](https://github.com/jandelgado/jled-esp-idf-example)

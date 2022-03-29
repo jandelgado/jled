@@ -569,10 +569,10 @@ class TJLedSequence {
     bool IsForever() const { return num_repetitions_ == kRepeatForever; }
 
  private:
-    const eMode mode_;
+    eMode mode_;
     L* leds_;
     size_t cur_;
-    const size_t n_;
+    size_t n_;
     static constexpr uint16_t kRepeatForever = 65535;
     uint16_t num_repetitions_ = 1;
     uint16_t iteration_ = 0;
