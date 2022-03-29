@@ -580,5 +580,4 @@ class TJLedSequence {
 };
 
 };  // namespace jled
-
 #endif  // SRC_JLED_BASE_H_
