@@ -552,6 +552,7 @@ Example sketches are provided in the [examples](examples/) directory.
 * [Simple User provided effect](examples/user_func)
 * [Morsecode example](examples/morse)
 * [Custom HAL example](examples/custom_hal)
+* [Custom PCA9685 HAL](https://github.com/jandelgado/jled-pca9685-hal)
 * [Dynamically switch sequences](https://github.com/jandelgado/jled-example-switch-sequence)
 * [JLed compiled to WASM and running in the browser](https://jandelgado.github.io/jled-wasm)
 * [Raspberry Pi Pico Demo](examples/raspi_pico)
@@ -624,9 +625,8 @@ Just 'reconfigure' the `JLed` with any of the effect methods (e.g. `FadeOn`,
 
 ## Author and Copyright
 
-Copyright 2017, 2018 by Jan Delgado, jdelgado[at]gmx.net.
+Copyright 2017-2022 by Jan Delgado, jdelgado[at]gmx.net.
 
 ## License
 
 [MIT](LICENSE)
-
