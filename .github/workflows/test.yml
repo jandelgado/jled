@@ -33,11 +33,11 @@ jobs:
     - name: install python
       uses: actions/setup-python@v2
       with:
-        python-version: '3.8'
+        python-version: '3.9'
 
     - name: install tools
       run: |
-        pip install platformio==5.1.1
+        pip install platformio==6.1.4
         sudo apt-get update && sudo apt-get install -y lcov
 
     - name: run tests
