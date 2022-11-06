@@ -1,4 +1,5 @@
 .envrc
+.venv/
 .pio/
 **/.vscode
 test/bin
