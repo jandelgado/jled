@@ -1,9 +1,9 @@
 // JLed Unit tests (runs on host)
 // Copyright 2017-2022 Jan Delgado jdelgado@gmx.net
 #include <jled_base.h>  // NOLINT
+#include <iostream>
 #include <limits>
 #include <map>
-#include <iostream>
 #include <utility>
 #include <vector>
 #include "catch.hpp"
@@ -44,15 +44,15 @@ class MockBrightnessEvaluator : public BrightnessEvaluator {
 };
 
 // helper to check that a JLed objects evaluates to the given values
-#define CHECK_LED(led, all_expected)                    \
-    do {                                                \
-        uint32_t time = 0;                              \
-        for (const auto expected : all_expected) {      \
-                INFO("t=" << time);                     \
-                jled.Update();                          \
-                CHECK(expected == jled.Hal().Value());  \
-                jled.Hal().SetMillis(++time);           \
-        }                                               \
+#define CHECK_LED(led, all_expected)               \
+    do {                                           \
+        uint32_t time = 0;                         \
+        for (const auto expected : all_expected) { \
+            INFO("t=" << time);                    \
+            jled.Update();                         \
+            CHECK(expected == jled.Hal().Value()); \
+            jled.Hal().SetMillis(++time);          \
+        }                                          \
     } while (0)
 
 TEST_CASE("jled without effect does nothing", "[jled]") {
@@ -244,12 +244,11 @@ TEST_CASE(
     REQUIRE(100 + 200 + 300 == eval.Period());
 
     const std::map<uint32_t, uint8_t> test_values = {
-        {0, 0}, {50, 68}, {80, 198}, {99, 255},
-        {100, 255}, {299, 255},
-        {300, 255}, {399, 138}, {499, 26}, {599, 0}};
+        {0, 0},     {50, 68},   {80, 198},  {99, 255}, {100, 255},
+        {299, 255}, {300, 255}, {399, 138}, {499, 26}, {599, 0}};
 
     for (const auto &x : test_values) {
-        INFO( "t=" << x.first );
+        INFO("t=" << x.first);
         REQUIRE((int)x.second == (int)eval.Eval(x.first));
     }
 }

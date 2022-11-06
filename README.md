@@ -16,12 +16,11 @@ and someone did a [video tutorial for JLed](https://youtu.be/x5V2vdpZq1w)  - Tha
   <th>Interactive JLed playground</th>
  </tr>
 <tr>
-  <td><a href="examples/multiled"><img alt="JLed in action" src="doc/jled.gif" style="width: 280px"></a></td>
-  <td><a href="https://jandelgado.github.io/jled-wasm"><img alt="jled running in the browser" src="doc/jled-wasm.png" style="width: 300px"></a>
+  <td><a href="examples/multiled"><img alt="JLed in action" src="doc/jled.gif" width=256></a></td>
+  <td><a href="https://jandelgado.github.io/jled-wasm"><img alt="jled running in the browser" src="doc/jled-wasm.png" width=256></a>
   </td>
  </tr>
 </table>
-
 
 ## Example
 
