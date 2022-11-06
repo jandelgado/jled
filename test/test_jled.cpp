@@ -3,7 +3,7 @@
 #include <jled_base.h>  // NOLINT
 #include <limits>
 #include <map>
-#include <sstream>
+#include <iostream>
 #include <utility>
 #include <vector>
 #include "catch.hpp"
@@ -44,18 +44,14 @@ class MockBrightnessEvaluator : public BrightnessEvaluator {
 };
 
 // helper to check that a JLed objects evaluates to the given values
-#define CHECK_LED(led, all_expected)                             \
-    do {                                                         \
-        uint32_t time = 0;                                       \
-        for (const auto expected : all_expected) {               \
-            std::ostringstream os;                               \
-            os << "Checking JLed value for t=" << time;          \
-            SECTION(os.str()) {                                  \
-                jled.Update();                                   \
-                CHECK(expected == jled.Hal().Value()); \
-                jled.Hal().SetMillis(++time);                    \
-            }                                                    \
-        }                                                        \
+#define CHECK_LED(led, all_expected)                    \
+    do {                                                \
+        uint32_t time = 0;                              \
+        for (const auto expected : all_expected) {      \
+                jled.Update();                          \
+                CHECK(expected == jled.Hal().Value());  \
+                jled.Hal().SetMillis(++time);           \
+        }                                               \
     } while (0)
 
 TEST_CASE("jled without effect does nothing", "[jled]") {
