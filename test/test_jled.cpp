@@ -3,9 +3,9 @@
 #include <jled_base.h>  // NOLINT
 #include <limits>
 #include <map>
-#include <vector>
 #include <sstream>
 #include <utility>
+#include <vector>
 #include "catch.hpp"
 #include "hal_mock.h"  // NOLINT
 
@@ -33,30 +33,30 @@ class MockBrightnessEvaluator : public BrightnessEvaluator {
     mutable uint16_t count_ = 0;
 
  public:
-    MockBrightnessEvaluator(ByteVec values) : values_(values) {}
+    explicit MockBrightnessEvaluator(ByteVec values) : values_(values) {}
     uint16_t Count() const { return count_; }
     uint16_t Period() const { return values_.size(); }
     uint8_t Eval(uint32_t t) const {
         REQUIRE(t < values_.size());
         count_++;
-        return values_[t]; 
+        return values_[t];
     }
 };
 
 // helper to check that a JLed objects evaluates to the given values
-#define CHECK_LED(led,all_expected) \
-  do {\
-   uint32_t time = 0;\
-   for(const auto  expected : all_expected) {\
-        std::ostringstream os; \
-        os << "Checking JLed value for t=" << time;\
-        SECTION( os.str() ) {\
-            jled.Update();\
-            CHECK(int(expected) == int(jled.Hal().Value()));\
-            jled.Hal().SetMillis(++time);\
-        }\
-    }\
-  } while(0)
+#define CHECK_LED(led, all_expected)                             \
+    do {                                                         \
+        uint32_t time = 0;                                       \
+        for (const auto expected : all_expected) {               \
+            std::ostringstream os;                               \
+            os << "Checking JLed value for t=" << time;          \
+            SECTION(os.str()) {                                  \
+                jled.Update();                                   \
+                CHECK(expected == jled.Hal().Value()); \
+                jled.Hal().SetMillis(++time);                    \
+            }                                                    \
+        }                                                        \
+    } while (0)
 
 TEST_CASE("jled without effect does nothing", "[jled]") {
     auto led = TestJLed(1);
@@ -305,7 +305,7 @@ TEST_CASE("Handles millis overflow during effect", "[jled]") {
 }
 
 TEST_CASE("Stop() stops the effect", "[jled]") {
-    auto eval = MockBrightnessEvaluator(ByteVec{255,255,255,0});
+    auto eval = MockBrightnessEvaluator(ByteVec{255, 255, 255, 0});
     TestJLed jled = TestJLed(10).UserFunc(&eval);
 
     REQUIRE(jled.IsRunning());
@@ -348,12 +348,10 @@ TEST_CASE("effect with delay after delays start of next iteration", "[jled]") {
     auto eval = MockBrightnessEvaluator(ByteVec{10, 20});
     TestJLed jled = TestJLed(10).UserFunc(&eval).Repeat(2).DelayAfter(2);
 
-    auto expected = ByteVec{
-        //Eval  Delay
-        10, 20, 20, 20,
-        10, 20, 20, 20, 
-        // Final
-        20, 20};    
+    auto expected = ByteVec{// Eval  Delay
+                            10, 20, 20, 20, 10, 20, 20, 20,
+                            // Final
+                            20, 20};
 
     CHECK_LED(jled, expected);
 }
@@ -379,7 +377,6 @@ TEST_CASE("After calling Forever() the effect is repeated over and over again ",
 
 TEST_CASE("The Hal object provided in the ctor is used during update",
           "[jled]") {
-
     auto eval = MockBrightnessEvaluator(ByteVec{10, 20});
     TestJLed jled = TestJLed(HalMock(123)).UserFunc(&eval);
 
@@ -409,7 +406,8 @@ TEST_CASE("After Reset() the effect can be restarted", "[jled]") {
     uint32_t time = 0;
     typedef std::pair<bool, uint8_t> p;
 
-    constexpr p expected[]{p{true, 10}, p{false, 20}, p{false, 20}, p{false, 20}};
+    constexpr p expected[]{p{true, 10}, p{false, 20}, p{false, 20},
+                           p{false, 20}};
 
     for (const auto &x : expected) {
         jled.Hal().SetMillis(time++);
