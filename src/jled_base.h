@@ -361,6 +361,21 @@ class TJLed {
         return static_cast<B&>(*this);
     }
 
+    // Pause effect until Resume is called with the value here returned
+    // TODO(jd) second optional parameter to control end state of LED
+    uint32_t Pause() {
+        // TODO(jd) only if state is running
+        state_ = ST_STOPPED;
+        return hal_.millis() - time_start_;
+    }
+
+    B& Resume(uint32_t delta) {
+        // TODO(jd) only if state is stopped
+        state_ = ST_RUNNING;
+        time_start_ = hal_.millis() - delta;
+        return static_cast<B&>(*this);
+    }
+
     // Sets the maximum brightness level. 255 is full brightness, 0 turns the
     // effect off. Currently, only upper 5 bits of the provided value are used
     // and stored.
@@ -470,7 +485,7 @@ class TJLed {
 };
 
 template <typename T>
-T* ptr(T& obj) {    // NOLINT
+T* ptr(T& obj) {  // NOLINT
     return &obj;
 }
 template <typename T>
@@ -574,5 +589,5 @@ class TJLedSequence {
     bool is_running_ = true;
 };
 
-};  // namespace jled
+};      // namespace jled
 #endif  // SRC_JLED_BASE_H_

@@ -443,6 +443,57 @@ TEST_CASE("Changing the effect resets object and starts over", "[jled]") {
     REQUIRE(0 < jled.Hal().Value());
 }
 
+TEST_CASE("Pause stops further update of effect", "[jled]") {
+    auto eval = MockBrightnessEvaluator(ByteVec{10, 20, 30, 40});
+    TestJLed jled = TestJLed(10).UserFunc(&eval);
+
+    jled.Hal().SetMillis(0);
+    REQUIRE(true == jled.Update());
+
+    jled.Pause();
+    jled.Hal().SetMillis(1);
+    REQUIRE(false == jled.Update());
+}
+
+TEST_CASE("Pause returns time effect run so far", "[jled]") {
+    auto eval = MockBrightnessEvaluator(ByteVec{10, 20, 30, 40});
+    TestJLed jled = TestJLed(10).UserFunc(&eval);
+
+    // start at t=1000
+    jled.Hal().SetMillis(1000);
+    jled.Update();
+
+    // pause at t=1100
+    jled.Hal().SetMillis(1100);
+    auto d = jled.Pause();
+    REQUIRE(100 == d);
+}
+
+TEST_CASE("Resume after Pause continues later where we left off", "[jled]") {
+    auto eval = MockBrightnessEvaluator(ByteVec{10, 20, 30});
+    TestJLed jled = TestJLed(10).UserFunc(&eval);
+
+    // start at t=1000
+    jled.Hal().SetMillis(1000);
+    REQUIRE(true == jled.Update());
+
+    // pause at t=1001
+    jled.Hal().SetMillis(1001);
+    auto d = jled.Pause();
+
+    // resume at t=2000, we expectd to continue where we left off
+    // at t=1001
+    jled.Hal().SetMillis(2000);
+    jled.Resume(d);
+
+    REQUIRE(true == jled.Update());
+    REQUIRE(20 == jled.Hal().Value());
+
+    jled.Hal().SetMillis(2001);
+    REQUIRE(false == jled.Update());
+    REQUIRE(30 == jled.Hal().Value());
+}
+
 TEST_CASE("Max brightness level is initialized to 255 within accuracy",
           "[jled]") {
     // maximum brightness is only stored with kBitsBrightness. Lower bits
@@ -544,3 +595,5 @@ TEST_CASE("scaling a value with factor 31 returns original value", "[scale5]") {
     REQUIRE(127 == jled::scale5(127, 31));
     REQUIRE(255 == jled::scale5(255, 31));
 }
+
+
