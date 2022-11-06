@@ -1,8 +1,10 @@
 // JLed Unit tests (runs on host)
-// Copyright 2017 Jan Delgado jdelgado@gmx.net
+// Copyright 2017-2022 Jan Delgado jdelgado@gmx.net
 #include <jled_base.h>  // NOLINT
 #include <limits>
 #include <map>
+#include <vector>
+#include <sstream>
 #include <utility>
 #include "catch.hpp"
 #include "hal_mock.h"  // NOLINT
@@ -23,6 +25,38 @@ class TestJLed : public TJLed<HalMock, TestJLed> {
 };
 // instanciate for test coverage measurement
 template class TJLed<HalMock, TestJLed>;
+
+using ByteVec = std::vector<uint8_t>;
+
+class MockBrightnessEvaluator : public BrightnessEvaluator {
+    ByteVec values_;
+    mutable uint16_t count_ = 0;
+
+ public:
+    MockBrightnessEvaluator(ByteVec values) : values_(values) {}
+    uint16_t Count() const { return count_; }
+    uint16_t Period() const { return values_.size(); }
+    uint8_t Eval(uint32_t t) const {
+        REQUIRE(t < values_.size());
+        count_++;
+        return values_[t]; 
+    }
+};
+
+// helper to check that a JLed objects evaluates to the given values
+#define CHECK_LED(led,all_expected) \
+  do {\
+   uint32_t time = 0;\
+   for(const auto  expected : all_expected) {\
+        std::ostringstream os; \
+        os << "Checking JLed value for t=" << time;\
+        SECTION( os.str() ) {\
+            jled.Update();\
+            CHECK(int(expected) == int(jled.Hal().Value()));\
+            jled.Hal().SetMillis(++time);\
+        }\
+    }\
+  } while(0)
 
 TEST_CASE("jled without effect does nothing", "[jled]") {
     auto led = TestJLed(1);
@@ -127,20 +161,14 @@ TEST_CASE("using Fadeon(), FadeOff() configures Fade-BrightnessEvaluators",
 }
 
 TEST_CASE("UserFunc() allows to use a custom brightness evaluator", "[jled]") {
-    class CustomBrightnessEvaluator : public BrightnessEvaluator {
-     public:
-        uint16_t Period() const { return 0; }
-        uint8_t Eval(uint32_t) const { return 0; }
-    };
-
     class TestableJLed : public TestJLed {
      public:
         using TestJLed::TestJLed;
         static void test() {
             TestableJLed jled(1);
-            auto cust = CustomBrightnessEvaluator();
+            auto cust = MockBrightnessEvaluator(ByteVec{});
             jled.UserFunc(&cust);
-            REQUIRE(dynamic_cast<CustomBrightnessEvaluator *>(
+            REQUIRE(dynamic_cast<MockBrightnessEvaluator *>(
                         jled.brightness_eval_) != nullptr);
         }
     };
@@ -161,7 +189,7 @@ TEST_CASE("ConstantBrightnessEvaluator returns constant provided value",
 }
 
 TEST_CASE(
-    "BlinkBrightnessEvaluator calculates switches betwen on and off in given "
+    "BlinkBrightnessEvaluator calculates switches between on and off in given "
     "time frames",
     "[jled]") {
     auto eval = BlinkBrightnessEvaluator(10, 5);
@@ -238,25 +266,10 @@ TEST_CASE("Forever flag is set by call to Forever()", "[jled]") {
 }
 
 TEST_CASE("dont evalute twice during one time tick", "[jled]") {
-    class CountingCustomBrightnessEvaluator : public BrightnessEvaluator {
-        mutable uint16_t count_ = 0;
-
-     public:
-        BrightnessEvaluator *clone(void *p) const {
-            return new (p) CountingCustomBrightnessEvaluator(*this);
-        }
-        uint16_t Period() const { return 1000; }
-        uint16_t Count() const { return count_; }
-        uint8_t Eval(uint32_t) const {
-            count_++;
-            return 0;
-        }
-    };
-
-    auto eval = CountingCustomBrightnessEvaluator();
+    auto eval = MockBrightnessEvaluator(ByteVec{0, 1, 2});
     TestJLed jled = TestJLed(1).UserFunc(&eval);
-    jled.Hal().SetMillis(0);
 
+    jled.Hal().SetMillis(0);
     jled.Update();
     REQUIRE(eval.Count() == 1);
     jled.Update();
@@ -264,6 +277,7 @@ TEST_CASE("dont evalute twice during one time tick", "[jled]") {
 
     jled.Hal().SetMillis(1);
     jled.Update();
+
     REQUIRE(eval.Count() == 2);
 }
 
@@ -291,117 +305,111 @@ TEST_CASE("Handles millis overflow during effect", "[jled]") {
 }
 
 TEST_CASE("Stop() stops the effect", "[jled]") {
-    constexpr auto kDuration = 100;
+    auto eval = MockBrightnessEvaluator(ByteVec{255,255,255,0});
+    TestJLed jled = TestJLed(10).UserFunc(&eval);
 
-    // we test that an effect that normally has high ouput for a longer
-    // time (e.g. FadeOff()) stays off after Stop() was called.
-    TestJLed jled = TestJLed(10).FadeOff(kDuration);
     REQUIRE(jled.IsRunning());
     jled.Update();
-    REQUIRE(jled.Hal().Value() > 0);
+    REQUIRE(jled.Hal().Value() == 255);
     jled.Stop();
+
     REQUIRE(!jled.IsRunning());
     REQUIRE_FALSE(jled.Update());
     REQUIRE(0 == jled.Hal().Value());
-    // update should not change anything
+
+    // update must not change anything
     REQUIRE_FALSE(jled.Update());
     REQUIRE(0 == jled.Hal().Value());
 }
 
 TEST_CASE("LowActive() inverts signal", "[jled]") {
-    TestJLed jled = TestJLed(10).On().LowActive();
+    auto eval = MockBrightnessEvaluator(ByteVec{255});
+    TestJLed jled = TestJLed(10).UserFunc(&eval).LowActive();
 
     REQUIRE(jled.IsLowActive());
-    REQUIRE(0 == jled.Hal().Value());
+
     jled.Update();
     REQUIRE(0 == jled.Hal().Value());
+
     jled.Stop();
     REQUIRE(255 == jled.Hal().Value());
 }
 
-TEST_CASE("blink led twice with delay and repeat", "[jled]") {
-    TestJLed jled(10);
+TEST_CASE("effect with repeat 2 runs twice as long", "[jled]") {
+    auto eval = MockBrightnessEvaluator(ByteVec{10, 20});
+    TestJLed jled = TestJLed(10).UserFunc(&eval).Repeat(2);
 
-    // 1 ms on, 2 ms off + 2 ms delay = 3ms off in total per iteration
-    jled.DelayBefore(5).Blink(1, 2).DelayAfter(2).Repeat(2);
-    constexpr uint8_t expected[]{
-        /* delay before 5ms */ 0, 0, 0, 0, 0,
-        /* 1ms on */ 255,
-        /* 2ms off */ 0,          0,
-        /* 2ms delay */ 0,        0,
-        /* repeat */ 255,         0, 0, 0, 0,
-        /* finally stay off */ 0, 0};
-    uint32_t time = 0;
-    for (const auto val : expected) {
-        jled.Update();
-        REQUIRE(val == jled.Hal().Value());
-        jled.Hal().SetMillis(++time);
-    }
+    auto expected = ByteVec{10, 20, 10, 20, 20, 20};
+
+    CHECK_LED(jled, expected);
+}
+
+TEST_CASE("effect with delay after delays start of next iteration", "[jled]") {
+    auto eval = MockBrightnessEvaluator(ByteVec{10, 20});
+    TestJLed jled = TestJLed(10).UserFunc(&eval).Repeat(2).DelayAfter(2);
+
+    auto expected = ByteVec{
+        //Eval  Delay
+        10, 20, 20, 20,
+        10, 20, 20, 20, 
+        // Final
+        20, 20};    
+
+    CHECK_LED(jled, expected);
+}
+
+TEST_CASE("effect with delay before has delayed start ", "[jled]") {
+    auto eval = MockBrightnessEvaluator(ByteVec{10, 20});
+    TestJLed jled = TestJLed(10).UserFunc(&eval).DelayBefore(2);
+
+    auto expected = ByteVec{0, 0, 10, 20, 20, 20, 20};
+
+    CHECK_LED(jled, expected);
 }
 
 TEST_CASE("After calling Forever() the effect is repeated over and over again ",
           "[jled]") {
-    constexpr auto kOnDuration = 5;
-    constexpr auto kOffDuration = 10;
-    constexpr auto kPeriod = kOnDuration + kOffDuration;
-    constexpr auto kRepetitions = 50;  // test this number of times
+    auto eval = MockBrightnessEvaluator(ByteVec{10, 20});
+    TestJLed jled = TestJLed(10).UserFunc(&eval).Forever();
 
-    TestJLed jled(10);
-    jled.Blink(kOnDuration, kOffDuration).Forever();
+    auto expected = ByteVec{10, 20, 10, 20, 10, 20};
 
-    uint32_t time = 0;
-    for (auto i = 0; i < kRepetitions; i++) {
-        jled.Update();
-        const bool is_on = ((time % kPeriod) < kOnDuration);
-        const auto expected = (is_on ? 255 : 0);
-        REQUIRE(expected == jled.Hal().Value());
-        // time++;
-        // if (time >= kOnDuration + kOffDuration) {
-        //     time = 0;
-        // }
-        jled.Hal().SetMillis(++time);
-    }
+    CHECK_LED(jled, expected);
 }
 
 TEST_CASE("The Hal object provided in the ctor is used during update",
           "[jled]") {
-    TestJLed jled = TestJLed(HalMock(10)).Blink(1, 1);
 
-    // test with a simple on-off sequence
-    uint32_t time = 0;
+    auto eval = MockBrightnessEvaluator(ByteVec{10, 20});
+    TestJLed jled = TestJLed(HalMock(123)).UserFunc(&eval);
 
-    jled.Hal().SetMillis(time);
-    REQUIRE(jled.Update());
-    REQUIRE(255 == jled.Hal().Value());
-
-    jled.Hal().SetMillis(++time);
-    REQUIRE(!jled.Update());
-    REQUIRE(0 == jled.Hal().Value());
+    REQUIRE(jled.Hal().Pin() == 123);
 }
 
 TEST_CASE("Update returns true while updating, else false", "[jled]") {
-    TestJLed jled = TestJLed(10).Blink(2, 3);
-    constexpr auto expectedTime = 2 + 3;
+    auto eval = MockBrightnessEvaluator(ByteVec{10, 20});
+    TestJLed jled = TestJLed(10).UserFunc(&eval);
 
-    uint32_t time = 0;
-    for (auto i = 0; i < expectedTime - 1; i++) {
-        // returns FALSE on last step and beyond, else TRUE
-        jled.Hal().SetMillis(time++);
-        REQUIRE(jled.Update());
-    }
+    // Update returns FALSE on last step and beyond, else TRUE
+    auto time = 0;
+    jled.Hal().SetMillis(time++);
+    REQUIRE(jled.Update());
+
     // when effect is done, we expect still false to be returned
+    jled.Hal().SetMillis(time++);
+    REQUIRE_FALSE(jled.Update());
     jled.Hal().SetMillis(time++);
     REQUIRE_FALSE(jled.Update());
 }
 
 TEST_CASE("After Reset() the effect can be restarted", "[jled]") {
-    TestJLed jled(10);
+    auto eval = MockBrightnessEvaluator(ByteVec{10, 20});
+    TestJLed jled = TestJLed(10).UserFunc(&eval);
+
     uint32_t time = 0;
     typedef std::pair<bool, uint8_t> p;
 
-    // 1 ms on, 2 ms off + 2 ms delay = 3ms off in total per iteration
-    jled.Blink(1, 2);
-    constexpr p expected[]{p{true, 255}, p{true, 0}, p{false, 0}, p{false, 0}};
+    constexpr p expected[]{p{true, 10}, p{false, 20}, p{false, 20}, p{false, 20}};
 
     for (const auto &x : expected) {
         jled.Hal().SetMillis(time++);
@@ -419,23 +427,21 @@ TEST_CASE("After Reset() the effect can be restarted", "[jled]") {
 }
 
 TEST_CASE("Changing the effect resets object and starts over", "[jled]") {
-    TestJLed jled(10);
+    auto eval = MockBrightnessEvaluator(ByteVec{10, 20});
+    TestJLed jled = TestJLed(10).UserFunc(&eval);
     uint32_t time = 0;
     typedef std::pair<bool, uint8_t> p;
 
-    // 1 ms on, 2 ms off + 2 ms delay = 3ms off in total per iteration
-    jled.Blink(1, 2);
-    constexpr p expected_blink[]{p{true, 255}, p{true, 0}, p{false, 0},
-                                 p{false, 0}};
+    constexpr p expected[]{p{true, 10}, p{false, 20}, p{false, 20}};
 
-    for (const auto &x : expected_blink) {
+    for (const auto &x : expected) {
         jled.Hal().SetMillis(time++);
         REQUIRE(x.first == jled.Update());
         REQUIRE(x.second == jled.Hal().Value());
     }
 
     // expect to start over after changing effect.
-    jled.FadeOff(1000);
+    jled.UserFunc(&eval);
     REQUIRE(jled.Update());
     REQUIRE(0 < jled.Hal().Value());
 }

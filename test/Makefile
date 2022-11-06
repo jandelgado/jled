@@ -91,7 +91,8 @@ bin:
 	mkdir -p bin
 
 clean:
-	rm -f coverage.info *.{gcov,gcda,gcno,o} ../src/*.{gcov,gcda,gcno,o} .depend
+	rm -f .depend ../src/*.o
+	find . \( -name "*gcov" -o -name "*.gcda" -o -name "*.gcno" -o -name "*.o" \) -print0 | xargs -0 rm
 
 clobber: clean
 	rm -f bin/*
