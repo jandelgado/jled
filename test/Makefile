@@ -1,5 +1,7 @@
 # JLed unit tests Makefile
 # run `make coverage` to run all test and calculate coverage
+.PHONY: phony
+
 CFLAGS=-std=c++14 -c -Wall -Wextra -I. -I../src -I./esp-idf \
 	   --coverage -fno-inline \
 	   -fno-inline-small-functions -fno-default-inline -g -fmax-errors=5 \
@@ -90,9 +92,8 @@ test: depend all
 bin:
 	mkdir -p bin
 
-clean:
-	rm -f .depend ../src/*.o
-	find . \( -name "*gcov" -o -name "*.gcda" -o -name "*.gcno" -o -name "*.o" \) -print0 | xargs -0 rm
+clean: phony
+	rm -f {*.gcov,*.gcda,*.gcno,*.o} .depend
 
 clobber: clean
 	rm -f bin/*

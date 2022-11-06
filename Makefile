@@ -32,7 +32,8 @@ envdump:
 
 clean:
 	-pio run --target clean
-	rm -f {test,src}/{*.o,*.gcno,*.gcda}
+	cd test && make clean
+	rm -f src/{*.o,*.gcno,*.gcda}
 
 upload:
 	pio run --target upload
