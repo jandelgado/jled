@@ -498,9 +498,6 @@ class TJLedSequence {
     // update all leds sequentially. Returns true while any of the JLeds is
     // active, else false
     bool UpdateSequentially() {
-        if (cur_ >= n_) {
-            return false;
-        }
         if (!ptr(leds_[cur_])->Update()) {
             return ++cur_ < n_;
         }
