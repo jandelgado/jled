@@ -48,6 +48,7 @@ class MockBrightnessEvaluator : public BrightnessEvaluator {
     do {                                                \
         uint32_t time = 0;                              \
         for (const auto expected : all_expected) {      \
+                INFO("t=" << time);                     \
                 jled.Update();                          \
                 CHECK(expected == jled.Hal().Value());  \
                 jled.Hal().SetMillis(++time);           \
@@ -239,13 +240,16 @@ TEST_CASE("FadeOffEvaluator evaluates to expected brightness curve", "[jled]") {
 TEST_CASE(
     "BreatheEvaluator evaluates to bell curve distributed brightness curve",
     "[jled]") {
-    constexpr auto kPeriod = 2000;
-    auto eval = BreatheBrightnessEvaluator(kPeriod / 2, 0, kPeriod / 2);
-    REQUIRE(kPeriod == eval.Period());
+    auto eval = BreatheBrightnessEvaluator(100, 200, 300);
+    REQUIRE(100 + 200 + 300 == eval.Period());
+
     const std::map<uint32_t, uint8_t> test_values = {
-        {0, 0}, {500, 68}, {1000, 255}, {1500, 68}, {1999, 0}, {2000, 0}};
+        {0, 0}, {50, 68}, {80, 198}, {99, 255},
+        {100, 255}, {299, 255},
+        {300, 255}, {399, 138}, {499, 26}, {599, 0}};
 
     for (const auto &x : test_values) {
+        INFO( "t=" << x.first );
         REQUIRE((int)x.second == (int)eval.Eval(x.first));
     }
 }

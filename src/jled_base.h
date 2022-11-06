@@ -156,10 +156,8 @@ class BreatheBrightnessEvaluator : public CloneableBrightnessEvaluator {
             return fadeon_func(t, duration_fade_on_);
         else if (t < duration_fade_on_ + duration_on_)
             return kFullBrightness;
-        else if (t < Period())
+        else 
             return fadeon_func(Period() - t, duration_fade_off_);
-        else
-            return kZeroBrightness;
     }
 };
 
