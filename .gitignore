@@ -1,3 +1,4 @@
+.envrc
 .venv/
 .pio/
 **/.vscode

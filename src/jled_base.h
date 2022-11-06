@@ -156,10 +156,8 @@ class BreatheBrightnessEvaluator : public CloneableBrightnessEvaluator {
             return fadeon_func(t, duration_fade_on_);
         else if (t < duration_fade_on_ + duration_on_)
             return kFullBrightness;
-        else if (t < Period())
-            return fadeon_func(Period() - t, duration_fade_off_);
         else
-            return kZeroBrightness;
+            return fadeon_func(Period() - t, duration_fade_off_);
     }
 };
 
@@ -498,9 +496,6 @@ class TJLedSequence {
     // update all leds sequentially. Returns true while any of the JLeds is
     // active, else false
     bool UpdateSequentially() {
-        if (cur_ >= n_) {
-            return false;
-        }
         if (!ptr(leds_[cur_])->Update()) {
             return ++cur_ < n_;
         }
