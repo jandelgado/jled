@@ -455,20 +455,6 @@ TEST_CASE("Pause stops further update of effect", "[jled]") {
     REQUIRE(false == jled.Update());
 }
 
-TEST_CASE("Pause returns time effect run so far", "[jled]") {
-    auto eval = MockBrightnessEvaluator(ByteVec{10, 20, 30, 40});
-    TestJLed jled = TestJLed(10).UserFunc(&eval);
-
-    // start at t=1000
-    jled.Hal().SetMillis(1000);
-    jled.Update();
-
-    // pause at t=1100
-    jled.Hal().SetMillis(1100);
-    auto d = jled.Pause();
-    REQUIRE(100 == d);
-}
-
 TEST_CASE("Resume after Pause continues later where we left off", "[jled]") {
     auto eval = MockBrightnessEvaluator(ByteVec{10, 20, 30});
     TestJLed jled = TestJLed(10).UserFunc(&eval);
@@ -479,12 +465,14 @@ TEST_CASE("Resume after Pause continues later where we left off", "[jled]") {
 
     // pause at t=1001
     jled.Hal().SetMillis(1001);
-    auto d = jled.Pause();
+    auto state = jled.Pause();
 
-    // resume at t=2000, we expectd to continue where we left off
+    REQUIRE_FALSE(jled.IsRunning());
+
+    // resume at t=2000, we expect to continue where we left off
     // at t=1001
     jled.Hal().SetMillis(2000);
-    jled.Resume(d);
+    jled.Resume(state);
 
     REQUIRE(true == jled.Update());
     REQUIRE(20 == jled.Hal().Value());

@@ -361,18 +361,22 @@ class TJLed {
         return static_cast<B&>(*this);
     }
 
-    // Pause effect until Resume is called with the value here returned
+    struct SaveState;
+
+    // Pause effect until Resume is called with the state returned here.
     // TODO(jd) second optional parameter to control end state of LED
-    uint32_t Pause() {
+    SaveState Pause() {
         // TODO(jd) only if state is running
+        auto state = SaveState(state_, hal_.millis());
         state_ = ST_STOPPED;
-        return hal_.millis() - time_start_;
+        return state;
+        // return hal_.millis() - time_start_;
     }
 
-    B& Resume(uint32_t delta) {
-        // TODO(jd) only if state is stopped
-        state_ = ST_RUNNING;
-        time_start_ = hal_.millis() - delta;
+    // Resume previously paused effect. Pass in state returned by Pause.
+    B& Resume(const SaveState& state) {
+        state_ = state.state_;
+        time_start_ = hal_.millis() - (state.time_ - time_start_);
         return static_cast<B&>(*this);
     }
 
@@ -454,13 +458,23 @@ class TJLed {
     static constexpr uint8_t ST_STOPPED = 0;
     static constexpr uint8_t ST_RUNNING = 1;
     static constexpr uint8_t ST_IN_DELAY_AFTER_PHASE = 2;
-
     uint8_t state_ : 2;
     uint8_t bLowActive_ : 1;
 
+ public:
+    // Opaque state used by Pause/Resume
+    struct SaveState {
+        friend class TJLed;
+        SaveState() = delete;
+
+     private:
+        SaveState(uint8_t state, uint32_t time) : state_(state), time_(time) {}
+        uint8_t state_ : 2;
+        uint32_t time_;
+    };
+
     // Number of bits used to control brightness with MaxBrightness(). Using
     // only 5 bits here saves us a byte, since summing up with previous defs.
- public:
     static constexpr uint8_t kBitsBrightness = 5;
     static constexpr uint8_t kBrightnessStep = 1 << (8 - kBitsBrightness);
 
