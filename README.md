@@ -545,6 +545,8 @@ Example sketches are provided in the [examples](examples/) directory.
 * [Candle effect](examples/candle)
 * [Fade LED on](examples/fade_on)
 * [Fade LED off](examples/fade_off)
+* [Fade from-to effect](examples/fade_from_to)
+* [Pulse effect](examples/pulse)
 * [Controlling multiple LEDs in parallel](examples/multiled)
 * [Controlling multiple LEDs in parallel (mbed)](examples/multiled_mbed)
 * [Controlling multiple LEDs sequentially](examples/sequence)
