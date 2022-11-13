@@ -59,6 +59,8 @@ void loop() {
         * [FadeOn](#fadeon)
             * [FadeOn example](#fadeon-example)
         * [FadeOff](#fadeoff)
+        * [Fade](#fade)
+            * [Fade example](#fade-example)
         * [User provided brightness function](#user-provided-brightness-function)
             * [User provided brightness function example](#user-provided-brightness-function-example)
         * [Delays and repetitions](#delays-and-repetitions)
@@ -296,8 +298,32 @@ void loop() {
 
 In FadeOff mode, the LED is smoothly faded off using PWM. The fade starts at
 100% brightness. Internally it is implemented as a mirrored version of the
-FadeOn function, i.e. FadeOn(t) = FadeOff(period-t).  The `FadeOff()` method
+FadeOn function, i.e. FadeOff(t) = FadeOn(period-t).  The `FadeOff()` method
 takes the period of the effect as argument.
+
+#### Fade
+
+The Fade effect allows to fade from any start value `from` to any target value
+`to` with the given duration. Internally it sets up a `FadeOn` or `FadeOff`
+effect and `MinBrightness` and `MaxBrightness` values properly. The `Fade`
+method take three argumens: `from`, `to` and `duration`.
+
+<a href="examples/fade_from_to"><img alt="fade from-to" src="doc/fade_from-to.png" height=200></a>
+
+##### Fade example
+
+```c++
+#include <jled.h>
+
+// fade from 100 to 200 with period 1000
+auto led = JLed(9).Fade(100, 200, 1000);
+
+void setup() { }
+
+void loop() {
+  led.Update();
+}
+```
 
 #### User provided brightness function
 
