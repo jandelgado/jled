@@ -214,7 +214,7 @@ class TJLed {
     TJLed() = delete;
     explicit TJLed(const HalType& hal)
         : hal_{hal},
-          state_{ST_RUNNING},
+          state_{ST_INIT},
           bLowActive_{false},
           maxBrightness_{(1 << kBitsBrightness) - 1} {}
 
@@ -355,9 +355,9 @@ class TJLed {
 
     // Reset to inital state
     B& Reset() {
-        time_start_ = kTimeUndef;
-        last_update_time_ = kTimeUndef;
-        state_ = ST_RUNNING;
+        time_start_ = 0;
+        last_update_time_ = 0;
+        state_ = ST_INIT;
         return static_cast<B&>(*this);
     }
 
@@ -376,6 +376,15 @@ class TJLed {
     }
 
  protected:
+    // test if time stored in last_update_time_ differs from provided timestamp.
+    bool inline timeChangedSinceLastUpdate(uint32_t now) {
+        return (now & 255) != last_update_time_;
+    }
+
+    void trackLastUpdateTime(uint32_t t) {
+        last_update_time_ = (t & 255);
+    }
+
     // update brightness of LED using the given brightness evaluator
     //  (brightness)                       ________________
     // on 255 |                         ¸-'
@@ -388,13 +397,15 @@ class TJLed {
     bool Update(uint32_t now) {
         if (state_ == ST_STOPPED || !brightness_eval_) return false;
 
-        // no need to process updates twice during one time tick.
-        if (last_update_time_ == now) return true;
-
-        if (last_update_time_ == kTimeUndef) {
-            time_start_ = now + delay_before_;
+        if (state_ == ST_INIT) {
+             time_start_ = now + delay_before_;
+             state_ = ST_RUNNING;
+        } else {
+            // no need to process updates twice during one time tick.
+            if (!timeChangedSinceLastUpdate(now)) return true;
         }
-        last_update_time_ = now;
+
+        trackLastUpdateTime(now);
 
         if ((int32_t)(now - time_start_) < 0) return true;
 
@@ -437,8 +448,9 @@ class TJLed {
 
  private:
     static constexpr uint8_t ST_STOPPED = 0;
-    static constexpr uint8_t ST_RUNNING = 1;
-    static constexpr uint8_t ST_IN_DELAY_AFTER_PHASE = 2;
+    static constexpr uint8_t ST_INIT = 1;
+    static constexpr uint8_t ST_RUNNING = 2;
+    static constexpr uint8_t ST_IN_DELAY_AFTER_PHASE = 3;
 
     uint8_t state_ : 2;
     uint8_t bLowActive_ : 1;
@@ -461,9 +473,14 @@ class TJLed {
     static constexpr uint16_t kRepeatForever = 65535;
     uint16_t num_repetitions_ = 1;
 
-    static constexpr uint32_t kTimeUndef = -1;
-    uint32_t last_update_time_ = kTimeUndef;
-    uint32_t time_start_ = kTimeUndef;
+    // We store the timestamp the effect was last updated to avoid multiple
+    // updates when called during the same time tick.  Only the lower 8 bits of
+    // the timestamp are used (which saves us 3 bytes of memory per JLed
+    // instance), resulting in limited accuracy, which may lead to false
+    // negatives if Update() is not called for a longer time (i.e. > 255ms),
+    // which should not be a problem at all.
+    uint8_t last_update_time_ = 0;
+    uint32_t time_start_ = 0;
 
     uint16_t delay_before_ = 0;  // delay before the first effect starts
     uint16_t delay_after_ = 0;   // delay after each repetition

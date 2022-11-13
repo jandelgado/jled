@@ -522,6 +522,21 @@ TEST_CASE("Setting max brightness level limits brightness value written to HAL",
     TestableJLed::test();
 }
 
+TEST_CASE("timeChangeSinceLastUpdate detects time changes", "[jled]") {
+    class TestableJLed : public TestJLed {
+     public:
+        using TestJLed::TestJLed;
+        static void test() {
+            TestableJLed jled(1);
+
+            jled.trackLastUpdateTime(1000);
+            CHECK_FALSE(jled.timeChangedSinceLastUpdate(1000));
+            CHECK(jled.timeChangedSinceLastUpdate(1001));
+        }
+    };
+    TestableJLed::test();
+}
+
 TEST_CASE("random generator delivers pseudo random numbers", "[rand]") {
     jled::rand_seed(0);
     REQUIRE(0x59 == jled::rand8());
