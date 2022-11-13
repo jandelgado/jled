@@ -1,14 +1,19 @@
 # JLed changelog (github.com/jandelgado/jled)
 
+## [2022-11-13] 4.11.1
+
+* improve: reduce memory consumption of JLed objects by 3 bytes, simplify
+    state management.
+
 ## [2022-03-29] 4.11.0
 
-* change: `JLedSequence` objects are now assignable, making switching 
+* change: `JLedSequence` objects are now assignable, making switching
   effects easier. See https://github.com/jandelgado/jled-example-switch-sequence for an example.
-  
+
 ## [2022-03-24] 4.10.0
 
 * new: `On`, `Off` and `Set` now take an optional `duration` value, making
-       these effects behave like any other in this regard. This allows to add 
+       these effects behave like any other in this regard. This allows to add
        an `On` effect to a `JLedSequence` for a specific amount of time.
 
 ## [2022-02-24] 4.9.1
@@ -22,7 +27,7 @@
        initial work). See also repositories
        https://github.com/jandelgado/jled-esp-idf-example and
        https://github.com/jandelgado/jled-esp-idf-platformio-example
-       
+
 ## [2021-10-18] 4.8.0
 
 * new: make `Breathe` method more flexible (#78, thanks to @boraozgen)
@@ -70,12 +75,12 @@
 
 ## [2019-08-30] 4.2.1
 
-* fix: make sure memory alignment is correct (caused hard fault on 
+* fix: make sure memory alignment is correct (caused hard fault on
   SAMD21). Fixes #27.
 
 ## [2019-06-20] 4.2.0
 
-* changing an effect resets the Jled object so it starts over with the 
+* changing an effect resets the Jled object so it starts over with the
   new effect (see #25). Prior to this change, calling `Reset()` was
   necessary.
 
@@ -125,10 +130,10 @@ In addition to the changes introduced with `v4.0.0-rc0` and `v4.0.0-rc1`, the
 
 ### Added
 
-* `JLed::Reset()` - resets the led to it's initial state allowing to 
+* `JLed::Reset()` - resets the led to it's initial state allowing to
   to start over
 * `JLed::IsRunning()` - return true if effect is active, else false
-* new class `JLedSequence` to update JLed objects simultanously or 
+* new class `JLedSequence` to update JLed objects simultanously or
   sequentially. See [README](README.md#controlling-a-group-of-leds) for details.
 * added new [morse example](examples/morse)
 * clean separation between hardware specific and common code, making
@@ -141,7 +146,7 @@ In addition to the changes introduced with `v4.0.0-rc0` and `v4.0.0-rc1`, the
   BrightnessEvaluator. Migration of code should be straight forward, see
   below
 
-#### old brightness function 
+#### old brightness function
 
 In JLed version prio to version 4.0.0, a function pointer was used to specify
 a user provided brightness function.
@@ -193,7 +198,7 @@ JLed led = JLed(LED_BUILTIN).UserFunc(&userEffect);
 ## [2018-09-22] v2.3.0
 
 * ESP8266 platform: scaling from 8 to 10 bit improved. The scaling makes sure
-  that 0 is mapped to 0 and 255 is mapped to 1023, preserving min/max 
+  that 0 is mapped to 0 and 255 is mapped to 1023, preserving min/max
   relationships in both ranges.
 
 ## [2018-06-09] v2.2.3
