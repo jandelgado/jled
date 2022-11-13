@@ -66,15 +66,18 @@ uint8_t rand8() {
     return (uint8_t)rand_;
 }
 
-// scale a byte by a factor, where only the lower 5 bits of factor are used.
-// i.e.  the scaling factor is in the range [0,31]. scale5 has the following
-// properties:
-//   scale5(x, f) = x*f / 32  for all x and f=0..30
-//   scale5(x, 31) = x  for all x
-uint8_t scale5(uint8_t val, uint8_t factor) {
-    if (factor == 31)
-        return val;  // optimize for most common case (full brightness)
-    return ((uint16_t)val * factor) >> 5;
+// scale a byte (val) by a byte (factor). scale8 has the following properties:
+//   scale8(0, f) == 0 for all f
+//   scale8(x, 255) == x for all x
+uint8_t scale8(uint8_t val, uint8_t factor) {
+    return ((uint16_t)val * (uint16_t)(1 + factor)) >> 8;
+}
+
+// interpolate a byte (val) to the interval [a,b].
+uint8_t lerp8by8(uint8_t val, uint8_t a, uint8_t b) {
+    if (a == 0 && b == 255) return val;  // optimize for most common case
+    uint8_t delta = b - a;
+    return a + scale8(val, delta);
 }
 
 };  // namespace jled

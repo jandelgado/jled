@@ -37,7 +37,7 @@ class MockBrightnessEvaluator : public BrightnessEvaluator {
     uint16_t Count() const { return count_; }
     uint16_t Period() const { return values_.size(); }
     uint8_t Eval(uint32_t t) const {
-        REQUIRE(t < values_.size());
+        CHECK(t < values_.size());
         count_++;
         return values_[t];
     }
@@ -57,7 +57,7 @@ class MockBrightnessEvaluator : public BrightnessEvaluator {
 
 TEST_CASE("jled without effect does nothing", "[jled]") {
     auto led = TestJLed(1);
-    REQUIRE(!led.Update());
+    CHECK(!led.Update());
 }
 
 TEST_CASE("On/Off function configuration", "[jled]") {
@@ -73,7 +73,7 @@ TEST_CASE("On/Off function configuration", "[jled]") {
                 jled.On();
                 REQUIRE(dynamic_cast<ConstantBrightnessEvaluator *>(
                             jled.brightness_eval_) != nullptr);
-                REQUIRE(jled.brightness_eval_->Eval(0) == 255);
+                CHECK(jled.brightness_eval_->Eval(0) == 255);
             }
 
             SECTION(
@@ -83,7 +83,7 @@ TEST_CASE("On/Off function configuration", "[jled]") {
                 jled.Off();
                 REQUIRE(dynamic_cast<ConstantBrightnessEvaluator *>(
                             jled.brightness_eval_) != nullptr);
-                REQUIRE(jled.brightness_eval_->Eval(0) == 0);
+                CHECK(jled.brightness_eval_->Eval(0) == 0);
             }
 
             SECTION("using Set() allows to set custom brightness level") {
@@ -91,7 +91,7 @@ TEST_CASE("On/Off function configuration", "[jled]") {
                 jled.Set(123);
                 REQUIRE(dynamic_cast<ConstantBrightnessEvaluator *>(
                             jled.brightness_eval_) != nullptr);
-                REQUIRE(jled.brightness_eval_->Eval(0) == 123);
+                CHECK(jled.brightness_eval_->Eval(0) == 123);
             }
 
             SECTION("using Set(0) allows to set custom turn LED off") {
@@ -99,7 +99,7 @@ TEST_CASE("On/Off function configuration", "[jled]") {
                 jled.Set(0);
                 REQUIRE(dynamic_cast<ConstantBrightnessEvaluator *>(
                             jled.brightness_eval_) != nullptr);
-                REQUIRE(jled.brightness_eval_->Eval(0) == 0);
+                CHECK(jled.brightness_eval_->Eval(0) == 0);
             }
         }
     };
@@ -175,14 +175,14 @@ TEST_CASE("UserFunc() allows to use a custom brightness evaluator", "[jled]") {
 TEST_CASE("ConstantBrightnessEvaluator returns constant provided value",
           "[jled]") {
     auto cbZero = ConstantBrightnessEvaluator(0);
-    REQUIRE(1 == cbZero.Period());
-    REQUIRE(0 == cbZero.Eval(0));
-    REQUIRE(0 == cbZero.Eval(1000));
+    CHECK(1 == cbZero.Period());
+    CHECK(0 == cbZero.Eval(0));
+    CHECK(0 == cbZero.Eval(1000));
 
     auto cbFull = ConstantBrightnessEvaluator(255);
-    REQUIRE(1 == cbFull.Period());
-    REQUIRE(255 == cbFull.Eval(0));
-    REQUIRE(255 == cbFull.Eval(1000));
+    CHECK(1 == cbFull.Period());
+    CHECK(255 == cbFull.Eval(0));
+    CHECK(255 == cbFull.Eval(1000));
 }
 
 TEST_CASE(
@@ -190,19 +190,19 @@ TEST_CASE(
     "time frames",
     "[jled]") {
     auto eval = BlinkBrightnessEvaluator(10, 5);
-    REQUIRE(10 + 5 == eval.Period());
-    REQUIRE(255 == eval.Eval(0));
-    REQUIRE(255 == eval.Eval(9));
-    REQUIRE(0 == eval.Eval(10));
-    REQUIRE(0 == eval.Eval(14));
+    CHECK(10 + 5 == eval.Period());
+    CHECK(255 == eval.Eval(0));
+    CHECK(255 == eval.Eval(9));
+    CHECK(0 == eval.Eval(10));
+    CHECK(0 == eval.Eval(14));
 }
 
 TEST_CASE("CandleBrightnessEvaluator simulated candle flickering", "[jled]") {
     auto eval = CandleBrightnessEvaluator(7, 15, 1000);
-    REQUIRE(1000 == eval.Period());
+    CHECK(1000 == eval.Period());
     // TODO(jd) do further and better tests
-    REQUIRE(eval.Eval(0) > 0);
-    REQUIRE(eval.Eval(999) > 0);
+    CHECK(eval.Eval(0) > 0);
+    CHECK(eval.Eval(999) > 0);
 }
 
 TEST_CASE("FadeOnEvaluator evaluates to expected brightness curve", "[jled]") {
@@ -210,14 +210,14 @@ TEST_CASE("FadeOnEvaluator evaluates to expected brightness curve", "[jled]") {
 
     auto evalOn = FadeOnBrightnessEvaluator(kPeriod);
 
-    REQUIRE(kPeriod == evalOn.Period());
+    CHECK(kPeriod == evalOn.Period());
 
     const std::map<uint32_t, uint8_t> test_values = {
         {0, 0},      {500, 13},   {1000, 68},  {1500, 179},
         {1999, 255}, {2000, 255}, {10000, 255}};
 
     for (const auto &x : test_values) {
-        REQUIRE(x.second == evalOn.Eval(x.first));
+        CHECK(x.second == evalOn.Eval(x.first));
     }
 }
 
@@ -227,13 +227,13 @@ TEST_CASE("FadeOffEvaluator evaluates to expected brightness curve", "[jled]") {
     // note: FadeOff is invervted FadeOn
     auto evalOff = FadeOffBrightnessEvaluator(kPeriod);
 
-    REQUIRE(kPeriod == evalOff.Period());
+    CHECK(kPeriod == evalOff.Period());
     const std::map<uint32_t, uint8_t> test_values = {
         {0, 0},      {500, 13},   {1000, 68},  {1500, 179},
         {1999, 255}, {2000, 255}, {10000, 255}};
 
     for (const auto &x : test_values) {
-        REQUIRE(x.second == evalOff.Eval(kPeriod - x.first));
+        CHECK(x.second == evalOff.Eval(kPeriod - x.first));
     }
 }
 
@@ -241,7 +241,7 @@ TEST_CASE(
     "BreatheEvaluator evaluates to bell curve distributed brightness curve",
     "[jled]") {
     auto eval = BreatheBrightnessEvaluator(100, 200, 300);
-    REQUIRE(100 + 200 + 300 == eval.Period());
+    CHECK(100 + 200 + 300 == eval.Period());
 
     const std::map<uint32_t, uint8_t> test_values = {
         {0, 0},     {50, 68},   {80, 198},  {99, 255}, {100, 255},
@@ -249,19 +249,19 @@ TEST_CASE(
 
     for (const auto &x : test_values) {
         INFO("t=" << x.first);
-        REQUIRE((int)x.second == (int)eval.Eval(x.first));
+        CHECK((int)x.second == (int)eval.Eval(x.first));
     }
 }
 
 TEST_CASE("Forever flag is initially set to false", "[jled]") {
     TestJLed jled(1);
-    REQUIRE_FALSE(jled.IsForever());
+    CHECK_FALSE(jled.IsForever());
 }
 
 TEST_CASE("Forever flag is set by call to Forever()", "[jled]") {
     TestJLed jled(1);
     jled.Forever();
-    REQUIRE(jled.IsForever());
+    CHECK(jled.IsForever());
 }
 
 TEST_CASE("dont evalute twice during one time tick", "[jled]") {
@@ -270,14 +270,14 @@ TEST_CASE("dont evalute twice during one time tick", "[jled]") {
 
     jled.Hal().SetMillis(0);
     jled.Update();
-    REQUIRE(eval.Count() == 1);
+    CHECK(eval.Count() == 1);
     jled.Update();
-    REQUIRE(eval.Count() == 1);
+    CHECK(eval.Count() == 1);
 
     jled.Hal().SetMillis(1);
     jled.Update();
 
-    REQUIRE(eval.Count() == 2);
+    CHECK(eval.Count() == 2);
 }
 
 TEST_CASE("Handles millis overflow during effect", "[jled]") {
@@ -285,53 +285,53 @@ TEST_CASE("Handles millis overflow during effect", "[jled]") {
     // Set time close to overflow
     auto time = std::numeric_limits<uint32_t>::max() - 25;
     jled.Hal().SetMillis(time);
-    REQUIRE_FALSE(jled.Update());
+    CHECK_FALSE(jled.Update());
     // Start fade off
     jled.FadeOff(100);
-    REQUIRE(jled.Update());
-    REQUIRE(jled.IsRunning());
-    REQUIRE(jled.Hal().Value() > 0);
+    CHECK(jled.Update());
+    CHECK(jled.IsRunning());
+    CHECK(jled.Hal().Value() > 0);
     // Set time after overflow, before effect ends
     jled.Hal().SetMillis(time + 50);
-    REQUIRE(jled.Update());
-    REQUIRE(jled.IsRunning());
-    REQUIRE(jled.Hal().Value() > 0);
+    CHECK(jled.Update());
+    CHECK(jled.IsRunning());
+    CHECK(jled.Hal().Value() > 0);
     // Set time after effect ends
     jled.Hal().SetMillis(time + 150);
-    REQUIRE_FALSE(jled.Update());
-    REQUIRE_FALSE(jled.IsRunning());
-    REQUIRE(0 == jled.Hal().Value());
+    CHECK_FALSE(jled.Update());
+    CHECK_FALSE(jled.IsRunning());
+    CHECK(0 == jled.Hal().Value());
 }
 
 TEST_CASE("Stop() stops the effect", "[jled]") {
     auto eval = MockBrightnessEvaluator(ByteVec{255, 255, 255, 0});
     TestJLed jled = TestJLed(10).UserFunc(&eval);
 
-    REQUIRE(jled.IsRunning());
+    CHECK(jled.IsRunning());
     jled.Update();
-    REQUIRE(jled.Hal().Value() == 255);
+    CHECK(jled.Hal().Value() == 255);
     jled.Stop();
 
-    REQUIRE(!jled.IsRunning());
-    REQUIRE_FALSE(jled.Update());
-    REQUIRE(0 == jled.Hal().Value());
+    CHECK(!jled.IsRunning());
+    CHECK_FALSE(jled.Update());
+    CHECK(0 == jled.Hal().Value());
 
     // update must not change anything
-    REQUIRE_FALSE(jled.Update());
-    REQUIRE(0 == jled.Hal().Value());
+    CHECK_FALSE(jled.Update());
+    CHECK(0 == jled.Hal().Value());
 }
 
 TEST_CASE("LowActive() inverts signal", "[jled]") {
     auto eval = MockBrightnessEvaluator(ByteVec{255});
     TestJLed jled = TestJLed(10).UserFunc(&eval).LowActive();
 
-    REQUIRE(jled.IsLowActive());
+    CHECK(jled.IsLowActive());
 
     jled.Update();
-    REQUIRE(0 == jled.Hal().Value());
+    CHECK(0 == jled.Hal().Value());
 
     jled.Stop();
-    REQUIRE(255 == jled.Hal().Value());
+    CHECK(255 == jled.Hal().Value());
 }
 
 TEST_CASE("effect with repeat 2 runs twice as long", "[jled]") {
@@ -379,7 +379,7 @@ TEST_CASE("The Hal object provided in the ctor is used during update",
     auto eval = MockBrightnessEvaluator(ByteVec{10, 20});
     TestJLed jled = TestJLed(HalMock(123)).UserFunc(&eval);
 
-    REQUIRE(jled.Hal().Pin() == 123);
+    CHECK(jled.Hal().Pin() == 123);
 }
 
 TEST_CASE("Update returns true while updating, else false", "[jled]") {
@@ -389,13 +389,13 @@ TEST_CASE("Update returns true while updating, else false", "[jled]") {
     // Update returns FALSE on last step and beyond, else TRUE
     auto time = 0;
     jled.Hal().SetMillis(time++);
-    REQUIRE(jled.Update());
+    CHECK(jled.Update());
 
     // when effect is done, we expect still false to be returned
     jled.Hal().SetMillis(time++);
-    REQUIRE_FALSE(jled.Update());
+    CHECK_FALSE(jled.Update());
     jled.Hal().SetMillis(time++);
-    REQUIRE_FALSE(jled.Update());
+    CHECK_FALSE(jled.Update());
 }
 
 TEST_CASE("After Reset() the effect can be restarted", "[jled]") {
@@ -410,16 +410,16 @@ TEST_CASE("After Reset() the effect can be restarted", "[jled]") {
 
     for (const auto &x : expected) {
         jled.Hal().SetMillis(time++);
-        REQUIRE(x.first == jled.Update());
-        REQUIRE(x.second == jled.Hal().Value());
+        CHECK(x.first == jled.Update());
+        CHECK(x.second == jled.Hal().Value());
     }
 
     // after Reset() effect starts over
     jled.Reset();
     for (const auto &x : expected) {
         jled.Hal().SetMillis(time++);
-        REQUIRE(x.first == jled.Update());
-        REQUIRE(x.second == jled.Hal().Value());
+        CHECK(x.first == jled.Update());
+        CHECK(x.second == jled.Hal().Value());
     }
 }
 
@@ -433,51 +433,49 @@ TEST_CASE("Changing the effect resets object and starts over", "[jled]") {
 
     for (const auto &x : expected) {
         jled.Hal().SetMillis(time++);
-        REQUIRE(x.first == jled.Update());
-        REQUIRE(x.second == jled.Hal().Value());
+        CHECK(x.first == jled.Update());
+        CHECK(x.second == jled.Hal().Value());
     }
 
     // expect to start over after changing effect.
     jled.UserFunc(&eval);
-    REQUIRE(jled.Update());
-    REQUIRE(0 < jled.Hal().Value());
+    CHECK(jled.Update());
+    CHECK(0 < jled.Hal().Value());
 }
 
-TEST_CASE("Max brightness level is initialized to 255 within accuracy",
-          "[jled]") {
-    // maximum brightness is only stored with kBitsBrightness. Lower bits
-    // will always be 0 when the current value is read
-    constexpr uint8_t mask = (1 << (8 - TestJLed::kBitsBrightness)) - 1;
-
+TEST_CASE("Max brightness level is initialized to 255", "[jled]") {
     TestJLed jled(10);
-
-    REQUIRE(jled.MaxBrightness() == (255 & ~mask));
+    CHECK(255 == jled.MaxBrightness());
 }
 
-TEST_CASE("Setting max brightness level can be read back within accuracy",
-          "[jled]") {
-    constexpr uint8_t mask = (1 << (8 - TestJLed::kBitsBrightness)) - 1;
-
+TEST_CASE("Previously max brightness level can be read back", "[jled]") {
     TestJLed jled(10);
-
-    jled.MaxBrightness(0);
-    REQUIRE(jled.MaxBrightness() == 0);
-
     jled.MaxBrightness(100);
-    REQUIRE(jled.MaxBrightness() == (100 & ~mask));
-
-    jled.MaxBrightness(255);
-    REQUIRE(jled.MaxBrightness() == (255 & ~mask));
+    CHECK(100 == jled.MaxBrightness());
 }
 
-TEST_CASE("Setting max brightness level limits brightness value written to HAL",
-          "[jled]") {
+TEST_CASE("Min brightness level is initialized to 0", "[jled]") {
+    TestJLed jled(10);
+    CHECK(0 == jled.MinBrightness());
+}
+
+TEST_CASE("Previously set min brightness level can be read back", "[jled]") {
+    TestJLed jled(10);
+
+    jled.MinBrightness(100);
+    CHECK(100 == jled.MinBrightness());
+}
+
+TEST_CASE(
+    "Setting min and max brightness levels limits brightness value written to "
+    "HAL",
+    "[jled]") {
     class TestableJLed : public TestJLed {
      public:
         using TestJLed::TestJLed;
         static void test() {
             SECTION(
-                "After setting max brightness to 0, always 0 is written to the "
+                "After setting max brightness to 0, 0 is always written to the "
                 "HAL",
                 "max level is 0") {
                 TestableJLed jled(1);
@@ -486,7 +484,7 @@ TEST_CASE("Setting max brightness level limits brightness value written to HAL",
 
                 for (auto b = 0; b <= 255; b++) {
                     jled.Write(b);
-                    REQUIRE(0 == jled.Hal().Value());
+                    CHECK(0 == jled.Hal().Value());
                 }
             }
 
@@ -500,22 +498,31 @@ TEST_CASE("Setting max brightness level limits brightness value written to HAL",
 
                 for (auto b = 0; b <= 255; b++) {
                     jled.Write(b);
-                    REQUIRE(b == jled.Hal().Value());
+                    CHECK(b == jled.Hal().Value());
                 }
             }
 
             SECTION(
-                "After setting max brightness to 128, the original value is "
-                "scaled by 50% when written to the HAL",
-                "max level is 128") {
+                "After setting min brightness, the original value is at least "
+                "at this level") {
                 TestableJLed jled(1);
 
-                jled.MaxBrightness(128);
+                jled.MinBrightness(100);
+                jled.Write(0);
+                CHECK(100 == jled.Hal().Value());
+            }
 
-                for (auto b = 0; b <= 255; b++) {
-                    jled.Write(b);
-                    REQUIRE(b >> 1 == jled.Hal().Value());
-                }
+            SECTION(
+                "After setting min and max brightness, the original value "
+                "scaled"
+                "to this interval") {
+                TestableJLed jled(1);
+
+                jled.MinBrightness(100).MaxBrightness(200);
+                jled.Write(0);
+                CHECK(100 == jled.Hal().Value());
+                jled.Write(255);
+                CHECK(200 == jled.Hal().Value());
             }
         }
     };
@@ -539,23 +546,37 @@ TEST_CASE("timeChangeSinceLastUpdate detects time changes", "[jled]") {
 
 TEST_CASE("random generator delivers pseudo random numbers", "[rand]") {
     jled::rand_seed(0);
-    REQUIRE(0x59 == jled::rand8());
-    REQUIRE(0x159 >> 1 == jled::rand8());
+    CHECK(0x59 == jled::rand8());
+    CHECK(0x159 >> 1 == jled::rand8());
 }
 
-TEST_CASE("scaling a value with factor 0 scales it to 0", "[scale5]") {
-    REQUIRE(0 == jled::scale5(0, 0));
-    REQUIRE(0 == jled::scale5(255, 0));
+TEST_CASE("scaling a value with factor 0 scales it to 0", "[scale8]") {
+    CHECK(0 == jled::scale8(0, 0));
+    CHECK(0 == jled::scale8(255, 0));
 }
 
-TEST_CASE("scaling a value with factor 16 halfes the value", "[scale5]") {
-    REQUIRE(0 == jled::scale5(0, 16));
-    REQUIRE(50 == jled::scale5(100, 16));
-    REQUIRE(127 == jled::scale5(255, 16));
+TEST_CASE("scaling a value with factor 127 halfes the value", "[scale8]") {
+    CHECK(0 == jled::scale8(0, 128));
+    CHECK(50 == jled::scale8(100, 128));
+    CHECK(128 == jled::scale8(255, 128));
 }
 
-TEST_CASE("scaling a value with factor 31 returns original value", "[scale5]") {
-    REQUIRE(0 == jled::scale5(0, 31));
-    REQUIRE(127 == jled::scale5(127, 31));
-    REQUIRE(255 == jled::scale5(255, 31));
+TEST_CASE("scaling a value with factor 255 returns original value",
+          "[scale8]") {
+    CHECK(0 == jled::scale8(0, 255));
+    CHECK(127 == jled::scale8(127, 255));
+    CHECK(255 == jled::scale8(255, 255));
+}
+
+TEST_CASE("lerp8by8 interpolates a byte into the given interval",
+          "[lerp8by8]") {
+    CHECK(0 == (int)(jled::lerp8by8(0, 0, 255)));
+    CHECK(0 == (int)(jled::lerp8by8(255, 0, 0)));
+    CHECK(255 == (int)(jled::lerp8by8(255, 0, 255)));
+
+    CHECK(100 == (int)(jled::lerp8by8(0, 100, 255)));
+    CHECK(100 == (int)(jled::lerp8by8(0, 100, 110)));
+
+    CHECK(255 == (int)(jled::lerp8by8(255, 100, 255)));
+    CHECK(200 == (int)(jled::lerp8by8(255, 100, 200)));
 }

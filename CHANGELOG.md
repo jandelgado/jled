@@ -1,5 +1,10 @@
 # JLed changelog (github.com/jandelgado/jled)
 
+## [2022-11-13] 4.12.0
+
+* new: add `MinBrightness` method and scale output to interval defined by
+    `MinBrightness` and `MaxBrightness`.
+
 ## [2022-11-13] 4.11.1
 
 * improve: reduce memory consumption of JLed objects by 3 bytes, simplify

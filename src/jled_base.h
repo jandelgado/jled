@@ -43,8 +43,9 @@ static constexpr uint8_t kZeroBrightness = 0;
 
 uint8_t fadeon_func(uint32_t t, uint16_t period);
 uint8_t rand8();
-void rand_seed(uint32_t s);
-uint8_t scale5(uint8_t val, uint8_t factor);
+void    rand_seed(uint32_t s);
+uint8_t scale8(uint8_t val, uint8_t f);
+uint8_t lerp8by8(uint8_t val, uint8_t a, uint8_t b);
 
 // a function f(t,period,param) that calculates the LEDs brightness for a given
 // point in time and the given period. param is an optionally user provided
@@ -206,7 +207,7 @@ class TJLed {
     HalType hal_;
 
     void Write(uint8_t val) {
-        val = scale5(val, maxBrightness_);
+        val = lerp8by8(val, minBrightness_, maxBrightness_);
         hal_.analogWrite(IsLowActive() ? kFullBrightness - val : val);
     }
 
@@ -216,7 +217,8 @@ class TJLed {
         : hal_{hal},
           state_{ST_INIT},
           bLowActive_{false},
-          maxBrightness_{(1 << kBitsBrightness) - 1} {}
+          minBrightness_{0},
+          maxBrightness_{255} {}
 
     explicit TJLed(typename HalType::PinType pin) : TJLed{HalType{pin}} {}
 
@@ -225,6 +227,7 @@ class TJLed {
     B& operator=(const TJLed<HalType, B>& rLed) {
         state_ = rLed.state_;
         bLowActive_ = rLed.bLowActive_;
+        minBrightness_ = rLed.minBrightness_;
         maxBrightness_ = rLed.maxBrightness_;
         num_repetitions_ = rLed.num_repetitions_;
         last_update_time_ = rLed.last_update_time_;
@@ -361,19 +364,23 @@ class TJLed {
         return static_cast<B&>(*this);
     }
 
-    // Sets the maximum brightness level. 255 is full brightness, 0 turns the
-    // effect off. Currently, only upper 5 bits of the provided value are used
-    // and stored.
-    B& MaxBrightness(uint8_t level) {
-        maxBrightness_ = level >> (8 - kBitsBrightness);
+    // Sets the minimum brightness level (ranging from 0 to 255).
+    B& MinBrightness(uint8_t level) {
+        minBrightness_ = level;
         return static_cast<B&>(*this);
     }
 
-    // Returns current maximum brightness level. Since currently only upper 5
-    // bits are used, lower 3 bits will always be 0.
-    uint8_t MaxBrightness() const {
-        return maxBrightness_ << (8 - kBitsBrightness);
+    // Returns current minimum brightness level.
+    uint8_t MinBrightness() const { return minBrightness_; }
+
+    // Sets the minimum brightness level (ranging from 0 to 255).
+    B& MaxBrightness(uint8_t level) {
+        maxBrightness_ = level;
+        return static_cast<B&>(*this);
     }
+
+    // Returns current maximum brightness level.
+    uint8_t MaxBrightness() const { return maxBrightness_; }
 
  protected:
     // test if time stored in last_update_time_ differs from provided timestamp.
@@ -446,6 +453,11 @@ class TJLed {
         return Reset();
     }
 
+ public:
+     // Number of bits used to control brightness with Min/MaxBrightness().
+    static constexpr uint8_t kBitsBrightness = 8;
+    static constexpr uint8_t kBrightnessStep = 1;
+
  private:
     static constexpr uint8_t ST_STOPPED = 0;
     static constexpr uint8_t ST_INIT = 1;
@@ -454,15 +466,8 @@ class TJLed {
 
     uint8_t state_ : 2;
     uint8_t bLowActive_ : 1;
-
-    // Number of bits used to control brightness with MaxBrightness(). Using
-    // only 5 bits here saves us a byte, since summing up with previous defs.
- public:
-    static constexpr uint8_t kBitsBrightness = 5;
-    static constexpr uint8_t kBrightnessStep = 1 << (8 - kBitsBrightness);
-
- private:
-    uint8_t maxBrightness_ : kBitsBrightness;
+    uint8_t minBrightness_;
+    uint8_t maxBrightness_;
 
     // this is where the BrightnessEvaluator object will be stored using
     // placment new.  Set MAX_SIZE to class occupying most memory
@@ -487,7 +492,7 @@ class TJLed {
 };
 
 template <typename T>
-T* ptr(T& obj) {    // NOLINT
+T* ptr(T& obj) {  // NOLINT
     return &obj;
 }
 template <typename T>
@@ -591,5 +596,5 @@ class TJLedSequence {
     bool is_running_ = true;
 };
 
-};  // namespace jled
+};      // namespace jled
 #endif  // SRC_JLED_BASE_H_
