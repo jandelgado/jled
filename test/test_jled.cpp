@@ -170,6 +170,41 @@ TEST_CASE("using Fadeon(), FadeOff() configures Fade-BrightnessEvaluators",
     TestableJLed::test();
 }
 
+TEST_CASE("using Fade() configures BreatheBrightnessEvaluator", "[jled]") {
+    class TestableJLed : public TestJLed {
+     public:
+        using TestJLed::TestJLed;
+        static void test() {
+            SECTION("fade with from < to") {
+                TestableJLed jled(1);
+                jled.Fade(100, 200, 300);
+                REQUIRE(dynamic_cast<BreatheBrightnessEvaluator *>(
+                            jled.brightness_eval_) != nullptr);
+                auto eval = dynamic_cast<BreatheBrightnessEvaluator *>(
+                    jled.brightness_eval_);
+                CHECK(300 == eval->DurationFadeOn());
+                CHECK(0 == eval->DurationOn());
+                CHECK(0 == eval->DurationFadeOff());
+                CHECK(100 == jled.MinBrightness());
+                CHECK(200 == jled.MaxBrightness());
+            }
+            SECTION("fade with from >= to") {
+                TestableJLed jled(1);
+                jled.Fade(200, 100, 300);
+                REQUIRE(dynamic_cast<BreatheBrightnessEvaluator *>(
+                            jled.brightness_eval_) != nullptr);
+                auto eval = dynamic_cast<BreatheBrightnessEvaluator *>(
+                    jled.brightness_eval_);
+                CHECK(0 == eval->DurationFadeOn());
+                CHECK(0 == eval->DurationOn());
+                CHECK(300 == eval->DurationFadeOff());
+                CHECK(100 == jled.MinBrightness());
+                CHECK(200 == jled.MaxBrightness());
+            }
+        }
+    };
+    TestableJLed::test();
+}
 TEST_CASE("UserFunc() allows to use a custom brightness evaluator", "[jled]") {
     class TestableJLed : public TestJLed {
      public:
