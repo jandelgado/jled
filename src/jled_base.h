@@ -97,36 +97,6 @@ class BlinkBrightnessEvaluator : public CloneableBrightnessEvaluator {
     }
 };
 
-// fade LED on
-class FadeOnBrightnessEvaluator : public CloneableBrightnessEvaluator {
-    uint16_t period_;
-
- public:
-    FadeOnBrightnessEvaluator() = delete;
-    explicit FadeOnBrightnessEvaluator(uint16_t period) : period_(period) {}
-    BrightnessEvaluator* clone(void* ptr) const override {
-        return new (ptr) FadeOnBrightnessEvaluator(*this);
-    }
-    uint16_t Period() const override { return period_; }
-    uint8_t Eval(uint32_t t) const override { return fadeon_func(t, period_); }
-};
-
-// fade LED off
-class FadeOffBrightnessEvaluator : public CloneableBrightnessEvaluator {
-    uint16_t period_;
-
- public:
-    FadeOffBrightnessEvaluator() = delete;
-    explicit FadeOffBrightnessEvaluator(uint16_t period) : period_(period) {}
-    BrightnessEvaluator* clone(void* ptr) const override {
-        return new (ptr) FadeOffBrightnessEvaluator(*this);
-    }
-    uint16_t Period() const override { return period_; }
-    uint8_t Eval(uint32_t t) const override {
-        return fadeon_func(period_ - t, period_);
-    }
-};
-
 // The breathe func is composed by fade-on, on and fade-off phases. For fading
 // we approximate the following function:
 //   y(x) = exp(sin((t-period/4.) * 2. * PI / period)) - 0.36787944) *  108.)
@@ -160,6 +130,10 @@ class BreatheBrightnessEvaluator : public CloneableBrightnessEvaluator {
         else
             return fadeon_func(Period() - t, duration_fade_off_);
     }
+
+    uint16_t DurationFadeOn() const {return duration_fade_on_;}
+    uint16_t DurationFadeOff() const {return duration_fade_off_;}
+    uint16_t DurationOn() const {return duration_on_;}
 };
 
 class CandleBrightnessEvaluator : public CloneableBrightnessEvaluator {
@@ -281,14 +255,16 @@ class TJLed {
 
     // Fade LED on
     B& FadeOn(uint16_t duration) {
-        return SetBrightnessEval(new (brightness_eval_buf_)
-                                     FadeOnBrightnessEvaluator(duration));
+        return SetBrightnessEval(
+            new (brightness_eval_buf_) BreatheBrightnessEvaluator(
+                duration, 0, 0));
     }
 
     // Fade LED off - acutally is just inverted version of FadeOn()
     B& FadeOff(uint16_t duration) {
-        return SetBrightnessEval(new (brightness_eval_buf_)
-                                     FadeOffBrightnessEvaluator(duration));
+        return SetBrightnessEval(
+            new (brightness_eval_buf_) BreatheBrightnessEvaluator(
+                0, 0, duration));
     }
 
     // Set effect to Breathe, with the given period time in ms.
