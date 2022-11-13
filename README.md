@@ -72,7 +72,7 @@ void loop() {
             * [Immediate Stop](#immediate-stop)
         * [Misc functions](#misc-functions)
             * [Low active for inverted output](#low-active-for-inverted-output)
-            * [Maximum brightness level](#maximum-brightness-level)
+            * [Minimum- and Maximum brightness level](#minimum--and-maximum-brightness-level)
     * [Controlling a group of LEDs](#controlling-a-group-of-leds)
 * [Framework notes](#framework-notes)
 * [Platform notes](#platform-notes)
@@ -228,7 +228,8 @@ void loop() {
 }
 ```
 
-It is also possible to specify fade-on, on and fade-off durations for the breathing mode to customize the effect.
+It is also possible to specify fade-on, on- and fade-off durations for the
+breathing mode to customize the effect.
 
 ```c++
 // LED will fade-on in 500ms, stay on for 1000ms, and fade-off in 500ms.
@@ -275,7 +276,6 @@ The brightness function uses an approximation of this function (example with
 period 1000):
 
 [![fadeon function](doc/fadeon_plot.png)](https://www.wolframalpha.com/input/?i=plot+(exp(sin((t-1000%2F2.)*PI%2F1000))-0.36787944)*108.0++t%3D0+to+1000)
-
 
 ##### FadeOn example
 
@@ -382,20 +382,20 @@ Further calls to `Update()` will have no effect unless the Led is reset (using
 Use the `LowActive()` method when the connected LED is low active. All output
 will be inverted by JLed (i.e. instead of x, the value of 255-x will be set).
 
-##### Maximum brightness level
+##### Minimum- and Maximum brightness level
 
 The `MaxBrightness(uint8_t level)` method is used to set the maximum brightness 
 level of the LED. A level of 255 (the default) is full brightness, while 0 
-effectively turns the LED off.
+effectively turns the LED off. In the same way, the `MinBrightness(uint8_t level)`
+method sets the minimum brightness level. The default minimum level is 0. If
+minimum or maximum brightness levels are set, the output value is scaled to be
+within the interval defined by `[minimum brightness, maximum brightness]`: a
+value of 0 will be mapped to the minimum brightness level, a value of 255 will
+be mapped to the maximum brightness level.
 
 The `uint_8 MaxBrightness() const` method returns the current maximum 
-brightness level. Since currently only the upper 5 bits of the provided 
-brighness value are used, the lower 3 bits returned are always 0.
-
-If you want to programmatically increment or decrement the maximum brightness
-level, use the `JLed::kBrightnessStep` constant (which is defined as `1 <<
-(8-JLed::kBitsBrightness)` as the increment (instead of the hard wired value
-`8`) to be independent of the current JLed implementation using 5 bits.
+brightness level. `uint8_t MinBrightness() const` returns the current minimum
+brightness level.
 
 ### Controlling a group of LEDs
 
