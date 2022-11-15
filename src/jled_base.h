@@ -270,13 +270,9 @@ class TJLed {
     // levels specified by "from" and "to".
     B& Fade(uint8_t from, uint8_t to, uint16_t duration) {
         if (from < to) {
-            MinBrightness(from);
-            MaxBrightness(to);
-            return FadeOn(duration);
+            return FadeOn(duration).MinBrightness(from).MaxBrightness(to);
         } else {
-            MinBrightness(to);
-            MaxBrightness(from);
-            return FadeOff(duration);
+            return FadeOff(duration).MinBrightness(to).MaxBrightness(from);
         }
     }
 
