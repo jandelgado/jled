@@ -43,7 +43,7 @@ static constexpr uint8_t kZeroBrightness = 0;
 
 uint8_t fadeon_func(uint32_t t, uint16_t period);
 uint8_t rand8();
-void    rand_seed(uint32_t s);
+void rand_seed(uint32_t s);
 uint8_t scale8(uint8_t val, uint8_t f);
 uint8_t lerp8by8(uint8_t val, uint8_t a, uint8_t b);
 
@@ -97,36 +97,6 @@ class BlinkBrightnessEvaluator : public CloneableBrightnessEvaluator {
     }
 };
 
-// fade LED on
-class FadeOnBrightnessEvaluator : public CloneableBrightnessEvaluator {
-    uint16_t period_;
-
- public:
-    FadeOnBrightnessEvaluator() = delete;
-    explicit FadeOnBrightnessEvaluator(uint16_t period) : period_(period) {}
-    BrightnessEvaluator* clone(void* ptr) const override {
-        return new (ptr) FadeOnBrightnessEvaluator(*this);
-    }
-    uint16_t Period() const override { return period_; }
-    uint8_t Eval(uint32_t t) const override { return fadeon_func(t, period_); }
-};
-
-// fade LED off
-class FadeOffBrightnessEvaluator : public CloneableBrightnessEvaluator {
-    uint16_t period_;
-
- public:
-    FadeOffBrightnessEvaluator() = delete;
-    explicit FadeOffBrightnessEvaluator(uint16_t period) : period_(period) {}
-    BrightnessEvaluator* clone(void* ptr) const override {
-        return new (ptr) FadeOffBrightnessEvaluator(*this);
-    }
-    uint16_t Period() const override { return period_; }
-    uint8_t Eval(uint32_t t) const override {
-        return fadeon_func(period_ - t, period_);
-    }
-};
-
 // The breathe func is composed by fade-on, on and fade-off phases. For fading
 // we approximate the following function:
 //   y(x) = exp(sin((t-period/4.) * 2. * PI / period)) - 0.36787944) *  108.)
@@ -160,6 +130,10 @@ class BreatheBrightnessEvaluator : public CloneableBrightnessEvaluator {
         else
             return fadeon_func(Period() - t, duration_fade_off_);
     }
+
+    uint16_t DurationFadeOn() const { return duration_fade_on_; }
+    uint16_t DurationFadeOff() const { return duration_fade_off_; }
+    uint16_t DurationOn() const { return duration_on_; }
 };
 
 class CandleBrightnessEvaluator : public CloneableBrightnessEvaluator {
@@ -281,14 +255,25 @@ class TJLed {
 
     // Fade LED on
     B& FadeOn(uint16_t duration) {
-        return SetBrightnessEval(new (brightness_eval_buf_)
-                                     FadeOnBrightnessEvaluator(duration));
+        return SetBrightnessEval(new (
+            brightness_eval_buf_) BreatheBrightnessEvaluator(duration, 0, 0));
     }
 
     // Fade LED off - acutally is just inverted version of FadeOn()
     B& FadeOff(uint16_t duration) {
-        return SetBrightnessEval(new (brightness_eval_buf_)
-                                     FadeOffBrightnessEvaluator(duration));
+        return SetBrightnessEval(new (
+            brightness_eval_buf_) BreatheBrightnessEvaluator(0, 0, duration));
+    }
+
+    // Fade from "from" to "to" with period "duration". Sets up the breathe
+    // effect with the proper parameters and sets Min/Max brightness to reflect
+    // levels specified by "from" and "to".
+    B& Fade(uint8_t from, uint8_t to, uint16_t duration) {
+        if (from < to) {
+            return FadeOn(duration).MinBrightness(from).MaxBrightness(to);
+        } else {
+            return FadeOff(duration).MinBrightness(to).MaxBrightness(from);
+        }
     }
 
     // Set effect to Breathe, with the given period time in ms.
@@ -388,9 +373,7 @@ class TJLed {
         return (now & 255) != last_update_time_;
     }
 
-    void trackLastUpdateTime(uint32_t t) {
-        last_update_time_ = (t & 255);
-    }
+    void trackLastUpdateTime(uint32_t t) { last_update_time_ = (t & 255); }
 
     // update brightness of LED using the given brightness evaluator
     //  (brightness)                       ________________
@@ -405,8 +388,8 @@ class TJLed {
         if (state_ == ST_STOPPED || !brightness_eval_) return false;
 
         if (state_ == ST_INIT) {
-             time_start_ = now + delay_before_;
-             state_ = ST_RUNNING;
+            time_start_ = now + delay_before_;
+            state_ = ST_RUNNING;
         } else {
             // no need to process updates twice during one time tick.
             if (!timeChangedSinceLastUpdate(now)) return true;
@@ -454,7 +437,7 @@ class TJLed {
     }
 
  public:
-     // Number of bits used to control brightness with Min/MaxBrightness().
+    // Number of bits used to control brightness with Min/MaxBrightness().
     static constexpr uint8_t kBitsBrightness = 8;
     static constexpr uint8_t kBrightnessStep = 1;
 
