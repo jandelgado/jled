@@ -1,5 +1,9 @@
 # JLed changelog (github.com/jandelgado/jled)
 
+## [2023-01-11] 4.12.1
+
+* fix: add missing keywords to keywords.txt
+
 ## [2022-11-13] 4.12.0
 
 * new: add `MinBrightness` method and scale output to interval defined by
