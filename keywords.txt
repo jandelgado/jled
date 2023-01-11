@@ -10,7 +10,11 @@
 
 JLed	KEYWORD1
 JLedSequence	KEYWORD1
+BlinkBrightnessEvaluator	KEYWORD1
 BrightnessEvaluator	KEYWORD1
+BreatheBrightnessEvaluator	KEYWORD1
+CandleBrightnessEvaluator	KEYWORD1
+ConstantBrightnessEvaluator	KEYWORD1
 
 #######################################
 # Methods and Functions (KEYWORD2)
@@ -29,6 +33,7 @@ Forever	KEYWORD2
 DelayBefore	KEYWORD2
 DelayAfter	KEYWORD2
 Forever	KEYWORD2
+Hal	KEYWORD2
 IsForever	KEYWORD2
 IsRunning	KEYWORD2
 LowActive	KEYWORD2
@@ -37,6 +42,7 @@ Stop	KEYWORD2
 Update	KEYWORD2
 UserFunc	KEYWORD2
 Reset	KEYWORD2
+MinBrightness	KEYWORD2
 MaxBrightness	KEYWORD2
 
 #######################################
