@@ -1,3 +1,8 @@
+<table><tr><td> 
+<b>Preferring Python?</b> I just released <a href="https://github.com/jandelgado/jled-circuitpython">jled-circuitpython</a>, 
+a JLed implementation for CircuitPython and MicroPython.
+</td></tr></table>
+
 # JLed - Advanced LED Library
 
 ![run tests](https://github.com/jandelgado/jled/workflows/run%20tests/badge.svg)
