@@ -1,5 +1,9 @@
 # JLed changelog (github.com/jandelgado/jled)
 
+## [2023-06-29] 4.12.2
+
+* fix: `JLedSequence` starting again after call to `Stop` (https://github.com/jandelgado/jled/issues/115)
+
 ## [2023-01-11] 4.12.1
 
 * fix: add missing keywords to keywords.txt
