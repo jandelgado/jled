@@ -553,8 +553,9 @@ class TJLedSequence {
     }
 
     void Stop() {
+        is_running_ = false;
         for (auto i = 0u; i < n_; i++) {
-            leds_[i].Stop();
+            ptr(leds_[i])->Stop();
         }
     }
 

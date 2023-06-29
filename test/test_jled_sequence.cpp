@@ -90,6 +90,24 @@ TEST_CASE("stop on sequence stops all JLeds and turns them off",
     }
 }
 
+TEST_CASE("sequence will stay off after stop when update is called"
+          " again (https://github.com/jandelgado/jled/issues/115)",
+          "[jled_sequence]") {
+    auto mode = GENERATE(TestJLedSequence::eMode::SEQUENCE,
+                         TestJLedSequence::eMode::PARALLEL);
+    SECTION("sequence stays off") {
+        INFO("mode = " << mode);
+        TestJLed leds[] = {TestJLed(HalMock(1)).On()};
+        auto seq = TestJLedSequence(mode, leds).Forever();
+
+        REQUIRE(seq.Update());
+        seq.Stop();
+        REQUIRE(!leds[0].IsRunning());
+        REQUIRE(!seq.Update());
+    }
+}
+
+
 TEST_CASE("repeat plays the sequence N times", "[jled_sequence]") {
     constexpr uint8_t expected[]{255, 0, 255, 0, 0};
 

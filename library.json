@@ -1,6 +1,6 @@
 {
     "name": "JLed",
-    "version": "4.12.1",
+    "version": "4.12.2",
     "description": "An embedded library to control LEDs",
     "license": "MIT",
     "frameworks": ["espidf", "arduino", "mbed"],
