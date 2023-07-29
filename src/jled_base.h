@@ -193,6 +193,37 @@ class TJLed {
     }
 
  public:
+    // class UpdateResult contains details on a call to the Update()
+    // method
+    class UpdateResult {
+        bool running_;
+        uint8_t val_;
+        bool was_changed_;
+
+     UpdateResult(bool running, uint8_t val, bool was_changed)
+            : running_(running), val_(val), was_changed_(was_changed) {}
+
+     public:
+        static UpdateResult NoChange() { return UpdateResult(true, 0, false); }
+        static UpdateResult NotRunning() {
+            return UpdateResult(false, 0, false);
+        }
+        static UpdateResult Updated(uint8_t val) {
+            return UpdateResult(true, val, true);
+        }
+        static UpdateResult FinallyUpdated(uint8_t val) {
+            return UpdateResult(false, val, true);
+        }
+
+        // effect is still running
+        bool Running() const { return running_; }
+        inline operator bool() const { return running_; }
+        // a new value is available in Value()
+        bool WasChanged() const { return was_changed_; }
+        // last written value. Only valid when WasChanged() == true
+        uint8_t Value() const { return val_; }
+    };
+
     TJLed() = delete;
     explicit TJLed(const HalType& hal)
         : hal_{hal},
@@ -233,7 +264,7 @@ class TJLed {
 
     HalType& Hal() { return hal_; }
 
-    bool Update() { return Update(hal_.millis()); }
+    UpdateResult Update() { return Update(hal_.millis()); }
 
     // Set physical LED polarity to be low active. This inverts every
     // signal physically output to a pin.
@@ -395,20 +426,23 @@ class TJLed {
     //        |<-delay before->|<--period-->|<-delay after-> (time)
     //                         | func(t)    |
     //                         |<- num_repetitions times  ->
-    bool Update(uint32_t now) {
-        if (state_ == ST_STOPPED || !brightness_eval_) return false;
+    UpdateResult Update(uint32_t now) {
+        if (state_ == ST_STOPPED || !brightness_eval_)
+            return UpdateResult::NotRunning();
 
         if (state_ == ST_INIT) {
             time_start_ = now + delay_before_;
             state_ = ST_RUNNING;
         } else {
             // no need to process updates twice during one time tick.
-            if (!timeChangedSinceLastUpdate(now)) return true;
+            if (!timeChangedSinceLastUpdate(now))
+                return UpdateResult::NoChange();
         }
 
         trackLastUpdateTime(now);
 
-        if ((int32_t)(now - time_start_) < 0) return true;
+        // not yet started
+        if ((int32_t)(now - time_start_) < 0) return UpdateResult::NoChange();
 
         // t cycles in range [0..period+delay_after-1]
         const auto period = brightness_eval_->Period();
@@ -422,26 +456,30 @@ class TJLed {
             if ((int32_t)(now - time_end) >= 0) {
                 // make sure final value of t = (period-1) is set
                 state_ = ST_STOPPED;
-                const auto val = Eval(period - 1);
+                auto val = brightness_eval_->Eval(period - 1);
                 Write(val);
-                return false;
+                return UpdateResult::FinallyUpdated(val);
             }
         }
 
+        uint8_t val;
         if (t < period) {
             state_ = ST_RUNNING;
-            Write(Eval(t));
-            return true;
+            val = brightness_eval_->Eval(t);
+            Write(val);
         } else {
             if (state_ == ST_RUNNING) {
                 // when in delay after phase, just call Write()
                 // once at the beginning.
                 state_ = ST_IN_DELAY_AFTER_PHASE;
-                Write(Eval(period - 1));
-                return true;
+                val = brightness_eval_->Eval(period - 1);
+                Write(val);
+            } else {
+                return UpdateResult::NoChange();
             }
         }
-        return false;
+
+        return UpdateResult::Updated(val);
     }
 
     B& SetBrightnessEval(BrightnessEvaluator* be) {

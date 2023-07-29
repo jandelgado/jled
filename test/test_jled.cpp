@@ -104,7 +104,8 @@ TEST_CASE("On/Off function configuration", "[jled]") {
     TestableJLed::test();
 }
 
-TEST_CASE("using Breathe() configures BreatheBrightnessEvaluator", "[jled]") {
+TEST_CASE("using Breathe(a,b,c) configures BreatheBrightnessEvaluator",
+          "[jled]") {
     class TestableJLed : public TestJLed {
      public:
         using TestJLed::TestJLed;
@@ -118,6 +119,24 @@ TEST_CASE("using Breathe() configures BreatheBrightnessEvaluator", "[jled]") {
             CHECK(100 == eval->DurationFadeOn());
             CHECK(200 == eval->DurationOn());
             CHECK(300 == eval->DurationFadeOff());
+        }
+    };
+    TestableJLed::test();
+}
+TEST_CASE("using Breathe(a) configures BreatheBrightnessEvaluator", "[jled]") {
+    class TestableJLed : public TestJLed {
+     public:
+        using TestJLed::TestJLed;
+        static void test() {
+            TestableJLed jled(1);
+            jled.Breathe(100);
+            REQUIRE(dynamic_cast<BreatheBrightnessEvaluator *>(
+                        jled.brightness_eval_) != nullptr);
+            auto eval = dynamic_cast<BreatheBrightnessEvaluator *>(
+                jled.brightness_eval_);
+            CHECK(50 == eval->DurationFadeOn());
+            CHECK(0 == eval->DurationOn());
+            CHECK(50 == eval->DurationFadeOff());
         }
     };
     TestableJLed::test();
@@ -439,6 +458,34 @@ TEST_CASE("Update returns true while updating, else false", "[jled]") {
     CHECK_FALSE(jled.Update());
     jled.Hal().SetMillis(time++);
     CHECK_FALSE(jled.Update());
+}
+
+TEST_CASE("Update returns current value while updating", "[jled]") {
+    auto eval = MockBrightnessEvaluator(ByteVec{20});
+    TestJLed jled = TestJLed(10).UserFunc(&eval).DelayAfter(1);
+
+    // Update returns FALSE on last step and beyond, else TRUE
+    auto time = 0;
+
+    jled.Hal().SetMillis(time++);
+    auto result = jled.Update();
+
+    CHECK(result.Value() == 20);
+    CHECK(result.Running() == true);
+    CHECK(result.WasChanged() == true);
+
+    jled.Hal().SetMillis(time++);
+    result = jled.Update();
+
+    CHECK(result.Value() == 20);
+    CHECK(result.Running() == false);
+    CHECK(result.WasChanged() == true);
+
+    jled.Hal().SetMillis(time++);
+    result = jled.Update();
+
+    CHECK(result.Running() == false);
+    CHECK(result.WasChanged() == false);
 }
 
 TEST_CASE("After Reset() the effect can be restarted", "[jled]") {
