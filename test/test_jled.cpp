@@ -462,7 +462,7 @@ TEST_CASE("Update returns true while updating, else false", "[jled]") {
 
 TEST_CASE("Update returns current value while updating", "[jled]") {
     auto eval = MockBrightnessEvaluator(ByteVec{20});
-    TestJLed jled = TestJLed(10).UserFunc(&eval).DelayAfter(1);
+    TestJLed jled = TestJLed(10).UserFunc(&eval).DelayAfter(1).MinBrightness(100);
 
     // Update returns FALSE on last step and beyond, else TRUE
     auto time = 0;
@@ -470,18 +470,45 @@ TEST_CASE("Update returns current value while updating", "[jled]") {
     jled.Hal().SetMillis(time++);
     auto result = jled.Update();
 
-    CHECK(result.Value() == 20);
+    CHECK(result.Value() == 112);
     CHECK(result.Running() == true);
     CHECK(result.WasChanged() == true);
 
     jled.Hal().SetMillis(time++);
     result = jled.Update();
 
-    CHECK(result.Value() == 20);
+    CHECK(result.Value() == 112);
     CHECK(result.Running() == false);
     CHECK(result.WasChanged() == true);
 
     jled.Hal().SetMillis(time++);
+    result = jled.Update();
+
+    CHECK(result.Running() == false);
+    CHECK(result.WasChanged() == false);
+}
+
+TEST_CASE("Update returns current value while updating (Fade)", "[jled]") {
+    auto eval = MockBrightnessEvaluator(ByteVec{20});
+    TestJLed jled = TestJLed(10).Fade(100, 50, 10);
+
+    // Update returns FALSE on last step and beyond, else TRUE
+
+    jled.Hal().SetMillis(0);
+    auto result = jled.Update();
+
+    CHECK(result.Value() == 100);
+    CHECK(result.Running() == true);
+    CHECK(result.WasChanged() == true);
+
+    jled.Hal().SetMillis(9);
+    result = jled.Update();
+
+    CHECK(result.Value() == 50);
+    CHECK(result.Running() == false);
+    CHECK(result.WasChanged() == true);
+
+    jled.Hal().SetMillis(10);
     result = jled.Update();
 
     CHECK(result.Running() == false);

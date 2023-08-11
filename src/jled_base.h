@@ -200,7 +200,7 @@ class TJLed {
         uint8_t val_;
         bool was_changed_;
 
-     UpdateResult(bool running, uint8_t val, bool was_changed)
+        UpdateResult(bool running, uint8_t val, bool was_changed)
             : running_(running), val_(val), was_changed_(was_changed) {}
 
      public:
@@ -456,30 +456,29 @@ class TJLed {
             if ((int32_t)(now - time_end) >= 0) {
                 // make sure final value of t = (period-1) is set
                 state_ = ST_STOPPED;
-                auto val = brightness_eval_->Eval(period - 1);
+                const auto val = Eval(period - 1);
                 Write(val);
                 return UpdateResult::FinallyUpdated(val);
             }
         }
 
-        uint8_t val;
         if (t < period) {
             state_ = ST_RUNNING;
-            val = brightness_eval_->Eval(t);
+            const auto val = Eval(t);
             Write(val);
+            return UpdateResult::Updated(val);
         } else {
             if (state_ == ST_RUNNING) {
                 // when in delay after phase, just call Write()
                 // once at the beginning.
                 state_ = ST_IN_DELAY_AFTER_PHASE;
-                val = brightness_eval_->Eval(period - 1);
+                const auto val = brightness_eval_->Eval(period - 1);
                 Write(val);
+                return UpdateResult::Updated(val);
             } else {
                 return UpdateResult::NoChange();
             }
         }
-
-        return UpdateResult::Updated(val);
     }
 
     B& SetBrightnessEval(BrightnessEvaluator* be) {
