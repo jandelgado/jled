@@ -323,34 +323,61 @@ TEST_CASE("Stop() stops the effect", "[jled]") {
     auto eval = MockBrightnessEvaluator(ByteVec{255, 255, 255, 0});
     TestJLed jled = TestJLed(10).UserFunc(&eval);
 
-    CHECK(jled.IsRunning());
+    REQUIRE(jled.IsRunning());
     jled.Update();
-    CHECK(jled.Hal().Value() == 255);
     jled.Stop();
 
     CHECK(!jled.IsRunning());
-    CHECK_FALSE(jled.Update());
-    CHECK(0 == jled.Hal().Value());
+}
 
-    // update must not change anything
-    CHECK_FALSE(jled.Update());
+TEST_CASE("default Stop() sets the brightness to minBrightness", "[jled]") {
+    auto eval = MockBrightnessEvaluator(ByteVec{100, 0});
+    TestJLed jled = TestJLed(10).UserFunc(&eval).MinBrightness(50);
+
+    jled.Update();
+    REQUIRE(130 == jled.Hal().Value());  // 100 scaled to [50,255]
+    jled.Stop();
+
+    CHECK(50 == jled.Hal().Value());
+}
+
+TEST_CASE("Stop(ABS_ZERO) sets the brightness to 0", "[jled]") {
+    auto eval = MockBrightnessEvaluator(ByteVec{100, 0});
+    TestJLed jled = TestJLed(10).UserFunc(&eval).MinBrightness(50);
+
+    jled.Update();
+    REQUIRE(130 == jled.Hal().Value());  // 100 scaled to [50,255]
+    jled.Stop(TestJLed::eStopMode::ABS_ZERO);
+
     CHECK(0 == jled.Hal().Value());
 }
 
+TEST_CASE("Stop(KEEP) keeps the last brightness level", "[jled]") {
+    auto eval = MockBrightnessEvaluator(ByteVec{100, 101});
+    TestJLed jled = TestJLed(10).UserFunc(&eval).MinBrightness(50);
+
+    jled.Update();
+    REQUIRE(130 == jled.Hal().Value());  // 100 scaled to [50,255]
+    jled.Stop(TestJLed::eStopMode::KEEP);
+
+    CHECK(130 == jled.Hal().Value());
+}
+
 TEST_CASE("LowActive() inverts signal", "[jled]") {
-    auto eval = MockBrightnessEvaluator(ByteVec{255});
-    TestJLed jled = TestJLed(10).UserFunc(&eval).LowActive();
+    auto eval = MockBrightnessEvaluator(ByteVec{0, 255});
+    TestJLed jled = TestJLed(1).UserFunc(&eval).LowActive();
 
     CHECK(jled.IsLowActive());
 
     jled.Update();
-    CHECK(0 == jled.Hal().Value());
-
-    jled.Stop();
     CHECK(255 == jled.Hal().Value());
+
+    jled.Hal().SetMillis(1);
+    jled.Update();
+    CHECK(0 == jled.Hal().Value());
 }
 
-TEST_CASE("effect with repeat 2 runs twice as long", "[jled]") {
+TEST_CASE("effect with repeat 2 repeats sequence once", "[jled]") {
     auto eval = MockBrightnessEvaluator(ByteVec{10, 20});
     TestJLed jled = TestJLed(10).UserFunc(&eval).Repeat(2);
 
@@ -483,67 +510,24 @@ TEST_CASE("Previously set min brightness level can be read back", "[jled]") {
 }
 
 TEST_CASE(
-    "Setting min and max brightness levels limits brightness value written to "
-    "HAL",
+    "Setting min and max brightness levels scales evaluated effect values",
     "[jled]") {
     class TestableJLed : public TestJLed {
      public:
         using TestJLed::TestJLed;
         static void test() {
-            SECTION(
-                "After setting max brightness to 0, 0 is always written to the "
-                "HAL",
-                "max level is 0") {
-                TestableJLed jled(1);
+            TestableJLed jled(1);
 
-                jled.MaxBrightness(0);
+            auto eval = MockBrightnessEvaluator(ByteVec{0, 128, 255});
+            jled.UserFunc(&eval).MinBrightness(100).MaxBrightness(200);
 
-                for (auto b = 0; b <= 255; b++) {
-                    jled.Write(b);
-                    CHECK(0 == jled.Hal().Value());
-                }
-            }
-
-            SECTION(
-                "After setting max brightness to 255, the original value is "
-                "written to the HAL",
-                "max level is 255") {
-                TestableJLed jled(1);
-
-                jled.MaxBrightness(255);
-
-                for (auto b = 0; b <= 255; b++) {
-                    jled.Write(b);
-                    CHECK(b == jled.Hal().Value());
-                }
-            }
-
-            SECTION(
-                "After setting min brightness, the original value is at least "
-                "at this level") {
-                TestableJLed jled(1);
-
-                jled.MinBrightness(100);
-                jled.Write(0);
-                CHECK(100 == jled.Hal().Value());
-            }
-
-            SECTION(
-                "After setting min and max brightness, the original value "
-                "scaled"
-                "to this interval") {
-                TestableJLed jled(1);
-
-                jled.MinBrightness(100).MaxBrightness(200);
-                jled.Write(0);
-                CHECK(100 == jled.Hal().Value());
-                jled.Write(255);
-                CHECK(200 == jled.Hal().Value());
-            }
+            CHECK(100 == jled.Eval(0));
+            CHECK(150 == jled.Eval(1));
+            CHECK(200 == jled.Eval(2));
         }
     };
     TestableJLed::test();
-}
+};
 
 TEST_CASE("timeChangeSinceLastUpdate detects time changes", "[jled]") {
     class TestableJLed : public TestJLed {

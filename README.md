@@ -52,6 +52,7 @@ void loop() {
     * [Arduino IDE](#arduino-ide)
     * [PlatformIO](#platformio)
 * [Usage](#usage)
+        * [Output pipeline](#output-pipeline)
     * [Effects](#effects)
         * [Static on and off](#static-on-and-off)
             * [Static on example](#static-on-example)
@@ -156,6 +157,27 @@ The constructor takes the pin, to which the LED is connected to as
 the only argument. Further configuration of the LED object is done using a fluent
 interface, e.g. `JLed led = JLed(13).Breathe(2000).DelayAfter(1000).Repeat(5)`.
 See the examples section below for further details.
+
+#### Output pipeline
+
+First the configured effect (e.g. `Fade`) is evaluated for the current time
+`t`. JLed internally uses unsigned bytes to represent brightness values,
+ranging from 0 to 255. Next, the value is scaled to the limits set by
+`MinBrightness` and `MaxBrightness` (otionally). When the effect is configured
+for an low-active LED using `LowActive`, the brightness value will be inverted,
+i.e. the value will be subtracted from 255. Finally the value is passed to the
+hardware abstraction, which might scale it to the resolution used by the actual
+device (e.g. 10 bits for an ESP8266). Finally the brightness value is written
+out to the configure GPIO.
+
+```
+┌───────────┐    ┌────────────┐    ┌─────────┐    ┌────────┐    ┌─────────┐    ┌────────┐
+│ Evaluate  │    │  Scale to  │    │  Low    │YES │ Invert │    │Scale for│    │Write to│
+│ effect(t) ├───►│ [min, max] ├───►│ active? ├───►│ signal ├───►│Hardware ├───►│  GPIO  │
+└───────────┘    └────────────┘    └────┬────┘    └────────┘    └───▲─────┘    └────────┘
+                                        │ NO                        │
+                                        └───────────────────────────┘
+```
 
 ### Effects
 
@@ -404,7 +426,14 @@ you want to start-over an effect.
 
 Call `Stop()` to immediately turn the LED off and stop any running effects.
 Further calls to `Update()` will have no effect unless the Led is reset (using
-`Reset()`) or a new effect activated.
+`Reset()`) or a new effect is activated. `Stop()` set the current brightness level
+to 0, and applies the `MinBrightness` and `MaxBrightness` settings.
+
+`Stop()` takes an optional argument `mode` of type `JLed::eStopMode` that can
+be set to `JLed::eStopMode::ABS_ZERO` to force the LEDs level to be `0`,
+regardless of what `MinBrightness` is set to, e.g. call it like
+`Stop(JLed::eStopMode::ABS_ZERO)`. When passing `JLed::eStopMode::KEEP`, the
+LEDs current level will be kept.
 
 #### Misc functions
 

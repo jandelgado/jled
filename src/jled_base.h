@@ -180,8 +180,15 @@ class TJLed {
     // Hardware abstraction giving access to the MCU
     HalType hal_;
 
+    // Evaluate effect(t) and scale to be within [minBrightness, maxBrightness]
+    // assumes brigthness_eval_ is set as it is not checked here.
+    uint8_t Eval(uint32_t t) const {
+        const auto val = brightness_eval_->Eval(t);
+        return lerp8by8(val, minBrightness_, maxBrightness_);
+    }
+
+    // Write val out to "hardware", reverting signal when active-low is set.
     void Write(uint8_t val) {
-        val = lerp8by8(val, minBrightness_, maxBrightness_);
         hal_.analogWrite(IsLowActive() ? kFullBrightness - val : val);
     }
 
@@ -333,8 +340,12 @@ class TJLed {
 
     // Stop current effect and turn LED immeadiately off. Further calls to
     // Update() will have no effect.
-    B& Stop() {
-        Write(kZeroBrightness);
+    enum eStopMode { ABS_ZERO, REL_ZERO, KEEP };
+    B& Stop(eStopMode mode = eStopMode::REL_ZERO) {
+        if (mode != eStopMode::KEEP) {
+            Write(mode == eStopMode::ABS_ZERO ? kZeroBrightness
+                                              : minBrightness_);
+        }
         state_ = ST_STOPPED;
         return static_cast<B&>(*this);
     }
@@ -403,31 +414,37 @@ class TJLed {
         const auto period = brightness_eval_->Period();
         const auto t = (now - time_start_) % (period + delay_after_);
 
+        if (!IsForever()) {
+            const auto time_end =
+                time_start_ +
+                (uint32_t)(period + delay_after_) * num_repetitions_ - 1;
+
+            if ((int32_t)(now - time_end) >= 0) {
+                // make sure final value of t = (period-1) is set
+                state_ = ST_STOPPED;
+                const auto val = Eval(period - 1);
+                Write(val);
+                return false;
+            }
+        }
+
         if (t < period) {
             state_ = ST_RUNNING;
-            Write(brightness_eval_->Eval(t));
+            const auto val = Eval(t);
+            Write(val);
+            return true;
         } else {
             if (state_ == ST_RUNNING) {
                 // when in delay after phase, just call Write()
                 // once at the beginning.
                 state_ = ST_IN_DELAY_AFTER_PHASE;
-                Write(brightness_eval_->Eval(period - 1));
+                const auto val = Eval(period - 1);
+                Write(val);
+                return true;
+            } else {
+                return false;
             }
         }
-
-        if (IsForever()) return true;
-
-        const auto time_end =
-            time_start_ + (uint32_t)(period + delay_after_) * num_repetitions_ -
-            1;
-
-        if ((int32_t)(now - time_end) >= 0) {
-            // make sure final value of t = (period-1) is set
-            state_ = ST_STOPPED;
-            Write(brightness_eval_->Eval(period - 1));
-            return false;
-        }
-        return true;
     }
 
     B& SetBrightnessEval(BrightnessEvaluator* be) {
