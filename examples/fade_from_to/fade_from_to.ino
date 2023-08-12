@@ -4,7 +4,8 @@
 // https://github.com/jandelgado/jled
 #include <jled.h>
 
-auto led = JLed(5).On(1);  // start with LED turned on
+//auto led = JLed(2).On(1);  // start with LED turned on
+auto led = JLed(27).FadeOn(2000).DelayAfter(1000);  // start with LED turned on
 
 void setup() {}
 
@@ -19,5 +20,6 @@ void loop() {
         auto duration = 250 + jled::rand8() * 4;
         last_to = new_to;
         led.Fade(new_from, new_to, duration).Repeat(1);
+        Serial.println(new_to);
     }
 }
