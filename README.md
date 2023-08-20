@@ -163,7 +163,7 @@ See the examples section below for further details.
 First the configured effect (e.g. `Fade`) is evaluated for the current time
 `t`. JLed internally uses unsigned bytes to represent brightness values,
 ranging from 0 to 255. Next, the value is scaled to the limits set by
-`MinBrightness` and `MaxBrightness` (otionally). When the effect is configured
+`MinBrightness` and `MaxBrightness` (optionally). When the effect is configured
 for an low-active LED using `LowActive`, the brightness value will be inverted,
 i.e. the value will be subtracted from 255. Finally the value is passed to the
 hardware abstraction, which might scale it to the resolution used by the actual
