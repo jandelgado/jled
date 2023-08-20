@@ -93,7 +93,7 @@ bin:
 	mkdir -p bin
 
 clean: phony
-	rm -f {*.gcov,*.gcda,*.gcno,*.o} .depend
+	rm -f {./,esp-idf,esp-idf/driver}/{*.gcov,*.gcda,*.gcno,*.o} .depend
 
 clobber: clean
 	rm -f bin/*

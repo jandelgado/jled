@@ -1,5 +1,9 @@
 # JLed changelog (github.com/jandelgado/jled)
 
+## [2023-08-20] 4.13.0
+
+* new: `Stop()` takes optional parameter allowing to turn LED fully off
+
 ## [2023-06-29] 4.12.2
 
 * fix: `JLedSequence` starting again after call to `Stop` (https://github.com/jandelgado/jled/issues/115)

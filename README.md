@@ -52,6 +52,7 @@ void loop() {
     * [Arduino IDE](#arduino-ide)
     * [PlatformIO](#platformio)
 * [Usage](#usage)
+        * [Output pipeline](#output-pipeline)
     * [Effects](#effects)
         * [Static on and off](#static-on-and-off)
             * [Static on example](#static-on-example)
@@ -157,6 +158,27 @@ the only argument. Further configuration of the LED object is done using a fluen
 interface, e.g. `JLed led = JLed(13).Breathe(2000).DelayAfter(1000).Repeat(5)`.
 See the examples section below for further details.
 
+#### Output pipeline
+
+First the configured effect (e.g. `Fade`) is evaluated for the current time
+`t`. JLed internally uses unsigned bytes to represent brightness values,
+ranging from 0 to 255. Next, the value is scaled to the limits set by
+`MinBrightness` and `MaxBrightness` (optionally). When the effect is configured
+for a low-active LED using `LowActive`, the brightness value will be inverted,
+i.e., the value will be subtracted from 255. Finally the value is passed to the
+hardware abstraction, which might scale it to the resolution used by the actual
+device (e.g. 10 bits for an ESP8266). Finally the brightness value is written
+out to the configure GPIO.
+
+```
+┌───────────┐    ┌────────────┐    ┌─────────┐    ┌────────┐    ┌─────────┐    ┌────────┐
+│ Evaluate  │    │  Scale to  │    │  Low    │YES │ Invert │    │Scale for│    │Write to│
+│ effect(t) ├───►│ [min, max] ├───►│ active? ├───►│ signal ├───►│Hardware ├───►│  GPIO  │
+└───────────┘    └────────────┘    └────┬────┘    └────────┘    └───▲─────┘    └────────┘
+                                        │ NO                        │
+                                        └───────────────────────────┘
+```
+
 ### Effects
 
 #### Static on and off
@@ -165,15 +187,15 @@ Calling `On(uint16_t period=1)` turns the LED on. To immediately turn a LED on,
 make a call like `JLed(LED_BUILTIN).On().Update()`. The `period` is optional
 and defaults to 1ms.
 
-`Off()` works like `On()`, except that it turns the LED off, i.e. it sets the
+`Off()` works like `On()`, except that it turns the LED off, i.e., it sets the
 brightness to 0.
 
 Use the `Set(uint8_t brightness, uint16_t period=1)` method to set the
-brightness to the given value, i.e. `Set(255)` is equivalent to calling `On()`
+brightness to the given value, i.e., `Set(255)` is equivalent to calling `On()`
 and `Set(0)` is equivalent to calling `Off()`.
 
 Technically, `Set`, `On` and `Off` are effects with a default period of 1ms, that 
-set the brightness to a constant value. Specifiying a different period has an
+set the brightness to a constant value. Specifying a different period has an
 effect on when the `Update()` method will be done updating the effect and 
 return false (like for any other effects). This is important when for example
 in a `JLedSequence` the LED should stay on for a given amount of time.
@@ -303,7 +325,7 @@ void loop() {
 
 In FadeOff mode, the LED is smoothly faded off using PWM. The fade starts at
 100% brightness. Internally it is implemented as a mirrored version of the
-FadeOn function, i.e. FadeOff(t) = FadeOn(period-t).  The `FadeOff()` method
+FadeOn function, i.e., FadeOff(t) = FadeOn(period-t).  The `FadeOff()` method
 takes the period of the effect as argument.
 
 #### Fade
@@ -311,7 +333,7 @@ takes the period of the effect as argument.
 The Fade effect allows to fade from any start value `from` to any target value
 `to` with the given duration. Internally it sets up a `FadeOn` or `FadeOff`
 effect and `MinBrightness` and `MaxBrightness` values properly. The `Fade`
-method take three argumens: `from`, `to` and `duration`.
+method take three arguments: `from`, `to` and `duration`.
 
 <a href="examples/fade_from_to"><img alt="fade from-to" src="doc/fade_from-to.png" height=200></a>
 
@@ -403,15 +425,29 @@ you want to start-over an effect.
 ##### Immediate Stop
 
 Call `Stop()` to immediately turn the LED off and stop any running effects.
-Further calls to `Update()` will have no effect unless the Led is reset (using
-`Reset()`) or a new effect activated.
+Further calls to `Update()` will have no effect, unless the Led is reset using
+`Reset()` or a new effect is activated. By default, `Stop()` sets the current
+brightness level to `MinBrightness`.
+
+`Stop()` takes an optional argument `mode` of type `JLed::eStopMode`:
+
+* if set to `JLed::eStopMode::KEEP_CURRENT`, the LEDs current level will be kept
+* if set to `JLed::eStopMode::FULL_OFF` the level of the LED is set to `0`,
+  regardless of what `MinBrightness` is set to, effectively turning the LED off
+* if set to `JLed::eStopMode::TO_MIN_BRIGHTNESS` (default behavior), the LED
+  will set to the value of `MinBrightness`
+
+```c++
+// stop the effect and set the brightness level to 0, regardless of min brightness
+led.Stop(JLed::eStopMode::FULL_OFF);
+```
 
 #### Misc functions
 
 ##### Low active for inverted output
 
 Use the `LowActive()` method when the connected LED is low active. All output
-will be inverted by JLed (i.e. instead of x, the value of 255-x will be set).
+will be inverted by JLed (i.e., instead of x, the value of 255-x will be set).
 
 ##### Minimum- and Maximum brightness level
 
@@ -502,7 +538,7 @@ src_dir = examples/multiled_mbed
 
 The DAC of the ESP8266 operates with 10 bits, every value JLed writes out gets
 automatically scaled to 10 bits, since JLed internally only uses 8 bits.  The
-scaling methods make sure that min/max relationships are preserved, i.e. 0 is
+scaling methods make sure that min/max relationships are preserved, i.e., 0 is
 mapped to 0 and 255 is mapped to 1023. When using a user-defined brightness
 function on the ESP8266, 8-bit values must be returned, all scaling is done by
 JLed transparently for the application, yielding platform-independent code.
