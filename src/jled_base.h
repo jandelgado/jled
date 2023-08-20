@@ -340,10 +340,10 @@ class TJLed {
 
     // Stop current effect and turn LED immeadiately off. Further calls to
     // Update() will have no effect.
-    enum eStopMode { ABS_ZERO, REL_ZERO, KEEP };
-    B& Stop(eStopMode mode = eStopMode::REL_ZERO) {
-        if (mode != eStopMode::KEEP) {
-            Write(mode == eStopMode::ABS_ZERO ? kZeroBrightness
+    enum eStopMode { TO_MIN_BRIGHTNESS = 0, FULL_OFF, KEEP_CURRENT };
+    B& Stop(eStopMode mode = eStopMode::TO_MIN_BRIGHTNESS) {
+        if (mode != eStopMode::KEEP_CURRENT) {
+            Write(mode == eStopMode::FULL_OFF ? kZeroBrightness
                                               : minBrightness_);
         }
         state_ = ST_STOPPED;
@@ -430,21 +430,18 @@ class TJLed {
 
         if (t < period) {
             state_ = ST_RUNNING;
-            const auto val = Eval(t);
-            Write(val);
+            Write(Eval(t));
             return true;
         } else {
             if (state_ == ST_RUNNING) {
                 // when in delay after phase, just call Write()
                 // once at the beginning.
                 state_ = ST_IN_DELAY_AFTER_PHASE;
-                const auto val = Eval(period - 1);
-                Write(val);
+                Write(Eval(period - 1));
                 return true;
-            } else {
-                return false;
             }
         }
+        return false;
     }
 
     B& SetBrightnessEval(BrightnessEvaluator* be) {

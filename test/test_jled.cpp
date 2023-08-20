@@ -341,24 +341,24 @@ TEST_CASE("default Stop() sets the brightness to minBrightness", "[jled]") {
     CHECK(50 == jled.Hal().Value());
 }
 
-TEST_CASE("Stop(ABS_ZERO) sets the brightness to 0", "[jled]") {
+TEST_CASE("Stop(FULL_OFF) sets the brightness to 0", "[jled]") {
     auto eval = MockBrightnessEvaluator(ByteVec{100, 0});
     TestJLed jled = TestJLed(10).UserFunc(&eval).MinBrightness(50);
 
     jled.Update();
     REQUIRE(130 == jled.Hal().Value());  // 100 scaled to [50,255]
-    jled.Stop(TestJLed::eStopMode::ABS_ZERO);
+    jled.Stop(TestJLed::eStopMode::FULL_OFF);
 
     CHECK(0 == jled.Hal().Value());
 }
 
-TEST_CASE("Stop(KEEP) keeps the last brightness level", "[jled]") {
+TEST_CASE("Stop(KEEP_CURRENT) keeps the last brightness level", "[jled]") {
     auto eval = MockBrightnessEvaluator(ByteVec{100, 101});
     TestJLed jled = TestJLed(10).UserFunc(&eval).MinBrightness(50);
 
     jled.Update();
     REQUIRE(130 == jled.Hal().Value());  // 100 scaled to [50,255]
-    jled.Stop(TestJLed::eStopMode::KEEP);
+    jled.Stop(TestJLed::eStopMode::KEEP_CURRENT);
 
     CHECK(130 == jled.Hal().Value());
 }
