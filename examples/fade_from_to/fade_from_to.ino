@@ -4,8 +4,7 @@
 // https://github.com/jandelgado/jled
 #include <jled.h>
 
-//auto led = JLed(2).On(1);  // start with LED turned on
-auto led = JLed(27).FadeOn(2000).DelayAfter(1000);  // start with LED turned on
+auto led = JLed(2).On(1);  // start with LED turned on
 
 void setup() {}
 

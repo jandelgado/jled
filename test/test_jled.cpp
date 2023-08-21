@@ -462,7 +462,8 @@ TEST_CASE("Update returns true while updating, else false", "[jled]") {
 
 TEST_CASE("Update returns current value while updating", "[jled]") {
     auto eval = MockBrightnessEvaluator(ByteVec{20});
-    TestJLed jled = TestJLed(10).UserFunc(&eval).DelayAfter(1).MinBrightness(100);
+    TestJLed jled =
+        TestJLed(10).UserFunc(&eval).DelayAfter(1).MinBrightness(100);
 
     // Update returns FALSE on last step and beyond, else TRUE
     auto time = 0;
