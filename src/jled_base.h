@@ -431,17 +431,15 @@ class TJLed {
         if (t < period) {
             state_ = ST_RUNNING;
             Write(Eval(t));
-            return true;
         } else {
             if (state_ == ST_RUNNING) {
                 // when in delay after phase, just call Write()
                 // once at the beginning.
                 state_ = ST_IN_DELAY_AFTER_PHASE;
                 Write(Eval(period - 1));
-                return true;
             }
         }
-        return false;
+        return true;
     }
 
     B& SetBrightnessEval(BrightnessEvaluator* be) {

@@ -1,6 +1,6 @@
 // JLed Unit tests  (run on host).
 // Copyright 2017-2021 Jan Delgado jdelgado@gmx.net
-#include "catch.hpp"
+#include "catch2/catch_amalgamated.hpp"
 
 #include <jled_base.h>  // NOLINT
 #include "hal_mock.h"   // NOLINT

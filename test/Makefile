@@ -1,5 +1,6 @@
 # JLed unit tests Makefile
 # run `make coverage` to run all test and calculate coverage
+#
 .PHONY: phony
 
 CFLAGS=-std=c++14 -c -Wall -Wextra -I. -I../src -I./esp-idf \
@@ -10,29 +11,31 @@ CFLAGS=-std=c++14 -c -Wall -Wextra -I. -I../src -I./esp-idf \
 
 LDFLAGS=-fprofile-arcs -ftest-coverage 
 
-TEST_ARDUINO_MOCK_SRC=Arduino.cpp test_arduino_mock.cpp test_main.cpp 
+CATCH=catch2/catch_amalgamated.cpp
+
+TEST_ARDUINO_MOCK_SRC=Arduino.cpp test_arduino_mock.cpp test_main.cpp ${CATCH}
 TEST_ARDUINO_MOCK_OBJECTS=$(TEST_ARDUINO_MOCK_SRC:.cpp=.o) 
 
-TEST_JLED_SRC=Arduino.cpp test_jled.cpp test_main.cpp ../src/jled_base.cpp
+TEST_JLED_SRC=Arduino.cpp test_jled.cpp test_main.cpp ../src/jled_base.cpp ${CATCH}
 TEST_JLED_OBJECTS=$(TEST_JLED_SRC:.cpp=.o) 
 
-TEST_JLED_SEQUENCE_SRC=Arduino.cpp test_jled_sequence.cpp test_main.cpp ../src/jled_base.cpp
+TEST_JLED_SEQUENCE_SRC=Arduino.cpp test_jled_sequence.cpp test_main.cpp ../src/jled_base.cpp ${CATCH}
 TEST_JLED_SEQUENCE_OBJECTS=$(TEST_JLED_SEQUENCE_SRC:.cpp=.o)
 
 TEST_ESP32_SRC=esp-idf/esp_timer.cpp esp-idf/driver/ledc.cpp \
-			   test_esp32_hal.cpp ../src/esp32_hal.cpp test_main.cpp
+			   test_esp32_hal.cpp ../src/esp32_hal.cpp test_main.cpp ${CATCH}
 TEST_ESP32_OBJECTS=$(TEST_ESP32_SRC:.cpp=.o)
 
-TEST_ESP8266_SRC=Arduino.cpp test_esp8266_hal.cpp test_main.cpp
+TEST_ESP8266_SRC=Arduino.cpp test_esp8266_hal.cpp test_main.cpp ${CATCH}
 TEST_ESP8266_OBJECTS=$(TEST_ESP8266_SRC:.cpp=.o)
 
-TEST_MBED_SRC=mbed.cpp test_mbed_hal.cpp test_main.cpp
+TEST_MBED_SRC=mbed.cpp test_mbed_hal.cpp test_main.cpp ${CATCH}
 TEST_MBED_OBJECTS=$(TEST_MBED_SRC:.cpp=.o)
 
-TEST_ARDUINO_SRC=Arduino.cpp test_arduino_hal.cpp test_main.cpp
+TEST_ARDUINO_SRC=Arduino.cpp test_arduino_hal.cpp test_main.cpp ${CATCH}
 TEST_ARDUINO_OBJECTS=$(TEST_ARDUINO_SRC:.cpp=.o)
 
-TEST_MORSE_SRC=test_example_morse.cpp test_main.cpp 
+TEST_MORSE_SRC=test_example_morse.cpp test_main.cpp  ${CATCH}
 TEST_MORSE_OBJECTS=$(TEST_MORSE_SRC:.cpp=.o)
 
 
@@ -69,10 +72,10 @@ bin/test_example_morse: $(TEST_MORSE_OBJECTS)
 	$(CXX) -o $@ $(LDFLAGS) $(TEST_MORSE_OBJECTS) 
 
 coverage: test
-	lcov --config-file=.lcovrc --directory ../src --directory .. --capture --output-file coverage.info --no-external
-	lcov --config-file=.lcovrc --list coverage.info
+	lcov --config-file=.lcovrc --directory ../src --directory .. --capture --output-file coverage.lcov --no-external
+	lcov --config-file=.lcovrc --list coverage.lcov
 	mkdir -p report
-	genhtml coverage.info -o report
+	genhtml coverage.lcov -o report
 
 test: depend all
 	./bin/test_jled
@@ -93,7 +96,7 @@ bin:
 	mkdir -p bin
 
 clean: phony
-	rm -f {./,esp-idf,esp-idf/driver}/{*.gcov,*.gcda,*.gcno,*.o} .depend
+	rm -f {./,esp-idf,esp-idf/driver,catch2}/{*.gcov,*.gcda,*.gcno,*.o} .depend
 
 clobber: clean
 	rm -f bin/*

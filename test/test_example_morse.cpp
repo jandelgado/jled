@@ -1,7 +1,7 @@
 // JLed Unit tests  (run on host).
 // Tests for the morse code example.
 // Copyright 2018 Jan Delgado jdelgado@gmx.net
-#include "catch.hpp"
+#include "catch2/catch_amalgamated.hpp"
 
 #include <morse.h>  // NOLINT
 

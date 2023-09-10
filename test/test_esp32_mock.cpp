@@ -1,7 +1,7 @@
 // JLed Unit tests  (run on host).
 // Copyright 2017 Jan Delgado jdelgado@gmx.net
 
-#include "catch.hpp"
+#include "catch2/catch_amalgamated.hpp"
 #include "esp32.h"  // NOLINT
 
 TEST_CASE("esp32 mock correctly initialized", "[mock]") {

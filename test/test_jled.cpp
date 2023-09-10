@@ -6,7 +6,7 @@
 #include <map>
 #include <utility>
 #include <vector>
-#include "catch.hpp"
+#include "catch2/catch_amalgamated.hpp"
 #include "hal_mock.h"  // NOLINT
 
 using jled::BlinkBrightnessEvaluator;
@@ -41,17 +41,30 @@ class MockBrightnessEvaluator : public BrightnessEvaluator {
     }
 };
 
-// helper to check that a JLed objects evaluates to the given values
-#define CHECK_LED(led, all_expected)               \
-    do {                                           \
-        uint32_t time = 0;                         \
-        for (const auto expected : all_expected) { \
-            INFO("t=" << time);                    \
-            jled.Update();                         \
-            CHECK(expected == jled.Hal().Value()); \
-            jled.Hal().SetMillis(++time);          \
-        }                                          \
-    } while (0)
+// expected result when a JLed object is updated: return value
+// of Update() and the current brightness
+typedef std::pair<bool, uint8_t> UpdateResult;
+typedef std::vector<UpdateResult> UpdateResults;
+
+// helper to check if a led evaluates to given sequence. TODO use a catch
+// matcher
+template <class T>
+void check_led(T *led, const UpdateResults &expected) {
+    uint32_t time = 0;
+    for (const auto &current : expected) {
+        led->Hal().SetMillis(time);
+        const auto updated = led->Update();
+        const auto val = led->Hal().Value();
+        UNSCOPED_INFO("t=" << time << ", actual=("
+                           << (updated ? "true" : "false") << ", " << (int)val
+                           << "), expected=("
+                           << (current.first ? "true" : "false") << ", "
+                           << (int)current.second << ")");
+        CHECK(current.first == updated);
+        CHECK(current.second == val);
+        time++;
+    }
+}
 
 TEST_CASE("jled without effect does nothing", "[jled]") {
     auto led = TestJLed(1);
@@ -381,30 +394,34 @@ TEST_CASE("effect with repeat 2 repeats sequence once", "[jled]") {
     auto eval = MockBrightnessEvaluator(ByteVec{10, 20});
     TestJLed jled = TestJLed(10).UserFunc(&eval).Repeat(2);
 
-    auto expected = ByteVec{10, 20, 10, 20, 20, 20};
+    typedef UpdateResult u;
+    const UpdateResults expected = {u{true, 10},  u{true, 20},  u{true, 10},
+                                    u{false, 20}, u{false, 20}, u{false, 20}};
 
-    CHECK_LED(jled, expected);
+    check_led(&jled, expected);
 }
 
 TEST_CASE("effect with delay after delays start of next iteration", "[jled]") {
     auto eval = MockBrightnessEvaluator(ByteVec{10, 20});
     TestJLed jled = TestJLed(10).UserFunc(&eval).Repeat(2).DelayAfter(2);
 
-    auto expected = ByteVec{// Eval  Delay
-                            10, 20, 20, 20, 10, 20, 20, 20,
-                            // Final
-                            20, 20};
+    typedef UpdateResult u;
+    const UpdateResults expected = {
+        u{true, 10}, u{true, 20}, u{true, 20},  u{true, 20},  u{true, 10},
+        u{true, 20}, u{true, 20}, u{false, 20}, u{false, 20}, u{false, 20}};
 
-    CHECK_LED(jled, expected);
+    check_led(&jled, expected);
 }
 
 TEST_CASE("effect with delay before has delayed start ", "[jled]") {
     auto eval = MockBrightnessEvaluator(ByteVec{10, 20});
     TestJLed jled = TestJLed(10).UserFunc(&eval).DelayBefore(2);
 
-    auto expected = ByteVec{0, 0, 10, 20, 20, 20, 20};
+    typedef UpdateResult u;
+    const UpdateResults expected = {u{true, 0},   u{true, 0},   u{true, 10},
+                                    u{false, 20}, u{false, 20}, u{false, 20}};
 
-    CHECK_LED(jled, expected);
+    check_led(&jled, expected);
 }
 
 TEST_CASE("After calling Forever() the effect is repeated over and over again ",
@@ -412,9 +429,11 @@ TEST_CASE("After calling Forever() the effect is repeated over and over again ",
     auto eval = MockBrightnessEvaluator(ByteVec{10, 20});
     TestJLed jled = TestJLed(10).UserFunc(&eval).Forever();
 
-    auto expected = ByteVec{10, 20, 10, 20, 10, 20};
+    typedef UpdateResult u;
+    const UpdateResults expected = {u{true, 10}, u{true, 20}, u{true, 10},
+                                    u{true, 20}, u{true, 10}, u{true, 20}};
 
-    CHECK_LED(jled, expected);
+    check_led(&jled, expected);
 }
 
 TEST_CASE("The Hal object provided in the ctor is used during update",
@@ -445,45 +464,31 @@ TEST_CASE("After Reset() the effect can be restarted", "[jled]") {
     auto eval = MockBrightnessEvaluator(ByteVec{10, 20});
     TestJLed jled = TestJLed(10).UserFunc(&eval);
 
-    uint32_t time = 0;
-    typedef std::pair<bool, uint8_t> p;
+    typedef UpdateResult u;
 
-    constexpr p expected[]{p{true, 10}, p{false, 20}, p{false, 20},
-                           p{false, 20}};
+    const UpdateResults expected = {u{true, 10}, u{false, 20}, u{false, 20},
+                                    u{false, 20}};
 
-    for (const auto &x : expected) {
-        jled.Hal().SetMillis(time++);
-        CHECK(x.first == jled.Update());
-        CHECK(x.second == jled.Hal().Value());
-    }
+    check_led(&jled, expected);
 
     // after Reset() effect starts over
     jled.Reset();
-    for (const auto &x : expected) {
-        jled.Hal().SetMillis(time++);
-        CHECK(x.first == jled.Update());
-        CHECK(x.second == jled.Hal().Value());
-    }
+
+    check_led(&jled, expected);
 }
 
 TEST_CASE("Changing the effect resets object and starts over", "[jled]") {
     auto eval = MockBrightnessEvaluator(ByteVec{10, 20});
     TestJLed jled = TestJLed(10).UserFunc(&eval);
-    uint32_t time = 0;
-    typedef std::pair<bool, uint8_t> p;
 
-    constexpr p expected[]{p{true, 10}, p{false, 20}, p{false, 20}};
+    typedef UpdateResult u;
+    const UpdateResults expected = {u{true, 10}, u{false, 20}, u{false, 20}};
 
-    for (const auto &x : expected) {
-        jled.Hal().SetMillis(time++);
-        CHECK(x.first == jled.Update());
-        CHECK(x.second == jled.Hal().Value());
-    }
+    check_led(&jled, expected);
 
     // expect to start over after changing effect.
     jled.UserFunc(&eval);
-    CHECK(jled.Update());
-    CHECK(0 < jled.Hal().Value());
+    check_led(&jled, expected);
 }
 
 TEST_CASE("Max brightness level is initialized to 255", "[jled]") {
