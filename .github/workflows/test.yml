@@ -37,7 +37,7 @@ jobs:
 
     - name: install tools
       run: |
-        pip install platformio==6.1.4
+        pip install platformio==6.1.10
         sudo apt-get update && sudo apt-get install -y lcov
 
     - name: run tests
