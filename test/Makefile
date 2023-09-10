@@ -1,5 +1,6 @@
 # JLed unit tests Makefile
 # run `make coverage` to run all test and calculate coverage
+#
 .PHONY: phony
 
 CFLAGS=-std=c++14 -c -Wall -Wextra -I. -I../src -I./esp-idf \
@@ -71,10 +72,10 @@ bin/test_example_morse: $(TEST_MORSE_OBJECTS)
 	$(CXX) -o $@ $(LDFLAGS) $(TEST_MORSE_OBJECTS) 
 
 coverage: test
-	lcov --config-file=.lcovrc --directory ../src --directory .. --capture --output-file coverage.info --no-external
-	lcov --config-file=.lcovrc --list coverage.info
+	lcov --config-file=.lcovrc --directory ../src --directory .. --capture --output-file coverage.lcov --no-external
+	lcov --config-file=.lcovrc --list coverage.lcov
 	mkdir -p report
-	genhtml coverage.info -o report
+	genhtml coverage.lcov -o report
 
 test: depend all
 	./bin/test_jled
