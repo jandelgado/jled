@@ -1,7 +1,7 @@
 // JLed Unit tests  (run on host).
 // Copyright 2017 Jan Delgado jdelgado@gmx.net
 #include <arduino_hal.h>  // NOLINT
-#include "catch_amalgamated.hpp"
+#include "catch2/catch_amalgamated.hpp"
 
 using jled::ArduinoHal;
 

@@ -10,7 +10,7 @@ CFLAGS=-std=c++14 -c -Wall -Wextra -I. -I../src -I./esp-idf \
 
 LDFLAGS=-fprofile-arcs -ftest-coverage 
 
-CATCH=catch_amalgamated.cpp
+CATCH=catch2/catch_amalgamated.cpp
 
 TEST_ARDUINO_MOCK_SRC=Arduino.cpp test_arduino_mock.cpp test_main.cpp ${CATCH}
 TEST_ARDUINO_MOCK_OBJECTS=$(TEST_ARDUINO_MOCK_SRC:.cpp=.o) 
@@ -95,7 +95,7 @@ bin:
 	mkdir -p bin
 
 clean: phony
-	rm -f {./,esp-idf,esp-idf/driver}/{*.gcov,*.gcda,*.gcno,*.o} .depend
+	rm -f {./,esp-idf,esp-idf/driver,catch2}/{*.gcov,*.gcda,*.gcno,*.o} .depend
 
 clobber: clean
 	rm -f bin/*

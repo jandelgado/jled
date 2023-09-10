@@ -2,7 +2,7 @@
 // Copyright 2017-2022 Jan Delgado jdelgado@gmx.net
 #define ESP_IDF_VERSION_MAJOR 5
 #include <esp32_hal.h>  // NOLINT
-#include "catch_amalgamated.hpp"
+#include "catch2/catch_amalgamated.hpp"
 
 using jled::Esp32ChanMapper;
 using jled::Esp32Hal;

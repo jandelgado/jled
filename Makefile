@@ -12,7 +12,8 @@ all: phony
 
 lint: phony
 	cpplint --filter -readability/check \
-		    --extensions=cpp,h,ino $(shell find .  -maxdepth 3 \( ! -regex '.*/\..*' \) \
+		    --exclude test/catch2 \
+		    --extensions=cpp,h,ino $(shell find . -maxdepth 3 \( ! -regex '.*/\..*' \) \
 		       -type f -a \( -name "*\.cpp" -o -name "*\.h" -o -name "*\.ino" \) )
 
 ci: phony

@@ -6,7 +6,7 @@
 #include <map>
 #include <utility>
 #include <vector>
-#include "catch_amalgamated.hpp"
+#include "catch2/catch_amalgamated.hpp"
 #include "hal_mock.h"  // NOLINT
 
 using jled::BlinkBrightnessEvaluator;
@@ -46,7 +46,8 @@ class MockBrightnessEvaluator : public BrightnessEvaluator {
 typedef std::pair<bool, uint8_t> UpdateResult;
 typedef std::vector<UpdateResult> UpdateResults;
 
-// helper to check if a led evaluates to given sequence
+// helper to check if a led evaluates to given sequence. TODO use a catch
+// matcher
 template <class T>
 void check_led(T *led, const UpdateResults &expected) {
     uint32_t time = 0;
@@ -64,21 +65,6 @@ void check_led(T *led, const UpdateResults &expected) {
         time++;
     }
 }
-
-// helper to check that a JLed objects evaluates to the given values
-#define CHECK_LED(led, expected)                                               \
-    do {                                                                       \
-        std::cout << "**********************" << std::endl;                    \
-        uint32_t time = 0;                                                     \
-        for (const auto &current : expected) {                                 \
-            std::cout << "t=" << time << ",expected=(" << current.first << "," \
-                      << current.second << ")" << std::endl;                   \
-            const auto updated = jled.Update();                                \
-            CHECK(current.first == jled.Hal().Value());                        \
-            CHECK(current.second == updated);                                  \
-            jled.Hal().SetMillis(++time);                                      \
-        }                                                                      \
-    } while (0)
 
 TEST_CASE("jled without effect does nothing", "[jled]") {
     auto led = TestJLed(1);

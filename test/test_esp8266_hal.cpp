@@ -1,6 +1,6 @@
 // JLed Unit tests  (run on host).
 // Copyright 2017 Jan Delgado jdelgado@gmx.net
-#include "catch_amalgamated.hpp"
+#include "catch2/catch_amalgamated.hpp"
 #include <esp8266_hal.h>  // NOLINT
 
 using jled::Esp8266Hal;
