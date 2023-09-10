@@ -1,5 +1,9 @@
 # JLed changelog (github.com/jandelgado/jled)
 
+## [2023-09-10] 4.13.1
+
+* fix: `Update()` sometimes returning wrong state (https://github.com/jandelgado/jled/issues/122)
+
 ## [2023-08-20] 4.13.0
 
 * new: `Stop()` takes optional parameter allowing to turn LED fully off
