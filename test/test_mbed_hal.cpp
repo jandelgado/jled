@@ -1,6 +1,6 @@
 // JLed Unit tests for the mbed_hal class (run on host).
 // Copyright 2020 Jan Delgado jdelgado@gmx.net
-#include "catch.hpp"
+#include "catch_amalgamated.hpp"
 
 #include <mbed_hal.h>  // NOLINT
 #include "mbed.h"      // NOLINT
@@ -37,5 +37,6 @@ TEST_CASE("mbed_hal writes scaled value to the given pin using PwmOut",
 
     hal.analogWrite(127);
 
-    REQUIRE(mbedMockGetPinState(kPin) == Approx(127 / 255.));
+    REQUIRE_THAT(mbedMockGetPinState(kPin), Catch::Matchers::WithinAbs(127/255., 0.0001));
+//    REQUIRE_THAT(1147332687.7189338, Catch::Matchers::WithinAbs(1147332688.4281545, 0.0001));
 }

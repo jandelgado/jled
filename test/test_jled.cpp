@@ -6,7 +6,7 @@
 #include <map>
 #include <utility>
 #include <vector>
-#include "catch.hpp"
+#include "catch_amalgamated.hpp"
 #include "hal_mock.h"  // NOLINT
 
 using jled::BlinkBrightnessEvaluator;
@@ -54,10 +54,11 @@ void check_led(T *led, const UpdateResults &expected) {
         led->Hal().SetMillis(time);
         const auto updated = led->Update();
         const auto val = led->Hal().Value();
-        INFO("t=" << time << ", actual=(" << (updated ? "true" : "false")
-                  << ", " << (int)val << "), expected=("
-                  << (current.first ? "true" : "false") << ", "
-                  << (int)current.second << ")");
+        UNSCOPED_INFO("t=" << time << ", actual=("
+                           << (updated ? "true" : "false") << ", " << (int)val
+                           << "), expected=("
+                           << (current.first ? "true" : "false") << ", "
+                           << (int)current.second << ")");
         CHECK(current.first == updated);
         CHECK(current.second == val);
         time++;
@@ -65,18 +66,18 @@ void check_led(T *led, const UpdateResults &expected) {
 }
 
 // helper to check that a JLed objects evaluates to the given values
-#define CHECK_LED(led, expected)                                             \
-    do {                                                                     \
-        std::cout << "**********************" << std::endl;                  \
-        uint32_t time = 0;                                                   \
-        for (const auto &current : expected) {                               \
-            std::cout << "t=" << time << ",expected=(" << current.first \
-                      << "," << current.second << ")" << std::endl;     \
-            const auto updated = jled.Update();                              \
-            CHECK(current.first == jled.Hal().Value());                      \
-            CHECK(current.second == updated);                                \
-            jled.Hal().SetMillis(++time);                                    \
-        }                                                                    \
+#define CHECK_LED(led, expected)                                               \
+    do {                                                                       \
+        std::cout << "**********************" << std::endl;                    \
+        uint32_t time = 0;                                                     \
+        for (const auto &current : expected) {                                 \
+            std::cout << "t=" << time << ",expected=(" << current.first << "," \
+                      << current.second << ")" << std::endl;                   \
+            const auto updated = jled.Update();                                \
+            CHECK(current.first == jled.Hal().Value());                        \
+            CHECK(current.second == updated);                                  \
+            jled.Hal().SetMillis(++time);                                      \
+        }                                                                      \
     } while (0)
 
 TEST_CASE("jled without effect does nothing", "[jled]") {
