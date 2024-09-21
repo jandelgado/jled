@@ -297,14 +297,11 @@ TEST_CASE("dont evalute twice during one time tick", "[jled]") {
     auto eval = MockBrightnessEvaluator(ByteVec{0, 1, 2});
     TestJLed jled = TestJLed(1).UserFunc(&eval);
 
-    jled.Hal().SetMillis(0);
-    jled.Update();
+    jled.Update(0);
     CHECK(eval.Count() == 1);
-    jled.Update();
+    jled.Update(0);
     CHECK(eval.Count() == 1);
-
-    jled.Hal().SetMillis(1);
-    jled.Update();
+    jled.Update(1);
 
     CHECK(eval.Count() == 2);
 }
@@ -313,21 +310,18 @@ TEST_CASE("Handles millis overflow during effect", "[jled]") {
     TestJLed jled = TestJLed(10);
     // Set time close to overflow
     auto time = std::numeric_limits<uint32_t>::max() - 25;
-    jled.Hal().SetMillis(time);
-    CHECK_FALSE(jled.Update());
+    CHECK_FALSE(jled.Update(time));
     // Start fade off
     jled.FadeOff(100);
-    CHECK(jled.Update());
+    CHECK(jled.Update(time));
     CHECK(jled.IsRunning());
     CHECK(jled.Hal().Value() > 0);
     // Set time after overflow, before effect ends
-    jled.Hal().SetMillis(time + 50);
-    CHECK(jled.Update());
+    CHECK(jled.Update(time+50));
     CHECK(jled.IsRunning());
     CHECK(jled.Hal().Value() > 0);
     // Set time after effect ends
-    jled.Hal().SetMillis(time + 150);
-    CHECK_FALSE(jled.Update());
+    CHECK_FALSE(jled.Update(time+150));
     CHECK_FALSE(jled.IsRunning());
     CHECK(0 == jled.Hal().Value());
 }
@@ -382,11 +376,10 @@ TEST_CASE("LowActive() inverts signal", "[jled]") {
 
     CHECK(jled.IsLowActive());
 
-    jled.Update();
+    jled.Update(0);
     CHECK(255 == jled.Hal().Value());
 
-    jled.Hal().SetMillis(1);
-    jled.Update();
+    jled.Update(1);
     CHECK(0 == jled.Hal().Value());
 }
 
@@ -449,15 +442,11 @@ TEST_CASE("Update returns true while updating, else false", "[jled]") {
     TestJLed jled = TestJLed(10).UserFunc(&eval);
 
     // Update returns FALSE on last step and beyond, else TRUE
-    auto time = 0;
-    jled.Hal().SetMillis(time++);
-    CHECK(jled.Update());
+    CHECK(jled.Update(0));
 
     // when effect is done, we expect still false to be returned
-    jled.Hal().SetMillis(time++);
-    CHECK_FALSE(jled.Update());
-    jled.Hal().SetMillis(time++);
-    CHECK_FALSE(jled.Update());
+    CHECK_FALSE(jled.Update(1));
+    CHECK_FALSE(jled.Update(2));
 }
 
 TEST_CASE("After Reset() the effect can be restarted", "[jled]") {

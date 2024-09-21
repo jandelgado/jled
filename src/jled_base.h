@@ -233,8 +233,6 @@ class TJLed {
 
     HalType& Hal() { return hal_; }
 
-    bool Update() { return Update(hal_.millis()); }
-
     // Set physical LED polarity to be low active. This inverts every
     // signal physically output to a pin.
     B& LowActive() {
@@ -378,14 +376,6 @@ class TJLed {
     // Returns current maximum brightness level.
     uint8_t MaxBrightness() const { return maxBrightness_; }
 
- protected:
-    // test if time stored in last_update_time_ differs from provided timestamp.
-    bool inline timeChangedSinceLastUpdate(uint32_t now) {
-        return (now & 255) != last_update_time_;
-    }
-
-    void trackLastUpdateTime(uint32_t t) { last_update_time_ = (t & 255); }
-
     // update brightness of LED using the given brightness evaluator
     //  (brightness)                       ________________
     // on 255 |                         ¸-'
@@ -395,6 +385,8 @@ class TJLed {
     //        |<-delay before->|<--period-->|<-delay after-> (time)
     //                         | func(t)    |
     //                         |<- num_repetitions times  ->
+    bool Update() { return Update(hal_.millis()); }
+
     bool Update(uint32_t now) {
         if (state_ == ST_STOPPED || !brightness_eval_) return false;
 
@@ -441,6 +433,14 @@ class TJLed {
         }
         return true;
     }
+
+ protected:
+    // test if time stored in last_update_time_ differs from provided timestamp.
+    bool inline timeChangedSinceLastUpdate(uint32_t now) {
+        return (now & 255) != last_update_time_;
+    }
+
+    void trackLastUpdateTime(uint32_t t) { last_update_time_ = (t & 255); }
 
     B& SetBrightnessEval(BrightnessEvaluator* be) {
         brightness_eval_ = be;
@@ -504,8 +504,9 @@ class TJLedSequence {
     // active, else false
     bool UpdateParallel() {
         auto result = false;
+        uint32_t t = ptr(leds_[0])->Hal().millis();
         for (auto i = 0u; i < n_; i++) {
-            result |= ptr(leds_[i])->Update();
+            result |= ptr(leds_[i])->Update(t);
         }
         return result;
     }
@@ -536,7 +537,7 @@ class TJLedSequence {
         : mode_{mode}, leds_{leds}, cur_{0}, n_{n} {}
 
     bool Update() {
-        if (!is_running_) {
+        if (!is_running_ || n_ < 1) {
             return false;
         }
 
