@@ -7,7 +7,6 @@ on:
       - master
 
 name: run tests
-
 jobs:
   lint:
     runs-on: ubuntu-latest
