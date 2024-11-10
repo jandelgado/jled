@@ -385,50 +385,61 @@ class TJLed {
     //        |<-delay before->|<--period-->|<-delay after-> (time)
     //                         | func(t)    |
     //                         |<- num_repetitions times  ->
-    bool Update() { return Update(hal_.millis()); }
+    bool Update(int16_t* pLast = nullptr) {
+        return Update(hal_.millis(), pLast);
+    }
 
-    bool Update(uint32_t now) {
+    bool Update(uint32_t t, int16_t* pLast = nullptr) {
         if (state_ == ST_STOPPED || !brightness_eval_) return false;
 
         if (state_ == ST_INIT) {
-            time_start_ = now + delay_before_;
+            time_start_ = t + delay_before_;
             state_ = ST_RUNNING;
         } else {
             // no need to process updates twice during one time tick.
-            if (!timeChangedSinceLastUpdate(now)) return true;
+            if (!timeChangedSinceLastUpdate(t)) return true;
         }
 
-        trackLastUpdateTime(now);
+        trackLastUpdateTime(t);
 
-        if (static_cast<int32_t>(now - time_start_) < 0) return true;
+        if (static_cast<int32_t>(t - time_start_) < 0) return true;
+
+
+        auto evalAndWrite = [this](uint32_t t, int16_t* p) {
+            const auto val = Eval(t);
+            Write(val);
+            if (p) {
+                *p = val;
+            }
+        };
 
         // t cycles in range [0..period+delay_after-1]
         const auto period = brightness_eval_->Period();
-        const auto t = (now - time_start_) % (period + delay_after_);
 
         if (!IsForever()) {
             const auto time_end = time_start_ +
                                   static_cast<uint32_t>(period + delay_after_) *
-                                      num_repetitions_ - 1;
+                                      num_repetitions_ -
+                                  1;
 
-            if (static_cast<int32_t>(now - time_end) >= 0) {
+            if (static_cast<int32_t>(t - time_end) >= 0) {
                 // make sure final value of t = (period-1) is set
                 state_ = ST_STOPPED;
-                const auto val = Eval(period - 1);
-                Write(val);
+                evalAndWrite(period - 1, pLast);
                 return false;
             }
         }
 
+        t = (t - time_start_) % (period + delay_after_);
         if (t < period) {
             state_ = ST_RUNNING;
-            Write(Eval(t));
+            evalAndWrite(t, pLast);
         } else {
             if (state_ == ST_RUNNING) {
                 // when in delay after phase, just call Write()
                 // once at the beginning.
                 state_ = ST_IN_DELAY_AFTER_PHASE;
-                Write(Eval(period - 1));
+                evalAndWrite(period - 1, pLast);
             }
         }
         return true;
