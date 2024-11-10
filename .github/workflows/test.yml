@@ -21,7 +21,7 @@ jobs:
 
     - name: linter
       run: |
-        pip install cpplint
+        pip install cpplint==2.0.0
         make lint
 
   test:
