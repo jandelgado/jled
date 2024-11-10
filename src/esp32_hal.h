@@ -133,7 +133,7 @@ class Esp32Hal {
     }
 
     uint32_t millis() const {
-        return (uint32_t)(esp_timer_get_time() / 1000ULL);
+        return static_cast<uint32_t>(esp_timer_get_time() / 1000ULL);
     }
 
     PinType chan() const { return chan_; }

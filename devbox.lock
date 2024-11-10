@@ -1,0 +1,114 @@
+{
+  "lockfile_version": "1",
+  "packages": {
+    "cpplint@2.0.0": {
+      "last_modified": "2024-11-03T14:18:04Z",
+      "resolved": "github:NixOS/nixpkgs/4ae2e647537bcdbb82265469442713d066675275#cpplint",
+      "source": "devbox-search",
+      "version": "2.0.0",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/70gc21bl3grda63djlks6x1f5g8h89xk-cpplint-2.0.0",
+              "default": true
+            },
+            {
+              "name": "dist",
+              "path": "/nix/store/3sq5396dcbg3r06g9zci1w4rxql1xf0k-cpplint-2.0.0-dist"
+            }
+          ],
+          "store_path": "/nix/store/70gc21bl3grda63djlks6x1f5g8h89xk-cpplint-2.0.0"
+        },
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/3fcbszvn75zwim2n3785bflrwww38l42-cpplint-2.0.0",
+              "default": true
+            },
+            {
+              "name": "dist",
+              "path": "/nix/store/fqrmkx6q4q290hildy4l6gi2pzwzwinw-cpplint-2.0.0-dist"
+            }
+          ],
+          "store_path": "/nix/store/3fcbszvn75zwim2n3785bflrwww38l42-cpplint-2.0.0"
+        },
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/m675bxwgh3wmr0gix5g6xnhkidlql0ii-cpplint-2.0.0",
+              "default": true
+            },
+            {
+              "name": "dist",
+              "path": "/nix/store/2bpdwa3r1kfzf4jkd4i24njxy3pr3xnv-cpplint-2.0.0-dist"
+            }
+          ],
+          "store_path": "/nix/store/m675bxwgh3wmr0gix5g6xnhkidlql0ii-cpplint-2.0.0"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/vrv52827v0b6h4k3nl7k9zg4ld182khg-cpplint-2.0.0",
+              "default": true
+            },
+            {
+              "name": "dist",
+              "path": "/nix/store/132q2dd3wkkgdpybwzhybm7hbad0g097-cpplint-2.0.0-dist"
+            }
+          ],
+          "store_path": "/nix/store/vrv52827v0b6h4k3nl7k9zg4ld182khg-cpplint-2.0.0"
+        }
+      }
+    },
+    "lcov@1.16": {
+      "last_modified": "2024-03-22T11:26:23Z",
+      "resolved": "github:NixOS/nixpkgs/a3ed7406349a9335cb4c2a71369b697cecd9d351#lcov",
+      "source": "devbox-search",
+      "version": "1.16",
+      "systems": {
+        "aarch64-darwin": {
+          "store_path": "/nix/store/cwjgl90nkg79za5gx41yg4663w7iyj0y-lcov-1.16"
+        },
+        "aarch64-linux": {
+          "store_path": "/nix/store/81axjrgg3cjx09kdb25psiiyz60zacqw-lcov-1.16"
+        },
+        "x86_64-darwin": {
+          "store_path": "/nix/store/5jir4n0q72z9p2h9sxwb2rcam3j165wp-lcov-1.16"
+        },
+        "x86_64-linux": {
+          "store_path": "/nix/store/qfdwnjp77xlvg0jqfv1dl8b40xpv230k-lcov-1.16"
+        }
+      }
+    },
+    "pipx": {
+      "resolved": "github:NixOS/nixpkgs/75a52265bda7fd25e06e3a67dee3f0354e73243c#pipx",
+      "source": "nixpkg"
+    },
+    "python@3.11": {
+      "last_modified": "2024-03-22T11:26:23Z",
+      "plugin_version": "0.0.3",
+      "resolved": "github:NixOS/nixpkgs/a3ed7406349a9335cb4c2a71369b697cecd9d351#python3",
+      "source": "devbox-search",
+      "version": "3.11.8",
+      "systems": {
+        "aarch64-darwin": {
+          "store_path": "/nix/store/c05vbvkjxarxkws9zkwrcwrzlsx9nd68-python3-3.11.8"
+        },
+        "aarch64-linux": {
+          "store_path": "/nix/store/pxzzyri1wbq7kc7pain665g94afkl4ww-python3-3.11.8"
+        },
+        "x86_64-darwin": {
+          "store_path": "/nix/store/1zaap1xxxvw2ypsgh1mfxb3wzdd49873-python3-3.11.8"
+        },
+        "x86_64-linux": {
+          "store_path": "/nix/store/7wz6hm9i8wljz0hgwz1wqmn2zlbgavrq-python3-3.11.8"
+        }
+      }
+    }
+  }
+}

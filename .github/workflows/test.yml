@@ -7,6 +7,11 @@ on:
       - master
 
 name: run tests
+
+concurrency:
+  group: ${{ github.head_ref }}
+  cancel-in-progress: true
+
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -21,7 +26,7 @@ jobs:
 
     - name: linter
       run: |
-        pip install cpplint
+        pip install cpplint==2.0.0
         make lint
 
   test:

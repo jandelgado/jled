@@ -170,7 +170,7 @@ hardware abstraction, which might scale it to the resolution used by the actual
 device (e.g. 10 bits for an ESP8266). Finally the brightness value is written
 out to the configure GPIO.
 
-```
+```text
 ┌───────────┐    ┌────────────┐    ┌─────────┐    ┌────────┐    ┌─────────┐    ┌────────┐
 │ Evaluate  │    │  Scale to  │    │  Low    │YES │ Invert │    │Scale for│    │Write to│
 │ effect(t) ├───►│ [min, max] ├───►│ active? ├───►│ signal ├───►│Hardware ├───►│  GPIO  │
@@ -410,8 +410,10 @@ specified by `DelayAfter()` method.
 
 ##### Update
 
-Call `Update()` periodically to update the state of the LED. `Update` returns
-`true` if the effect is active, and `false` when it finished.
+Call `Update()` or `Update(uint32_t t)` periodically to update the state of the
+LED. `Update` returns `true` if the effect is active, and `false` when it
+finished. `Update()` is a shortcut to call `Update(uint32_t t)` with the
+current time.
 
 ##### IsRunning
 

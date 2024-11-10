@@ -1,5 +1,10 @@
 # JLed changelog (github.com/jandelgado/jled)
 
+## [2024-09-21] 4.14
+
+* new: make `Jled::Update(unit32_t t)` public, allowing  optimizations and
+       simplified tests
+
 ## [2023-09-10] 4.13.1
 
 * fix: `Update()` sometimes returning wrong state (https://github.com/jandelgado/jled/issues/122)

@@ -43,7 +43,8 @@ class PicoHal {
                             uint32_t *top_) {
         // Set the frequency, making "top_" as large as possible for maximum
         // resolution.
-        *div = (uint32_t)(16 * clock_get_hz(clk_sys) / (uint32_t)freq);
+        *div = static_cast<uint32_t>(16 * clock_get_hz(clk_sys) /
+                                     static_cast<uint32_t>(freq));
         *top_ = 1;
         for (;;) {
             // Try a few small prime factors to get close to the desired
@@ -100,7 +101,7 @@ class PicoHal {
 
     void analogWrite(uint8_t val) const {
         set_pwm_duty(slice_num_, channel_, top_,
-                     (uint32_t)(DUTY_100_PCT / 255) * val);
+                     static_cast<uint32_t>(DUTY_100_PCT / 255) * val);
     }
 
     uint32_t millis() const { return to_ms_since_boot(get_absolute_time()); }
