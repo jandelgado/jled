@@ -400,18 +400,18 @@ class TJLed {
 
         trackLastUpdateTime(now);
 
-        if ((int32_t)(now - time_start_) < 0) return true;
+        if (static_cast<int32_t>(now - time_start_) < 0) return true;
 
         // t cycles in range [0..period+delay_after-1]
         const auto period = brightness_eval_->Period();
         const auto t = (now - time_start_) % (period + delay_after_);
 
         if (!IsForever()) {
-            const auto time_end =
-                time_start_ +
-                (uint32_t)(period + delay_after_) * num_repetitions_ - 1;
+            const auto time_end = time_start_ +
+                                  static_cast<uint32_t>(period + delay_after_) *
+                                      num_repetitions_ - 1;
 
-            if ((int32_t)(now - time_end) >= 0) {
+            if (static_cast<int32_t>(now - time_end) >= 0) {
                 // make sure final value of t = (period-1) is set
                 state_ = ST_STOPPED;
                 const auto val = Eval(period - 1);
@@ -593,5 +593,5 @@ class TJLedSequence {
     bool is_running_ = true;
 };
 
-};      // namespace jled
+};  // namespace jled
 #endif  // SRC_JLED_BASE_H_

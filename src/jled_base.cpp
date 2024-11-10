@@ -32,7 +32,7 @@ namespace jled {
 // fade-off and breath functions are all derived from fade-on, see
 // below.
 static constexpr uint8_t kFadeOnTable[] = {0,   3,   13,  33, 68,
-                                           118, 179, 232, 255};
+                                           118, 179, 232, 255}; // NOLINT
 
 // https://www.wolframalpha.com/input/?i=plot+(exp(sin((x-100%2F2.)*PI%2F100))-0.36787944)*108.0++x%3D0+to+100
 // The fade-on func is an approximation of
@@ -70,7 +70,7 @@ uint8_t rand8() {
 //   scale8(0, f) == 0 for all f
 //   scale8(x, 255) == x for all x
 uint8_t scale8(uint8_t val, uint8_t factor) {
-    return ((uint16_t)val * (uint16_t)(1 + factor)) >> 8;
+    return (static_cast<uint16_t>(val)*static_cast<uint16_t>(1 + factor)) >> 8;
 }
 
 // interpolate a byte (val) to the interval [a,b].
