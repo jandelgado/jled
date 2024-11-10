@@ -43,8 +43,8 @@ class MockBrightnessEvaluator : public BrightnessEvaluator {
 
 // expected result when a JLed object is updated: return value
 // of Update() and the current brightness
-typedef std::pair<bool, uint8_t> UpdateResult;
-typedef std::vector<UpdateResult> UpdateResults;
+using UpdateResult = std::pair<bool, uint8_t>;
+using UpdateResults = std::vector<UpdateResult>;
 
 // helper to check if a led evaluates to given sequence. TODO use a catch
 // matcher
@@ -293,13 +293,13 @@ TEST_CASE("Forever flag is set by call to Forever()", "[jled]") {
     CHECK(jled.IsForever());
 }
 
-TEST_CASE("dont evalute twice during one time tick", "[jled]") {
+TEST_CASE("dont evaluate twice during one time tick", "[jled]") {
     auto eval = MockBrightnessEvaluator(ByteVec{0, 1, 2});
     TestJLed jled = TestJLed(1).UserFunc(&eval);
 
-    jled.Update(0);
+    jled.Update(0, nullptr);
     CHECK(eval.Count() == 1);
-    jled.Update(0);
+    jled.Update(0, nullptr);
     CHECK(eval.Count() == 1);
     jled.Update(1);
 
@@ -324,6 +324,34 @@ TEST_CASE("Handles millis overflow during effect", "[jled]") {
     CHECK_FALSE(jled.Update(time+150));
     CHECK_FALSE(jled.IsRunning());
     CHECK(0 == jled.Hal().Value());
+}
+
+TEST_CASE("Update returns last written value if requested", "[jled]") {
+    auto eval = MockBrightnessEvaluator(ByteVec{0, 10});
+    int16_t lastVal = -1;
+    TestJLed jled = TestJLed(1).UserFunc(&eval);
+
+    jled.Update(0, &lastVal);
+    CHECK(lastVal == 0);
+
+    jled.Update(1, &lastVal);
+    CHECK(lastVal == 10);
+}
+
+TEST_CASE("Update doesn't change last value ptr if not updated", "[jled]") {
+    auto eval = MockBrightnessEvaluator(ByteVec{0, 10});
+    int16_t lastVal = -1;
+    TestJLed jled = TestJLed(1).UserFunc(&eval).DelayBefore(1);
+
+    jled.Update(0, &lastVal);
+    CHECK(lastVal == -1);
+
+    jled.Update(5, &lastVal);
+    CHECK(lastVal == 10);
+
+    lastVal = -1;
+    jled.Update(5, &lastVal);
+    CHECK(lastVal == -1);
 }
 
 TEST_CASE("Stop() stops the effect", "[jled]") {
@@ -376,7 +404,7 @@ TEST_CASE("LowActive() inverts signal", "[jled]") {
 
     CHECK(jled.IsLowActive());
 
-    jled.Update(0);
+    jled.Update(0, nullptr);
     CHECK(255 == jled.Hal().Value());
 
     jled.Update(1);
@@ -442,7 +470,7 @@ TEST_CASE("Update returns true while updating, else false", "[jled]") {
     TestJLed jled = TestJLed(10).UserFunc(&eval);
 
     // Update returns FALSE on last step and beyond, else TRUE
-    CHECK(jled.Update(0));
+    CHECK(jled.Update(0, nullptr));
 
     // when effect is done, we expect still false to be returned
     CHECK_FALSE(jled.Update(1));
