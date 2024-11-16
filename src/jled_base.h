@@ -47,6 +47,11 @@ void rand_seed(uint32_t s);
 uint8_t scale8(uint8_t val, uint8_t f);
 uint8_t lerp8by8(uint8_t val, uint8_t a, uint8_t b);
 
+template<typename T>
+static constexpr T max(T a, T b) {
+    return (a > b) ? a : b;
+}
+
 // a function f(t,period,param) that calculates the LEDs brightness for a given
 // point in time and the given period. param is an optionally user provided
 // parameter. t will always be in range [0..period-1].
@@ -477,7 +482,11 @@ class TJLed {
 
     // this is where the BrightnessEvaluator object will be stored using
     // placment new.  Set MAX_SIZE to class occupying most memory
-    static constexpr auto MAX_SIZE = sizeof(CandleBrightnessEvaluator);
+    static constexpr auto MAX_SIZE =
+        max(sizeof(CandleBrightnessEvaluator),
+            max(sizeof(BreatheBrightnessEvaluator),
+                max(sizeof(ConstantBrightnessEvaluator),
+                    sizeof(BlinkBrightnessEvaluator))));
     alignas(alignof(
         CloneableBrightnessEvaluator)) char brightness_eval_buf_[MAX_SIZE];
 
