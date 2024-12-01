@@ -1,5 +1,5 @@
-<table><tr><td> 
-<b>Preferring Python?</b> I just released <a href="https://github.com/jandelgado/jled-circuitpython">jled-circuitpython</a>, 
+<table><tr><td>
+<b>Preferring Python?</b> I just released <a href="https://github.com/jandelgado/jled-circuitpython">jled-circuitpython</a>,
 a JLed implementation for CircuitPython and MicroPython.
 </td></tr></table>
 
@@ -91,8 +91,8 @@ void loop() {
         * [Arduino framework](#arduino-framework)
     * [Raspberry Pi Pico](#raspberry-pi-pico)
 * [Example sketches](#example-sketches)
-    * [PlatformIO](#platformio-1)
-    * [Arduino IDE](#arduino-ide-1)
+    * [Building examples with PlatformIO](#building-examples-with-platformio)
+    * [Building examples with the Arduino IDE](#building-examples-with-the-arduino-ide)
 * [Extending](#extending)
     * [Support new hardware](#support-new-hardware)
 * [Unit tests](#unit-tests)
@@ -194,9 +194,9 @@ Use the `Set(uint8_t brightness, uint16_t period=1)` method to set the
 brightness to the given value, i.e., `Set(255)` is equivalent to calling `On()`
 and `Set(0)` is equivalent to calling `Off()`.
 
-Technically, `Set`, `On` and `Off` are effects with a default period of 1ms, that 
+Technically, `Set`, `On` and `Off` are effects with a default period of 1ms, that
 set the brightness to a constant value. Specifying a different period has an
-effect on when the `Update()` method will be done updating the effect and 
+effect on when the `Update()` method will be done updating the effect and
 return false (like for any other effects). This is important when for example
 in a `JLedSequence` the LED should stay on for a given amount of time.
 
@@ -268,25 +268,25 @@ auto led = JLed(13).Breathe(500, 1000, 500).DelayAfter(1000).Forever();
 
 #### Candle
 
-In candle mode, the random flickering of a candle or fire is simulated. 
+In candle mode, the random flickering of a candle or fire is simulated.
 The builder method has the following signature:
   `Candle(uint8_t speed, uint8_t jitter, uin16_t period)`
 
-* `speed` - controls the speed of the effect. 0 for fastest, increasing speed 
+* `speed` - controls the speed of the effect. 0 for fastest, increasing speed
   divides into halve per increment. The default value is 7.
 * `jitter` - the amount of jittering. 0 none (constant on), 255 maximum. Default
   value is 15.
 * `period` - Period of effect in ms.  The default value is 65535 ms.
 
 The default settings simulate a candle. For a fire effect for example use
-call the method with `Candle(5 /*speed*/, 100 /* jitter*/)`. 
+call the method with `Candle(5 /*speed*/, 100 /* jitter*/)`.
 
 ##### Candle example
 
 ```c++
 #include <jled.h>
 
-// Candle on LED pin 13 (PWM capable). 
+// Candle on LED pin 13 (PWM capable).
 auto led = JLed(13).Candle();
 
 void setup() { }
@@ -363,7 +363,7 @@ two methods:
   as an unsigned byte, where 0 means LED off and 255 means full brightness.
 * `uint16_t Period() const` - period of the effect.
 
-All time values are specified in milliseconds. 
+All time values are specified in milliseconds.
 
 The [user_func](examples/user_func) example demonstrates a simple user provided
 brightness function, while the [morse](examples/morse) example shows how a more
@@ -410,10 +410,29 @@ specified by `DelayAfter()` method.
 
 ##### Update
 
-Call `Update()` or `Update(uint32_t t)` periodically to update the state of the
-LED. `Update` returns `true` if the effect is active, and `false` when it
-finished. `Update()` is a shortcut to call `Update(uint32_t t)` with the
-current time.
+Call `Update(int16_t *pLast=nullptr)` or `Update(uint32_t t, int16_t *pLast=nullptr)`
+to periodically update the state of the LED.
+
+`Update` returns `true`, if the effect is active, or `false` when it finished.
+`Update()` is a shortcut to call `Update(uint32_t t)` with the current time in
+milliseconds.
+
+To obtain the value of the last written brightness value (after applying min-
+and max-brightness transformations), pass an additional optional pointer
+`*pLast` , where this value will be stored, when it was written. Example:
+
+```c++
+int16_t lastVal = -1;
+led.Update(&lastVal);
+if (lastVal != -1) {
+    // the LED was updated with the brightness value now stored in lastVal
+    ...
+}
+```
+
+Most of the time just calling `Update()` without any parameters is what you want.
+
+See [last_brightness](examples/last_brightness) example for a working example.
 
 ##### IsRunning
 
@@ -453,8 +472,8 @@ will be inverted by JLed (i.e., instead of x, the value of 255-x will be set).
 
 ##### Minimum- and Maximum brightness level
 
-The `MaxBrightness(uint8_t level)` method is used to set the maximum brightness 
-level of the LED. A level of 255 (the default) is full brightness, while 0 
+The `MaxBrightness(uint8_t level)` method is used to set the maximum brightness
+level of the LED. A level of 255 (the default) is full brightness, while 0
 effectively turns the LED off. In the same way, the `MinBrightness(uint8_t level)`
 method sets the minimum brightness level. The default minimum level is 0. If
 minimum or maximum brightness levels are set, the output value is scaled to be
@@ -462,7 +481,7 @@ within the interval defined by `[minimum brightness, maximum brightness]`: a
 value of 0 will be mapped to the minimum brightness level, a value of 255 will
 be mapped to the maximum brightness level.
 
-The `uint_8 MaxBrightness() const` method returns the current maximum 
+The `uint_8 MaxBrightness() const` method returns the current maximum
 brightness level. `uint8_t MinBrightness() const` returns the current minimum
 brightness level.
 
@@ -500,10 +519,10 @@ The `JLedSequence` provides the following methods:
   else `false`.
 * Use the `Repeat(n)` method to specify the number of repetitions. The default
   value is 1 repetition. The `Forever()` methods sets to repeat the sequence
-  forever. 
-* `Stop()` - turns off all `JLed` objects controlled by the sequence and 
+  forever.
+* `Stop()` - turns off all `JLed` objects controlled by the sequence and
    stops the sequence. Further calls to `Update()` will have no effect.
-* `Reset()` - Resets all `JLed` objects controlled by the sequence and 
+* `Reset()` - Resets all `JLed` objects controlled by the sequence and
    the sequence, resulting in a start-over.
 
 ## Framework notes
@@ -518,7 +537,7 @@ framework:
 platform=ststm32
 board = nucleo_f401re
 framework = mbed
-build_flags = -Isrc 
+build_flags = -Isrc
 src_filter = +<../../src/>  +<./>
 upload_protocol=stlink
 ```
@@ -570,8 +589,8 @@ so it should be avoided and is normally not necessary.
 For completeness, the full signature of the Esp32Hal constructor is
 
 ```
-Esp32Hal(PinType pin, 
-         int chan = kAutoSelectChan, 
+Esp32Hal(PinType pin,
+         int chan = kAutoSelectChan,
          uint16_t freq = 5000,
          ledc_timer_t timer = LEDC_TIMER_0)
 ```
@@ -621,6 +640,7 @@ Example sketches are provided in the [examples](examples/) directory.
 * [Controlling multiple LEDs sequentially](examples/sequence)
 * [Simple User provided effect](examples/user_func)
 * [Morsecode example](examples/morse)
+* [Last brightness value examples](examples/last_brightness)
 * [Custom HAL example](examples/custom_hal)
 * [Custom PCA9685 HAL](https://github.com/jandelgado/jled-pca9685-hal)
 * [Dynamically switch sequences](https://github.com/jandelgado/jled-example-switch-sequence)
@@ -629,9 +649,9 @@ Example sketches are provided in the [examples](examples/) directory.
 * [ESP32 ESP-IDF example](https://github.com/jandelgado/jled-esp-idf-example)
 * [ESP32 ESP-IDF PlatformIO example](https://github.com/jandelgado/jled-esp-idf-platformio-example)
 
-### PlatformIO
+### Building examples with PlatformIO
 
-To build an example using [the PlatformIO ide](http://platformio.org/), 
+To build an example using [the PlatformIO ide](http://platformio.org/),
 uncomment the example to be built in the [platformio.ini](platformio.ini)
 project file, e.g.:
 
@@ -642,7 +662,7 @@ src_dir = examples/hello
 ;src_dir = examples/breathe
 ```
 
-### Arduino IDE
+### Building examples with the Arduino IDE
 
 To build an example sketch in the Arduino IDE, select an example from
 the `File` > `Examples` > `JLed` menu.
@@ -670,8 +690,8 @@ the host-based provided unit tests [is provided here](test/README.md).
 * add code
 * add [unit test(s)](test/)
 * add [documentation](README.md)
-* make sure the cpp [linter](https://github.com/cpplint/cpplint) does not 
-  report any problems (run `make lint`). Hint: use `clang-format` with the 
+* make sure the cpp [linter](https://github.com/cpplint/cpplint) does not
+  report any problems (run `make lint`). Hint: use `clang-format` with the
   provided [settings](.clang-format)
 * commit changes
 * submit a PR

@@ -190,7 +190,7 @@ TEST_CASE("using Fade() configures BreatheBrightnessEvaluator", "[jled]") {
         static void test() {
             SECTION("fade with from < to") {
                 TestableJLed jled(1);
-                jled.Fade(100, 200, 300);
+                jled.Fade(100, 200, 300);  // from, to, duration
                 REQUIRE(dynamic_cast<BreatheBrightnessEvaluator *>(
                             jled.brightness_eval_) != nullptr);
                 auto eval = dynamic_cast<BreatheBrightnessEvaluator *>(
@@ -198,8 +198,8 @@ TEST_CASE("using Fade() configures BreatheBrightnessEvaluator", "[jled]") {
                 CHECK(300 == eval->DurationFadeOn());
                 CHECK(0 == eval->DurationOn());
                 CHECK(0 == eval->DurationFadeOff());
-                CHECK(100 == jled.MinBrightness());
-                CHECK(200 == jled.MaxBrightness());
+                CHECK(100 == static_cast<int>(eval->From()));
+                CHECK(200 == static_cast<int>(eval->To()));
             }
             SECTION("fade with from >= to") {
                 TestableJLed jled(1);
@@ -211,8 +211,8 @@ TEST_CASE("using Fade() configures BreatheBrightnessEvaluator", "[jled]") {
                 CHECK(0 == eval->DurationFadeOn());
                 CHECK(0 == eval->DurationOn());
                 CHECK(300 == eval->DurationFadeOff());
-                CHECK(100 == jled.MinBrightness());
-                CHECK(200 == jled.MaxBrightness());
+                CHECK(100 == static_cast<int>(eval->From()));
+                CHECK(200 == static_cast<int>(eval->To()));
             }
         }
     };
@@ -261,7 +261,6 @@ TEST_CASE(
 TEST_CASE("CandleBrightnessEvaluator simulated candle flickering", "[jled]") {
     auto eval = CandleBrightnessEvaluator(7, 15, 1000);
     CHECK(1000 == eval.Period());
-    // TODO(jd) do further and better tests
     CHECK(eval.Eval(0) > 0);
     CHECK(eval.Eval(999) > 0);
 }
@@ -317,11 +316,11 @@ TEST_CASE("Handles millis overflow during effect", "[jled]") {
     CHECK(jled.IsRunning());
     CHECK(jled.Hal().Value() > 0);
     // Set time after overflow, before effect ends
-    CHECK(jled.Update(time+50));
+    CHECK(jled.Update(time + 50));
     CHECK(jled.IsRunning());
     CHECK(jled.Hal().Value() > 0);
     // Set time after effect ends
-    CHECK_FALSE(jled.Update(time+150));
+    CHECK_FALSE(jled.Update(time + 150));
     CHECK_FALSE(jled.IsRunning());
     CHECK(0 == jled.Hal().Value());
 }
@@ -370,10 +369,11 @@ TEST_CASE("default Stop() sets the brightness to minBrightness", "[jled]") {
     TestJLed jled = TestJLed(10).UserFunc(&eval).MinBrightness(50);
 
     jled.Update();
-    REQUIRE(130 == jled.Hal().Value());  // 100 scaled to [50,255]
-    jled.Stop();
+    REQUIRE(130 ==
+            static_cast<int>(jled.Hal().Value()));  // 100 scaled to [50,255]
 
-    CHECK(50 == jled.Hal().Value());
+    jled.Stop();
+    CHECK(50 == static_cast<int>(jled.Hal().Value()));
 }
 
 TEST_CASE("Stop(FULL_OFF) sets the brightness to 0", "[jled]") {
@@ -381,10 +381,11 @@ TEST_CASE("Stop(FULL_OFF) sets the brightness to 0", "[jled]") {
     TestJLed jled = TestJLed(10).UserFunc(&eval).MinBrightness(50);
 
     jled.Update();
-    REQUIRE(130 == jled.Hal().Value());  // 100 scaled to [50,255]
-    jled.Stop(TestJLed::eStopMode::FULL_OFF);
+    REQUIRE(130 ==
+            static_cast<int>(jled.Hal().Value()));  // 100 scaled to [50,255]
 
-    CHECK(0 == jled.Hal().Value());
+    jled.Stop(TestJLed::eStopMode::FULL_OFF);
+    CHECK(0 == static_cast<int>(jled.Hal().Value()));
 }
 
 TEST_CASE("Stop(KEEP_CURRENT) keeps the last brightness level", "[jled]") {
@@ -392,10 +393,11 @@ TEST_CASE("Stop(KEEP_CURRENT) keeps the last brightness level", "[jled]") {
     TestJLed jled = TestJLed(10).UserFunc(&eval).MinBrightness(50);
 
     jled.Update();
-    REQUIRE(130 == jled.Hal().Value());  // 100 scaled to [50,255]
-    jled.Stop(TestJLed::eStopMode::KEEP_CURRENT);
+    REQUIRE(130 ==
+            static_cast<int>(jled.Hal().Value()));  // 100 scaled to [50,255]
 
-    CHECK(130 == jled.Hal().Value());
+    jled.Stop(TestJLed::eStopMode::KEEP_CURRENT);
+    CHECK(130 == static_cast<int>(jled.Hal().Value()));
 }
 
 TEST_CASE("LowActive() inverts signal", "[jled]") {
@@ -539,13 +541,14 @@ TEST_CASE(
         using TestJLed::TestJLed;
         static void test() {
             TestableJLed jled(1);
-
             auto eval = MockBrightnessEvaluator(ByteVec{0, 128, 255});
             jled.UserFunc(&eval).MinBrightness(100).MaxBrightness(200);
 
-            CHECK(100 == jled.Eval(0));
-            CHECK(150 == jled.Eval(1));
-            CHECK(200 == jled.Eval(2));
+            jled.Update(0, nullptr);
+            CHECK(100 == jled.Hal().Value());
+
+            jled.Update(2, nullptr);
+            CHECK(200 == jled.Hal().Value());
         }
     };
     TestableJLed::test();
@@ -603,8 +606,7 @@ TEST_CASE("lerp8by8 interpolates a byte into the given interval",
     CHECK(200 == (int)(jled::lerp8by8(255, 100, 200)));
 }
 
-TEST_CASE("invlerp8by8 is the inverse of lerp8by8",
-          "[invlerp8by8]") {
+TEST_CASE("invlerp8by8 is the inverse of lerp8by8", "[invlerp8by8]") {
     CHECK(0 == (int)(jled::invlerp8by8(0, 0, 255)));
     CHECK(255 == (int)(jled::invlerp8by8(255, 0, 255)));
 
