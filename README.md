@@ -619,9 +619,14 @@ necessary to upload sketches to the microcontroller.
 
 ### Raspberry Pi Pico
 
-When using JLed on a Raspberry Pi Pico, the Pico-SDK and tools must be
-installed.  The Pico supports up to 16 PWM channels in parallel. See
-the [pico-demo](examples/raspi_pico) for an example and build instructions.
+When using JLed on a Raspberry Pi Pico, the Pico-SDK and tools can be
+used.  The Pico supports up to 16 PWM channels in parallel. See
+the [pico-demo](examples/raspi_pico) for an example and build instructions when
+the Pico-SDK is used.
+
+A probably easier approach is to use the Arduino platform. See
+[platformio.ini](platformio.ini) for details (look for
+`env:raspberrypi_pico_w`, which targets the Raspberry Pi Pico W.
 
 ## Example sketches
 
@@ -640,7 +645,7 @@ Example sketches are provided in the [examples](examples/) directory.
 * [Controlling multiple LEDs sequentially](examples/sequence)
 * [Simple User provided effect](examples/user_func)
 * [Morsecode example](examples/morse)
-* [Last brightness value examples](examples/last_brightness)
+* [Last brightness value example](examples/last_brightness)
 * [Custom HAL example](examples/custom_hal)
 * [Custom PCA9685 HAL](https://github.com/jandelgado/jled-pca9685-hal)
 * [Dynamically switch sequences](https://github.com/jandelgado/jled-example-switch-sequence)
