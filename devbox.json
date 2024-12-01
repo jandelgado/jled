@@ -1,13 +1,13 @@
 {
   "packages": [
-    "python@3.11",
+    "python@3.13",
     "lcov@1.16",
     "pipx",
     "cpplint@2.0.0"
   ],
   "shell": {
-    "init_hook": [
-      "echo 'Welcome to devbox!' > /dev/null"
+    "init_hook": [  
+      ". $VENV_DIR/bin/activate"
     ],
     "scripts": {
       "test": [
