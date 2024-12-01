@@ -49,7 +49,7 @@ uint8_t lerp8by8(uint8_t val, uint8_t a, uint8_t b);
 uint8_t invlerp8by8(uint8_t val, uint8_t a, uint8_t b);
 
 template <typename T>
-static constexpr T max(T a, T b) {
+static constexpr T __max(T a, T b) {
     return (a > b) ? a : b;
 }
 
@@ -500,10 +500,10 @@ class TJLed {
     // this is where the BrightnessEvaluator object will be stored using
     // placment new.  Set MAX_SIZE to class occupying most memory
     static constexpr auto MAX_SIZE =
-        max(sizeof(CandleBrightnessEvaluator),
-            max(sizeof(BreatheBrightnessEvaluator),
-                max(sizeof(ConstantBrightnessEvaluator),  // NOLINT
-                    sizeof(BlinkBrightnessEvaluator))));
+        __max(sizeof(CandleBrightnessEvaluator),
+              __max(sizeof(BreatheBrightnessEvaluator),
+                    __max(sizeof(ConstantBrightnessEvaluator),  // NOLINT
+                          sizeof(BlinkBrightnessEvaluator))));
     alignas(alignof(
         CloneableBrightnessEvaluator)) char brightness_eval_buf_[MAX_SIZE];
 
