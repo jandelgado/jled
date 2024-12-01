@@ -26,8 +26,7 @@ namespace jled {
 // pre-calculated fade-on function. This table samples the function
 //   y(x) =  exp(sin((t - period / 2.) * PI / period)) - 0.36787944)
 //   * 108.
-// at x={0,32,...,256}. In FadeOnFunc() we us linear interpolation
-// to
+// at x={0,32,...,256}. In FadeOnFunc() we us linear interpolation to
 // approximate the original function (so we do not need fp-ops).
 // fade-off and breath functions are all derived from fade-on, see
 // below.
@@ -70,14 +69,21 @@ uint8_t rand8() {
 //   scale8(0, f) == 0 for all f
 //   scale8(x, 255) == x for all x
 uint8_t scale8(uint8_t val, uint8_t factor) {
-    return (static_cast<uint16_t>(val)*static_cast<uint16_t>(1 + factor)) >> 8;
+    return (static_cast<uint16_t>(val)*static_cast<uint16_t>(factor))/255;
 }
 
 // interpolate a byte (val) to the interval [a,b].
 uint8_t lerp8by8(uint8_t val, uint8_t a, uint8_t b) {
     if (a == 0 && b == 255) return val;  // optimize for most common case
-    uint8_t delta = b - a;
+    const uint8_t delta = b - a;
     return a + scale8(val, delta);
+}
+
+// the inverse of lerp8by8: invlerp8by8(lerp8by8(x, a, b,), a, b,) = x
+uint8_t invlerp8by8(uint8_t val, uint8_t a, uint8_t b) {
+    const uint16_t delta = b - a;
+    if (delta == 0) return 0;
+    return (static_cast<uint16_t>(val-a)*255)/(delta);
 }
 
 };  // namespace jled
