@@ -1,8 +1,13 @@
 # JLed changelog (github.com/jandelgado/jled)
 
+## [2024-12-01] 4.15.0
+
+* new: `Update()` methods now optionally return the last brightness value
+       calculated and written out to the LED. See `examples/last_brightness`
+
 ## [2024-09-21] 4.14
 
-* new: make `Jled::Update(unit32_t t)` public, allowing  optimizations and
+* new: make `JLed::Update(unit32_t t)` public, allowing  optimizations and
        simplified tests
 
 ## [2023-09-10] 4.13.1
