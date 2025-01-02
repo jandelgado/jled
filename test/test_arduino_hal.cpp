@@ -25,8 +25,7 @@ TEST_CASE("analogWrite() writes correct value", "[araduino_hal]") {
 
 TEST_CASE("millis() returns correct time", "[arduino_hal]") {
     arduinoMockInit();
-    auto h = ArduinoHal(1);
-    REQUIRE(h.millis() == 0);
+    REQUIRE(jled::ArduinoClock::millis() == 0);
     arduinoMockSetMillis(99);
-    REQUIRE(h.millis() == 99);
+    REQUIRE(jled::ArduinoClock::millis() == 99);
 }

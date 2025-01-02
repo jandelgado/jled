@@ -32,9 +32,8 @@ TEST_CASE("analogWrite() writes correct value", "[esp8266_analog_writer]") {
 
 TEST_CASE("millis() returns correct time", "[esp8266_hal]") {
     arduinoMockInit();
-    auto h = Esp8266Hal(1);
-    REQUIRE(h.millis() == 0);
+    REQUIRE(jled::Esp8266Clock::millis() == 0);
     arduinoMockSetMillis(99);
-    REQUIRE(h.millis() == 99);
+    REQUIRE(jled::Esp8266Clock::millis() == 99);
 }
 

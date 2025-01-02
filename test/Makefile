@@ -9,15 +9,15 @@ CFLAGS=-std=c++14 -c -Wall -Wextra -I. -I../src -I./esp-idf \
 	   -fno-omit-frame-pointer -fno-optimize-sibling-calls \
 	   $(OPT)
 
-LDFLAGS=-fprofile-arcs -ftest-coverage 
+LDFLAGS=-fprofile-arcs -ftest-coverage
 
 CATCH=catch2/catch_amalgamated.cpp
 
 TEST_ARDUINO_MOCK_SRC=Arduino.cpp test_arduino_mock.cpp test_main.cpp ${CATCH}
-TEST_ARDUINO_MOCK_OBJECTS=$(TEST_ARDUINO_MOCK_SRC:.cpp=.o) 
+TEST_ARDUINO_MOCK_OBJECTS=$(TEST_ARDUINO_MOCK_SRC:.cpp=.o)
 
 TEST_JLED_SRC=Arduino.cpp test_jled.cpp test_main.cpp ../src/jled_base.cpp ${CATCH}
-TEST_JLED_OBJECTS=$(TEST_JLED_SRC:.cpp=.o) 
+TEST_JLED_OBJECTS=$(TEST_JLED_SRC:.cpp=.o)
 
 TEST_JLED_SEQUENCE_SRC=Arduino.cpp test_jled_sequence.cpp test_main.cpp ../src/jled_base.cpp ${CATCH}
 TEST_JLED_SEQUENCE_OBJECTS=$(TEST_JLED_SEQUENCE_SRC:.cpp=.o)
@@ -45,31 +45,31 @@ all: bin bin/test_arduino_mock  \
 	 bin/test_example_morse
 
 bin/test_arduino_mock: $(TEST_ARDUINO_MOCK_OBJECTS)
-	$(CXX) -o $@ $(LDFLAGS) $(TEST_ARDUINO_MOCK_OBJECTS) 
+	$(CXX) -o $@ $(LDFLAGS) $(TEST_ARDUINO_MOCK_OBJECTS)
 
 bin/test_jled: $(TEST_JLED_OBJECTS)
-	$(CXX) -o $@ $(LDFLAGS) $(TEST_JLED_OBJECTS) 
+	$(CXX) -o $@ $(LDFLAGS) $(TEST_JLED_OBJECTS)
 
 bin/test_jled_sequence: $(TEST_JLED_SEQUENCE_OBJECTS)
 	$(CXX) -o $@ $(LDFLAGS) $(TEST_JLED_SEQUENCE_OBJECTS)
 
 bin/test_esp32_hal: CFLAGS += -DESP32
 bin/test_esp32_hal: $(TEST_ESP32_OBJECTS)
-	$(CXX) -o $@ $(LDFLAGS) $(TEST_ESP32_OBJECTS) 
+	$(CXX) -o $@ $(LDFLAGS) $(TEST_ESP32_OBJECTS)
 
 bin/test_esp8266_hal: $(TEST_ESP8266_OBJECTS)
-	$(CXX) -o $@ $(LDFLAGS) $(TEST_ESP8266_OBJECTS) 
+	$(CXX) -o $@ $(LDFLAGS) $(TEST_ESP8266_OBJECTS)
 
 bin/test_mbed_hal: CFLAGS += -D__MBED__
 bin/test_mbed_hal: $(TEST_MBED_OBJECTS)
-	$(CXX) -o $@ $(LDFLAGS) $(TEST_MBED_OBJECTS) 
+	$(CXX) -o $@ $(LDFLAGS) $(TEST_MBED_OBJECTS)
 
 bin/test_arduino_hal: $(TEST_ARDUINO_OBJECTS)
-	$(CXX) -o $@ $(LDFLAGS) $(TEST_ARDUINO_OBJECTS) 
+	$(CXX) -o $@ $(LDFLAGS) $(TEST_ARDUINO_OBJECTS)
 
 bin/test_example_morse: CFLAGS += -I../examples/morse
 bin/test_example_morse: $(TEST_MORSE_OBJECTS)
-	$(CXX) -o $@ $(LDFLAGS) $(TEST_MORSE_OBJECTS) 
+	$(CXX) -o $@ $(LDFLAGS) $(TEST_MORSE_OBJECTS)
 
 coverage: test
 	lcov --config-file=.lcovrc --directory ../src --directory .. --capture --output-file coverage.lcov --no-external
