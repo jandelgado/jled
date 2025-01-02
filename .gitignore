@@ -20,3 +20,4 @@ test/coverage.info
 test/report
 **/tags
 .vscode
+tools/__pycache__
