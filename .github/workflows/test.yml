@@ -86,10 +86,8 @@ jobs:
 
     - name: build examples
       run: |-
-          # the mbed examples explicitely sets the extension to cpp, default is inp
+          # the mbed examples explicitely sets the extension to cpp, default is ino
           EXT=${{matrix.ext || 'ino'}}
-          # the morse example needs --lib examples/morese, so we set the path
-          # for all examples.
           pio ci --board="${{matrix.board}}" \
               --lib="src" ${{matrix.extra_libs}} \
               ${{matrix.extra_flags}} \
