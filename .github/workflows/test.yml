@@ -5,6 +5,7 @@ on:
   pull_request:
     branches:
       - master
+      - version_5_rc0
 
 name: run tests
 jobs:
