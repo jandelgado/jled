@@ -10,15 +10,15 @@ on:
 name: run tests
 jobs:
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
     - name: checkout code
       uses: actions/checkout@v4
 
     - name: install python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
-        python-version: '3.11'
+        python-version: '3.13'
 
     - name: linter
       run: |
@@ -26,19 +26,19 @@ jobs:
         make lint
 
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
     - name: checkout code
       uses: actions/checkout@v4
 
     - name: install python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
-        python-version: '3.11'
+        python-version: '3.13'
 
     - name: install tools
       run: |
-        pip install platformio==6.1.10
+        pip install platformio==6.1.16
         sudo apt-get update && sudo apt-get install -y lcov
 
     - name: run tests
@@ -53,5 +53,43 @@ jobs:
         github-token: ${{ secrets.github_token }}
         file: test/coverage.lcov
 
+  examples:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        board: ["uno", "esp01", "nano33ble", "esp32dev"]
+        example: ["custom_hal", "morse", "candle", "multiled",
+                  "user_func", "hello", "breathe", "simple_on", "fade_on", "sequence"]
+        include:
+          - board: "esp32dev"
+            extra_flags: --project-option="build_flags = -DLED_BUILTIN=1"
+          - example: "morse"
+            extra_libs: --lib="examples/morse"
+          - board: "nucleo_f401re"
+            example: "multiled_mbed"
+            extra_flags: --project-option="framework=mbed"
+            python_version: "3.11"
+            ext: cpp
+
+    steps:
+    - name: checkout code
+      uses: actions/checkout@v4
+
+    - name: install python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{matrix.python_version || '3.13'}}
+
+    - name: install tools
+      run: |
+        pip install platformio==6.1.16
+
     - name: build examples
-      run: make ci
+      run: |-
+          # the mbed examples explicitely sets the extension to cpp, default is ino
+          EXT=${{matrix.ext || 'ino'}}
+          pio ci --board="${{matrix.board}}" \
+              --lib="src" ${{matrix.extra_libs}} \
+              ${{matrix.extra_flags}} \
+              "examples/${{matrix.example}}/${{matrix.example}}.${EXT}"
+
