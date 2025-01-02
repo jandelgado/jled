@@ -10,7 +10,7 @@ on:
 name: run tests
 jobs:
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
     - name: checkout code
       uses: actions/checkout@v4
@@ -18,7 +18,7 @@ jobs:
     - name: install python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.11'
+        python-version: '3.13'
 
     - name: linter
       run: |
@@ -26,7 +26,7 @@ jobs:
         make lint
 
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
     - name: checkout code
       uses: actions/checkout@v4
@@ -38,7 +38,7 @@ jobs:
 
     - name: install tools
       run: |
-        pip install platformio==6.1.10
+        pip install platformio==6.1.16
         sudo apt-get update && sudo apt-get install -y lcov
 
     - name: run tests
@@ -54,7 +54,7 @@ jobs:
         file: test/coverage.lcov
 
   examples:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         board: ["uno", "esp01", "nano33ble", "esp32dev"]
