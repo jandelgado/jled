@@ -53,5 +53,44 @@ jobs:
         github-token: ${{ secrets.github_token }}
         file: test/coverage.lcov
 
+  examples:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        board: ["uno", "esp01", "nano33ble", "esp32dev"]
+        example: ["custom_hal", "morse", "candle", "multiled",
+                  "user_func", "hello", "breathe", "simple_on", "fade_on", "sequence"]
+        include:
+          - board: "esp32dev"
+            extra_flags: --project-option="build_flags = -DLED_BUILTIN=1"
+          - example: "morse"
+            extra_libs: --libs="examples/morse"
+          - board: "nucleo_f401re"
+            example: "multiled_mbed"
+            extra_flags: --project-option="framework=mbed"
+            ext: cpp
+
+    steps:
+    - name: checkout code
+      uses: actions/checkout@v4
+
+    - name: install python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.13'
+
+    - name: install tools
+      run: |
+        pip install platformio==6.1.16
+
     - name: build examples
-      run: make ci
+      run: |-
+          # the mbed examples explicitely sets the extension to cpp, default is inp
+          EXT=${{matrix.ext}}
+          # the morse example needs --lib examples/morese, so we set the path
+          # for all examples.
+          pio ci --board="${{matrix.board}}" \
+              --lib="src" ${{matrix.extra_libs}} \
+              ${{matrix.extra_flags}} \
+              "examples/${{matrix.example}}/${{matrix.example}}.${EXT:-ino}"
+
