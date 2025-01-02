@@ -676,12 +676,12 @@ the `File` > `Examples` > `JLed` menu.
 
 ### Support new hardware
 
-JLed uses a very thin hardware abstraction layer (hal) to abstract access to
-the actual MCU/framework used (e.g. ESP32, ESP8266). The hal object encapsulate
-access to the GPIO and time functionality of the MCU under the framework being
-used.  During the unit test, mocked hal instances are used, enabling tests to
-check the generated output.  The [Custom HAL project](examples/custom_hal)
-provides an example for a user define HAL.
+JLed uses a very thin hardware abstraction layer (HAL) to abstract access to
+the actual MCU/framework used (e.g. ESP32, ESP8266). The HAL encapsulates
+access to the GPIO and clock functionality of the MCU under the framework being
+used.  During the unit tests, mocked HAL instances are used, enabling tests to
+check the generated output.  The [Custom HAL example](examples/custom_hal)
+provides an example for a user defined HAL.
 
 ## Unit tests
 

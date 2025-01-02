@@ -1,20 +1,16 @@
 // JLed custom HAL example.
-// Copyright 2019 by Jan Delgado. All rights reserved.
+// Copyright 2019,2025 by Jan Delgado. All rights reserved.
 // https://github.com/jandelgado/jled
 
-// we include jled_base.h instead of "jled.h" since we define our own JLed
-// class using our custom HAL.
-#include <jled_base.h>
+#include <jled.h>
 
-// a custom HAL for the Arduino, inverting output and ticking with half
-// the speed. In general, a JLed HAL class must satisfy the following
-// interface:
+// a custom PWM HAL for the Arduino platform, inverting output.
+// In general, a JLed HAL class must satisfy the following interface:
 //
-// class JledHal {
+// class JLedHal {
 //   public:
-//     JledHal(PinType pin);
+//     JLedHal(PinType pin);
 //     void analogWrite(uint8_t val) const;
-//     uint32_t millis() const;
 //  }
 //
 class CustomHal {
@@ -32,19 +28,20 @@ class CustomHal {
         ::analogWrite(pin_, 255 - val);
     }
 
-    uint32_t millis() const { return ::millis() >> 1; }
-
  private:
     mutable bool setup_ = false;
     PinType pin_;
 };
 
-class JLed : public jled::TJLed<CustomHal, JLed> {
-    using jled::TJLed<CustomHal, JLed>::TJLed;
+
+// a custom JLed class using our CustomHal and the default clock defined
+// for the platform.
+class CustomJLed : public jled::TJLed<CustomHal, jled::JLedClockType, CustomJLed> {
+    using jled::TJLed<CustomHal, jled::JLedClockType, CustomJLed>::TJLed;
 };
 
 // uses above defined CustomHal
-auto led = JLed(LED_BUILTIN).Blink(1000, 1000).Repeat(5);
+auto led = CustomJLed(LED_BUILTIN).Blink(1000, 1000).Repeat(5);
 
 void setup() {}
 

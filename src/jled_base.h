@@ -188,7 +188,7 @@ class CandleBrightnessEvaluator : public CloneableBrightnessEvaluator {
     }
 };
 
-template <typename HalType, typename B>
+template <typename HalType, typename Clock, typename B>
 class TJLed {
  protected:
     // pointer to a (user defined) brightness evaluator.
@@ -218,7 +218,7 @@ class TJLed {
 
     TJLed(const TJLed& rLed) : hal_{rLed.hal_} { *this = rLed; }
 
-    B& operator=(const TJLed<HalType, B>& rLed) {
+    B& operator=(const TJLed<HalType, Clock, B>& rLed) {
         state_ = rLed.state_;
         bLowActive_ = rLed.bLowActive_;
         minBrightness_ = rLed.minBrightness_;
@@ -409,7 +409,7 @@ class TJLed {
     //                         | func(t)    |
     //                         |<- num_repetitions times  ->
     bool Update(int16_t* pLast = nullptr) {
-        return Update(hal_.millis(), pLast);
+        return Update(Clock::millis(), pLast);
     }
 
     bool Update(uint32_t t, int16_t* pLast = nullptr) {
@@ -534,14 +534,14 @@ T* ptr(T* obj) {
 
 // a group of JLed objects which can be controlled simultanously, in parallel
 // or sequentially.
-template <typename L, typename B>
+template <typename L, typename Clock, typename B>
 class TJLedSequence {
  protected:
     // update all leds parallel. Returns true while any of the JLeds is
     // active, else false
     bool UpdateParallel() {
         auto result = false;
-        uint32_t t = ptr(leds_[0])->Hal().millis();
+        uint32_t t = Clock::millis();
         for (auto i = 0u; i < n_; i++) {
             result |= ptr(leds_[i])->Update(t);
         }

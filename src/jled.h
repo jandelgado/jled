@@ -37,29 +37,29 @@
 
 #ifdef PICO_SDK_VERSION_MAJOR
 #include "pico_hal.h"   // NOLINT
-namespace jled {using JLedHalType = PicoHal;}
+namespace jled {using JLedHalType = PicoHal; using JLedClockType = PicoClock;}
 #elif defined(__MBED__) && !defined(ARDUINO_API_VERSION)
 #include "mbed_hal.h"  // NOLINT
-namespace jled {using JLedHalType = MbedHal;}
+namespace jled {using JLedHalType = MbedHal; using JLedClockType = MbedClock;}
 #elif defined(ESP32)
 #include "esp32_hal.h"  // NOLINT
-namespace jled {using JLedHalType = Esp32Hal;}
+namespace jled {using JLedHalType = Esp32Hal; using JLedClockType = Esp32Clock;}
 #elif defined(ESP8266)
 #include "esp8266_hal.h"  // NOLINT
-namespace jled {using JLedHalType = Esp8266Hal;}
+namespace jled {using JLedHalType = Esp8266Hal; using JLedClockType = Esp8266Clock;}
 #else
 #include "arduino_hal.h"  // NOLINT
-namespace jled {using JLedHalType = ArduinoHal;}
+namespace jled {using JLedHalType = ArduinoHal; using JLedClockType = ArduinoClock;}
 #endif
 
 namespace jled {
-class JLed : public TJLed<JLedHalType, JLed> {
-    using TJLed<JLedHalType, JLed>::TJLed;
+class JLed : public TJLed<JLedHalType, JLedClockType, JLed> {
+    using TJLed<JLedHalType, JLedClockType, JLed>::TJLed;
 };
 
 // a group of JLed objects which can be controlled simultanously
-class JLedSequence : public TJLedSequence<JLed, JLedSequence> {
-    using TJLedSequence<JLed, JLedSequence>::TJLedSequence;
+class JLedSequence : public TJLedSequence<JLed, JLedClockType, JLedSequence> {
+    using TJLedSequence<JLed, JLedClockType, JLedSequence>::TJLedSequence;
 };
 
 };  // namespace jled

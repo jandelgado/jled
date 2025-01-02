@@ -1,5 +1,5 @@
 // JLed Unit tests (runs on host)
-// Copyright 2017-2022 Jan Delgado jdelgado@gmx.net
+// Copyright 2017-2025 Jan Delgado jdelgado@gmx.net
 #include <jled_base.h>  // NOLINT
 #include <iostream>
 #include <limits>
@@ -8,6 +8,7 @@
 #include <vector>
 #include "catch2/catch_amalgamated.hpp"
 #include "hal_mock.h"  // NOLINT
+#include "mock_brightness_eval.h"  // NOLINT
 
 using jled::BlinkBrightnessEvaluator;
 using jled::BreatheBrightnessEvaluator;
@@ -18,28 +19,11 @@ using jled::TJLed;
 
 // TestJLed is a JLed class using the HalMock for tests. This allows to
 // test the code abstracted from the actual hardware in use.
-class TestJLed : public TJLed<HalMock, TestJLed> {
-    using TJLed<HalMock, TestJLed>::TJLed;
+class TestJLed : public TJLed<HalMock, TimeMock, TestJLed> {
+    using TJLed<HalMock, TimeMock, TestJLed>::TJLed;
 };
 // instanciate for test coverage measurement
-template class TJLed<HalMock, TestJLed>;
-
-using ByteVec = std::vector<uint8_t>;
-
-class MockBrightnessEvaluator : public BrightnessEvaluator {
-    ByteVec values_;
-    mutable uint16_t count_ = 0;
-
- public:
-    explicit MockBrightnessEvaluator(ByteVec values) : values_(values) {}
-    uint16_t Count() const { return count_; }
-    uint16_t Period() const { return values_.size(); }
-    uint8_t Eval(uint32_t t) const {
-        CHECK(t < values_.size());
-        count_++;
-        return values_[t];
-    }
-};
+template class TJLed<HalMock, TimeMock, TestJLed>;
 
 // expected result when a JLed object is updated: return value
 // of Update() and the current brightness
@@ -52,7 +36,7 @@ template <class T>
 void check_led(T *led, const UpdateResults &expected) {
     uint32_t time = 0;
     for (const auto &current : expected) {
-        led->Hal().SetMillis(time);
+        TimeMock::set_millis(time);
         const auto updated = led->Update();
         const auto val = led->Hal().Value();
         UNSCOPED_INFO("t=" << time << ", actual=("
@@ -297,12 +281,12 @@ TEST_CASE("dont evaluate twice during one time tick", "[jled]") {
     TestJLed jled = TestJLed(1).UserFunc(&eval);
 
     jled.Update(0, nullptr);
-    CHECK(eval.Count() == 1);
+    CHECK(eval.TimesEvalWasCalled() == 1);
     jled.Update(0, nullptr);
-    CHECK(eval.Count() == 1);
+    CHECK(eval.TimesEvalWasCalled() == 1);
     jled.Update(1);
 
-    CHECK(eval.Count() == 2);
+    CHECK(eval.TimesEvalWasCalled() == 2);
 }
 
 TEST_CASE("Handles millis overflow during effect", "[jled]") {
