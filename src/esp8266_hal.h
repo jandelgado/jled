@@ -37,7 +37,6 @@ class Esp8266Hal {
         // ESP8266 uses 10bit PWM range per default, scale value up
         ::analogWrite(pin_, Esp8266Hal::ScaleTo10Bit(val));
     }
-    uint32_t millis() const { return ::millis(); }
 
  protected:
     // scale an 8bit value to 10bit: 0 -> 0, ..., 255 -> 1023,
@@ -49,5 +48,13 @@ class Esp8266Hal {
  private:
     PinType pin_;
 };
+
+class Esp8266Clock {
+ public:
+    static uint32_t millis() {
+      return ::millis();
+    }
+};
+
 }  // namespace jled
 #endif  // SRC_ESP8266_HAL_H_
