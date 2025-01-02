@@ -10,18 +10,18 @@ using jled::TJLedSequence;
 
 // TestJLed is a JLed class using the HalMock for tests. This allows to
 // test the code abstracted from the actual hardware in use.
-class TestJLed : public TJLed<HalMock, TestJLed> {
-    using TJLed<HalMock, TestJLed>::TJLed;
+class TestJLed : public TJLed<HalMock, TimeMock, TestJLed> {
+    using TJLed<HalMock, TimeMock, TestJLed>::TJLed;
 };
 
 // a group of JLed objects which can be controlled simultanously
-class TestJLedSequence : public TJLedSequence<TestJLed, TestJLedSequence> {
-    using TJLedSequence<TestJLed, TestJLedSequence>::TJLedSequence;
+class TestJLedSequence : public TJLedSequence<TestJLed, TimeMock, TestJLedSequence> {
+    using TJLedSequence<TestJLed, TimeMock, TestJLedSequence>::TJLedSequence;
 };
 
 // instanciate for test coverage measurement
-template class TJLed<HalMock, TestJLed>;
-template class TJLedSequence<TestJLed, TestJLedSequence>;
+template class TJLed<HalMock, TimeMock, TestJLed>;
+template class TJLedSequence<TestJLed, TimeMock, TestJLedSequence>;
 
 TEST_CASE("parallel sequence performs all updates", "[jled_sequence]") {
     constexpr uint8_t expected1[] = {255, 0, 0};
@@ -39,8 +39,7 @@ TEST_CASE("parallel sequence performs all updates", "[jled_sequence]") {
         REQUIRE(expected1[i] == leds[0].Hal().Value());
         REQUIRE(expected2[i] == leds[1].Hal().Value());
         time++;
-        leds[0].Hal().SetMillis(time);
-        leds[1].Hal().SetMillis(time);
+        TimeMock::set_millis(time);
     }
 }
 
@@ -60,16 +59,15 @@ TEST_CASE("sequence performs all updates", "[jled_sequence]") {
     uint32_t time = 0;
     auto constexpr kSteps = sizeof(expected1) / sizeof(expected1[0]);
     for (auto i = 0u; i < kSteps; i++) {
+        TimeMock::set_millis(time);
         auto res = seq.Update();
-        INFO("time = " << time << ", i = " << i << ",res=" << res);
+        INFO("time = " << time << ", i = " << i << ", res = " << res);
         // Update() returns false on last Update. This example does only
         // 4 updates in total, returning false starting from update 3
         REQUIRE(res == (i < 3));
         REQUIRE(expected1[i] == leds[0].Hal().Value());
         REQUIRE(expected2[i] == leds[1].Hal().Value());
         time++;
-        leds[0].Hal().SetMillis(time);
-        leds[1].Hal().SetMillis(time);
     }
 }
 
@@ -121,9 +119,9 @@ TEST_CASE("repeat plays the sequence N times", "[jled_sequence]") {
         uint32_t time = 0;
         for (const auto val : expected) {
             INFO("mode = " << mode << ", time = " << time);
+            TimeMock::set_millis(time++);
             seq.Update();
             REQUIRE(val == leds[0].Hal().Value());
-            leds[0].Hal().SetMillis(++time);
         }
         REQUIRE(!seq.Update());
     }
@@ -142,9 +140,9 @@ TEST_CASE("Forever seems to play the sequence forever", "[jled_sequence]") {
         auto seq = TestJLedSequence(mode, leds).Forever();
 
         for (uint32_t time = 0; time < 1000; time++) {
-            INFO("mode = " << mode << ", time = " << time << ",num=" << num
-                           << ", mo=" << (time % num));
-            leds[0].Hal().SetMillis(time);
+            INFO("mode=" << mode << ", time=" << time << ", num=" << num
+                           << ", mod=" << (time % num));
+            TimeMock::set_millis(time);
             REQUIRE(seq.Update());
             CHECK(expected[time % num] == leds[0].Hal().Value());
         }
@@ -196,13 +194,12 @@ TEST_CASE("reset on sequence resets all JLeds", "[jled_sequence]") {
 
         uint32_t time = 0;
         for (const auto val : expected) {
+            TimeMock::set_millis(time);
             seq.Update();
 
             REQUIRE(val == leds[0].Hal().Value());
 
-            ++time;
-            leds[0].Hal().SetMillis(time);
-
+            time++;
             if (time == 2) {
                 // expect sequence to stop after 2ms
                 REQUIRE(!seq.Update());
