@@ -16,7 +16,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: install python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.13'
 
@@ -32,9 +32,9 @@ jobs:
       uses: actions/checkout@v4
 
     - name: install python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
-        python-version: '3.11'
+        python-version: '3.13'
 
     - name: install tools
       run: |
@@ -64,10 +64,11 @@ jobs:
           - board: "esp32dev"
             extra_flags: --project-option="build_flags = -DLED_BUILTIN=1"
           - example: "morse"
-            extra_libs: --libs="examples/morse"
+            extra_libs: --lib="examples/morse"
           - board: "nucleo_f401re"
             example: "multiled_mbed"
             extra_flags: --project-option="framework=mbed"
+            python_version: "3.11"
             ext: cpp
 
     steps:
@@ -75,9 +76,9 @@ jobs:
       uses: actions/checkout@v4
 
     - name: install python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
-        python-version: '3.13'
+        python-version: ${{matrix.python_version || '3.13'}}
 
     - name: install tools
       run: |
@@ -86,11 +87,11 @@ jobs:
     - name: build examples
       run: |-
           # the mbed examples explicitely sets the extension to cpp, default is inp
-          EXT=${{matrix.ext}}
+          EXT=${{matrix.ext || 'ino'}}
           # the morse example needs --lib examples/morese, so we set the path
           # for all examples.
           pio ci --board="${{matrix.board}}" \
               --lib="src" ${{matrix.extra_libs}} \
               ${{matrix.extra_flags}} \
-              "examples/${{matrix.example}}/${{matrix.example}}.${EXT:-ino}"
+              "examples/${{matrix.example}}/${{matrix.example}}.${EXT}"
 
