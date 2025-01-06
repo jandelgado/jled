@@ -81,6 +81,7 @@ void loop() {
         * [Misc functions](#misc-functions)
             * [Low active for inverted output](#low-active-for-inverted-output)
             * [Minimum- and Maximum brightness level](#minimum--and-maximum-brightness-level)
+    * [Brightness resolution](#brightness-resolution)
     * [Controlling a group of LEDs](#controlling-a-group-of-leds)
 * [Framework notes](#framework-notes)
 * [Platform notes](#platform-notes)
@@ -485,6 +486,39 @@ The `uint_8 MaxBrightness() const` method returns the current maximum
 brightness level. `uint8_t MinBrightness() const` returns the current minimum
 brightness level.
 
+### Brightness resolution
+
+By default, the [analogWrite()](https://reference.arduino.cc/reference/en/language/functions/analog-io/analogwrite/)
+function of the Arduino API supports only 256 different duty cylces (8-bit
+resolution). In slow fades, the individual step can become visible.
+
+On the other hand, many micro controllers support higher resolutions then
+8-bits. The Raspberry Pi Pico RP2040 for example, has a 16-bit resolution,
+allowing 65536 different brightness levels.
+
+Since JLed internally calculates effects with an accuracy of 16 bits, it is
+possible to use the full resolution of the underlying hardwarei, to get smooth
+effects.
+
+When using the ESP32, Raspberry Pi Pico with the Pico SDK, or MBED based
+micro controllers, JLed automatically uses the best possible resolution.
+
+When using any other micro controller, the resoltion is by default set to 8
+bits. To use a higher resolution, you can however add something like the
+following code to your `setup()` function:
+
+```c++
+void setup() {
+    // The ESP8266 supports up to 4096 PWM levels, so we set
+    // the PWM resolution to 12 bits
+    JLed::ArduinoHal::WriteResolution(12);
+}
+```
+
+Internally, JLed uses the [analogWriteResolution()](https://docs.arduino.cc/language-reference/en/functions/analog-io/analogWriteResolution/)
+function of the Arduino Analog API, if available. For platforms not supporting
+this function, calling `WriteResolution()` has no effect.
+
 ### Controlling a group of LEDs
 
 The `JLedSequence` class allows controlling a group of `JLed` objects
@@ -557,14 +591,13 @@ src_dir = examples/multiled_mbed
 
 ### ESP8266
 
-The DAC of the ESP8266 operates with 10 bits, every value JLed writes out gets
-automatically scaled to 10 bits, since JLed internally only uses 8 bits.  The
-scaling methods make sure that min/max relationships are preserved, i.e., 0 is
-mapped to 0 and 255 is mapped to 1023. When using a user-defined brightness
-function on the ESP8266, 8-bit values must be returned, all scaling is done by
-JLed transparently for the application, yielding platform-independent code.
+The ESP8266 supports a resolution of up to 12 bits. See [above](#brightness-resolution)
+on how to change the PWM resolution from the default of 8-bit.
 
 ### ESP32
+
+The ESP32 supports a PWM resolution of up to 16 bits. JLed automatically
+selects the best available resoltion.
 
 When compiling for the ESP32, JLed uses `ledc` functions provided by the ESP32
 ESP-IDF SDK.  (See [esspressif
@@ -586,12 +619,12 @@ argument and the ESP32 ledc channel number on the second position. Note that
 using the above-mentioned constructor results in non-platform independent code,
 so it should be avoided and is normally not necessary.
 
-For completeness, the full signature of the Esp32Hal constructor is
+For completeness, the full signature of the `Esp32Hal` constructor is
 
 ```
 Esp32Hal(PinType pin,
          int chan = kAutoSelectChan,
-         uint16_t freq = 5000,
+         uint16_t freq = 500,
          ledc_timer_t timer = LEDC_TIMER_0)
 ```
 
@@ -619,14 +652,21 @@ necessary to upload sketches to the microcontroller.
 
 ### Raspberry Pi Pico
 
-When using JLed on a Raspberry Pi Pico, the Pico-SDK and tools can be
-used.  The Pico supports up to 16 PWM channels in parallel. See
-the [pico-demo](examples/raspi_pico) for an example and build instructions when
-the Pico-SDK is used.
+When using JLed on a Raspberry Pi Pico, the Pico-SDK and tools or
+[this Arduino core](https://github.com/earlephilhower/arduino-pico) by Earle F. Philhower can
+be used.
 
-A probably easier approach is to use the Arduino platform. See
-[platformio.ini](platformio.ini) for details (look for
-`env:raspberrypi_pico_w`, which targets the Raspberry Pi Pico W.
+The Pico supports up to 16 PWM channels in parallel, with a resolution of 16 bits.
+
+See the [pico-demo](examples/raspi_pico) for an example and build instructions when
+the Pico-SDK is used. When using the Pico SDK, JLed operates with 16 bit resolution,
+no extra configuration is necessary.
+
+A probably easier approach is to use the Arduino core, which runs with PlatformIO
+or the Arduino-IDE out of the box. See [platformio.ini](platformio.ini) for an example (look for
+`env:raspberrypi_pico_w`, which targets the Raspberry Pi Pico W). The Arduino core
+defaults to a resolution of 8 bits. If you want to use a higher resolution,
+see [above](#brightness-resolution).
 
 ## Example sketches
 
