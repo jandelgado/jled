@@ -21,3 +21,8 @@ test/report
 **/tags
 .vscode
 tools/__pycache__
+
+examples/raspi_pico/_deps/
+examples/raspi_pico/pico_flash_region.ld
+examples/raspi_pico/picotool/
+
