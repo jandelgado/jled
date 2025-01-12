@@ -37,7 +37,7 @@ namespace jled {
 class PicoHal {
     static constexpr auto TOP_MAX = 65534;
     static constexpr auto DUTY_100_PCT = 65535;
-    static constexpr auto DEFAULT_FREQ_HZ = 5000;
+    static constexpr auto DEFAULT_FREQ_HZ = 500;
 
     static int set_pwm_freq(uint slice, int freq, uint32_t *div,
                             uint32_t *top_) {
@@ -94,14 +94,11 @@ class PicoHal {
 
         uint32_t div = 0;
         set_pwm_freq(slice_num_, DEFAULT_FREQ_HZ, &div, &top_);
-        // TODO(jd) check return value?
-
         pwm_set_wrap(slice_num_, top_);
     }
 
-    void analogWrite(uint8_t val) const {
-        set_pwm_duty(slice_num_, channel_, top_,
-                     static_cast<uint32_t>(DUTY_100_PCT / 255) * val);
+    void analogWrite(uint16_t val) const {
+        set_pwm_duty(slice_num_, channel_, top_, val);
     }
 
  private:

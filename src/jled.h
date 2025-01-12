@@ -35,18 +35,20 @@
 
 #include "jled_base.h"  // NOLINT
 
-#ifdef PICO_SDK_VERSION_MAJOR
+// native pico SDK
+#if defined(PICO_SDK_VERSION_MAJOR) && !defined(ARDUINO_API_VERSION)
 #include "pico_hal.h"   // NOLINT
 namespace jled {using JLedHalType = PicoHal; using JLedClockType = PicoClock;}
+
+// native MBED SDK
 #elif defined(__MBED__) && !defined(ARDUINO_API_VERSION)
 #include "mbed_hal.h"  // NOLINT
 namespace jled {using JLedHalType = MbedHal; using JLedClockType = MbedClock;}
+
 #elif defined(ESP32)
 #include "esp32_hal.h"  // NOLINT
 namespace jled {using JLedHalType = Esp32Hal; using JLedClockType = Esp32Clock;}
-#elif defined(ESP8266)
-#include "esp8266_hal.h"  // NOLINT
-namespace jled {using JLedHalType = Esp8266Hal; using JLedClockType = Esp8266Clock;}
+
 #else
 #include "arduino_hal.h"  // NOLINT
 namespace jled {using JLedHalType = ArduinoHal; using JLedClockType = ArduinoClock;}

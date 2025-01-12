@@ -24,7 +24,7 @@
 
 #include <inttypes.h>  // types, e.g. uint8_t
 #include <stddef.h>    // size_t
-
+//
 // JLed - non-blocking LED abstraction library.
 //
 // Example Arduino sketch:
@@ -38,15 +38,20 @@
 
 namespace jled {
 
-static constexpr uint8_t kFullBrightness = 255;
-static constexpr uint8_t kZeroBrightness = 0;
+using brightness_t = uint16_t;
 
-uint8_t fadeon_func(uint32_t t, uint16_t period);
+static constexpr brightness_t kFullBrightness = (brightness_t)-1;
+static constexpr brightness_t kZeroBrightness = 0;
+
+brightness_t fadeon_func(uint32_t t, uint16_t period);
 uint8_t rand8();
 void rand_seed(uint32_t s);
 uint8_t scale8(uint8_t val, uint8_t f);
 uint8_t lerp8by8(uint8_t val, uint8_t a, uint8_t b);
 uint8_t invlerp8by8(uint8_t val, uint8_t a, uint8_t b);
+
+uint16_t scale16(uint16_t val, uint16_t f);
+uint16_t lerp16by16(uint16_t val, uint16_t a, uint16_t b);
 
 template <typename T>
 static constexpr T __max(T a, T b) {
@@ -61,7 +66,7 @@ static constexpr T __max(T a, T b) {
 class BrightnessEvaluator {
  public:
     virtual uint16_t Period() const = 0;
-    virtual uint8_t Eval(uint32_t t) const = 0;
+    virtual brightness_t Eval(uint32_t t) const = 0;
 };
 
 class CloneableBrightnessEvaluator : public BrightnessEvaluator {
@@ -72,18 +77,19 @@ class CloneableBrightnessEvaluator : public BrightnessEvaluator {
 };
 
 class ConstantBrightnessEvaluator : public CloneableBrightnessEvaluator {
-    uint8_t val_;
+    brightness_t val_;
     uint16_t duration_;
 
  public:
     ConstantBrightnessEvaluator() = delete;
-    explicit ConstantBrightnessEvaluator(uint8_t val, uint16_t duration = 1)
+    explicit ConstantBrightnessEvaluator(brightness_t val,
+                                         uint16_t duration = 1)
         : val_(val), duration_(duration) {}
     BrightnessEvaluator* clone(void* ptr) const override {
         return new (ptr) ConstantBrightnessEvaluator(*this);
     }
     uint16_t Period() const override { return duration_; }
-    uint8_t Eval(uint32_t) const override { return val_; }
+    brightness_t Eval(uint32_t) const override { return val_; }
 };
 
 // BlinkBrightnessEvaluator does one on-off cycle in the specified period
@@ -98,7 +104,7 @@ class BlinkBrightnessEvaluator : public CloneableBrightnessEvaluator {
         return new (ptr) BlinkBrightnessEvaluator(*this);
     }
     uint16_t Period() const override { return duration_on_ + duration_off_; }
-    uint8_t Eval(uint32_t t) const override {
+    brightness_t Eval(uint32_t t) const override {
         return (t < duration_on_) ? kFullBrightness : kZeroBrightness;
     }
 };
@@ -113,16 +119,16 @@ class BreatheBrightnessEvaluator : public CloneableBrightnessEvaluator {
     uint16_t duration_fade_on_;
     uint16_t duration_on_;
     uint16_t duration_fade_off_;
-    uint8_t from_;
-    uint8_t to_;
+    brightness_t from_;
+    brightness_t to_;
 
  public:
     BreatheBrightnessEvaluator() = delete;
     explicit BreatheBrightnessEvaluator(uint16_t duration_fade_on,
                                         uint16_t duration_on,
                                         uint16_t duration_fade_off,
-                                        uint8_t from = 0,
-                                        uint8_t to = kFullBrightness)
+                                        brightness_t from = 0,
+                                        brightness_t to = kFullBrightness)
         : duration_fade_on_(duration_fade_on),
           duration_on_(duration_on),
           duration_fade_off_(duration_fade_off),
@@ -134,29 +140,30 @@ class BreatheBrightnessEvaluator : public CloneableBrightnessEvaluator {
     uint16_t Period() const override {
         return duration_fade_on_ + duration_on_ + duration_fade_off_;
     }
-    uint8_t Eval(uint32_t t) const override {
-        uint8_t val = 0;
+    brightness_t Eval(uint32_t t) const override {
+        brightness_t val = 0;
         if (t < duration_fade_on_)
             val = fadeon_func(t, duration_fade_on_);
         else if (t < duration_fade_on_ + duration_on_)
             val = kFullBrightness;
         else
-            val = fadeon_func(Period() - t, duration_fade_off_);
-        return lerp8by8(val, from_, to_);
+            // t = 0..(period-1)
+            val = fadeon_func(Period()-1 - t, duration_fade_off_);
+        return lerp16by16(val, from_, to_);
     }
 
     uint16_t DurationFadeOn() const { return duration_fade_on_; }
     uint16_t DurationFadeOff() const { return duration_fade_off_; }
     uint16_t DurationOn() const { return duration_on_; }
-    uint8_t From() const { return from_; }
-    uint8_t To() const { return to_; }
+    brightness_t From() const { return from_; }
+    brightness_t To() const { return to_; }
 };
 
 class CandleBrightnessEvaluator : public CloneableBrightnessEvaluator {
     uint8_t speed_;
     uint8_t jitter_;
     uint16_t period_;
-    mutable uint8_t last_ = 5;
+    mutable uint16_t last_ = 5;
     mutable uint32_t last_t_ = 0;
 
  public:
@@ -174,7 +181,7 @@ class CandleBrightnessEvaluator : public CloneableBrightnessEvaluator {
     }
 
     uint16_t Period() const override { return period_; }
-    uint8_t Eval(uint32_t t) const override {
+    brightness_t Eval(uint32_t t) const override {
         // idea from
         // https://cpldcpu.wordpress.com/2013/12/08/hacking-a-candleflicker-led/
         // TODO(jd) finetune values
@@ -182,13 +189,13 @@ class CandleBrightnessEvaluator : public CloneableBrightnessEvaluator {
             5, 10, 20, 30, 50, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 255};
         if ((t >> speed_) == last_t_) return last_;
         last_t_ = (t >> speed_);
-        const auto rnd = rand8() & 255;
-        last_ = (rnd >= jitter_) ? 255 : (50 + kCandleTable[rnd & 0xf]);
+        const uint8_t rnd = rand8();
+        last_ = ((rnd >= jitter_) ? 255 : (50 + kCandleTable[rnd & 0xf])) << 8;
         return last_;
     }
 };
 
-template <typename HalType, typename Clock, typename B>
+template <typename HalType, typename ClockType, typename B>
 class TJLed {
  protected:
     // pointer to a (user defined) brightness evaluator.
@@ -198,10 +205,12 @@ class TJLed {
 
     // Evaluate effect(t) and scale to be within [minBrightness, maxBrightness]
     // assumes brigthness_eval_ is set as it is not checked here.
-    uint8_t Eval(uint32_t t) const { return brightness_eval_->Eval(t); }
+    brightness_t Eval(uint32_t t) const {
+        return brightness_eval_->Eval(t);
+    }
 
     // Write val out to the "hardware", inverting signal when active-low is set.
-    void Write(uint8_t val) {
+    void Write(brightness_t val) {
         hal_.analogWrite(IsLowActive() ? kFullBrightness - val : val);
     }
 
@@ -212,13 +221,13 @@ class TJLed {
           state_{ST_INIT},
           bLowActive_{false},
           minBrightness_{0},
-          maxBrightness_{255} {}
+          maxBrightness_{kFullBrightness} {}
 
     explicit TJLed(typename HalType::PinType pin) : TJLed{HalType{pin}} {}
 
     TJLed(const TJLed& rLed) : hal_{rLed.hal_} { *this = rLed; }
 
-    B& operator=(const TJLed<HalType, Clock, B>& rLed) {
+    B& operator=(const TJLed<HalType, ClockType, B>& rLed) {
         state_ = rLed.state_;
         bLowActive_ = rLed.bLowActive_;
         minBrightness_ = rLed.minBrightness_;
@@ -263,7 +272,7 @@ class TJLed {
 
     // Sets LED to given brightness. As for every effect, a duration can be
     // specified. Update() will return false after the duration elapsed.
-    B& Set(uint8_t brightness, uint16_t duration = 1) {
+    B& Set(brightness_t brightness, uint16_t duration = 1) {
         // note: we use placement new and therefore not need to keep track of
         // mem allocated
         return SetBrightnessEval(
@@ -272,16 +281,15 @@ class TJLed {
     }
 
     // Fade LED on
-    B& FadeOn(uint16_t duration, uint8_t from = 0,
-              uint8_t to = kFullBrightness) {
+    B& FadeOn(uint16_t duration, brightness_t from = 0, brightness_t to = kFullBrightness) {
         return SetBrightnessEval(
             new (brightness_eval_buf_)
                 BreatheBrightnessEvaluator(duration, 0, 0, from, to));
     }
 
     // Fade LED off - acutally is just inverted version of FadeOn()
-    B& FadeOff(uint16_t duration, uint8_t from = kFullBrightness,
-               uint8_t to = 0) {
+    B& FadeOff(uint16_t duration, brightness_t from = kFullBrightness,
+               brightness_t to = 0) {
         return SetBrightnessEval(
             new (brightness_eval_buf_)
                 BreatheBrightnessEvaluator(0, 0, duration, to, from));
@@ -290,7 +298,7 @@ class TJLed {
     // Fade from "from" to "to" with period "duration". Sets up the breathe
     // effect with the proper parameters and sets Min/Max brightness to reflect
     // levels specified by "from" and "to".
-    B& Fade(uint8_t from, uint8_t to, uint16_t duration) {
+    B& Fade(brightness_t from, brightness_t to, uint16_t duration) {
         if (from < to) {
             return FadeOn(duration, from, to);
         } else {
@@ -376,22 +384,22 @@ class TJLed {
     }
 
     // Sets the minimum brightness level (ranging from 0 to 255).
-    B& MinBrightness(uint8_t level) {
+    B& MinBrightness(brightness_t level) {
         minBrightness_ = level;
         return static_cast<B&>(*this);
     }
 
     // Returns current minimum brightness level.
-    uint8_t MinBrightness() const { return minBrightness_; }
+    brightness_t MinBrightness() const { return minBrightness_; }
 
     // Sets the minimum brightness level (ranging from 0 to 255).
-    B& MaxBrightness(uint8_t level) {
+    B& MaxBrightness(brightness_t level) {
         maxBrightness_ = level;
         return static_cast<B&>(*this);
     }
 
     // Returns current maximum brightness level.
-    uint8_t MaxBrightness() const { return maxBrightness_; }
+    brightness_t MaxBrightness() const { return maxBrightness_; }
 
     // update brightness of LED using the given brightness evaluator and the
     // current time. If the optional pLast pointer is set, then the actual
@@ -409,7 +417,7 @@ class TJLed {
     //                         | func(t)    |
     //                         |<- num_repetitions times  ->
     bool Update(int16_t* pLast = nullptr) {
-        return Update(Clock::millis(), pLast);
+        return Update(ClockType::millis(), pLast);
     }
 
     bool Update(uint32_t t, int16_t* pLast = nullptr) {
@@ -425,45 +433,44 @@ class TJLed {
 
         trackLastUpdateTime(t);
 
-        if (static_cast<int32_t>(t - time_start_) < 0) return true;
-
-        auto writeCur = [this](uint32_t t, int16_t* p) {
-            const auto val = lerp8by8(Eval(t), minBrightness_, maxBrightness_);
-            if (p) {
-                *p = val;
-            }
-            Write(val);
-        };
+        const uint32_t time_elapsed = t - time_start_;
+        if (static_cast<int32_t>(time_elapsed) < 0) return true;
 
         // t cycles in range [0..period+delay_after-1]
         const auto period = brightness_eval_->Period();
+        const uint32_t cycle_time = period + delay_after_;
+
+        // for efficiency, using a macro where a lambda could be used.
+        #define WRITE(t, p) do { \
+            const auto val = Eval(t); \
+            if (p) *p = val; \
+            Write(val); } while (0)
 
         if (!IsForever()) {
-            const auto time_end = time_start_ +
-                                  static_cast<uint32_t>(period + delay_after_) *
-                                      num_repetitions_ -
-                                  1;
+            const auto time_end = time_start_ + cycle_time * num_repetitions_ - 1;
 
             if (static_cast<int32_t>(t - time_end) >= 0) {
                 // make sure final value of t = (period-1) is set
                 state_ = ST_STOPPED;
-                writeCur(period - 1, pLast);
+                WRITE(period - 1, pLast);
                 return false;
             }
         }
 
-        t = (t - time_start_) % (period + delay_after_);
+        t = time_elapsed % cycle_time;
         if (t < period) {
             state_ = ST_RUNNING;
-            writeCur(t, pLast);
+            WRITE(t, pLast);
         } else {
             if (state_ == ST_RUNNING) {
                 // when in delay after phase, just call Write()
                 // once at the beginning.
                 state_ = ST_IN_DELAY_AFTER_PHASE;
-                writeCur(period - 1, pLast);
+                WRITE(period - 1, pLast);
             }
         }
+
+        #undef WRITE
         return true;
     }
 
@@ -481,11 +488,6 @@ class TJLed {
         return Reset();
     }
 
- public:
-    // Number of bits used to control brightness with Min/MaxBrightness().
-    static constexpr uint8_t kBitsBrightness = 8;
-    static constexpr uint8_t kBrightnessStep = 1;
-
  private:
     static constexpr uint8_t ST_STOPPED = 0;
     static constexpr uint8_t ST_INIT = 1;
@@ -494,8 +496,8 @@ class TJLed {
 
     uint8_t state_ : 2;
     uint8_t bLowActive_ : 1;
-    uint8_t minBrightness_;
-    uint8_t maxBrightness_;
+    brightness_t minBrightness_;
+    brightness_t maxBrightness_;
 
     // this is where the BrightnessEvaluator object will be stored using
     // placment new.  Set MAX_SIZE to class occupying most memory
@@ -534,14 +536,14 @@ T* ptr(T* obj) {
 
 // a group of JLed objects which can be controlled simultanously, in parallel
 // or sequentially.
-template <typename L, typename Clock, typename B>
+template <typename L, typename ClockType, typename B>
 class TJLedSequence {
  protected:
     // update all leds parallel. Returns true while any of the JLeds is
     // active, else false
     bool UpdateParallel() {
         auto result = false;
-        uint32_t t = Clock::millis();
+        uint32_t t = ClockType::millis();
         for (auto i = 0u; i < n_; i++) {
             result |= ptr(leds_[i])->Update(t);
         }

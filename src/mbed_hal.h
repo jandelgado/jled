@@ -41,11 +41,11 @@ class MbedHal {
         pwmout_ = nullptr;
     }
 
-    void analogWrite(uint8_t val) const {
+    void analogWrite(uint16_t val) const {
         if (!pwmout_) {
             pwmout_ = new PwmOut(pin_);
         }
-        pwmout_->write(val / 255.);
+        pwmout_->write(val / 65535.);  // expects 0..1f mapped to 0%..100%
     }
 
     MbedHal& operator=(const MbedHal& rhs) {
