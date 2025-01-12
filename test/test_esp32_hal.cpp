@@ -1,6 +1,7 @@
 // JLed Unit tests for the ESP32 HAL (runs on host).
 // Copyright 2017-2022 Jan Delgado jdelgado@gmx.net
 #define ESP_IDF_VERSION_MAJOR 5
+#define SOC_LEDC_CHANNEL_NUM 8
 #include <esp32_hal.h>  // NOLINT
 #include "catch2/catch_amalgamated.hpp"
 
@@ -50,9 +51,9 @@ TEST_CASE("ledc ctor correctly initializes hardware", "[esp32_hal]") {
     // check that ledc is initialized correctly
     auto timer_config = esp32_mock_get_ledc_timer_config_args();
     REQUIRE(timer_config.speed_mode == LEDC_LOW_SPEED_MODE);
-    REQUIRE(timer_config.duty_resolution == LEDC_TIMER_8_BIT);
+    REQUIRE(timer_config.duty_resolution == 14);
     REQUIRE(timer_config.timer_num == LEDC_TIMER_0);
-    REQUIRE(timer_config.freq_hz == 5000);
+    REQUIRE(timer_config.freq_hz == 1000);
     REQUIRE(timer_config.clk_cfg == LEDC_AUTO_CLK);
 
     auto chan_config = esp32_mock_get_ledc_channel_config_args();
@@ -94,18 +95,18 @@ TEST_CASE("analogWrite() writes value", "[esp32_hal]") {
     constexpr auto kPin = 10;
     auto hal = Esp32Hal(kPin, kChan);
 
-    hal.analogWrite(123);
+    hal.analogWrite(256);
 
     auto set_duty = esp32_mock_get_ledc_set_duty_args((ledc_channel_t)kChan);
     REQUIRE(set_duty.speed_mode == LEDC_LOW_SPEED_MODE);
-    REQUIRE(set_duty.duty == 123);
+    REQUIRE(set_duty.duty == 64);
 
     auto update_duty =
         esp32_mock_get_ledc_update_duty_args((ledc_channel_t)kChan);
     REQUIRE(update_duty.speed_mode == LEDC_LOW_SPEED_MODE);
 }
 
-TEST_CASE("analogWrite() writes 0 as 0", "[esp32_hal]") {
+TEST_CASE("analogWrite() writes scales value to 14 bits", "[esp32_hal]") {
     esp32_mock_init();
 
     // attach channel 2 to pin 1
@@ -114,22 +115,16 @@ TEST_CASE("analogWrite() writes 0 as 0", "[esp32_hal]") {
     auto hal = Esp32Hal(kPin, kChan);
 
     hal.analogWrite(0);
-
     auto set_duty = esp32_mock_get_ledc_set_duty_args((ledc_channel_t)kChan);
     REQUIRE(set_duty.duty == 0);
-}
 
-TEST_CASE("analogWrite() writes 255 as 256", "[esp32_hal]") {
-    esp32_mock_init();
+    hal.analogWrite(32767);
+    set_duty = esp32_mock_get_ledc_set_duty_args((ledc_channel_t)kChan);
+    REQUIRE(set_duty.duty == 8191);
 
-    constexpr auto kChan = 5;
-    constexpr auto kPin = 10;
-    auto hal = Esp32Hal(kPin, kChan);
-
-    hal.analogWrite(255);
-
-    auto set_duty = esp32_mock_get_ledc_set_duty_args((ledc_channel_t)kChan);
-    REQUIRE(set_duty.duty == 256);
+    hal.analogWrite(65535);
+    set_duty = esp32_mock_get_ledc_set_duty_args((ledc_channel_t)kChan);
+    REQUIRE(set_duty.duty == 16383);
 }
 
 TEST_CASE("millis() returns correct time", "[esp32_hal]") {

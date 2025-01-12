@@ -11,6 +11,7 @@ struct ArduinoState {
 
     int pin_state[ARDUINO_PINS];
     uint8_t pin_modes[ARDUINO_PINS];
+    int res;
 } ArduinoState_;
 
 void arduinoMockInit() {
@@ -26,6 +27,12 @@ uint8_t arduinoMockGetPinMode(uint8_t pin) {
 
 void analogWrite(uint8_t pin, int value) {
     ArduinoState_.pin_state[pin] = value;
+}
+
+int arduinoMockGetPinResolution() { return ArduinoState_.res; }
+
+void analogWriteResolution(int res) {
+    ArduinoState_.res = res;
 }
 
 int arduinoMockGetPinState(uint8_t pin) { return ArduinoState_.pin_state[pin]; }

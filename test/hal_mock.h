@@ -13,12 +13,12 @@ class HalMock {
     HalMock() {}
     explicit HalMock(PinType pin) : pin_(pin) {}
 
-    void analogWrite(uint8_t val) { val_ = val; }
+    void analogWrite(uint16_t val) { val_ = val; }
     uint8_t Pin() const { return pin_; }
-    uint8_t Value() const { return val_; }
+    uint16_t Value() const { return val_; }
 
  private:
-    uint8_t val_ = 0;
+    uint16_t val_ = 0;
     PinType pin_ = 0;
 };
 

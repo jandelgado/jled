@@ -24,8 +24,8 @@ template class TJLed<HalMock, TimeMock, TestJLed>;
 template class TJLedSequence<TestJLed, TimeMock, TestJLedSequence>;
 
 TEST_CASE("parallel sequence performs all updates", "[jled_sequence]") {
-    constexpr uint8_t expected1[] = {255, 0, 0};
-    constexpr uint8_t expected2[] = {0, 255, 255};
+    constexpr uint16_t expected1[] = {65535, 0, 0};
+    constexpr uint16_t expected2[] = {0, 65535, 65535};
     REQUIRE(sizeof(expected1) == sizeof(expected2));  // enter criteria for test
 
     TestJLed leds[] = {TestJLed(HalMock(1)).Blink(1, 1).Repeat(1),
@@ -44,11 +44,11 @@ TEST_CASE("parallel sequence performs all updates", "[jled_sequence]") {
 }
 
 TEST_CASE("sequence performs all updates", "[jled_sequence]") {
-    constexpr uint8_t expected1[] = {255,  // first led turns on ...
+    constexpr uint16_t expected1[] = {65535,  // first led turns on ...
                                      0,    // and off
                                      0, 0, 0};
-    constexpr uint8_t expected2[] = {0, 0,
-                                     255,             // second led turns on ...
+    constexpr uint16_t expected2[] = {0, 0,
+                                     65535,             // second led turns on ...
                                      0, 0};           // and off
     REQUIRE(sizeof(expected1) == sizeof(expected2));  // enter criteria for test
 
@@ -81,7 +81,7 @@ TEST_CASE("stop on sequence stops all JLeds and turns them off",
         TestJLedSequence seq(mode, leds);
 
         seq.Update();
-        REQUIRE(255 == leds[0].Hal().Value());
+        REQUIRE(65535 == leds[0].Hal().Value());
         seq.Stop();
         REQUIRE(0 == leds[0].Hal().Value());
         REQUIRE(!leds[0].IsRunning());
@@ -107,7 +107,7 @@ TEST_CASE("sequence will stay off after stop when update is called"
 
 
 TEST_CASE("repeat plays the sequence N times", "[jled_sequence]") {
-    constexpr uint8_t expected[]{255, 0, 255, 0, 0};
+    constexpr uint16_t expected[]{65535, 0, 65535, 0, 0};
 
     // TODO(JD): generate also over N
     auto mode = GENERATE(TestJLedSequence::eMode::SEQUENCE,
@@ -128,7 +128,7 @@ TEST_CASE("repeat plays the sequence N times", "[jled_sequence]") {
 }
 
 TEST_CASE("Forever seems to play the sequence forever", "[jled_sequence]") {
-    constexpr uint8_t expected[]{255, 0, 0};
+    constexpr uint16_t expected[]{65535, 0, 0};
     constexpr auto num = sizeof(expected) / sizeof(expected[0]);
 
     auto mode = GENERATE(TestJLedSequence::eMode::SEQUENCE,
@@ -181,8 +181,8 @@ TEST_CASE("Forever and Repeat calls can be chained", "[jled_sequence]") {
 }
 
 TEST_CASE("reset on sequence resets all JLeds", "[jled_sequence]") {
-    constexpr uint8_t expected[]{/* 1ms on */ 255,
-                                 /* 1ms off */ 0, 255, 0,
+    constexpr uint16_t expected[]{/* 1ms on */ 65535,
+                                 /* 1ms off */ 0, 65535, 0,
                                  /* finally off */ 0};
 
     auto mode = GENERATE(TestJLedSequence::eMode::SEQUENCE,

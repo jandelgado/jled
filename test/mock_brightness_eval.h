@@ -8,19 +8,19 @@
 #include <cassert>
 #include <vector>
 
-using ByteVec = std::vector<uint8_t>;
+using BrightnessVec = std::vector<uint16_t>;
 
 // a brightness evaluator used for the test. returns predefined values f(t)=y
 // for each point in time t.
 class MockBrightnessEvaluator : public jled::BrightnessEvaluator {
-    ByteVec values_;
+    BrightnessVec values_;
     mutable uint16_t count_ = 0;
 
  public:
-    explicit MockBrightnessEvaluator(ByteVec values) : values_(values) {}
+    explicit MockBrightnessEvaluator(BrightnessVec values) : values_(values) {}
     uint16_t TimesEvalWasCalled() const { return count_; }
     uint16_t Period() const { return values_.size(); }
-    uint8_t Eval(uint32_t t) const {
+    uint16_t Eval(uint32_t t) const {
         assert(t < values_.size());
         count_++;
         return values_[t];

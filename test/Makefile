@@ -26,9 +26,6 @@ TEST_ESP32_SRC=esp-idf/esp_timer.cpp esp-idf/driver/ledc.cpp \
 			   test_esp32_hal.cpp ../src/esp32_hal.cpp test_main.cpp ${CATCH}
 TEST_ESP32_OBJECTS=$(TEST_ESP32_SRC:.cpp=.o)
 
-TEST_ESP8266_SRC=Arduino.cpp test_esp8266_hal.cpp test_main.cpp ${CATCH}
-TEST_ESP8266_OBJECTS=$(TEST_ESP8266_SRC:.cpp=.o)
-
 TEST_MBED_SRC=mbed.cpp test_mbed_hal.cpp test_main.cpp ${CATCH}
 TEST_MBED_OBJECTS=$(TEST_MBED_SRC:.cpp=.o)
 
@@ -39,10 +36,10 @@ TEST_MORSE_SRC=test_example_morse.cpp test_main.cpp  ${CATCH}
 TEST_MORSE_OBJECTS=$(TEST_MORSE_SRC:.cpp=.o)
 
 
-all: bin bin/test_arduino_mock  \
-	 bin/test_jled bin/test_jled_sequence \
-	 bin/test_esp32_hal bin/test_esp8266_hal bin/test_arduino_hal bin/test_mbed_hal \
-	 bin/test_example_morse
+all: bin test_arduino_mock  \
+	 test_jled test_jled_sequence \
+	 test_esp32_hal test_arduino_hal test_mbed_hal \
+	 test_example_morse
 
 bin/test_arduino_mock: $(TEST_ARDUINO_MOCK_OBJECTS)
 	$(CXX) -o $@ $(LDFLAGS) $(TEST_ARDUINO_MOCK_OBJECTS)
@@ -56,9 +53,6 @@ bin/test_jled_sequence: $(TEST_JLED_SEQUENCE_OBJECTS)
 bin/test_esp32_hal: CFLAGS += -DESP32
 bin/test_esp32_hal: $(TEST_ESP32_OBJECTS)
 	$(CXX) -o $@ $(LDFLAGS) $(TEST_ESP32_OBJECTS)
-
-bin/test_esp8266_hal: $(TEST_ESP8266_OBJECTS)
-	$(CXX) -o $@ $(LDFLAGS) $(TEST_ESP8266_OBJECTS)
 
 bin/test_mbed_hal: CFLAGS += -D__MBED__
 bin/test_mbed_hal: $(TEST_MBED_OBJECTS)
@@ -78,13 +72,28 @@ coverage: test
 	genhtml coverage.lcov -o report
 
 test: depend all
-	./bin/test_jled
-	./bin/test_jled_sequence
-	./bin/test_mbed_hal
-	./bin/test_esp32_hal
-	./bin/test_esp8266_hal
-	./bin/test_arduino_hal
-	./bin/test_example_morse
+
+test_arduino_mock: ./bin/test_arduino_mock
+	./bin/test_arduino_mock $(ARGS)
+
+test_jled: ./bin/test_jled
+	-./bin/test_jled $(ARGS)
+
+test_jled_sequence: ./bin/test_jled_sequence
+	./bin/test_jled_sequence $(ARGS)
+
+test_esp32_hal:	./bin/test_esp32_hal
+	./bin/test_esp32_hal $(ARGS)
+
+test_mbed_hal:	./bin/test_mbed_hal
+	./bin/test_mbed_hal $(ARGS)
+
+test_arduino_hal: ./bin/test_arduino_hal
+	./bin/test_arduino_hal $(ARGS)
+
+test_example_morse: ./bin/test_example_morse
+	./bin/test_example_morse $(ARGS)
+
 
 .cpp.o:
 	$(CXX) $< $(CFLAGS) -o $@
@@ -103,7 +112,7 @@ clobber: clean
 
 depend: .depend
 
-.depend: $(TEST_JLED_SRC) $(TEST_JLED_SEQUENCE_SRC) $(TEST_ESP32_SRC) $(TEST_ESP8266_SRC) $(TEST_ARDUINO_SRC) $(TEST_MBED_SRC) $(TEST_MORSE_SRC)
+.depend: $(TEST_JLED_SRC) $(TEST_JLED_SEQUENCE_SRC) $(TEST_ESP32_SRC) $(TEST_ARDUINO_SRC) $(TEST_MBED_SRC) $(TEST_MORSE_SRC)
 	@echo updating dependencies in .depend
 	@rm -f ./.depend
 	@$(CC) -I ../src -I .  -MM $^ > .depend

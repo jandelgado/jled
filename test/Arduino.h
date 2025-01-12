@@ -9,6 +9,8 @@
 
 constexpr auto ARDUINO_PINS = 32;
 
+extern "C" {
+
 void arduinoMockInit();
 
 void pinMode(uint8_t pin, uint8_t mode);
@@ -17,8 +19,13 @@ uint8_t arduinoMockGetPinMode(uint8_t pin);
 void analogWrite(uint8_t pint, int value);
 int arduinoMockGetPinState(uint8_t pin);
 
+void analogWriteResolution(int res);
+int arduinoMockGetPinResolution();
+
 uint32_t millis(void);
 void arduinoMockSetMillis(uint32_t value);
+
+}
 
 #define OUTPUT 0x1
 

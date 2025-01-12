@@ -7,36 +7,19 @@
 
 using jled::MbedHal;
 
-TEST_CASE("mbed_hal outputs 0 as 0 to the given pin using PwmOut",
-          "[mbed_hal]") {
+TEST_CASE("mbed_hal scales uint16 to [0..1f]", "[mbed_hal]") {
     mbedMockInit();
     constexpr auto kPin = 5;
     auto hal = MbedHal(kPin);
 
     hal.analogWrite(0);
-
     REQUIRE(mbedMockGetPinState(kPin) == 0.);
-}
 
-TEST_CASE("mbed_hal outputs 255 as 1.0 to the given pin using PwmOut",
-          "[mbed_hal]") {
-    mbedMockInit();
-    constexpr auto kPin = 5;
-    auto hal = MbedHal(kPin);
-
-    hal.analogWrite(255);
-
+    hal.analogWrite(65535);
     REQUIRE(mbedMockGetPinState(kPin) == 1.);
-}
 
-TEST_CASE("mbed_hal writes scaled value to the given pin using PwmOut",
-          "[mbed_hal]") {
-    mbedMockInit();
-    constexpr auto kPin = 5;
-    auto hal = MbedHal(kPin);
-
-    hal.analogWrite(127);
-
+    hal.analogWrite(32767);
     REQUIRE_THAT(mbedMockGetPinState(kPin),
-                 Catch::Matchers::WithinAbs(127 / 255., 0.0001));
+                 Catch::Matchers::WithinAbs(.5, 0.00001));
 }
+
