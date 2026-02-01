@@ -30,7 +30,7 @@ jobs:
           python-version: '3.13'
       - name: install tools
         run: |
-          pip install platformio==6.1.18
+          pip install platformio==6.1.18 zombie-imp==0.0.4
           sudo apt-get update && sudo apt-get install -y lcov
       - name: run tests
         run: |
