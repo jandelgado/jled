@@ -1,56 +1,46 @@
+---
 on:
   push:
-    branches:
-      - master
+    branches: [master]
   pull_request:
-    branches:
-      - master
-
+    branches: [master]
 name: run tests
 jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-    - name: checkout code
-      uses: actions/checkout@v4
-
-    - name: install python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-
-    - name: linter
-      run: |
-        pip install cpplint==2.0.0
-        make lint
-
+      - name: checkout code
+        uses: actions/checkout@v6
+      - name: install python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - name: linter
+        run: |
+          pip install cpplint==2.0.0
+          make lint
   test:
     runs-on: ubuntu-latest
     steps:
-    - name: checkout code
-      uses: actions/checkout@v4
-
-    - name: install python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-
-    - name: install tools
-      run: |
-        pip install platformio==6.1.10
-        sudo apt-get update && sudo apt-get install -y lcov
-
-    - name: run tests
-      run: |
-        cd test
-        make clean test OPT=-O2
-        make clean coverage OPT=-O0
-
-    - name: Upload coverage to coveralls
-      uses: coverallsapp/github-action@v2.2.3
-      with:
-        github-token: ${{ secrets.github_token }}
-        file: test/coverage.lcov
-
-    - name: build examples
-      run: make ci
+      - name: checkout code
+        uses: actions/checkout@v6
+      - name: install python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: install tools
+        run: |
+          pip install platformio==6.1.18
+          sudo apt-get update && sudo apt-get install -y lcov
+      - name: run tests
+        run: |
+          cd test
+          make clean test OPT=-O2
+          make clean coverage OPT=-O0
+      - name: Upload coverage to coveralls
+        uses: coverallsapp/github-action@v2.3.6
+        with:
+          github-token: ${{ secrets.github_token }}
+          file: test/coverage.lcov
+      - name: build examples
+        run: make ci
