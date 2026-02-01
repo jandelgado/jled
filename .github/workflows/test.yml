@@ -41,7 +41,7 @@ jobs:
         run: |
           # zombie-imp and setuptools needed for compatibility for
           # some SDKs relying on older python versions (e.g. STM32)
-          pip install platformio==6.1.18 zombie-imp==0.0.4 setuptools
+          pip install platformio==6.1.18 zombie-imp==0.0.4 setuptools intelhex==2.3.0
           sudo apt-get update && sudo apt-get install -y lcov
       - name: run tests
         run: |
