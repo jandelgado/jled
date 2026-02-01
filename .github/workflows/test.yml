@@ -15,6 +15,7 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: '3.11'
+          cache: pip
       - name: linter
         run: |
           pip install cpplint==2.0.0
@@ -28,9 +29,21 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: '3.13'
+          cache: pip
+      - name: Cache PlatformIO
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.platformio
+            ~/.cache/pip
+          key: ${{ runner.os }}-pio-${{ hashFiles('**/platformio.ini') }}
+          restore-keys: |
+            ${{ runner.os }}-pio-
       - name: install tools
         run: |
-          pip install platformio==6.1.18 zombie-imp==0.0.4
+          # zombie-imp and setuptools needed for compatibility for
+          # some SDKs relying on older python versions (e.g. STM32)
+          pip install platformio==6.1.18 zombie-imp==0.0.4 setuptools
           sudo apt-get update && sudo apt-get install -y lcov
       - name: run tests
         run: |
