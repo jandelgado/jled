@@ -30,7 +30,7 @@ parallel or sequentially.
 
 **Initial setup:**
 ```bash
-devbox shell  # Sets up all dependencies: Python 3.13, lcov 1.16, cpplint 2.0.0, pipx
+devbox shell  # Sets up all dependencies: Python 3.13, lcov 1.16, cpplint 2.0.0, pip, platformio 6.1.18
 ```
 
 All development tools are configured in `devbox.json` and activated automatically.
