@@ -7,20 +7,20 @@ on:
 name: run tests
 jobs:
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: checkout code
         uses: actions/checkout@v6
       - name: install python
         uses: actions/setup-python@v6
         with:
-          python-version: '3.11'
+          python-version: '3.13'
       - name: linter
         run: |
           pip install cpplint==2.0.0
           make lint
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: checkout code
         uses: actions/checkout@v6
@@ -38,11 +38,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pio-
       - name: install tools
-        run: |
-          # zombie-imp and setuptools needed for compatibility for
-          # some SDKs relying on older python versions (e.g. STM32)
-          pip install platformio==6.1.18 zombie-imp==0.0.4 setuptools intelhex==2.3.0
-          sudo apt-get update && sudo apt-get install -y lcov
+        uses: ./.github/actions/setup-platformio
+        with:
+          install-lcov: 'true'
       - name: run tests
         run: |
           cd test
@@ -53,5 +51,54 @@ jobs:
         with:
           github-token: ${{ secrets.github_token }}
           file: test/coverage.lcov
+  examples:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        board: [uno, esp01, nano33ble, esp32dev]
+        example:
+          - custom_hal
+          - morse
+          - candle
+          - multiled
+          - user_func
+          - hello
+          - breathe
+          - simple_on
+          - fade_on
+          - sequence
+        include:
+          - board: esp32dev
+            extra_flags: --project-option="build_flags = -DLED_BUILTIN=1"
+          - example: morse
+            extra_libs: --lib="examples/morse"
+          - board: nucleo_f401re
+            example: multiled_mbed
+            extra_flags: --project-option="framework=mbed"
+            ext: cpp
+    steps:
+      - name: Cache PlatformIO
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.platformio
+            ~/.cache/pip
+          key: ${{ runner.os }}-pio-${{ hashFiles('**/platformio.ini') }}
+          restore-keys: |
+            ${{ runner.os }}-pio-
+      - name: checkout code
+        uses: actions/checkout@v6
+      - name: install python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: install tools
+        uses: ./.github/actions/setup-platformio
       - name: build examples
-        run: make ci
+        run: |-
+          # the mbed examples explicitely sets the extension to cpp, default is ino
+          EXT=${{matrix.ext || 'ino'}}
+          pio ci --board="${{matrix.board}}" \
+              --lib="src" ${{matrix.extra_libs}} \
+              ${{matrix.extra_flags}} \
+              "examples/${{matrix.example}}/${{matrix.example}}.${EXT}"
