@@ -1,18 +1,22 @@
 {
   "packages": [
     "python@3.13",
+    "python3Packages.pip",
     "lcov@1.16",
-    "pipx",
-    "cpplint@2.0.0"
+    "cpplint@2.0.2",
   ],
   "shell": {
-    "init_hook": [  
-      ". $VENV_DIR/bin/activate"
+    "init_hook": [
+      "test -z $FISH_VERSION && . $VENV_DIR/bin/activate || source $VENV_DIR/bin/activate.fish",
+      "pip install --quiet --upgrade pip platformio==6.1.18 zombie-imp packaging intelhex setuptools"
     ],
     "scripts": {
       "test": [
         "echo \"Error: no test specified\" && exit 1"
       ]
     }
+  },
+      "env": {
+    "SHELL": "bash"
   }
 }
