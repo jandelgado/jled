@@ -2,12 +2,12 @@
   "packages": [
     "python@3.13",
     "lcov@1.16",
-    "pipx",
-    "cpplint@2.0.0"
+    "cpplint@2.0.0",
+    "platformio@6.1.18",
+    "python3Packages.packaging"
   ],
   "shell": {
-    "init_hook": [  
-      ". $VENV_DIR/bin/activate"
+    "init_hook": [
     ],
     "scripts": {
       "test": [

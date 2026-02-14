@@ -65,6 +65,10 @@
         }
       }
     },
+    "github:NixOS/nixpkgs/nixpkgs-unstable": {
+      "last_modified": "2026-01-19T00:39:23Z",
+      "resolved": "github:NixOS/nixpkgs/bde09022887110deb780067364a0818e89258968?lastModified=1768783163&narHash=sha256-tLj4KcRDLakrlpvboTJDKsrp6z2XLwyQ4Zmo%2Bw8KsY4%3D"
+    },
     "lcov@1.16": {
       "last_modified": "2024-03-22T11:26:23Z",
       "resolved": "github:NixOS/nixpkgs/a3ed7406349a9335cb4c2a71369b697cecd9d351#lcov",
@@ -85,8 +89,72 @@
         }
       }
     },
-    "pipx": {
-      "resolved": "github:NixOS/nixpkgs/75a52265bda7fd25e06e3a67dee3f0354e73243c#pipx",
+    "platformio@6.1.18": {
+      "last_modified": "2026-01-31T12:06:42Z",
+      "resolved": "github:NixOS/nixpkgs/f214de98544a6acf0d9917ba265ac50849048fcb#platformio",
+      "source": "devbox-search",
+      "version": "6.1.18",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/babm780zadzhpfnkz634m7d7298xsy95-platformio-6.1.18",
+              "default": true
+            },
+            {
+              "name": "dist",
+              "path": "/nix/store/f5n2fiy5fw9x0rdplr0gvsbyyhxcqv7g-platformio-6.1.18-dist"
+            },
+            {
+              "name": "udev",
+              "path": "/nix/store/lkqip9npjlfr9l9yd6zg073gkwf4nyrx-platformio-6.1.18-udev"
+            }
+          ],
+          "store_path": "/nix/store/babm780zadzhpfnkz634m7d7298xsy95-platformio-6.1.18"
+        },
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/g10km59vhh0z3vc5fzllmhjk3q03mz4x-platformio-6.1.18",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/g10km59vhh0z3vc5fzllmhjk3q03mz4x-platformio-6.1.18"
+        },
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/ydg1lfwms558yn0qjlwdg127pfbs85j7-platformio-6.1.18",
+              "default": true
+            },
+            {
+              "name": "dist",
+              "path": "/nix/store/6hpjd248i5g0qzyc7v8gscz5bk84zkk7-platformio-6.1.18-dist"
+            },
+            {
+              "name": "udev",
+              "path": "/nix/store/qzxd90q7msndfdiqfx4hclmlbdz6k4d5-platformio-6.1.18-udev"
+            }
+          ],
+          "store_path": "/nix/store/ydg1lfwms558yn0qjlwdg127pfbs85j7-platformio-6.1.18"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/cpbd7wfsknwg6d0mf22zgcb1za7v9j32-platformio-6.1.18",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/cpbd7wfsknwg6d0mf22zgcb1za7v9j32-platformio-6.1.18"
+        }
+      }
+    },
+    "python3Packages.packaging": {
+      "resolved": "github:NixOS/nixpkgs/bde09022887110deb780067364a0818e89258968?narHash=sha256-tLj4KcRDLakrlpvboTJDKsrp6z2XLwyQ4Zmo%2Bw8KsY4%3D#python3Packages.packaging",
       "source": "nixpkg"
     },
     "python@3.13": {
