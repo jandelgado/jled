@@ -38,11 +38,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pio-
       - name: install tools
-        run: |
-          # zombie-imp and setuptools needed for compatibility for
-          # some SDKs relying on older python versions (e.g. STM32)
-          pip install platformio==6.1.18 zombie-imp==0.0.4 setuptools intelhex==2.3.0
-          sudo apt-get update && sudo apt-get install -y lcov
+        uses: ./.github/actions/setup-platformio
+        with:
+          install-lcov: 'true'
       - name: run tests
         run: |
           cd test
@@ -95,8 +93,7 @@ jobs:
         with:
           python-version: '3.13'
       - name: install tools
-        run: |
-          pip install platformio==6.1.18 zombie-imp==0.0.4 setuptools intelhex==2.3.0
+        uses: ./.github/actions/setup-platformio
       - name: build examples
         run: |-
           # the mbed examples explicitely sets the extension to cpp, default is ino
