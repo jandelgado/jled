@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JLed Documentation</title>
+    <script>
+        // Detect base path and redirect to latest version
+        (function() {
+            const path = window.location.pathname;
+            const basePath = path.includes('/jled/') ? '/jled/' : '/';
+            window.location.href = basePath + '{{ latest_stable }}/';
+        })();
+    </script>
+    <!-- Fallback meta refresh for browsers with JavaScript disabled -->
+    <meta http-equiv="refresh" content="3; url=/jled/{{ latest_stable }}/">
+</head>
+<body>
+    <p>Redirecting to latest documentation (<a href="/jled/{{ latest_stable }}/">{{ latest_stable }}</a>)...</p>
+</body>
+</html>
