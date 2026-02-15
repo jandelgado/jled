@@ -87,7 +87,7 @@ class PicoHal {
 
  public:
     using PinType = uint8_t;
-    using NativeBrightnessType = uint16_t;  // Pico supports 16-bit PWM natively
+    using NativeBrightness = uint16_t;  // Pico supports 16-bit PWM natively
     static constexpr uint8_t kNativeBits = 16;
 
     explicit PicoHal(PinType pin) noexcept {
@@ -102,19 +102,19 @@ class PicoHal {
         pwm_set_wrap(slice_num_, top_);
     }
 
-    template<typename BrightnessType>
-    void analogWrite(BrightnessType val) const {
+    template<typename Brightness>
+    void analogWrite(Brightness val) const {
         // Scale to 16-bit native resolution and set PWM duty
-        const uint16_t duty16 = scaleToNative<BrightnessType>(val);
+        const uint16_t duty16 = scaleToNative<Brightness>(val);
         set_pwm_duty(slice_num_, channel_, top_, duty16);
     }
 
  private:
     // Scale brightness value to native 16-bit resolution
-    template<typename BrightnessType>
-    static uint16_t scaleToNative(BrightnessType val) {
+    template<typename Brightness>
+    static uint16_t scaleToNative(Brightness val) {
         // Use sizeof for compile-time optimization (optimizes same as if constexpr)
-        if (sizeof(BrightnessType) == 2) {
+        if (sizeof(Brightness) == 2) {
             // 16-bit to 16-bit: no scaling needed (zero-cost abstraction)
             return val;
         } else {

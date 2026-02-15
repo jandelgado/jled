@@ -16,13 +16,13 @@
 class CustomHal {
  public:
     using PinType = uint8_t;
-    using NativeBrightnessType = uint8_t;
+    using NativeBrightness = uint8_t;
     static constexpr uint8_t kNativeBits = 8;
 
     explicit CustomHal(PinType pin) noexcept : pin_(pin) {}
 
-    template<typename BrightnessType>
-    void analogWrite(BrightnessType val) const {
+    template<typename Brightness>
+    void analogWrite(Brightness val) const {
         // some platforms, e.g. STM need lazy initialization
         if (!setup_) {
             ::pinMode(pin_, OUTPUT);
@@ -30,7 +30,7 @@ class CustomHal {
         }
         // Scale to 8-bit and invert
         uint8_t val8;
-        if (sizeof(BrightnessType) == 1) {
+        if (sizeof(Brightness) == 1) {
             val8 = val;
         } else {
             val8 = static_cast<uint8_t>(val >> 8);

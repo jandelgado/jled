@@ -31,25 +31,25 @@ class Esp8266Hal {
  public:
     using PinType = uint8_t;
     // ESP8266 uses 10-bit PWM, but we expose as uint16_t since there's no uint10_t
-    using NativeBrightnessType = uint16_t;
+    using NativeBrightness = uint16_t;
     static constexpr uint8_t kNativeBits = 10;
 
     explicit Esp8266Hal(PinType pin) noexcept : pin_(pin) {
         ::pinMode(pin_, OUTPUT);
     }
 
-    template<typename BrightnessType>
-    void analogWrite(BrightnessType val) const {
+    template<typename Brightness>
+    void analogWrite(Brightness val) const {
         // ESP8266 uses 10bit PWM range, scale value to 10-bit
-        ::analogWrite(pin_, scaleToNative<BrightnessType>(val));
+        ::analogWrite(pin_, scaleToNative<Brightness>(val));
     }
 
  private:
     // Scale brightness value to native 10-bit resolution
-    template<typename BrightnessType>
-    static uint16_t scaleToNative(BrightnessType val) {
+    template<typename Brightness>
+    static uint16_t scaleToNative(Brightness val) {
         // Use sizeof for compile-time optimization (optimizes same as if constexpr)
-        if (sizeof(BrightnessType) == 1) {
+        if (sizeof(Brightness) == 1) {
             // 8-bit to 10-bit: 0 -> 0, 255 -> 1023
             // Preserves min/max relationships
             return (val == 0) ? 0 : (static_cast<uint16_t>(val) << 2) + 3;

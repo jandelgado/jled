@@ -30,29 +30,29 @@ namespace jled {
 class ArduinoHal {
  public:
     using PinType = uint8_t;
-    using NativeBrightnessType = uint8_t;
+    using NativeBrightness = uint8_t;
     static constexpr uint8_t kNativeBits = 8;
 
     explicit ArduinoHal(PinType pin) noexcept : pin_(pin) {}
 
     // Template analogWrite to accept any brightness type
-    template<typename BrightnessType>
-    void analogWrite(BrightnessType val) const {
+    template<typename Brightness>
+    void analogWrite(Brightness val) const {
         // some platforms, e.g. STM need lazy initialization
         if (!setup_) {
             ::pinMode(pin_, OUTPUT);
             setup_ = true;
         }
         // Scale brightness value to native HAL resolution (8-bit)
-        ::analogWrite(pin_, scaleToNative<BrightnessType>(val));
+        ::analogWrite(pin_, scaleToNative<Brightness>(val));
     }
 
  private:
     // Scale brightness value to native 8-bit resolution
-    template<typename BrightnessType>
-    static uint8_t scaleToNative(BrightnessType val) {
+    template<typename Brightness>
+    static uint8_t scaleToNative(Brightness val) {
         // Use sizeof for compile-time optimization (optimizes same as if constexpr)
-        if (sizeof(BrightnessType) == 1) {
+        if (sizeof(Brightness) == 1) {
             // 8-bit to 8-bit: no scaling needed (zero-cost abstraction)
             return val;
         } else {

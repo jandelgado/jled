@@ -197,9 +197,9 @@ extend `JLed` and b) effectively unit test almost all parts of `JLed`
   modern C++17 features to maintain compatibility with Arduino/PlatformIO default toolchains.
   These could be upgraded when C++17 becomes standard in the Arduino ecosystem:
 
-  * **`if (sizeof(BrightnessType) == X)` vs `if constexpr`**:
-    - Current: `if (sizeof(BrightnessType) == 1) { ... }`
-    - Future: `if constexpr (sizeof(BrightnessType) == 1) { ... }`
+  * **`if (sizeof(Brightness) == X)` vs `if constexpr`**:
+    - Current: `if (sizeof(Brightness) == 1) { ... }`
+    - Future: `if constexpr (sizeof(Brightness) == 1) { ... }`
     - Rationale: `if constexpr` requires C++17. Modern compilers optimize both identically
       (dead code elimination), but `if constexpr` provides clearer intent and prevents
       instantiation of unreachable template branches

@@ -51,10 +51,10 @@ constexpr bool is_same_v = is_same<T, U>::value;
 
 // Type traits for brightness types - provides constants and metadata
 template<typename T>
-struct BrightnessTypeTraits;
+struct BrightnessTraits;
 
 template<>
-struct BrightnessTypeTraits<uint8_t> {
+struct BrightnessTraits<uint8_t> {
     using value_t = uint8_t;
     static constexpr uint8_t kFullBrightness = 255;
     static constexpr uint8_t kZeroBrightness = 0;
@@ -62,7 +62,7 @@ struct BrightnessTypeTraits<uint8_t> {
 };
 
 template<>
-struct BrightnessTypeTraits<uint16_t> {
+struct BrightnessTraits<uint16_t> {
     using value_t = uint16_t;
     static constexpr uint16_t kFullBrightness = 65535;
     static constexpr uint16_t kZeroBrightness = 0;
