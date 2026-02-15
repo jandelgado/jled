@@ -127,7 +127,7 @@ Platform detection is automatic via preprocessor macros in `src/jled.h`.
 **Core Components:**
 
 * `src/jled_base.h` - Platform-agnostic core logic
-  * `TJLed<HalType, Clock, B>` template class - Main LED controller with state machine
+  * `TJLed<Hal, Clock, B>` template class - Main LED controller with state machine
   * `BrightnessEvaluator` - Abstract base for all effects
   * Effect implementations: `ConstantBrightnessEvaluator`, `BlinkBrightnessEvaluator`,
     `BreatheBrightnessEvaluator`, `CandleBrightnessEvaluator`
@@ -314,7 +314,7 @@ extend `JLed` and b) effectively unit test almost all parts of `JLed`
    #elif defined(MY_PLATFORM_MACRO)
    #include "my_platform_hal.h"
    namespace jled {
-       using JLedHalType = MyPlatformHal;
+       using JLedHal = MyPlatformHal;
        using JLedClockType = MyPlatformClock;
    }
    ```

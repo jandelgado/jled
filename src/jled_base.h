@@ -231,14 +231,14 @@ class CandleBrightnessEvaluator : public CloneableBrightnessEvaluator<Brightness
     }
 };
 
-template <typename HalType, typename Clock, typename BrightnessType, typename Derived>
+template <typename Hal, typename Clock, typename BrightnessType, typename Derived>
 class TJLed {
 
  protected:
     // pointer to a (user defined) brightness evaluator.
     BrightnessEvaluator<BrightnessType>* brightness_eval_ = nullptr;
     // Hardware abstraction giving access to the MCU
-    HalType hal_;
+    Hal hal_;
 
     // Evaluate effect(t) and scale to be within [minBrightness, maxBrightness]
     // assumes brigthness_eval_ is set as it is not checked here.
@@ -252,18 +252,18 @@ class TJLed {
 
  public:
     TJLed() = delete;
-    explicit TJLed(const HalType& hal)
+    explicit TJLed(const Hal& hal)
         : hal_{hal},
           state_{ST_INIT},
           bLowActive_{false},
           minBrightness_{BrightnessTypeTraits<BrightnessType>::kZeroBrightness},
           maxBrightness_{BrightnessTypeTraits<BrightnessType>::kFullBrightness} {}
 
-    explicit TJLed(typename HalType::PinType pin) : TJLed{HalType{pin}} {}
+    explicit TJLed(typename Hal::PinType pin) : TJLed{Hal{pin}} {}
 
     TJLed(const TJLed& rLed) : hal_{rLed.hal_} { *this = rLed; }
 
-    Derived& operator=(const TJLed<HalType, Clock, BrightnessType, Derived>& rLed) {
+    Derived& operator=(const TJLed<Hal, Clock, BrightnessType, Derived>& rLed) {
         state_ = rLed.state_;
         bLowActive_ = rLed.bLowActive_;
         minBrightness_ = rLed.minBrightness_;
@@ -289,7 +289,7 @@ class TJLed {
         return static_cast<Derived&>(*this);
     }
 
-    HalType& Hal() { return hal_; }
+    Hal& GetHal() { return hal_; }
 
     // Set physical LED polarity to be low active. This inverts every
     // signal physically output to a pin.

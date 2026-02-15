@@ -37,30 +37,30 @@
 
 #ifdef PICO_SDK_VERSION_MAJOR
 #include "pico_hal.h"   // NOLINT
-namespace jled {using JLedHalType = PicoHal; using JLedClockType = PicoClock;}
+namespace jled {using JLedHal = PicoHal; using JLedClockType = PicoClock;}
 #elif defined(__MBED__) && !defined(ARDUINO_API_VERSION)
 #include "mbed_hal.h"  // NOLINT
-namespace jled {using JLedHalType = MbedHal; using JLedClockType = MbedClock;}
+namespace jled {using JLedHal = MbedHal; using JLedClockType = MbedClock;}
 #elif defined(ESP32)
 #include "esp32_hal.h"  // NOLINT
-namespace jled {using JLedHalType = Esp32Hal; using JLedClockType = Esp32Clock;}
+namespace jled {using JLedHal = Esp32Hal; using JLedClockType = Esp32Clock;}
 #elif defined(ESP8266)
 #include "esp8266_hal.h"  // NOLINT
-namespace jled {using JLedHalType = Esp8266Hal; using JLedClockType = Esp8266Clock;}
+namespace jled {using JLedHal = Esp8266Hal; using JLedClockType = Esp8266Clock;}
 #else
 #include "arduino_hal.h"  // NOLINT
-namespace jled {using JLedHalType = ArduinoHal; using JLedClockType = ArduinoClock;}
+namespace jled {using JLedHal = ArduinoHal; using JLedClockType = ArduinoClock;}
 #endif
 
 namespace jled {
 // JLed: 8-bit brightness control (backwards compatible)
-class JLed : public TJLed<JLedHalType, JLedClockType, uint8_t, JLed> {
-    using TJLed<JLedHalType, JLedClockType, uint8_t, JLed>::TJLed;
+class JLed : public TJLed<JLedHal, JLedClockType, uint8_t, JLed> {
+    using TJLed<JLedHal, JLedClockType, uint8_t, JLed>::TJLed;
 };
 
 // JLed16: 16-bit brightness control for smoother effects on high-resolution MCUs
-class JLed16 : public TJLed<JLedHalType, JLedClockType, uint16_t, JLed16> {
-    using TJLed<JLedHalType, JLedClockType, uint16_t, JLed16>::TJLed;
+class JLed16 : public TJLed<JLedHal, JLedClockType, uint16_t, JLed16> {
+    using TJLed<JLedHal, JLedClockType, uint16_t, JLed16>::TJLed;
 };
 
 // a group of JLed objects which can be controlled simultanously

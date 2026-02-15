@@ -36,8 +36,8 @@ TEST_CASE("parallel sequence performs all updates", "[jled_sequence]") {
         auto res = seq.Update();
         // Update() returns false on last Update, our example does 2 updates.
         REQUIRE(res == (i < 1));
-        REQUIRE(expected1[i] == leds[0].Hal().Value());
-        REQUIRE(expected2[i] == leds[1].Hal().Value());
+        REQUIRE(expected1[i] == leds[0].GetHal().Value());
+        REQUIRE(expected2[i] == leds[1].GetHal().Value());
         time++;
         TimeMock::set_millis(time);
     }
@@ -65,8 +65,8 @@ TEST_CASE("sequence performs all updates", "[jled_sequence]") {
         // Update() returns false on last Update. This example does only
         // 4 updates in total, returning false starting from update 3
         REQUIRE(res == (i < 3));
-        REQUIRE(expected1[i] == leds[0].Hal().Value());
-        REQUIRE(expected2[i] == leds[1].Hal().Value());
+        REQUIRE(expected1[i] == leds[0].GetHal().Value());
+        REQUIRE(expected2[i] == leds[1].GetHal().Value());
         time++;
     }
 }
@@ -81,9 +81,9 @@ TEST_CASE("stop on sequence stops all JLeds and turns them off",
         TestJLedSequence seq(mode, leds);
 
         seq.Update();
-        REQUIRE(255 == leds[0].Hal().Value());
+        REQUIRE(255 == leds[0].GetHal().Value());
         seq.Stop();
-        REQUIRE(0 == leds[0].Hal().Value());
+        REQUIRE(0 == leds[0].GetHal().Value());
         REQUIRE(!leds[0].IsRunning());
     }
 }
@@ -121,7 +121,7 @@ TEST_CASE("repeat plays the sequence N times", "[jled_sequence]") {
             INFO("mode = " << mode << ", time = " << time);
             TimeMock::set_millis(time++);
             seq.Update();
-            REQUIRE(val == leds[0].Hal().Value());
+            REQUIRE(val == leds[0].GetHal().Value());
         }
         REQUIRE(!seq.Update());
     }
@@ -144,7 +144,7 @@ TEST_CASE("Forever seems to play the sequence forever", "[jled_sequence]") {
                            << ", mod=" << (time % num));
             TimeMock::set_millis(time);
             REQUIRE(seq.Update());
-            CHECK(expected[time % num] == leds[0].Hal().Value());
+            CHECK(expected[time % num] == leds[0].GetHal().Value());
         }
     }
 }
@@ -197,7 +197,7 @@ TEST_CASE("reset on sequence resets all JLeds", "[jled_sequence]") {
             TimeMock::set_millis(time);
             seq.Update();
 
-            REQUIRE(val == leds[0].Hal().Value());
+            REQUIRE(val == leds[0].GetHal().Value());
 
             time++;
             if (time == 2) {
