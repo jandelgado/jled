@@ -231,22 +231,8 @@ class CandleBrightnessEvaluator : public CloneableBrightnessEvaluator<Brightness
     }
 };
 
-// Helper for CRTP: if DerivedType is void, use TJLed itself, otherwise use DerivedType
-template<typename T, typename Fallback>
-struct select_derived {
-    using type = T;
-};
-
-template<typename Fallback>
-struct select_derived<void, Fallback> {
-    using type = Fallback;
-};
-
-template <typename HalType, typename Clock, typename BrightnessType = uint8_t, typename DerivedType = void>
+template <typename HalType, typename Clock, typename BrightnessType, typename Derived>
 class TJLed {
-    // CRTP: The actual derived type to return from fluent interface methods
-    using Derived = typename select_derived<
-        DerivedType, TJLed<HalType, Clock, BrightnessType, DerivedType>>::type;
 
  protected:
     // pointer to a (user defined) brightness evaluator.
@@ -277,7 +263,7 @@ class TJLed {
 
     TJLed(const TJLed& rLed) : hal_{rLed.hal_} { *this = rLed; }
 
-    Derived& operator=(const TJLed<HalType, Clock, BrightnessType, DerivedType>& rLed) {
+    Derived& operator=(const TJLed<HalType, Clock, BrightnessType, Derived>& rLed) {
         state_ = rLed.state_;
         bLowActive_ = rLed.bLowActive_;
         minBrightness_ = rLed.minBrightness_;
