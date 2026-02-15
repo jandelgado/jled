@@ -36,7 +36,7 @@ envdump: phony
 clean: phony
 	-pio run --target clean
 	cd test && make clean
-	rm -f src/{*.o,*.gcno,*.gcda}
+	rm -f src/{*.o,*.gcno,*.gcda} .doc-site
 
 upload: phony
 	pio run --target upload
@@ -46,6 +46,10 @@ monitor: phony
 
 test: phony
 	$(MAKE) -C test coverage
+
+docs: phony
+	uvx --with markdown --with Jinja2 --with packaging --with Pygments \
+	    python .tools/doc-site/generate_site.py --output .doc-site
 
 tags: phony
 	ctags -R
