@@ -80,7 +80,7 @@ class Esp32Hal {
 
  public:
     using PinType = Esp32ChanMapper::PinType;
-    using NativeBrightnessType = uint8_t;  // ESP32 HAL currently uses 8-bit
+    using NativeBrightness = uint8_t;  // ESP32 HAL currently uses 8-bit
     static constexpr uint8_t kNativeBits = 8;
 
     static constexpr auto kAutoSelectChan = -1;
@@ -125,10 +125,10 @@ class Esp32Hal {
         ledc_channel_config(&ledc_channel);
     }
 
-    template<typename BrightnessType>
-    void analogWrite(BrightnessType val) const {
+    template<typename Brightness>
+    void analogWrite(Brightness val) const {
         // Scale brightness to native 8-bit resolution
-        const uint8_t duty = scaleToNative<BrightnessType>(val);
+        const uint8_t duty = scaleToNative<Brightness>(val);
 
         // Fixing if all bits in resolution is set = LEDC FULL ON
         const uint32_t _duty = (duty == (1 << kLedcTimerResolution) - 1)
@@ -143,10 +143,10 @@ class Esp32Hal {
 
  private:
     // Scale brightness value to native 8-bit resolution
-    template<typename BrightnessType>
-    static uint8_t scaleToNative(BrightnessType val) {
+    template<typename Brightness>
+    static uint8_t scaleToNative(Brightness val) {
         // Use sizeof for compile-time optimization (optimizes same as if constexpr)
-        if (sizeof(BrightnessType) == 1) {
+        if (sizeof(Brightness) == 1) {
             // 8-bit to 8-bit: no scaling needed (zero-cost abstraction)
             return val;
         } else {
