@@ -104,11 +104,15 @@ class PicoHal {
                      static_cast<uint32_t>(DUTY_100_PCT / 255) * val);
     }
 
-    uint32_t millis() const { return to_ms_since_boot(get_absolute_time()); }
-
  private:
     uint slice_num_, channel_;
     uint32_t top_ = 0;
 };
+
+class PicoClock {
+ public:
+    static uint32_t millis() { return to_ms_since_boot(get_absolute_time()); }
+};
+
 }  // namespace jled
 #endif  // SRC_PICO_HAL_H_

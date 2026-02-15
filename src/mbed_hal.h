@@ -55,14 +55,18 @@ class MbedHal {
         return *this;
     }
 
-    uint32_t millis() const {
-        return Kernel::Clock::now().time_since_epoch().count();
-    }
-
  private:
     PinType pin_;
     mutable PwmOut* pwmout_ = nullptr;
 };
+
+class MbedClock {
+ public:
+    static uint32_t millis() {
+        return Kernel::Clock::now().time_since_epoch().count();
+    }
+};
+
 }  // namespace jled
 #endif  // __MBED__
 #endif  // SRC_MBED_HAL_H_

@@ -133,9 +133,9 @@ TEST_CASE("analogWrite() writes 255 as 256", "[esp32_hal]") {
 }
 
 TEST_CASE("millis() returns correct time", "[esp32_hal]") {
-    auto hal = Esp32Hal(1);
-    REQUIRE(hal.millis() == 0);
+    esp32_mock_set_esp_timer(0);
+    REQUIRE(jled::Esp32Clock::millis() == 0);
 
     esp32_mock_set_esp_timer(99 * 1000);
-    REQUIRE(hal.millis() == 99);
+    REQUIRE(jled::Esp32Clock::millis() == 99);
 }

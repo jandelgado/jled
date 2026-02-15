@@ -120,16 +120,16 @@ Platform detection is automatic via preprocessor macros in `src/jled.h`.
 **Core Components:**
 
 * `src/jled_base.h` - Platform-agnostic core logic
-  * `TJLed<HalType, B>` template class - Main LED controller with state machine
+  * `TJLed<HalType, Clock, B>` template class - Main LED controller with state machine
   * `BrightnessEvaluator` - Abstract base for all effects
   * Effect implementations: `ConstantBrightnessEvaluator`, `BlinkBrightnessEvaluator`,
     `BreatheBrightnessEvaluator`, `CandleBrightnessEvaluator`
-  * `TJLedSequence<JLed, B>` template - Controls multiple LEDs in parallel or sequence
+  * `TJLedSequence<JLed, Clock, B>` template - Controls multiple LEDs in parallel or sequence
 * `src/jled.h` - Platform-specific convenience layer
   * Detects platform via preprocessor macros
-  * Selects appropriate HAL
+  * Selects appropriate HAL and Clock implementations
   * Provides `JLed` and `JLedSequence` classes
-* `src/*_hal.h` - Hardware abstraction layers (ESP32, ESP8266, Arduino, mbed, Pico)
+* `src/*_hal.h` - Hardware abstraction layers for PWM and time (ESP32, ESP8266, Arduino, mbed, Pico)
 
 ### Important architecture decisions
 
@@ -139,10 +139,13 @@ extend `JLed` and b) effectively unit test almost all parts of `JLed`
 
 ### Hardware Abstraction Layer (HAL)
 
-* JLed logic/effects and hardware code are strictly separate
-* Each platform has a HAL class in `src/*_hal.h` that implements:
-  * `analogWrite(pin, value)` - Write PWM value to GPIO pin
-  * `millis()` - Return current MCU time in milliseconds
+* JLed logic/effects and hardware code are strictly separated
+* Each platform has **two separate abstractions** in `src/*_hal.h`:
+  * **PWM HAL** - Controls GPIO pins (e.g., `ArduinoHal`, `Esp32Hal`)
+    * `analogWrite(uint8_t val)` - Write PWM value to GPIO pin
+  * **Clock** - Provides time (e.g., `ArduinoClock`, `Esp32Clock`)
+    * `static uint32_t millis()` - Return current MCU time in milliseconds
+* **Separation rationale**: A platform can have multiple PWM HALs (e.g., native platform PWM and external ICs like PCA9685), but only one time provider
 * Uses **compile-time polymorphism** (templates, not virtual functions) for performance
   * Avoids virtual function table overhead in hot paths
   * Zero-cost abstraction
@@ -180,11 +183,6 @@ extend `JLed` and b) effectively unit test almost all parts of `JLed`
   ```
 * Methods return `B&` (reference to derived type) using CRTP pattern for chainability
 * This approach allows readable, self-documenting LED configurations
-
-### Known Technical Debt
-
-* The HAL should not contain a `millis()` function since this is a property of the MCU and
-  not of a GPIO. Possible fix: refactor the HAL concept to introduce a `TimeHAL` abstraction
 
 ## Embedded Constraints & Design Philosophy
 
@@ -249,6 +247,7 @@ extend `JLed` and b) effectively unit test almost all parts of `JLed`
 
 1. **Create HAL header** `src/[platform]_hal.h`:
    ```cpp
+   // PWM HAL for GPIO control
    class MyPlatformHal {
     public:
        using PinType = uint8_t;  // or appropriate type
@@ -262,12 +261,16 @@ extend `JLed` and b) effectively unit test almost all parts of `JLed`
            // Write PWM value to pin
        }
 
-       uint32_t millis() const {
-           // Return current time in milliseconds
-       }
-
     private:
        PinType pin_;
+   };
+
+   // Clock for time tracking
+   class MyPlatformClock {
+    public:
+       static uint32_t millis() {
+           // Return current time in milliseconds
+       }
    };
    ```
 
@@ -275,7 +278,10 @@ extend `JLed` and b) effectively unit test almost all parts of `JLed`
    ```cpp
    #elif defined(MY_PLATFORM_MACRO)
    #include "my_platform_hal.h"
-   namespace jled {using JLedHalType = MyPlatformHal;}
+   namespace jled {
+       using JLedHalType = MyPlatformHal;
+       using JLedClockType = MyPlatformClock;
+   }
    ```
 
 3. **Add unit tests** in `test/test_my_platform_hal.cpp` with appropriate mocks

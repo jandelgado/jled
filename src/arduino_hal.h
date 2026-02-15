@@ -41,11 +41,15 @@ class ArduinoHal {
         ::analogWrite(pin_, val);
     }
 
-    uint32_t millis() const { return ::millis(); }
-
  private:
     mutable bool setup_ = false;
     PinType pin_;
 };
+
+class ArduinoClock {
+ public:
+    static uint32_t millis() { return ::millis(); }
+};
+
 }  // namespace jled
 #endif  // SRC_ARDUINO_HAL_H_

@@ -125,15 +125,11 @@ class Esp32Hal {
     void analogWrite(uint8_t duty) const {
         // Fixing if all bits in resolution is set = LEDC FULL ON
         const uint32_t _duty = (duty == (1 << kLedcTimerResolution) - 1)
-                             ? 1 << kLedcTimerResolution
-                             : duty;
+                                   ? 1 << kLedcTimerResolution
+                                   : duty;
 
         ledc_set_duty(kLedcSpeedMode, chan_, _duty);
         ledc_update_duty(kLedcSpeedMode, chan_);
-    }
-
-    uint32_t millis() const {
-        return static_cast<uint32_t>(esp_timer_get_time() / 1000ULL);
     }
 
     PinType chan() const { return chan_; }
@@ -142,5 +138,13 @@ class Esp32Hal {
     static Esp32ChanMapper chanMapper_;
     ledc_channel_t chan_;
 };
+
+class Esp32Clock {
+ public:
+    static uint32_t millis() {
+        return static_cast<uint32_t>(esp_timer_get_time() / 1000ULL);
+    }
+};
+
 }  // namespace jled
 #endif  // SRC_ESP32_HAL_H_
