@@ -430,11 +430,36 @@ After initial workflow run, enable GitHub Pages in repository settings:
 │   ├── index.html      # Version page with README + nav
 │   ├── doc/           # Images and assets
 │   └── examples/      # Example folders
+│       ├── hello/
+│       │   ├── index.html    # Example page with syntax-highlighted code
+│       │   └── hello.ino
+│       └── morse/
+│           ├── index.html
+│           ├── morse.ino
+│           └── README.md
 /master/
     ├── index.html
     ├── doc/
     └── examples/
 ```
+
+### Example Pages
+
+Individual pages are generated for each example showing syntax-highlighted code:
+
+**Implementation:**
+- `generate_example_page()` in `generate_site.py` processes each example
+- `templates/example.html` provides consistent styling with main docs
+- File filtering excludes backups (*~) and build artifacts
+- Language detection maps extensions to Pygments lexers (.ino → C++, etc.)
+- README.md files in examples are rendered at the bottom
+
+**File Processing:**
+- Include: source (.ino, .cpp, .h), build (CMakeLists.txt), scripts (.sh, .py)
+- Exclude: backups (*~), build artifacts (.o, .bin), large files (>500KB)
+- Order: main source first, README last
+
+Examples with README.md: morse, multiled, multiled_mbed, raspi_pico
 
 ### Making Changes
 

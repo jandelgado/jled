@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ example_name }} - JLed Examples - {{ current_version }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            font-size: 16px;
+            line-height: 1.6;
+            color: #24292e;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 280px;
+            min-width: 280px;
+            background-color: #f6f8fa;
+            border-right: 1px solid #e1e4e8;
+            padding: 20px;
+            overflow-y: auto;
+            position: fixed;
+            height: 100vh;
+        }
+
+        .content {
+            flex: 1;
+            padding: 40px;
+            margin-left: 280px;
+            max-width: 1200px;
+        }
+
+        #version-selector {
+            width: 100%;
+            padding: 8px 12px;
+            font-size: 14px;
+            border: 1px solid #d1d5da;
+            border-radius: 6px;
+            background-color: white;
+            cursor: pointer;
+            margin-bottom: 24px;
+        }
+
+        .nav-section {
+            margin-bottom: 24px;
+        }
+
+        .nav-section h3 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #57606a;
+        }
+
+        .nav-section ul {
+            list-style: none;
+        }
+
+        .nav-section li {
+            margin-bottom: 6px;
+        }
+
+        .nav-section a {
+            color: #0969da;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .nav-section a:hover {
+            text-decoration: underline;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #0969da;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        h1 {
+            font-size: 32px;
+            margin-bottom: 30px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e1e4e8;
+        }
+
+        .readme-section {
+            margin-bottom: 40px;
+            padding-bottom: 40px;
+            border-bottom: 2px solid #e1e4e8;
+        }
+
+        .readme-section img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 16px 0;
+        }
+
+        .files-list {
+            margin-bottom: 40px;
+            padding: 20px;
+            background-color: #f6f8fa;
+            border-radius: 6px;
+            border: 1px solid #e1e4e8;
+        }
+
+        .files-list h2 {
+            font-size: 18px;
+            margin: 0 0 12px 0;
+            padding: 0;
+            border: none;
+            color: #24292e;
+        }
+
+        .files-list ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .files-list li {
+            margin-bottom: 6px;
+        }
+
+        .files-list a {
+            color: #0969da;
+            text-decoration: none;
+            font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+            font-size: 14px;
+        }
+
+        .files-list a:hover {
+            text-decoration: underline;
+        }
+
+        .file-section {
+            margin-bottom: 40px;
+        }
+
+        .file-header {
+            background-color: #f6f8fa;
+            border: 1px solid #d1d5da;
+            border-bottom: none;
+            border-radius: 6px 6px 0 0;
+            padding: 12px 16px;
+            font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+            font-size: 14px;
+            font-weight: 600;
+            color: #24292e;
+        }
+
+        .file-content {
+            border: 1px solid #d1d5da;
+            border-radius: 0 0 6px 6px;
+            overflow-x: auto;
+        }
+
+        .file-content pre {
+            margin: 0;
+            padding: 16px;
+            background-color: #ffffff;
+            overflow-x: auto;
+        }
+
+        .file-content code {
+            font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        /* Pygments GitHub style */
+        .highlight { background: #ffffff; }
+        .highlight .hll { background-color: #ffffcc }
+        .highlight .c { color: #6a737d; font-style: italic } /* Comment */
+        .highlight .err { color: #a61717; background-color: #e3d2d2 } /* Error */
+        .highlight .k { color: #d73a49; font-weight: bold } /* Keyword */
+        .highlight .o { font-weight: bold } /* Operator */
+        .highlight .cm { color: #6a737d; font-style: italic } /* Comment.Multiline */
+        .highlight .cp { color: #d73a49; font-weight: bold } /* Comment.Preproc */
+        .highlight .c1 { color: #6a737d; font-style: italic } /* Comment.Single */
+        .highlight .cs { color: #6a737d; font-weight: bold; font-style: italic } /* Comment.Special */
+        .highlight .gd { color: #000000; background-color: #ffdddd } /* Generic.Deleted */
+        .highlight .ge { font-style: italic } /* Generic.Emph */
+        .highlight .gr { color: #aa0000 } /* Generic.Error */
+        .highlight .gh { color: #999999 } /* Generic.Heading */
+        .highlight .gi { color: #000000; background-color: #ddffdd } /* Generic.Inserted */
+        .highlight .go { color: #888888 } /* Generic.Output */
+        .highlight .gp { color: #555555 } /* Generic.Prompt */
+        .highlight .gs { font-weight: bold } /* Generic.Strong */
+        .highlight .gu { color: #aaaaaa } /* Generic.Subheading */
+        .highlight .gt { color: #aa0000 } /* Generic.Traceback */
+        .highlight .kc { color: #005cc5; font-weight: bold } /* Keyword.Constant */
+        .highlight .kd { color: #d73a49; font-weight: bold } /* Keyword.Declaration */
+        .highlight .kn { font-weight: bold } /* Keyword.Namespace */
+        .highlight .kp { font-weight: bold } /* Keyword.Pseudo */
+        .highlight .kr { color: #d73a49; font-weight: bold } /* Keyword.Reserved */
+        .highlight .kt { color: #d73a49; font-weight: bold } /* Keyword.Type */
+        .highlight .m { color: #005cc5 } /* Literal.Number */
+        .highlight .s { color: #032f62 } /* Literal.String */
+        .highlight .na { color: #008080 } /* Name.Attribute */
+        .highlight .nb { color: #005cc5 } /* Name.Builtin */
+        .highlight .nc { color: #22863a; font-weight: bold } /* Name.Class */
+        .highlight .no { color: #005cc5 } /* Name.Constant */
+        .highlight .nd { color: #6f42c1; font-weight: bold } /* Name.Decorator */
+        .highlight .ni { color: #800080 } /* Name.Entity */
+        .highlight .ne { color: #990000; font-weight: bold } /* Name.Exception */
+        .highlight .nf { color: #6f42c1; font-weight: bold } /* Name.Function */
+        .highlight .nl { color: #990000; font-weight: bold } /* Name.Label */
+        .highlight .nn { color: #555555 } /* Name.Namespace */
+        .highlight .nt { color: #22863a } /* Name.Tag */
+        .highlight .nv { color: #e36209 } /* Name.Variable */
+        .highlight .ow { font-weight: bold } /* Operator.Word */
+        .highlight .w { color: #bbbbbb } /* Text.Whitespace */
+        .highlight .mf { color: #005cc5 } /* Literal.Number.Float */
+        .highlight .mh { color: #005cc5 } /* Literal.Number.Hex */
+        .highlight .mi { color: #005cc5 } /* Literal.Number.Integer */
+        .highlight .mo { color: #005cc5 } /* Literal.Number.Oct */
+        .highlight .sb { color: #032f62 } /* Literal.String.Backtick */
+        .highlight .sc { color: #032f62 } /* Literal.String.Char */
+        .highlight .sd { color: #032f62 } /* Literal.String.Doc */
+        .highlight .s2 { color: #032f62 } /* Literal.String.Double */
+        .highlight .se { color: #032f62 } /* Literal.String.Escape */
+        .highlight .sh { color: #032f62 } /* Literal.String.Heredoc */
+        .highlight .si { color: #032f62 } /* Literal.String.Interpol */
+        .highlight .sx { color: #032f62 } /* Literal.String.Other */
+        .highlight .sr { color: #032f62 } /* Literal.String.Regex */
+        .highlight .s1 { color: #032f62 } /* Literal.String.Single */
+        .highlight .ss { color: #005cc5 } /* Literal.String.Symbol */
+        .highlight .bp { color: #005cc5 } /* Name.Builtin.Pseudo */
+        .highlight .vc { color: #e36209 } /* Name.Variable.Class */
+        .highlight .vg { color: #e36209 } /* Name.Variable.Global */
+        .highlight .vi { color: #e36209 } /* Name.Variable.Instance */
+        .highlight .il { color: #005cc5 } /* Literal.Number.Integer.Long */
+
+        .readme-section h2 {
+            font-size: 24px;
+            margin: 24px 0 16px 0;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e1e4e8;
+        }
+
+        .readme-section h3 {
+            font-size: 20px;
+            margin: 20px 0 12px 0;
+        }
+
+        .readme-section p {
+            margin-bottom: 16px;
+        }
+
+        .readme-section ul, .readme-section ol {
+            margin-bottom: 16px;
+            padding-left: 32px;
+        }
+
+        .readme-section code {
+            background-color: rgba(175, 184, 193, 0.2);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+            font-size: 85%;
+        }
+
+        .readme-section pre {
+            background-color: #f6f8fa;
+            border-radius: 6px;
+            padding: 16px;
+            overflow-x: auto;
+            margin-bottom: 16px;
+        }
+
+        .readme-section pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                position: static;
+                width: 100%;
+                height: auto;
+                border-right: none;
+                border-bottom: 1px solid #e1e4e8;
+            }
+
+            .content {
+                margin-left: 0;
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <select id="version-selector" onchange="window.location.href='../../' + this.value + '/examples/{{ example_name }}/'">
+            {% for version in versions %}
+            <option value="{{ version }}" {% if version == current_version %}selected{% endif %}>
+                {{ version }}{% if version == latest_stable %} (latest){% endif %}
+            </option>
+            {% endfor %}
+        </select>
+
+        <div class="nav-section">
+            <h3>Navigation</h3>
+            <ul>
+                <li><a href="../../index.html">← Back to Documentation</a></li>
+            </ul>
+        </div>
+
+        {% if files %}
+        <div class="nav-section">
+            <h3>Files</h3>
+            <ul>
+                {% for file in files %}
+                <li><a href="#{{ file.safe_name }}">{{ file.name }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="content">
+        <a href="../../index.html" class="back-link">← Back to Documentation</a>
+        <h1>{{ example_name }}</h1>
+
+        {% if readme_html %}
+        <div class="readme-section">
+            {{ readme_html|safe }}
+        </div>
+        {% endif %}
+
+        {% if files %}
+        <div class="files-list">
+            <h2>Files</h2>
+            <ul>
+                {% for file in files %}
+                <li><a href="#{{ file.safe_name }}">{{ file.name }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        {% for file in files %}
+        <div class="file-section" id="{{ file.safe_name }}">
+            <div class="file-header">{{ file.name }}</div>
+            <div class="file-content">
+                {{ file.highlighted_content|safe }}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</body>
+</html>

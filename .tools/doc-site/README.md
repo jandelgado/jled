@@ -20,6 +20,13 @@ The site generator:
 │   ├── index.html      # Full page with README + nav
 │   ├── doc/           # Images/assets from doc/
 │   └── examples/      # Example folders from examples/
+│       ├── hello/
+│       │   ├── index.html    # Example page with syntax-highlighted code
+│       │   └── hello.ino
+│       └── morse/
+│           ├── index.html
+│           ├── morse.ino
+│           └── README.md
 /v2.0.0/
 │   ├── ...
 /master/
@@ -91,11 +98,40 @@ For each version:
 4. **Copy assets**:
    - `doc/` folder → `VERSION/doc/`
    - `examples/` folder → `VERSION/examples/`
-5. **Render HTML** using Jinja2 template with:
+5. **Generate example pages** (US-03):
+   - For each example, create `examples/<name>/index.html`
+   - Scan example directory for source files (.ino, .cpp, .h, etc.)
+   - Apply syntax highlighting using Pygments
+   - Filter out backup files (*~) and build artifacts
+   - Render README.md if present
+6. **Render HTML** using Jinja2 template with:
    - Version selector dropdown
    - Page navigation (from README headers)
    - Examples list
    - README content
+
+### Example Pages
+
+Each example in `examples/` is processed to create an individual page at `examples/<name>/index.html`:
+
+**Processing:**
+- Scans example directory for source files (.ino, .cpp, .h, etc.)
+- Filters out backup files (*~) and build artifacts
+- Applies syntax highlighting using Pygments
+- If README.md exists, renders it at the bottom
+
+**Display:**
+- Each file shown with clear header and highlighted code
+- Files sorted: main source first (.ino, .cpp), then others, README last
+- Sidebar navigation for quick access to specific files
+- Version selector maintains context when switching versions
+
+**Supported File Types:**
+- C/C++: .ino, .cpp, .c, .h, .hpp
+- Build: CMakeLists.txt, Makefile, .cmake
+- Scripts: .sh, .py
+- Config: .json, .yaml, .ini
+- Docs: README.md, .txt
 
 ### Root Page
 
@@ -142,14 +178,26 @@ The site will be available at: `https://jandelgado.github.io/jled/`
   - `get_versions()` - Discover and sort versions
   - `extract_readme_structure()` - Parse README and extract navigation
   - `get_examples()` - Scan examples directory
+  - `get_example_files()` - Scan and filter example files
+  - `should_include_file()` - File filtering logic
+  - `detect_language()` - Map file extensions to Pygments lexers
+  - `highlight_code()` - Apply syntax highlighting
+  - `parse_markdown_content()` - Parse markdown with image path adjustment
+  - `generate_example_page()` - Generate individual example pages
   - `generate_site()` - Main generation loop
 
-- **`templates/base.html`** - Page template
+- **`templates/base.html`** - Main documentation page template
   - Split layout: sidebar (280px) + content area
   - Version selector dropdown
   - Page navigation from README headers
   - Examples list
   - GitHub-like styling
+
+- **`templates/example.html`** - Example page template
+  - Consistent styling with base template
+  - File-by-file display with syntax highlighting
+  - Navigation: version selector, back link, file list
+  - Optional README rendering at bottom
 
 - **`templates/redirect.html`** - Root redirect page
 

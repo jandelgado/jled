@@ -7,6 +7,7 @@ It creates a version-aware microsite with navigation and version switching.
 """
 
 import argparse
+import html
 import json
 import os
 import re
@@ -21,6 +22,28 @@ import markdown
 from markdown.extensions.toc import TocExtension
 from jinja2 import Environment, FileSystemLoader
 from packaging import version
+
+
+# File filtering for example pages
+INCLUDE_EXTENSIONS = {
+    '.ino', '.cpp', '.cc', '.c', '.h', '.hpp',
+    '.cmake', '.sh', '.py', '.txt', '.md',
+    '.json', '.yaml', '.yml', '.ini'
+}
+
+INCLUDE_EXACT_NAMES = {'CMakeLists.txt', 'Makefile', 'README.md', 'Dockerfile'}
+
+EXCLUDE_PATTERNS = {
+    r'.*~$',  # Backup files
+    r'\.o$', r'\.obj$', r'\.elf$', r'\.bin$', r'\.uf2$', r'\.hex$',
+    r'\.a$', r'\.so$', r'\.dylib$', r'\.map$', r'\.dis$',  # Build artifacts
+    r'^CMakeCache\.txt$', r'^cmake_install\.cmake$',  # CMake generated
+    r'^\.', # Hidden files
+}
+
+EXCLUDE_DIRS = {'CMakeFiles', '.vscode', '.idea', 'build', 'dist', '__pycache__'}
+
+MAX_FILE_SIZE = 500 * 1024  # 500KB
 
 
 def run_git_command(cmd: List[str], cwd: str = None) -> str:
@@ -180,6 +203,228 @@ def copy_directory_contents(src: str, dst: str):
             shutil.copy2(src_item, dst_item)
 
 
+def should_include_file(filename: str, filepath: str) -> bool:
+    """Check if file should be included in example page."""
+    # Check size
+    try:
+        if os.path.getsize(filepath) > MAX_FILE_SIZE:
+            return False
+    except OSError:
+        return False
+
+    # Check exclude patterns
+    for pattern in EXCLUDE_PATTERNS:
+        if re.search(pattern, filename):
+            return False
+
+    # Check include by extension or exact name
+    ext = os.path.splitext(filename)[1]
+    if filename in INCLUDE_EXACT_NAMES:
+        return True
+    if ext in INCLUDE_EXTENSIONS:
+        return True
+
+    return False
+
+
+def detect_language(filename: str) -> str:
+    """Detect programming language from filename for Pygments."""
+    ext = os.path.splitext(filename)[1]
+
+    # Special filenames first
+    if filename == 'CMakeLists.txt':
+        return 'cmake'
+    elif filename == 'Makefile':
+        return 'make'
+    elif filename == 'Dockerfile':
+        return 'docker'
+
+    # Extension mapping
+    language_map = {
+        '.ino': 'cpp',
+        '.cpp': 'cpp',
+        '.cc': 'cpp',
+        '.c': 'c',
+        '.h': 'cpp',
+        '.hpp': 'cpp',
+        '.cmake': 'cmake',
+        '.sh': 'bash',
+        '.py': 'python',
+        '.txt': 'text',
+        '.json': 'json',
+        '.yaml': 'yaml',
+        '.yml': 'yaml',
+        '.ini': 'ini',
+    }
+
+    return language_map.get(ext, 'text')
+
+
+def make_safe_anchor(filename: str) -> str:
+    """Convert filename to safe HTML anchor ID."""
+    safe = re.sub(r'[^a-zA-Z0-9]+', '-', filename)
+    return safe.strip('-').lower()
+
+
+def highlight_code(content: str, language: str) -> str:
+    """Apply Pygments syntax highlighting to code content."""
+    if language == 'text':
+        escaped = html.escape(content)
+        return f'<pre><code>{escaped}</code></pre>'
+
+    try:
+        from pygments import highlight
+        from pygments.lexers import get_lexer_by_name
+        from pygments.formatters import HtmlFormatter
+
+        lexer = get_lexer_by_name(language, stripall=False)
+        formatter = HtmlFormatter(
+            cssclass='highlight',
+            linenos=False,
+            style='default',
+            noclasses=False
+        )
+
+        return highlight(content, lexer, formatter)
+    except Exception as e:
+        print(f"    Warning: Failed to highlight code: {e}", file=sys.stderr)
+        escaped = html.escape(content)
+        return f'<pre><code>{escaped}</code></pre>'
+
+
+def parse_markdown_content(content: str, base_path: str = '') -> str:
+    """Parse markdown content to HTML, adjusting image paths."""
+    # Adjust relative image paths for example READMEs
+    if base_path:
+        content = re.sub(
+            r'!\[(.*?)\]\(\.\./\.\./doc/(.*?)\)',
+            rf'![\1]({base_path}\2)',
+            content
+        )
+
+    md = markdown.Markdown(
+        extensions=['extra', 'codehilite'],
+        extension_configs={
+            'codehilite': {
+                'css_class': 'highlight',
+                'guess_lang': True,
+            }
+        }
+    )
+
+    return md.convert(content)
+
+
+def get_example_files(example_path: str) -> List[Dict[str, Any]]:
+    """Scan example directory and return list of files to display."""
+    files = []
+
+    for root, dirs, filenames in os.walk(example_path):
+        # Filter out excluded directories
+        dirs[:] = [d for d in dirs if d not in EXCLUDE_DIRS]
+
+        # Only process root directory
+        if root != example_path:
+            continue
+
+        for filename in filenames:
+            filepath = os.path.join(root, filename)
+
+            if not should_include_file(filename, filepath):
+                continue
+
+            ext = os.path.splitext(filename)[1]
+            files.append({
+                'name': filename,
+                'path': filepath,
+                'extension': ext,
+                'safe_name': make_safe_anchor(filename)
+            })
+
+    # Sort: .ino/.cpp first, then others, README.md last
+    def sort_key(f):
+        name = f['name']
+        if name == 'README.md':
+            return (2, name)
+        elif f['extension'] in ['.ino', '.cpp']:
+            return (0, name)
+        else:
+            return (1, name)
+
+    return sorted(files, key=sort_key)
+
+
+def generate_example_page(
+    example: Dict[str, str],
+    version_dir: Path,
+    work_dir: str,
+    jinja_env: Environment,
+    current_version: str,
+    versions: List[str],
+    latest_stable: str
+) -> None:
+    """Generate HTML page for a single example."""
+    example_name = example['name']
+    example_path = example['path']
+
+    print(f"  Generating page for example: {example_name}")
+
+    # Get files to display
+    files_info = get_example_files(example_path)
+
+    # Process each file
+    files_data = []
+    readme_html = None
+
+    for file_info in files_info:
+        filename = file_info['name']
+        filepath = file_info['path']
+
+        # Read file content
+        try:
+            with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                content = f.read()
+        except Exception as e:
+            print(f"    Warning: Could not read {filename}: {e}")
+            continue
+
+        # Handle README.md separately
+        if filename == 'README.md':
+            readme_html = parse_markdown_content(content, base_path='../../doc/')
+            continue
+
+        # Detect language and highlight
+        language = detect_language(filename)
+        highlighted = highlight_code(content, language)
+
+        files_data.append({
+            'name': filename,
+            'safe_name': file_info['safe_name'],
+            'highlighted_content': highlighted
+        })
+
+    # Render template
+    template = jinja_env.get_template('example.html')
+    html_content = template.render(
+        example_name=example_name,
+        current_version=current_version,
+        versions=versions,
+        latest_stable=latest_stable,
+        files=files_data,
+        readme_html=readme_html
+    )
+
+    # Write HTML file
+    example_output_dir = version_dir / 'examples' / example_name
+    example_output_dir.mkdir(parents=True, exist_ok=True)
+
+    output_path = example_output_dir / 'index.html'
+    with open(output_path, 'w', encoding='utf-8') as f:
+        f.write(html_content)
+
+    print(f"    Generated {output_path}")
+
+
 def checkout_version(version: str, work_dir: str):
     """Checkout a specific version in the given work directory."""
     run_git_command(['git', 'checkout', version], cwd=work_dir)
@@ -251,6 +496,20 @@ def generate_site(output_dir: str, script_dir: str):
                 if os.path.exists(examples_path):
                     copy_directory_contents(examples_path, str(version_dir / 'examples'))
                     print(f"  Copied examples/ directory")
+
+                # Generate individual example pages
+                if examples:
+                    print(f"  Generating {len(examples)} example pages...")
+                    for example in examples:
+                        generate_example_page(
+                            example=example,
+                            version_dir=version_dir,
+                            work_dir=work_dir,
+                            jinja_env=jinja_env,
+                            current_version=ver,
+                            versions=versions,
+                            latest_stable=latest_stable
+                        )
 
                 # Render HTML page
                 template = jinja_env.get_template('base.html')
