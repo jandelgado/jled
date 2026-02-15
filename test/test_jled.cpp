@@ -10,20 +10,21 @@
 #include "hal_mock.h"  // NOLINT
 #include "mock_brightness_eval.h"  // NOLINT
 
-using jled::BlinkBrightnessEvaluator;
-using jled::BreatheBrightnessEvaluator;
-using jled::BrightnessEvaluator;
-using jled::CandleBrightnessEvaluator;
-using jled::ConstantBrightnessEvaluator;
 using jled::TJLed;
 
 // TestJLed is a JLed class using the HalMock for tests. This allows to
 // test the code abstracted from the actual hardware in use.
-class TestJLed : public TJLed<HalMock, TimeMock, TestJLed> {
-    using TJLed<HalMock, TimeMock, TestJLed>::TJLed;
+class TestJLed : public TJLed<HalMock, TimeMock, uint8_t, TestJLed> {
+    using TJLed<HalMock, TimeMock, uint8_t, TestJLed>::TJLed;
 };
 // instanciate for test coverage measurement
-template class TJLed<HalMock, TimeMock, TestJLed>;
+template class TJLed<HalMock, TimeMock, uint8_t, TestJLed>;
+
+// Type aliases for 8-bit evaluators (used in tests)
+using BlinkBrightnessEvaluator = jled::BlinkBrightnessEvaluator<uint8_t>;
+using BreatheBrightnessEvaluator = jled::BreatheBrightnessEvaluator<uint8_t>;
+using CandleBrightnessEvaluator = jled::CandleBrightnessEvaluator<uint8_t>;
+using ConstantBrightnessEvaluator = jled::ConstantBrightnessEvaluator<uint8_t>;
 
 // expected result when a JLed object is updated: return value
 // of Update() and the current brightness

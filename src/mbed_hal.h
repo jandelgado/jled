@@ -25,12 +25,15 @@
 #ifdef __MBED__
 
 #include <mbed.h>
+#include "brightness.h"
 
 namespace jled {
 
 class MbedHal {
  public:
     using PinType = ::PinName;
+    using NativeBrightnessType = uint8_t;  // Mbed uses float internally, but we expose 8-bit API
+    static constexpr uint8_t kNativeBits = 8;
 
     explicit MbedHal(PinType pin) noexcept : pin_(pin) {}
 
@@ -41,11 +44,14 @@ class MbedHal {
         pwmout_ = nullptr;
     }
 
-    void analogWrite(uint8_t val) const {
+    template<typename BrightnessType>
+    void analogWrite(BrightnessType val) const {
         if (!pwmout_) {
             pwmout_ = new PwmOut(pin_);
         }
-        pwmout_->write(val / 255.);
+        // Mbed uses float in range [0.0, 1.0]
+        constexpr auto kMax = BrightnessTypeTraits<BrightnessType>::kFullBrightness;
+        pwmout_->write(static_cast<float>(val) / static_cast<float>(kMax));
     }
 
     MbedHal& operator=(const MbedHal& rhs) {

@@ -5,29 +5,44 @@
 
 using jled::Esp8266Hal;
 
-TEST_CASE("properly scale 8bit to 10bit for ESP8266 support",
+TEST_CASE("analogWrite() writes correct 8-bit value scaled to 10-bit",
           "[esp8266_analog_writer]") {
-  class TestableWriter : public Esp8266Hal {
-   public:
-    static void test() {
-      REQUIRE(TestableWriter::ScaleTo10Bit(0) == 0);
-      REQUIRE(TestableWriter::ScaleTo10Bit(127) == (127 << 2) + 3);
-      REQUIRE(TestableWriter::ScaleTo10Bit(255) == 1023);
-    }
-  };
-  TestableWriter::test();
-}
-
-TEST_CASE("analogWrite() writes correct value", "[esp8266_analog_writer]") {
     arduinoMockInit();
 
     constexpr auto kPin = 10;
     auto aw = Esp8266Hal(kPin);
 
-    aw.analogWrite(123);
+    // Test 8-bit input values are scaled to 10-bit correctly
+    aw.analogWrite<uint8_t>(0);
+    REQUIRE(arduinoMockGetPinState(kPin) == 0);
 
-    // expect the value to be scaled to 10bit written to port
-    REQUIRE(arduinoMockGetPinState(kPin) == (123<<2)+3);
+    aw.analogWrite<uint8_t>(127);
+    REQUIRE(arduinoMockGetPinState(kPin) == (127 << 2) + 3);
+
+    aw.analogWrite<uint8_t>(255);
+    REQUIRE(arduinoMockGetPinState(kPin) == 1023);
+
+    // Test that a specific 8-bit value scales correctly
+    aw.analogWrite<uint8_t>(123);
+    REQUIRE(arduinoMockGetPinState(kPin) == (123 << 2) + 3);
+}
+
+TEST_CASE("analogWrite() writes correct 16-bit value scaled to 10-bit",
+          "[esp8266_analog_writer]") {
+    arduinoMockInit();
+
+    constexpr auto kPin = 10;
+    auto aw = Esp8266Hal(kPin);
+
+    // Test 16-bit input values are downscaled to 10-bit correctly
+    aw.analogWrite<uint16_t>(0);
+    REQUIRE(arduinoMockGetPinState(kPin) == 0);
+
+    aw.analogWrite<uint16_t>(65535);  // max 16-bit value
+    REQUIRE(arduinoMockGetPinState(kPin) == 1023);  // max 10-bit value
+
+    aw.analogWrite<uint16_t>(32768);  // mid 16-bit value
+    REQUIRE(arduinoMockGetPinState(kPin) == 512);  // mid 10-bit value
 }
 
 TEST_CASE("millis() returns correct time", "[esp8266_hal]") {

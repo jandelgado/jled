@@ -36,8 +36,11 @@ static constexpr uint8_t kFadeOnTable[] = {0,   3,   13,  33, 68,
 // https://www.wolframalpha.com/input/?i=plot+(exp(sin((x-100%2F2.)*PI%2F100))-0.36787944)*108.0++x%3D0+to+100
 // The fade-on func is an approximation of
 //   y(x) = exp(sin((t-period/2.) * PI / period)) - 0.36787944) * 108.)
-uint8_t fadeon_func(uint32_t t, uint16_t period) {
-    if (t + 1 >= period) return 255;  // kFullBrightness;
+
+// 8-bit specialization: uses pre-computed 8-bit table
+template<>
+uint8_t fadeon_func<uint8_t>(uint32_t t, uint16_t period) {
+    if (t + 1 >= period) return 255;
 
     // approximate by linear interpolation.
     // scale t according to period to 0..255
@@ -49,6 +52,20 @@ uint8_t fadeon_func(uint32_t t, uint16_t period) {
 
     // y(t) = mt+b, with m = dy/dx = (y1-y0)/32 = (y1-y0) >> 5
     return (((t - x0) * (y1 - y0)) >> 5) + y0;
+}
+
+// 16-bit specialization: interpolate from 8-bit table, then scale to 16-bit
+template<>
+uint16_t fadeon_func<uint16_t>(uint32_t t, uint16_t period) {
+    if (t + 1 >= period) return 65535;
+
+    // Get 8-bit value from table
+    const uint8_t val8 = fadeon_func<uint8_t>(t, period);
+
+    // Scale 8-bit [0,255] to 16-bit [0,65535]
+    // Use formula: val16 = (val8 * 65535) / 255 = (val8 * 257)
+    // This is exact: 255 * 257 = 65535
+    return static_cast<uint16_t>(val8) * 257;
 }
 
 static uint32_t rand_ = 0;
@@ -64,22 +81,5 @@ uint8_t rand8() {
 
     return (uint8_t)rand_;
 }
-
-// scale a byte (val) by a byte (factor). scale8 has the following properties:
-//   scale8(0, f) == 0 for all f
-//   scale8(x, 255) == x for all x
-// This algorithm avoids division, but is not 100% accurate, but "good enough".
-// It is the same algorithmn used in FastLED.
-uint8_t scale8(uint8_t val, uint8_t factor) {
-    return (static_cast<uint16_t>(val)*static_cast<uint16_t>(1+factor))>>8;
-}
-
-// interpolate a byte (val) to the interval [a,b].
-uint8_t lerp8by8(uint8_t val, uint8_t a, uint8_t b) {
-    if (a == 0 && b == 255) return val;  // optimize for most common case
-    const uint8_t delta = b - a;
-    return a + scale8(val, delta);
-}
-
 
 };  // namespace jled

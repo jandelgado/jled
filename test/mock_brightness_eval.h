@@ -12,7 +12,7 @@ using ByteVec = std::vector<uint8_t>;
 
 // a brightness evaluator used for the test. returns predefined values f(t)=y
 // for each point in time t.
-class MockBrightnessEvaluator : public jled::BrightnessEvaluator {
+class MockBrightnessEvaluator : public jled::BrightnessEvaluator<uint8_t> {
     ByteVec values_;
     mutable uint16_t count_ = 0;
 
