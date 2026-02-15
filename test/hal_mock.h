@@ -9,11 +9,23 @@
 class HalMock {
  public:
     using PinType = uint8_t;
+    using NativeBrightnessType = uint8_t;
+    static constexpr uint8_t kNativeBits = 8;
 
     HalMock() {}
     explicit HalMock(PinType pin) : pin_(pin) {}
 
-    void analogWrite(uint8_t val) { val_ = val; }
+    template<typename BrightnessType>
+    void analogWrite(BrightnessType val) {
+        // For testing, always store as uint8_t (downscale if needed)
+        // Use sizeof for compile-time optimization (optimizes same as if constexpr)
+        if (sizeof(BrightnessType) == 1) {
+            val_ = val;
+        } else {
+            val_ = static_cast<uint8_t>(val >> 8);
+        }
+    }
+
     uint8_t Pin() const { return pin_; }
     uint8_t Value() const { return val_; }
 

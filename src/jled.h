@@ -53,8 +53,14 @@ namespace jled {using JLedHalType = ArduinoHal; using JLedClockType = ArduinoClo
 #endif
 
 namespace jled {
-class JLed : public TJLed<JLedHalType, JLedClockType, JLed> {
-    using TJLed<JLedHalType, JLedClockType, JLed>::TJLed;
+// JLed: 8-bit brightness control (backwards compatible)
+class JLed : public TJLed<JLedHalType, JLedClockType, uint8_t, JLed> {
+    using TJLed<JLedHalType, JLedClockType, uint8_t, JLed>::TJLed;
+};
+
+// JLed16: 16-bit brightness control for smoother effects on high-resolution MCUs
+class JLed16 : public TJLed<JLedHalType, JLedClockType, uint16_t, JLed16> {
+    using TJLed<JLedHalType, JLedClockType, uint16_t, JLed16>::TJLed;
 };
 
 // a group of JLed objects which can be controlled simultanously
@@ -62,9 +68,16 @@ class JLedSequence : public TJLedSequence<JLed, JLedClockType, JLedSequence> {
     using TJLedSequence<JLed, JLedClockType, JLedSequence>::TJLedSequence;
 };
 
+// a group of JLed16 objects which can be controlled simultanously
+class JLedSequence16 : public TJLedSequence<JLed16, JLedClockType, JLedSequence16> {
+    using TJLedSequence<JLed16, JLedClockType, JLedSequence16>::TJLedSequence;
+};
+
 };  // namespace jled
 
 using JLed = jled::JLed;
+using JLed16 = jled::JLed16;
 using JLedSequence = jled::JLedSequence;
+using JLedSequence16 = jled::JLedSequence16;
 
 #endif  // SRC_JLED_H_

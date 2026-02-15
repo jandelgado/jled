@@ -6,7 +6,8 @@
 #include <jled.h>
 #include "morse.h"  // NOLINT
 
-class MorseEffect : public jled::BrightnessEvaluator {
+// MorseEffect uses 8-bit brightness (0-255)
+class MorseEffect : public jled::BrightnessEvaluator<uint8_t> {
     Morse morse_;
     // duration of a single 'dit' in ms
     const uint16_t speed_;
