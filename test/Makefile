@@ -5,6 +5,7 @@
 
 CFLAGS=-std=c++14 -c -Wall -Wextra -I. -I../src -I./esp-idf \
 	   --coverage -fno-inline \
+	   -O1\
 	   -fno-inline-small-functions -fno-default-inline -g -fmax-errors=5 \
 	   -fno-omit-frame-pointer -fno-optimize-sibling-calls \
 	   $(OPT)

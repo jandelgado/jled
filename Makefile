@@ -1,6 +1,6 @@
 # use this makefile to build with platformio
 #
-.PHONY: phony 
+.PHONY: phony
 
 # some of the examples use LED_BUILTIN which is not defined for ESP32
 CIOPTS=--board=uno --board=esp01 --board=nano33ble --lib="src"
@@ -45,7 +45,7 @@ monitor: phony
 	pio device monitor
 
 test: phony
-	$(MAKE) -C test coverage OPT=-O0
+	$(MAKE) -C test coverage
 
 tags: phony
 	ctags -R
