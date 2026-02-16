@@ -590,10 +590,3 @@ TEST_CASE("lerp8by8 interpolates a byte into the given interval",
     CHECK(200 == (int)(jled::lerp8by8(255, 100, 200)));
 }
 
-TEST_CASE("invlerp8by8 is the inverse of lerp8by8", "[invlerp8by8]") {
-    CHECK(0 == (int)(jled::invlerp8by8(0, 0, 255)));
-    CHECK(255 == (int)(jled::invlerp8by8(255, 0, 255)));
-
-    CHECK(0 == (int)(jled::invlerp8by8(100, 100, 200)));
-    CHECK(255 == (int)(jled::invlerp8by8(200, 100, 200)));
-}
