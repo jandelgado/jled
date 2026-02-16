@@ -16,16 +16,26 @@
 class CustomHal {
  public:
     using PinType = uint8_t;
+    using NativeBrightness = uint8_t;
+    static constexpr uint8_t kNativeBits = 8;
 
     explicit CustomHal(PinType pin) noexcept : pin_(pin) {}
 
-    void analogWrite(uint8_t val) const {
+    template<typename Brightness>
+    void analogWrite(Brightness val) const {
         // some platforms, e.g. STM need lazy initialization
         if (!setup_) {
             ::pinMode(pin_, OUTPUT);
             setup_ = true;
         }
-        ::analogWrite(pin_, 255 - val);
+        // Scale to 8-bit and invert
+        uint8_t val8;
+        if (sizeof(Brightness) == 1) {
+            val8 = val;
+        } else {
+            val8 = static_cast<uint8_t>(val >> 8);
+        }
+        ::analogWrite(pin_, 255 - val8);
     }
 
  private:
@@ -33,11 +43,10 @@ class CustomHal {
     PinType pin_;
 };
 
-
 // a custom JLed class using our CustomHal and the default clock defined
 // for the platform.
-class CustomJLed : public jled::TJLed<CustomHal, jled::JLedClockType, CustomJLed> {
-    using jled::TJLed<CustomHal, jled::JLedClockType, CustomJLed>::TJLed;
+class CustomJLed : public jled::TJLed<CustomHal, jled::JLedClockType, uint8_t, CustomJLed> {
+    using jled::TJLed<CustomHal, jled::JLedClockType, uint8_t, CustomJLed>::TJLed;
 };
 
 // uses above defined CustomHal

@@ -23,29 +23,42 @@
 #define SRC_ESP8266_HAL_H_
 
 #include <Arduino.h>
+#include "brightness.h"
 
 namespace jled {
 
 class Esp8266Hal {
  public:
     using PinType = uint8_t;
+    // ESP8266 uses 10-bit PWM, but we expose as uint16_t since there's no uint10_t
+    using NativeBrightness = uint16_t;
+    static constexpr uint8_t kNativeBits = 10;
 
     explicit Esp8266Hal(PinType pin) noexcept : pin_(pin) {
         ::pinMode(pin_, OUTPUT);
     }
-    void analogWrite(uint8_t val) const {
-        // ESP8266 uses 10bit PWM range per default, scale value up
-        ::analogWrite(pin_, Esp8266Hal::ScaleTo10Bit(val));
-    }
 
- protected:
-    // scale an 8bit value to 10bit: 0 -> 0, ..., 255 -> 1023,
-    // preserving min/max relationships in both ranges.
-    static uint16_t ScaleTo10Bit(uint8_t x) {
-        return (x == 0) ? 0 : (x << 2) + 3;
+    template<typename Brightness>
+    void analogWrite(Brightness val) const {
+        // ESP8266 uses 10bit PWM range, scale value to 10-bit
+        ::analogWrite(pin_, scaleToNative<Brightness>(val));
     }
 
  private:
+    // Scale brightness value to native 10-bit resolution
+    template<typename Brightness>
+    static uint16_t scaleToNative(Brightness val) {
+        // Use sizeof for compile-time optimization (optimizes same as if constexpr)
+        if (sizeof(Brightness) == 1) {
+            // 8-bit to 10-bit: 0 -> 0, 255 -> 1023
+            // Preserves min/max relationships
+            return (val == 0) ? 0 : (static_cast<uint16_t>(val) << 2) + 3;
+        } else {
+            // 16-bit to 10-bit: downscale by 6 bits
+            return static_cast<uint16_t>(val >> 6);
+        }
+    }
+
     PinType pin_;
 };
 

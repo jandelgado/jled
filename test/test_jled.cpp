@@ -10,20 +10,21 @@
 #include "hal_mock.h"  // NOLINT
 #include "mock_brightness_eval.h"  // NOLINT
 
-using jled::BlinkBrightnessEvaluator;
-using jled::BreatheBrightnessEvaluator;
-using jled::BrightnessEvaluator;
-using jled::CandleBrightnessEvaluator;
-using jled::ConstantBrightnessEvaluator;
 using jled::TJLed;
 
 // TestJLed is a JLed class using the HalMock for tests. This allows to
 // test the code abstracted from the actual hardware in use.
-class TestJLed : public TJLed<HalMock, TimeMock, TestJLed> {
-    using TJLed<HalMock, TimeMock, TestJLed>::TJLed;
+class TestJLed : public TJLed<HalMock, TimeMock, uint8_t, TestJLed> {
+    using TJLed<HalMock, TimeMock, uint8_t, TestJLed>::TJLed;
 };
 // instanciate for test coverage measurement
-template class TJLed<HalMock, TimeMock, TestJLed>;
+template class TJLed<HalMock, TimeMock, uint8_t, TestJLed>;
+
+// Type aliases for 8-bit evaluators (used in tests)
+using BlinkBrightnessEvaluator = jled::BlinkBrightnessEvaluator<uint8_t>;
+using BreatheBrightnessEvaluator = jled::BreatheBrightnessEvaluator<uint8_t>;
+using CandleBrightnessEvaluator = jled::CandleBrightnessEvaluator<uint8_t>;
+using ConstantBrightnessEvaluator = jled::ConstantBrightnessEvaluator<uint8_t>;
 
 // expected result when a JLed object is updated: return value
 // of Update() and the current brightness
@@ -38,7 +39,7 @@ void check_led(T *led, const UpdateResults &expected) {
     for (const auto &current : expected) {
         TimeMock::set_millis(time);
         const auto updated = led->Update();
-        const auto val = led->Hal().Value();
+        const auto val = led->GetHal().Value();
         UNSCOPED_INFO("t=" << time << ", actual=("
                            << (updated ? "true" : "false") << ", " << (int)val
                            << "), expected=("
@@ -298,15 +299,15 @@ TEST_CASE("Handles millis overflow during effect", "[jled]") {
     jled.FadeOff(100);
     CHECK(jled.Update(time));
     CHECK(jled.IsRunning());
-    CHECK(jled.Hal().Value() > 0);
+    CHECK(jled.GetHal().Value() > 0);
     // Set time after overflow, before effect ends
     CHECK(jled.Update(time + 50));
     CHECK(jled.IsRunning());
-    CHECK(jled.Hal().Value() > 0);
+    CHECK(jled.GetHal().Value() > 0);
     // Set time after effect ends
     CHECK_FALSE(jled.Update(time + 150));
     CHECK_FALSE(jled.IsRunning());
-    CHECK(0 == jled.Hal().Value());
+    CHECK(0 == jled.GetHal().Value());
 }
 
 TEST_CASE("Update returns last written value if requested", "[jled]") {
@@ -354,10 +355,10 @@ TEST_CASE("default Stop() sets the brightness to minBrightness", "[jled]") {
 
     jled.Update();
     REQUIRE(130 ==
-            static_cast<int>(jled.Hal().Value()));  // 100 scaled to [50,255]
+            static_cast<int>(jled.GetHal().Value()));  // 100 scaled to [50,255]
 
     jled.Stop();
-    CHECK(50 == static_cast<int>(jled.Hal().Value()));
+    CHECK(50 == static_cast<int>(jled.GetHal().Value()));
 }
 
 TEST_CASE("Stop(FULL_OFF) sets the brightness to 0", "[jled]") {
@@ -366,10 +367,10 @@ TEST_CASE("Stop(FULL_OFF) sets the brightness to 0", "[jled]") {
 
     jled.Update();
     REQUIRE(130 ==
-            static_cast<int>(jled.Hal().Value()));  // 100 scaled to [50,255]
+            static_cast<int>(jled.GetHal().Value()));  // 100 scaled to [50,255]
 
     jled.Stop(TestJLed::eStopMode::FULL_OFF);
-    CHECK(0 == static_cast<int>(jled.Hal().Value()));
+    CHECK(0 == static_cast<int>(jled.GetHal().Value()));
 }
 
 TEST_CASE("Stop(KEEP_CURRENT) keeps the last brightness level", "[jled]") {
@@ -378,10 +379,10 @@ TEST_CASE("Stop(KEEP_CURRENT) keeps the last brightness level", "[jled]") {
 
     jled.Update();
     REQUIRE(130 ==
-            static_cast<int>(jled.Hal().Value()));  // 100 scaled to [50,255]
+            static_cast<int>(jled.GetHal().Value()));  // 100 scaled to [50,255]
 
     jled.Stop(TestJLed::eStopMode::KEEP_CURRENT);
-    CHECK(130 == static_cast<int>(jled.Hal().Value()));
+    CHECK(130 == static_cast<int>(jled.GetHal().Value()));
 }
 
 TEST_CASE("LowActive() inverts signal", "[jled]") {
@@ -391,10 +392,10 @@ TEST_CASE("LowActive() inverts signal", "[jled]") {
     CHECK(jled.IsLowActive());
 
     jled.Update(0, nullptr);
-    CHECK(255 == jled.Hal().Value());
+    CHECK(255 == jled.GetHal().Value());
 
     jled.Update(1);
-    CHECK(0 == jled.Hal().Value());
+    CHECK(0 == jled.GetHal().Value());
 }
 
 TEST_CASE("effect with repeat 2 repeats sequence once", "[jled]") {
@@ -448,7 +449,7 @@ TEST_CASE("The Hal object provided in the ctor is used during update",
     auto eval = MockBrightnessEvaluator(ByteVec{10, 20});
     TestJLed jled = TestJLed(HalMock(123)).UserFunc(&eval);
 
-    CHECK(jled.Hal().Pin() == 123);
+    CHECK(jled.GetHal().Pin() == 123);
 }
 
 TEST_CASE("Update returns true while updating, else false", "[jled]") {
@@ -529,10 +530,10 @@ TEST_CASE(
             jled.UserFunc(&eval).MinBrightness(100).MaxBrightness(200);
 
             jled.Update(0, nullptr);
-            CHECK(100 == jled.Hal().Value());
+            CHECK(100 == jled.GetHal().Value());
 
             jled.Update(2, nullptr);
-            CHECK(200 == jled.Hal().Value());
+            CHECK(200 == jled.GetHal().Value());
         }
     };
     TestableJLed::test();

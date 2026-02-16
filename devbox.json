@@ -3,7 +3,7 @@
     "python@3.13",
     "python3Packages.pip",
     "lcov@1.16",
-    "cpplint@2.0.2",
+    "cpplint@2.0.2"
   ],
   "shell": {
     "init_hook": [

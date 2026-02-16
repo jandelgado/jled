@@ -28,11 +28,12 @@
 #ifndef SRC_PICO_HAL_H_
 #define SRC_PICO_HAL_H_
 
-namespace jled {
-
 #include "hardware/clocks.h"
 #include "hardware/pwm.h"
 #include "pico/time.h"
+#include "brightness.h"
+
+namespace jled {
 
 class PicoHal {
     static constexpr auto TOP_MAX = 65534;
@@ -86,6 +87,8 @@ class PicoHal {
 
  public:
     using PinType = uint8_t;
+    using NativeBrightness = uint16_t;  // Pico supports 16-bit PWM natively
+    static constexpr uint8_t kNativeBits = 16;
 
     explicit PicoHal(PinType pin) noexcept {
         slice_num_ = pwm_gpio_to_slice_num(pin);
@@ -99,12 +102,27 @@ class PicoHal {
         pwm_set_wrap(slice_num_, top_);
     }
 
-    void analogWrite(uint8_t val) const {
-        set_pwm_duty(slice_num_, channel_, top_,
-                     static_cast<uint32_t>(DUTY_100_PCT / 255) * val);
+    template<typename Brightness>
+    void analogWrite(Brightness val) const {
+        // Scale to 16-bit native resolution and set PWM duty
+        const uint16_t duty16 = scaleToNative<Brightness>(val);
+        set_pwm_duty(slice_num_, channel_, top_, duty16);
     }
 
  private:
+    // Scale brightness value to native 16-bit resolution
+    template<typename Brightness>
+    static uint16_t scaleToNative(Brightness val) {
+        // Use sizeof for compile-time optimization (optimizes same as if constexpr)
+        if (sizeof(Brightness) == 2) {
+            // 16-bit to 16-bit: no scaling needed (zero-cost abstraction)
+            return val;
+        } else {
+            // 8-bit to 16-bit: upscale (val * 257 gives exact mapping: 255*257=65535)
+            return static_cast<uint16_t>(val) * 257;
+        }
+    }
+
     uint slice_num_, channel_;
     uint32_t top_ = 0;
 };

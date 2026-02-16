@@ -34,6 +34,7 @@
 #include <driver/ledc.h>
 #include <esp_timer.h>
 #include <stdint.h>
+#include "brightness.h"
 
 namespace jled {
 
@@ -79,6 +80,8 @@ class Esp32Hal {
 
  public:
     using PinType = Esp32ChanMapper::PinType;
+    using NativeBrightness = uint8_t;  // ESP32 HAL currently uses 8-bit
+    static constexpr uint8_t kNativeBits = 8;
 
     static constexpr auto kAutoSelectChan = -1;
 
@@ -122,7 +125,11 @@ class Esp32Hal {
         ledc_channel_config(&ledc_channel);
     }
 
-    void analogWrite(uint8_t duty) const {
+    template<typename Brightness>
+    void analogWrite(Brightness val) const {
+        // Scale brightness to native 8-bit resolution
+        const uint8_t duty = scaleToNative<Brightness>(val);
+
         // Fixing if all bits in resolution is set = LEDC FULL ON
         const uint32_t _duty = (duty == (1 << kLedcTimerResolution) - 1)
                                    ? 1 << kLedcTimerResolution
@@ -135,6 +142,19 @@ class Esp32Hal {
     PinType chan() const { return chan_; }
 
  private:
+    // Scale brightness value to native 8-bit resolution
+    template<typename Brightness>
+    static uint8_t scaleToNative(Brightness val) {
+        // Use sizeof for compile-time optimization (optimizes same as if constexpr)
+        if (sizeof(Brightness) == 1) {
+            // 8-bit to 8-bit: no scaling needed (zero-cost abstraction)
+            return val;
+        } else {
+            // 16-bit to 8-bit: downscale
+            return static_cast<uint8_t>(val >> 8);
+        }
+    }
+
     static Esp32ChanMapper chanMapper_;
     ledc_channel_t chan_;
 };

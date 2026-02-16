@@ -3,7 +3,8 @@
 // https://github.com/jandelgado/jled
 #include <jled.h>
 
-class UserEffect : public jled::BrightnessEvaluator {
+// UserEffect uses 8-bit brightness (0-255)
+class UserEffect : public jled::BrightnessEvaluator<uint8_t> {
     uint8_t Eval(uint32_t t) const override {
         // this function returns changes between 0 and 255 and
         // vice versa every 250 ms.

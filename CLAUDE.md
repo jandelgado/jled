@@ -47,14 +47,21 @@ All development tools are configured in `devbox.json` and activated automaticall
 * Private members: `snake_case_` with trailing underscore (e.g., `val_`, `duration_on_`)
 * Constants: `kPascalCase` (e.g., `kFullBrightness`, `kRepeatForever`)
 * Template parameters: Single uppercase letter (e.g., `T`, `B`) or descriptive `PascalCase`
+* Type aliases use lowercase_t (`brightness_t`) to match C standard library conventions (`uint8_t`, `int32_t`, etc.).
 
 **C++ Guidelines:**
-* Use C++14 features
+* **Target C++14**: Entire codebase (library + tests) uses C++14 for consistency
+  * Library code (`src/`) must compile with C++14 (default PlatformIO standard)
+  * Tests (`test/`) also use C++14 (`test/Makefile` sets `-std=c++14`)
+  * **Rationale**: Tests using a newer standard than library code is an anti-pattern that
+    can hide compatibility issues and create false confidence
 * Prefer `constexpr` over `#define` for constants
+  * Exception: Don't use `constexpr` on functions with conditional logic (C++14 limitation)
 * Use `= delete` for disabled constructors
 * Use `override` keyword for virtual method overrides
 * No floating-point in core logic (expensive on MCUs without FPU)
 * Prefer templates over virtual functions for performance-critical code
+* Use compile-time type checks with `sizeof()` instead of `if constexpr` (see Technical Debt)
 
 ## Build Instructions
 
@@ -120,7 +127,7 @@ Platform detection is automatic via preprocessor macros in `src/jled.h`.
 **Core Components:**
 
 * `src/jled_base.h` - Platform-agnostic core logic
-  * `TJLed<HalType, Clock, B>` template class - Main LED controller with state machine
+  * `TJLed<Hal, Clock, B>` template class - Main LED controller with state machine
   * `BrightnessEvaluator` - Abstract base for all effects
   * Effect implementations: `ConstantBrightnessEvaluator`, `BlinkBrightnessEvaluator`,
     `BreatheBrightnessEvaluator`, `CandleBrightnessEvaluator`
@@ -183,6 +190,34 @@ extend `JLed` and b) effectively unit test almost all parts of `JLed`
   ```
 * Methods return `B&` (reference to derived type) using CRTP pattern for chainability
 * This approach allows readable, self-documenting LED configurations
+
+### Known Technical Debt
+
+* **C++14 Compatibility Workarounds**: The library uses C++14-compatible patterns instead of
+  modern C++17 features to maintain compatibility with Arduino/PlatformIO default toolchains.
+  These could be upgraded when C++17 becomes standard in the Arduino ecosystem:
+
+  * **`if (sizeof(Brightness) == X)` vs `if constexpr`**:
+    - Current: `if (sizeof(Brightness) == 1) { ... }`
+    - Future: `if constexpr (sizeof(Brightness) == 1) { ... }`
+    - Rationale: `if constexpr` requires C++17. Modern compilers optimize both identically
+      (dead code elimination), but `if constexpr` provides clearer intent and prevents
+      instantiation of unreachable template branches
+    - Impact: Zero performance difference; purely a code clarity improvement
+    - Locations: All HAL `scaleToNative()` methods, `jled_base.h` helper functions
+      (`scale()`, `invlerp()`, `CandleBrightnessEvaluator::Eval()`)
+
+  * **Variable templates (`is_same_v`) with fallback**:
+    - Current: Conditional definition based on `__cplusplus >= 201402L`
+    - Future: Unconditional use of `is_same_v<T, U>` when C++17 is baseline
+    - Location: `src/brightness.h`
+
+  * **`constexpr` limitations**:
+    - Current: Cannot use `constexpr` on functions with `if` statements
+    - Future: C++17 allows `constexpr` functions with conditional logic
+    - Impact: Compiler can better optimize at compile-time in C++17
+    - Note: All scaling functions (`scaleToNative()`) removed `constexpr` for C++14 compat
+
 
 ## Embedded Constraints & Design Philosophy
 
@@ -279,7 +314,7 @@ extend `JLed` and b) effectively unit test almost all parts of `JLed`
    #elif defined(MY_PLATFORM_MACRO)
    #include "my_platform_hal.h"
    namespace jled {
-       using JLedHalType = MyPlatformHal;
+       using JLedHal = MyPlatformHal;
        using JLedClockType = MyPlatformClock;
    }
    ```
