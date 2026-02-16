@@ -68,8 +68,10 @@ uint8_t rand8() {
 // scale a byte (val) by a byte (factor). scale8 has the following properties:
 //   scale8(0, f) == 0 for all f
 //   scale8(x, 255) == x for all x
+// This algorithm avoids division, but is not 100% accurate, but "good enough".
+// It is the same algorithmn used in FastLED.
 uint8_t scale8(uint8_t val, uint8_t factor) {
-    return (static_cast<uint16_t>(val)*static_cast<uint16_t>(factor))/255;
+    return (static_cast<uint16_t>(val)*static_cast<uint16_t>(1+factor))>>8;
 }
 
 // interpolate a byte (val) to the interval [a,b].
@@ -79,11 +81,5 @@ uint8_t lerp8by8(uint8_t val, uint8_t a, uint8_t b) {
     return a + scale8(val, delta);
 }
 
-// the inverse of lerp8by8: invlerp8by8(lerp8by8(x, a, b,), a, b,) = x
-uint8_t invlerp8by8(uint8_t val, uint8_t a, uint8_t b) {
-    const uint16_t delta = b - a;
-    if (delta == 0) return 0;
-    return (static_cast<uint16_t>(val-a)*255)/(delta);
-}
 
 };  // namespace jled

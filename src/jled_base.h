@@ -46,7 +46,6 @@ uint8_t rand8();
 void rand_seed(uint32_t s);
 uint8_t scale8(uint8_t val, uint8_t f);
 uint8_t lerp8by8(uint8_t val, uint8_t a, uint8_t b);
-uint8_t invlerp8by8(uint8_t val, uint8_t a, uint8_t b);
 
 template <typename T>
 static constexpr T __max(T a, T b) {
