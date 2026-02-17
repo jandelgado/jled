@@ -134,7 +134,7 @@ def extract_readme_structure(readme_path: str) -> tuple[str, List[Dict[str, Any]
             'extra',
             'codehilite',
             TocExtension(
-                toc_depth='1-3',
+                toc_depth='2-4',
                 anchorlink=True,
                 permalink=False
             )
@@ -499,11 +499,11 @@ def generate_site(output_dir: str, script_dir: str):
                 # Copy static assets
                 if os.path.exists(doc_path):
                     copy_directory_contents(doc_path, str(version_dir / 'doc'))
-                    print(f"  Copied doc/ directory")
+                    print("  Copied doc/ directory")
 
                 if os.path.exists(examples_path):
                     copy_directory_contents(examples_path, str(version_dir / 'examples'))
-                    print(f"  Copied examples/ directory")
+                    print("  Copied examples/ directory")
 
                 # Generate individual example pages
                 if examples:
