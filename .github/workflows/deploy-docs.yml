@@ -1,33 +1,27 @@
+---
 name: Deploy Documentation
-
 on:
   push:
-    branches: [master]
+    branches: [master, create_doc_site]
   workflow_dispatch:  # Allow manual triggering
-
 jobs:
   deploy-docs:
     runs-on: ubuntu-24.04
-
     steps:
       - name: Checkout repository with full history
         uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Fetch all history for all tags
-
       - name: Setup Python 3.13
         uses: actions/setup-python@v5
         with:
           python-version: '3.13'
-
       - name: Install dependencies
         run: |
           pip install -r .tools/doc-site/requirements.txt
-
       - name: Generate documentation site
         run: |
           python .tools/doc-site/generate_site.py --output ./site-build
-
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
