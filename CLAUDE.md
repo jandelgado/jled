@@ -394,15 +394,15 @@ Located in `.tools/doc-site/`, this Python tool generates the static site:
 
 **Local Usage:**
 ```bash
-# Install dependencies
-pip install -r .tools/doc-site/requirements.txt
+# Generate site to .doc-site/
+make docs
 
-# Generate site
-python .tools/doc-site/generate_site.py --output /tmp/jled-docs
-
-# Test locally
-cd /tmp/jled-docs && python -m http.server 8000
+# Serve locally (always use port 9000)
+cd .doc-site && python -m http.server 9000
 ```
+
+The web server only needs to be started once. After re-running `make docs`, the regenerated
+files are served immediately — no need to restart the server.
 
 ### Deployment Workflow
 
