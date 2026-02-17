@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>morse - JLed Examples - v4.9.0</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: #24292f;
+            display: flex;
+        }
+
+        .sidebar {
+            width: 220px;
+            flex-shrink: 0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            padding: 16px;
+            background: #f6f8fa;
+            border-right: 1px solid #d0d7de;
+            font-size: 14px;
+        }
+
+        .content {
+            margin-left: 220px;
+            padding: 32px 40px;
+            max-width: 900px;
+            min-width: 0;
+        }
+
+        select { width: 100%; margin-bottom: 16px; padding: 4px; }
+
+        nav { margin-bottom: 16px; }
+        nav h3 { font-size: 11px; font-weight: 600; text-transform: uppercase; color: #57606a; margin: 16px 0 4px; }
+        nav ul { list-style: none; margin: 0; padding: 0; }
+        nav li { margin: 2px 0; }
+
+        a { color: #0969da; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        /* GitHub README content styles (for README section) */
+        .readme h1, .readme h2 { border-bottom: 1px solid #d0d7de; padding-bottom: .3em; }
+        .readme h1 { font-size: 2em; }
+        .readme h2 { font-size: 1.5em; }
+        .readme h3 { font-size: 1.25em; }
+        .readme h1, .readme h2, .readme h3, .readme h4 { margin: 24px 0 16px; font-weight: 600; }
+        .readme p, .readme ul, .readme ol { margin: 0 0 16px; }
+        .readme ul, .readme ol { padding-left: 2em; }
+        .readme li > ul, .readme li > ol { margin: 0; }
+        .readme img { max-width: 100%; height: auto; }
+        .readme code { background: rgba(175,184,193,.2); padding: .2em .4em; border-radius: 3px; font: 85%/1 ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+        .readme pre { background: #f6f8fa; border-radius: 6px; padding: 16px; overflow-x: auto; margin: 0 0 16px; }
+        .readme pre code { background: none; padding: 0; font-size: 100%; }
+        .readme blockquote { border-left: 4px solid #d0d7de; padding: 0 1em; color: #57606a; margin: 0 0 16px; }
+        .readme table { border-collapse: collapse; width: 100%; margin: 0 0 16px; }
+        .readme th, .readme td { border: 1px solid #d0d7de; padding: 6px 13px; }
+        .readme th { background: #f6f8fa; font-weight: 600; }
+        .readme { margin-bottom: 32px; padding-bottom: 32px; border-bottom: 1px solid #d0d7de; }
+
+        h1 { font-size: 1.8em; font-weight: 600; margin: 0 0 24px; padding-bottom: .3em; border-bottom: 1px solid #d0d7de; }
+
+        .files-list { margin-bottom: 32px; }
+        .files-list h2 { font-size: 1em; font-weight: 600; margin: 0 0 8px; color: #57606a; text-transform: uppercase; font-size: 11px; letter-spacing: .5px; }
+        .files-list ul { list-style: none; margin: 0; padding: 0; }
+        .files-list li { margin: 2px 0; }
+        .files-list a { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 14px; }
+
+        .file-section { margin-bottom: 32px; }
+        .file-header { background: #f6f8fa; border: 1px solid #d0d7de; border-bottom: none; border-radius: 6px 6px 0 0; padding: 8px 16px; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 13px; font-weight: 600; }
+        .file-content { border: 1px solid #d0d7de; border-radius: 0 0 6px 6px; overflow-x: auto; }
+        .file-content .highlight { margin: 0; }
+        .file-content pre { margin: 0; padding: 16px; background: #fff; overflow-x: auto; font: 12px/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+
+        /* Pygments syntax highlighting */
+        .highlight .c, .highlight .cm, .highlight .c1, .highlight .cs { color: #6e7781; font-style: italic }
+        .highlight .cp { color: #6e7781 }
+        .highlight .k, .highlight .kd, .highlight .kr, .highlight .kt { color: #cf222e }
+        .highlight .kc, .highlight .nb, .highlight .no, .highlight .nc { color: #0550ae }
+        .highlight .nf, .highlight .nd { color: #8250df }
+        .highlight .nt { color: #116329 }
+        .highlight .na { color: #0550ae }
+        .highlight .s, .highlight .s1, .highlight .s2, .highlight .sb, .highlight .sc,
+        .highlight .sd, .highlight .se, .highlight .sh, .highlight .si, .highlight .sx,
+        .highlight .sr, .highlight .ss { color: #0a3069 }
+        .highlight .m, .highlight .mf, .highlight .mh, .highlight .mi, .highlight .mo,
+        .highlight .il { color: #0550ae }
+        .highlight .o, .highlight .ow { font-weight: bold }
+        .highlight .err { color: #82071e; background: #ffebe9 }
+        .highlight .nv, .highlight .vc, .highlight .vg, .highlight .vi { color: #953800 }
+        .highlight .gd { color: #82071e; background: #ffebe9 }
+        .highlight .gi { color: #116329; background: #dafbe1 }
+
+        @media (max-width: 700px) {
+            body { flex-direction: column; }
+            .sidebar { position: static; width: 100%; height: auto; border-right: none; border-bottom: 1px solid #d0d7de; }
+            .content { margin-left: 0; padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <select onchange="window.location.href='../../' + this.value + '/examples/morse/'">
+            
+            <option value="master" >
+                master
+            </option>
+            
+            <option value="v4.15.0" >
+                v4.15.0 (latest)
+            </option>
+            
+            <option value="v4.13.1" >
+                v4.13.1
+            </option>
+            
+            <option value="v4.13.0" >
+                v4.13.0
+            </option>
+            
+            <option value="v4.12.2" >
+                v4.12.2
+            </option>
+            
+            <option value="v4.12.1" >
+                v4.12.1
+            </option>
+            
+            <option value="v4.12.0" >
+                v4.12.0
+            </option>
+            
+            <option value="v4.11.0" >
+                v4.11.0
+            </option>
+            
+            <option value="v4.10.0" >
+                v4.10.0
+            </option>
+            
+            <option value="v4.9.0" selected>
+                v4.9.0
+            </option>
+            
+            <option value="v4.8.0" >
+                v4.8.0
+            </option>
+            
+            <option value="v4.7.1" >
+                v4.7.1
+            </option>
+            
+            <option value="v4.1.0" >
+                v4.1.0
+            </option>
+            
+            <option value="v4.0.0" >
+                v4.0.0
+            </option>
+            
+            <option value="v3.0.0" >
+                v3.0.0
+            </option>
+            
+            <option value="v2.4.0" >
+                v2.4.0
+            </option>
+            
+            <option value="v2.3.0" >
+                v2.3.0
+            </option>
+            
+            <option value="v2.2.3" >
+                v2.2.3
+            </option>
+            
+            <option value="v2.2.2" >
+                v2.2.2
+            </option>
+            
+            <option value="v2.2.1" >
+                v2.2.1
+            </option>
+            
+            <option value="v2.2.0" >
+                v2.2.0
+            </option>
+            
+            <option value="v2.1.0" >
+                v2.1.0
+            </option>
+            
+            <option value="v2.0.1" >
+                v2.0.1
+            </option>
+            
+            <option value="v1.1.0" >
+                v1.1.0
+            </option>
+            
+        </select>
+
+        <nav>
+            <h3>Navigation</h3>
+            <ul>
+                <li><a href="../../index.html">← Back to Docs</a></li>
+            </ul>
+        </nav>
+
+        
+        <nav>
+            <h3>Files</h3>
+            <ul>
+                
+                <li><a href="#morse-ino">morse.ino</a></li>
+                
+                <li><a href="#bitset-h">bitset.h</a></li>
+                
+                <li><a href="#morse-h">morse.h</a></li>
+                
+                <li><a href="#morse-effect-h">morse_effect.h</a></li>
+                
+            </ul>
+        </nav>
+        
+    </div>
+
+    <div class="content">
+        <h1>morse</h1>
+
+        
+        <div class="readme"><h1>JLed morse example</h1>
+<p>This examples demonstrates an efficient method to generate morse code on 
+an micro controller like the Arduino.</p>
+<p>The morse example uses the morse alphabet encoded in a binary tree to 
+generate morse code using a JLed user defined brightness class. The text
+to be morsed is transformed into morse code and then transformed into a 
+sequence of <code>1</code> and <code>0</code> which are written out to a GPIO controlling a LED or
+a sound generator. </p>
+<p><img alt="morse example" src="../../doc/morse.jpg" /></p>
+<h2>Author</h2>
+<p>Jan Delgado</p></div>
+        
+
+        
+        <div class="files-list">
+            <h2>Files</h2>
+            <ul>
+                
+                <li><a href="#morse-ino">morse.ino</a></li>
+                
+                <li><a href="#bitset-h">bitset.h</a></li>
+                
+                <li><a href="#morse-h">morse.h</a></li>
+                
+                <li><a href="#morse-effect-h">morse_effect.h</a></li>
+                
+            </ul>
+        </div>
+        
+
+        
+        <div class="file-section" id="morse-ino">
+            <div class="file-header">morse.ino</div>
+            <div class="file-content"><div class="highlight"><pre><span></span><span class="c1">// Copyright (c) 2019 Jan Delgado &lt;jdelgado[at]gmx.net&gt;</span>
+<span class="c1">// JLed user defined brightness morse example</span>
+<span class="c1">// https://github.com/jandelgado/jled</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;morse_effect.h&quot;</span><span class="c1">  // NOLINT</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;Arduino.h&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;jled.h&gt;</span>
+
+<span class="n">MorseEffect</span><span class="w"> </span><span class="n">morseEffect</span><span class="p">(</span><span class="s">&quot;HELLO JLED&quot;</span><span class="p">);</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">morseLed</span><span class="w"> </span><span class="o">=</span>
+<span class="w">    </span><span class="n">JLed</span><span class="p">(</span><span class="n">LED_BUILTIN</span><span class="p">).</span><span class="n">UserFunc</span><span class="p">(</span><span class="o">&amp;</span><span class="n">morseEffect</span><span class="p">).</span><span class="n">DelayAfter</span><span class="p">(</span><span class="mi">2000</span><span class="p">).</span><span class="n">Forever</span><span class="p">();</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">setup</span><span class="p">()</span><span class="w"> </span><span class="p">{}</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">loop</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">morseLed</span><span class="p">.</span><span class="n">Update</span><span class="p">();</span><span class="w"> </span><span class="p">}</span>
+</pre></div>
+</div>
+        </div>
+        
+        <div class="file-section" id="bitset-h">
+            <div class="file-header">bitset.h</div>
+            <div class="file-content"><div class="highlight"><pre><span></span><span class="c1">// Copyright (c) 2019 Jan Delgado &lt;jdelgado[at]gmx.net&gt;</span>
+<span class="c1">// https://github.com/jandelgado/jled</span>
+
+<span class="cp">#ifndef EXAMPLES_MORSE_BITSET_H_</span>
+<span class="cp">#define EXAMPLES_MORSE_BITSET_H_</span>
+
+<span class="c1">// a simple bit set with capacity of N bits, just enough for the morse demo</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Bitset</span><span class="w"> </span><span class="p">{</span>
+<span class="w"> </span><span class="k">private</span><span class="o">:</span>
+<span class="w">    </span><span class="kt">size_t</span><span class="w"> </span><span class="n">n_</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">uint8_t</span><span class="o">*</span><span class="w"> </span><span class="n">bits_</span><span class="p">;</span>
+
+<span class="w"> </span><span class="k">protected</span><span class="o">:</span>
+<span class="w">    </span><span class="c1">// returns num bytes needed to store n bits.</span>
+<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">num_bytes</span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">n</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="p">((</span><span class="n">n</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="mi">3</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w"> </span><span class="k">public</span><span class="o">:</span>
+<span class="w">    </span><span class="n">Bitset</span><span class="p">()</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">Bitset</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{}</span>
+
+<span class="w">    </span><span class="n">Bitset</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Bitset</span><span class="o">&amp;</span><span class="w"> </span><span class="n">b</span><span class="p">)</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">Bitset</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="o">*</span><span class="k">this</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">b</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+
+<span class="w">    </span><span class="k">explicit</span><span class="w"> </span><span class="n">Bitset</span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">n</span><span class="p">)</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">n_</span><span class="p">(</span><span class="n">n</span><span class="p">),</span><span class="w"> </span><span class="n">bits_</span><span class="p">{</span><span class="k">new</span><span class="w"> </span><span class="kt">uint8_t</span><span class="p">[</span><span class="n">num_bytes</span><span class="p">(</span><span class="n">n</span><span class="p">)]}</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">memset</span><span class="p">(</span><span class="n">bits_</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">num_bytes</span><span class="p">(</span><span class="n">n_</span><span class="p">));</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="n">Bitset</span><span class="o">&amp;</span><span class="w"> </span><span class="k">operator</span><span class="o">=</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Bitset</span><span class="o">&amp;</span><span class="w"> </span><span class="n">b</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">&amp;</span><span class="n">b</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="k">this</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="o">*</span><span class="k">this</span><span class="p">;</span>
+<span class="w">        </span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">size_new</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">num_bytes</span><span class="p">(</span><span class="n">b</span><span class="p">.</span><span class="n">n_</span><span class="p">);</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">num_bytes</span><span class="p">(</span><span class="n">n_</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">size_new</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">delete</span><span class="p">[]</span><span class="w"> </span><span class="n">bits_</span><span class="p">;</span>
+<span class="w">            </span><span class="n">bits_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="kt">uint8_t</span><span class="p">[</span><span class="n">size_new</span><span class="p">];</span>
+<span class="w">            </span><span class="n">n_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">b</span><span class="p">.</span><span class="n">n_</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="n">memcpy</span><span class="p">(</span><span class="n">bits_</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="p">.</span><span class="n">bits_</span><span class="p">,</span><span class="w"> </span><span class="n">size_new</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="o">*</span><span class="k">this</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="k">virtual</span><span class="w"> </span><span class="o">~</span><span class="n">Bitset</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">delete</span><span class="p">[]</span><span class="w"> </span><span class="n">bits_</span><span class="p">;</span>
+<span class="w">        </span><span class="n">bits_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">nullptr</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="n">set</span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">val</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+<span class="w">            </span><span class="n">bits_</span><span class="p">[</span><span class="n">i</span><span class="w"> </span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="mi">3</span><span class="p">]</span><span class="w"> </span><span class="o">|=</span><span class="w"> </span><span class="p">(</span><span class="mi">1</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="mi">7</span><span class="p">));</span>
+<span class="w">        </span><span class="k">else</span>
+<span class="w">            </span><span class="n">bits_</span><span class="p">[</span><span class="n">i</span><span class="w"> </span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="mi">3</span><span class="p">]</span><span class="w"> </span><span class="o">&amp;=</span><span class="w"> </span><span class="o">~</span><span class="p">(</span><span class="mi">1</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="mi">7</span><span class="p">));</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">test</span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="p">(</span><span class="n">bits_</span><span class="p">[</span><span class="n">i</span><span class="w"> </span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="mi">3</span><span class="p">]</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="p">(</span><span class="mi">1</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="mi">7</span><span class="p">)))</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<span class="w">    </span><span class="kt">size_t</span><span class="w"> </span><span class="n">size</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">n_</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<span class="p">};</span>
+<span class="cp">#endif  </span><span class="c1">// EXAMPLES_MORSE_BITSET_H_</span>
+</pre></div>
+</div>
+        </div>
+        
+        <div class="file-section" id="morse-h">
+            <div class="file-header">morse.h</div>
+            <div class="file-content"><div class="highlight"><pre><span></span><span class="c1">// Copyright (c) 2019 Jan Delgado &lt;jdelgado[at]gmx.net&gt;</span>
+<span class="c1">// https://github.com/jandelgado/jled</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;Arduino.h&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;inttypes.h&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stddef.h&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;bitset.h&quot;</span><span class="c1">  // NOLINT</span>
+
+<span class="cp">#ifndef EXAMPLES_MORSE_MORSE_H_</span>
+<span class="cp">#define EXAMPLES_MORSE_MORSE_H_</span>
+
+<span class="c1">// The Morse class converts a text sequence into a bit sequence representing</span>
+<span class="c1">// a morse code sequence.</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Morse</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// pre-ordered tree of morse codes. Bit 1 = &#39;dah&#39;,  0 = &#39;dit&#39;.</span>
+<span class="w">    </span><span class="c1">// Position in string corresponds to position in binary tree starting w/ 1</span>
+<span class="w">    </span><span class="c1">// see https://www.pocketmagic.net/morse-encoder/ for info on encoding</span>
+<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">LATIN</span><span class="w"> </span><span class="o">=</span>
+<span class="w">        </span><span class="s">&quot;*ETIANMSURWDKGOHVF*L*PJBXCYZQ**54*3***2*******16*******7***8*90&quot;</span><span class="p">;</span>
+
+<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">DURATION_DIT</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">DURATION_DAH</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">3</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">DURATION_DIT</span><span class="p">;</span>
+<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">DURATION_PAUSE_CHAR</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DURATION_DAH</span><span class="p">;</span>
+<span class="w">    </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">DURATION_PAUSE_WORD</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">7</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">DURATION_DIT</span><span class="p">;</span>
+
+<span class="w"> </span><span class="k">protected</span><span class="o">:</span>
+<span class="w">    </span><span class="kt">char</span><span class="w"> </span><span class="n">upper</span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="n">c</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="sc">&#39;a&#39;</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="sc">&#39;z&#39;</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">32</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">c</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">isspace</span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="n">c</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="sc">&#39; &#39;</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// returns position of char in morse tree. Count starts with 1, i.e.</span>
+<span class="w">    </span><span class="c1">// E=2, T=3, etc.</span>
+<span class="w">    </span><span class="kt">size_t</span><span class="w"> </span><span class="n">treepos</span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="n">c</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1u</span><span class="p">;</span>
+<span class="w">        </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">LATIN</span><span class="p">[</span><span class="n">i</span><span class="o">++</span><span class="p">]</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">c</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">i</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// returns uint16_t with size of morse sequence (dit&#39;s and dah&#39;s) in MSB</span>
+<span class="w">    </span><span class="c1">// and the morse sequence in the LSB</span>
+<span class="w">    </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">pos_to_morse_code</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">code</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">res</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">        </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">        </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">code</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="n">size</span><span class="o">++</span><span class="p">;</span>
+<span class="w">            </span><span class="n">res</span><span class="w"> </span><span class="o">&lt;&lt;=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">            </span><span class="n">res</span><span class="w"> </span><span class="o">|=</span><span class="w"> </span><span class="p">(</span><span class="n">code</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span>
+<span class="w">            </span><span class="n">code</span><span class="w"> </span><span class="o">&gt;&gt;=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">res</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="p">(</span><span class="n">size</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="mi">8</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="k">template</span><span class="w"> </span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">F</span><span class="o">&gt;</span>
+<span class="w">    </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">iterate_sequence</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="o">*</span><span class="w"> </span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="n">F</span><span class="w"> </span><span class="n">f</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// call f(count,val) num times, incrementing count each time</span>
+<span class="w">        </span><span class="c1">// and returning num afterwards.</span>
+<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">set</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[](</span><span class="kt">int</span><span class="w"> </span><span class="n">num</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">count</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">val</span><span class="p">,</span><span class="w"> </span><span class="n">F</span><span class="w"> </span><span class="n">f</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">auto</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">num</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="n">f</span><span class="p">(</span><span class="n">count</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">val</span><span class="p">);</span>
+<span class="w">            </span><span class="k">return</span><span class="w"> </span><span class="n">num</span><span class="p">;</span>
+<span class="w">        </span><span class="p">};</span>
+
+<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">bitcount</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">        </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="n">p</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">upper</span><span class="p">(</span><span class="o">*</span><span class="n">p</span><span class="o">++</span><span class="p">);</span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">isspace</span><span class="p">(</span><span class="n">c</span><span class="p">))</span><span class="w"> </span><span class="p">{</span><span class="w">  </span><span class="c1">// space not part of alphabet, treat separately</span>
+<span class="w">                </span><span class="n">bitcount</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">set</span><span class="p">(</span><span class="n">DURATION_PAUSE_WORD</span><span class="p">,</span><span class="w"> </span><span class="n">bitcount</span><span class="p">,</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span><span class="w"> </span><span class="n">f</span><span class="p">);</span>
+<span class="w">                </span><span class="k">continue</span><span class="p">;</span>
+<span class="w">            </span><span class="p">}</span>
+
+<span class="w">            </span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">morse_code</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pos_to_morse_code</span><span class="p">(</span><span class="n">treepos</span><span class="p">(</span><span class="n">upper</span><span class="p">(</span><span class="n">c</span><span class="p">)));</span>
+<span class="w">            </span><span class="k">auto</span><span class="w"> </span><span class="n">code</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">morse_code</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="mh">0xff</span><span class="p">;</span><span class="w">  </span><span class="c1">// dits (0) and dahs (1)</span>
+<span class="w">            </span><span class="k">auto</span><span class="w"> </span><span class="n">size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">morse_code</span><span class="w"> </span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="mi">8</span><span class="p">;</span><span class="w">    </span><span class="c1">// number of dits and dahs in code</span>
+<span class="w">            </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">size</span><span class="o">--</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">bitcount</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">set</span><span class="p">((</span><span class="n">code</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">DURATION_DAH</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">DURATION_DIT</span><span class="p">,</span>
+<span class="w">                                </span><span class="n">bitcount</span><span class="p">,</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span><span class="w"> </span><span class="n">f</span><span class="p">);</span>
+
+<span class="w">                </span><span class="c1">// pause between symbols := 1 dit</span>
+<span class="w">                </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">size</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                    </span><span class="n">bitcount</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">set</span><span class="p">(</span><span class="n">DURATION_DIT</span><span class="p">,</span><span class="w"> </span><span class="n">bitcount</span><span class="p">,</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span><span class="w"> </span><span class="n">f</span><span class="p">);</span>
+<span class="w">                </span><span class="p">}</span>
+<span class="w">                </span><span class="n">code</span><span class="w"> </span><span class="o">&gt;&gt;=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">            </span><span class="p">}</span>
+
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="n">p</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">!</span><span class="n">isspace</span><span class="p">(</span><span class="o">*</span><span class="n">p</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="n">bitcount</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">set</span><span class="p">(</span><span class="n">DURATION_PAUSE_CHAR</span><span class="p">,</span><span class="w"> </span><span class="n">bitcount</span><span class="p">,</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span><span class="w"> </span><span class="n">f</span><span class="p">);</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">bitcount</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w"> </span><span class="k">public</span><span class="o">:</span>
+<span class="w">    </span><span class="c1">// returns ith bit of morse sequence</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">test</span><span class="p">(</span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">bits_</span><span class="o">-&gt;</span><span class="n">test</span><span class="p">(</span><span class="n">i</span><span class="p">);</span><span class="w"> </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// length of complete morse sequence in in bits</span>
+<span class="w">    </span><span class="kt">size_t</span><span class="w"> </span><span class="n">size</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">bits_</span><span class="o">-&gt;</span><span class="n">size</span><span class="p">();</span><span class="w"> </span><span class="p">}</span>
+
+<span class="w">    </span><span class="n">Morse</span><span class="p">()</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">bits_</span><span class="p">(</span><span class="k">new</span><span class="w"> </span><span class="n">Bitset</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span><span class="w"> </span><span class="p">{}</span>
+
+<span class="w">    </span><span class="k">explicit</span><span class="w"> </span><span class="n">Morse</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="o">*</span><span class="w"> </span><span class="n">s</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">length</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">iterate_sequence</span><span class="p">(</span><span class="n">s</span><span class="p">,</span><span class="w"> </span><span class="p">[](</span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="p">{});</span>
+<span class="w">        </span><span class="k">auto</span><span class="w"> </span><span class="n">bits</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">Bitset</span><span class="p">(</span><span class="n">length</span><span class="p">);</span>
+<span class="w">        </span><span class="n">iterate_sequence</span><span class="p">(</span><span class="n">s</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="n">bits</span><span class="p">](</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">v</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">bits</span><span class="o">-&gt;</span><span class="n">set</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">v</span><span class="p">);</span><span class="w"> </span><span class="p">});</span>
+<span class="w">        </span><span class="n">bits_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">bits</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="o">~</span><span class="n">Morse</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">delete</span><span class="w"> </span><span class="n">bits_</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// make sure that the following, currently not needed, methods are not used</span>
+<span class="w">    </span><span class="n">Morse</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Morse</span><span class="o">&amp;</span><span class="n">m</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="o">*</span><span class="k">this</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">m</span><span class="p">;}</span>
+<span class="w">    </span><span class="n">Morse</span><span class="o">&amp;</span><span class="w"> </span><span class="k">operator</span><span class="o">=</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Morse</span><span class="o">&amp;</span><span class="n">m</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">delete</span><span class="w"> </span><span class="n">bits_</span><span class="p">;</span>
+<span class="w">        </span><span class="n">bits_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">Bitset</span><span class="p">(</span><span class="o">*</span><span class="n">m</span><span class="p">.</span><span class="n">bits_</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="o">*</span><span class="k">this</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w"> </span><span class="k">private</span><span class="o">:</span>
+<span class="w">    </span><span class="c1">// stores morse bit sequence</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="n">Bitset</span><span class="o">*</span><span class="w"> </span><span class="n">bits_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">nullptr</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="cp">#endif  </span><span class="c1">// EXAMPLES_MORSE_MORSE_H_</span>
+</pre></div>
+</div>
+        </div>
+        
+        <div class="file-section" id="morse-effect-h">
+            <div class="file-header">morse_effect.h</div>
+            <div class="file-content"><div class="highlight"><pre><span></span><span class="c1">// Copyright (c) 2019 Jan Delgado &lt;jdelgado[at]gmx.net&gt;</span>
+<span class="c1">// https://github.com/jandelgado/jled</span>
+<span class="cp">#ifndef EXAMPLES_MORSE_MORSE_EFFECT_H_</span>
+<span class="cp">#define EXAMPLES_MORSE_MORSE_EFFECT_H_</span>
+
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;jled.h&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;morse.h&quot;</span><span class="c1">  // NOLINT</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">MorseEffect</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">jled</span><span class="o">::</span><span class="n">BrightnessEvaluator</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">Morse</span><span class="w"> </span><span class="n">morse_</span><span class="p">;</span>
+<span class="w">    </span><span class="c1">// duration of a single &#39;dit&#39; in ms</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">speed_</span><span class="p">;</span>
+
+<span class="w"> </span><span class="k">public</span><span class="o">:</span>
+<span class="w">    </span><span class="k">explicit</span><span class="w"> </span><span class="n">MorseEffect</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="o">*</span><span class="w"> </span><span class="n">message</span><span class="p">,</span><span class="w"> </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">speed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">200</span><span class="p">)</span>
+<span class="w">        </span><span class="o">:</span><span class="w"> </span><span class="n">morse_</span><span class="p">(</span><span class="n">message</span><span class="p">),</span><span class="w"> </span><span class="n">speed_</span><span class="p">(</span><span class="n">speed</span><span class="p">)</span><span class="w"> </span><span class="p">{}</span>
+
+<span class="w">    </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">Eval</span><span class="p">(</span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">t</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">pos</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">speed_</span><span class="p">;</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">pos</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">morse_</span><span class="p">.</span><span class="n">size</span><span class="p">())</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">morse_</span><span class="p">.</span><span class="n">test</span><span class="p">(</span><span class="n">pos</span><span class="p">)</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="mi">255</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">Period</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="p">(</span><span class="n">morse_</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">speed_</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<span class="p">};</span>
+
+<span class="cp">#endif  </span><span class="c1">// EXAMPLES_MORSE_MORSE_EFFECT_H_</span>
+</pre></div>
+</div>
+        </div>
+        
+    </div>
+</body>
+</html>

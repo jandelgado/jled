@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JLed Documentation - v4.15.0</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: #24292f;
+            display: flex;
+        }
+
+        .sidebar {
+            width: 220px;
+            flex-shrink: 0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            padding: 16px;
+            background: #f6f8fa;
+            border-right: 1px solid #d0d7de;
+            font-size: 14px;
+        }
+
+        .content {
+            margin-left: 220px;
+            padding: 32px 40px;
+            max-width: 900px;
+            min-width: 0;
+        }
+
+        select { width: 100%; margin-bottom: 16px; padding: 4px; }
+
+        nav { margin-bottom: 16px; }
+        nav h3 { font-size: 11px; font-weight: 600; text-transform: uppercase; color: #57606a; margin: 16px 0 4px; }
+        nav ul { list-style: none; margin: 0; padding: 0; }
+        nav li { margin: 2px 0; }
+        nav li.nav-level-2 { padding-left: 12px; }
+        nav li.nav-level-3 { padding-left: 24px; font-size: 13px; }
+
+        a { color: #0969da; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        /* GitHub README content styles */
+        .content h1, .content h2 { border-bottom: 1px solid #d0d7de; padding-bottom: .3em; }
+        .content h1 { font-size: 2em; }
+        .content h2 { font-size: 1.5em; }
+        .content h3 { font-size: 1.25em; }
+        .content h1, .content h2, .content h3, .content h4 { margin: 24px 0 16px; font-weight: 600; }
+        .content p, .content ul, .content ol { margin: 0 0 16px; }
+        .content ul, .content ol { padding-left: 2em; }
+        .content li > ul, .content li > ol { margin: 0; }
+        .content img { max-width: 100%; height: auto; }
+        .content code { background: rgba(175,184,193,.2); padding: .2em .4em; border-radius: 3px; font: 85%/1 ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+        .content pre { background: #f6f8fa; border-radius: 6px; padding: 16px; overflow-x: auto; margin: 0 0 16px; }
+        .content pre code { background: none; padding: 0; font-size: 100%; }
+        .content blockquote { border-left: 4px solid #d0d7de; padding: 0 1em; color: #57606a; margin: 0 0 16px; }
+        .content table { border-collapse: collapse; width: 100%; margin: 0 0 16px; }
+        .content th, .content td { border: 1px solid #d0d7de; padding: 6px 13px; }
+        .content th { background: #f6f8fa; font-weight: 600; }
+        .content hr { border: 0; border-top: 1px solid #d0d7de; margin: 24px 0; }
+
+        /* Pygments syntax highlighting */
+        .highlight .c, .highlight .cm, .highlight .c1, .highlight .cs { color: #6e7781; font-style: italic }
+        .highlight .cp { color: #6e7781 }
+        .highlight .k, .highlight .kd, .highlight .kr, .highlight .kt { color: #cf222e }
+        .highlight .kc, .highlight .nb, .highlight .no, .highlight .nc { color: #0550ae }
+        .highlight .nf, .highlight .nd { color: #8250df }
+        .highlight .nt { color: #116329 }
+        .highlight .na { color: #0550ae }
+        .highlight .s, .highlight .s1, .highlight .s2, .highlight .sb, .highlight .sc,
+        .highlight .sd, .highlight .se, .highlight .sh, .highlight .si, .highlight .sx,
+        .highlight .sr, .highlight .ss { color: #0a3069 }
+        .highlight .m, .highlight .mf, .highlight .mh, .highlight .mi, .highlight .mo,
+        .highlight .il { color: #0550ae }
+        .highlight .o, .highlight .ow { font-weight: bold }
+        .highlight .err { color: #82071e; background: #ffebe9 }
+        .highlight .nv, .highlight .vc, .highlight .vg, .highlight .vi { color: #953800 }
+        .highlight .gd { color: #82071e; background: #ffebe9 }
+        .highlight .gi { color: #116329; background: #dafbe1 }
+
+        @media (max-width: 700px) {
+            body { flex-direction: column; }
+            .sidebar { position: static; width: 100%; height: auto; border-right: none; border-bottom: 1px solid #d0d7de; }
+            .content { margin-left: 0; padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <select onchange="switchVersion(this.value)">
+            
+            <option value="master" >
+                master
+            </option>
+            
+            <option value="v4.15.0" selected>
+                v4.15.0 (latest)
+            </option>
+            
+            <option value="v4.13.1" >
+                v4.13.1
+            </option>
+            
+            <option value="v4.13.0" >
+                v4.13.0
+            </option>
+            
+            <option value="v4.12.2" >
+                v4.12.2
+            </option>
+            
+            <option value="v4.12.1" >
+                v4.12.1
+            </option>
+            
+            <option value="v4.12.0" >
+                v4.12.0
+            </option>
+            
+            <option value="v4.11.0" >
+                v4.11.0
+            </option>
+            
+            <option value="v4.10.0" >
+                v4.10.0
+            </option>
+            
+            <option value="v4.9.0" >
+                v4.9.0
+            </option>
+            
+            <option value="v4.8.0" >
+                v4.8.0
+            </option>
+            
+            <option value="v4.7.1" >
+                v4.7.1
+            </option>
+            
+            <option value="v4.1.0" >
+                v4.1.0
+            </option>
+            
+            <option value="v4.0.0" >
+                v4.0.0
+            </option>
+            
+            <option value="v3.0.0" >
+                v3.0.0
+            </option>
+            
+            <option value="v2.4.0" >
+                v2.4.0
+            </option>
+            
+            <option value="v2.3.0" >
+                v2.3.0
+            </option>
+            
+            <option value="v2.2.3" >
+                v2.2.3
+            </option>
+            
+            <option value="v2.2.2" >
+                v2.2.2
+            </option>
+            
+            <option value="v2.2.1" >
+                v2.2.1
+            </option>
+            
+            <option value="v2.2.0" >
+                v2.2.0
+            </option>
+            
+            <option value="v2.1.0" >
+                v2.1.0
+            </option>
+            
+            <option value="v2.0.1" >
+                v2.0.1
+            </option>
+            
+            <option value="v1.1.0" >
+                v1.1.0
+            </option>
+            
+        </select>
+
+        <nav>
+            <h3>On this page</h3>
+            <ul>
+            
+                <li class="nav-level-1"><a href="#jled-advanced-led-library">JLed - Advanced LED Library</a></li>
+            
+                <li class="nav-level-2"><a href="#example">Example</a></li>
+            
+                <li class="nav-level-2"><a href="#features">Features</a></li>
+            
+                <li class="nav-level-2"><a href="#cheat-sheet">Cheat Sheet</a></li>
+            
+                <li class="nav-level-2"><a href="#installation">Installation</a></li>
+            
+                <li class="nav-level-3"><a href="#arduino-ide">Arduino IDE</a></li>
+            
+                <li class="nav-level-3"><a href="#platformio">PlatformIO</a></li>
+            
+                <li class="nav-level-2"><a href="#usage">Usage</a></li>
+            
+                <li class="nav-level-3"><a href="#effects">Effects</a></li>
+            
+                <li class="nav-level-3"><a href="#controlling-a-group-of-leds">Controlling a group of LEDs</a></li>
+            
+                <li class="nav-level-2"><a href="#framework-notes">Framework notes</a></li>
+            
+                <li class="nav-level-2"><a href="#platform-notes">Platform notes</a></li>
+            
+                <li class="nav-level-3"><a href="#esp8266">ESP8266</a></li>
+            
+                <li class="nav-level-3"><a href="#esp32">ESP32</a></li>
+            
+                <li class="nav-level-3"><a href="#stm32">STM32</a></li>
+            
+                <li class="nav-level-3"><a href="#raspberry-pi-pico">Raspberry Pi Pico</a></li>
+            
+                <li class="nav-level-2"><a href="#example-sketches">Example sketches</a></li>
+            
+                <li class="nav-level-3"><a href="#building-examples-with-platformio">Building examples with PlatformIO</a></li>
+            
+                <li class="nav-level-3"><a href="#building-examples-with-the-arduino-ide">Building examples with the Arduino IDE</a></li>
+            
+                <li class="nav-level-2"><a href="#extending">Extending</a></li>
+            
+                <li class="nav-level-3"><a href="#support-new-hardware">Support new hardware</a></li>
+            
+                <li class="nav-level-2"><a href="#unit-tests">Unit tests</a></li>
+            
+                <li class="nav-level-2"><a href="#contributing">Contributing</a></li>
+            
+                <li class="nav-level-2"><a href="#faq">FAQ</a></li>
+            
+                <li class="nav-level-3"><a href="#how-do-i-check-if-a-jled-object-is-still-being-updated">How do I check if a JLed object is still being updated?</a></li>
+            
+                <li class="nav-level-3"><a href="#how-do-i-restart-an-effect">How do I restart an effect?</a></li>
+            
+                <li class="nav-level-3"><a href="#how-do-i-change-a-running-effect">How do I change a running effect?</a></li>
+            
+                <li class="nav-level-2"><a href="#author-and-copyright">Author and Copyright</a></li>
+            
+                <li class="nav-level-2"><a href="#license">License</a></li>
+            
+            </ul>
+        </nav>
+
+        
+        <nav>
+            <h3>Examples</h3>
+            <ul>
+            
+                <li><a href="examples/breathe/">breathe</a></li>
+            
+                <li><a href="examples/candle/">candle</a></li>
+            
+                <li><a href="examples/custom_hal/">custom_hal</a></li>
+            
+                <li><a href="examples/fade_from_to/">fade_from_to</a></li>
+            
+                <li><a href="examples/fade_off/">fade_off</a></li>
+            
+                <li><a href="examples/fade_on/">fade_on</a></li>
+            
+                <li><a href="examples/hello/">hello</a></li>
+            
+                <li><a href="examples/last_brightness/">last_brightness</a></li>
+            
+                <li><a href="examples/morse/">morse</a></li>
+            
+                <li><a href="examples/multiled/">multiled</a></li>
+            
+                <li><a href="examples/multiled_mbed/">multiled_mbed</a></li>
+            
+                <li><a href="examples/pulse/">pulse</a></li>
+            
+                <li><a href="examples/raspi_pico/">raspi_pico</a></li>
+            
+                <li><a href="examples/sequence/">sequence</a></li>
+            
+                <li><a href="examples/simple_on/">simple_on</a></li>
+            
+                <li><a href="examples/user_func/">user_func</a></li>
+            
+            </ul>
+        </nav>
+        
+    </div>
+
+    <div class="content">
+        <table><tr><td>
+<b>Preferring Python?</b> I just released <a href="https://github.com/jandelgado/jled-circuitpython">jled-circuitpython</a>,
+a JLed implementation for CircuitPython and MicroPython.
+</td></tr></table>
+
+<h1 id="jled-advanced-led-library"><a class="toclink" href="#jled-advanced-led-library">JLed - Advanced LED Library</a></h1>
+<p>An embedded C++ library to control LEDs. It uses a <strong>non-blocking</strong> approach and can
+control LEDs in simple (<strong>on</strong>/<strong>off</strong>) and complex (<strong>blinking</strong>,
+<strong>breathing</strong> and more) ways in a <strong>time-driven</strong> manner.</p>
+<p>JLed got some <a href="https://hackaday.com/2018/06/13/simplifying-basic-led-effects/">coverage on Hackaday</a>
+and someone did a <a href="https://youtu.be/x5V2vdpZq1w">video tutorial for JLed</a>  - Thanks!</p>
+<table>
+ <tr>
+  <th>JLed in action</th>
+  <th>Interactive JLed playground</th>
+ </tr>
+<tr>
+  <td><a href="examples/multiled"><img alt="JLed in action" src="doc/jled.gif" width=256></a></td>
+  <td><a href="https://jandelgado.github.io/jled-wasm"><img alt="jled running in the browser" src="doc/jled-wasm.png" width=256></a>
+  </td>
+ </tr>
+</table>
+
+<h2 id="example"><a class="toclink" href="#example">Example</a></h2>
+<div class="highlight"><pre><span></span><code><span class="c1">// breathe LED (on gpio 9) 6 times for 1500ms, waiting for 500ms after each run</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;jled.h&gt;</span>
+
+<span class="k">auto</span><span class="w"> </span><span class="n">led_breathe</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLed</span><span class="p">(</span><span class="mi">9</span><span class="p">).</span><span class="n">Breathe</span><span class="p">(</span><span class="mi">1500</span><span class="p">).</span><span class="n">Repeat</span><span class="p">(</span><span class="mi">6</span><span class="p">).</span><span class="n">DelayAfter</span><span class="p">(</span><span class="mi">500</span><span class="p">);</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">setup</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">}</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">loop</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">led_breathe</span><span class="p">.</span><span class="n">Update</span><span class="p">();</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h2 id="features"><a class="toclink" href="#features">Features</a></h2>
+<ul>
+<li>non-blocking</li>
+<li>effects: simple on/off, breathe, blink, candle, fade-on, fade-off, <a href="examples/morse">user-defined</a> (e.g. morse)</li>
+<li>supports inverted  polarity of LED</li>
+<li>easy configuration using fluent interface</li>
+<li>can control groups of LEDs sequentially or in parallel</li>
+<li>Portable: Arduino, ESP8266, ESP32, Mbed, Raspberry Pi Pico and more platforms
+  compatible, runs even in the <a href="https://jandelgado.github.io/jled-wasm">browser</a></li>
+<li>supports Arduino, <a href="https://www.mbed.com">mbed</a>, <a href="https://github.com/raspberrypi/pico-sdk">Raspberry Pi
+  Pico</a> and ESP32
+  <a href="https://www.espressif.com/en/products/sdks/esp-idf">ESP-IDF</a> SDK's</li>
+<li>well <a href="https://coveralls.io/github/jandelgado/jled">tested</a></li>
+</ul>
+<h2 id="cheat-sheet"><a class="toclink" href="#cheat-sheet">Cheat Sheet</a></h2>
+<p><img alt="JLed Cheat Sheet" src="doc/cheat_sheet.jpg" /></p>
+<h2 id="installation"><a class="toclink" href="#installation">Installation</a></h2>
+<h3 id="arduino-ide"><a class="toclink" href="#arduino-ide">Arduino IDE</a></h3>
+<p>In the main menu of the Arduino IDE, select <code>Sketch</code> &gt; <code>Include Library</code> &gt;
+<code>Manage Libraries...</code> and search for <code>jled</code>, then press <code>install</code>.</p>
+<h3 id="platformio"><a class="toclink" href="#platformio">PlatformIO</a></h3>
+<p>Add <code>jled</code> to your library dependencies in your <code>platformio.ini</code> project file,
+e.g.</p>
+<div class="highlight"><pre><span></span><code><span class="na">...</span>
+<span class="k">[env:nanoatmega328]</span>
+<span class="na">platform</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">atmelavr</span>
+<span class="na">board</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">nanoatmega328</span>
+<span class="na">framework</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">arduino</span>
+<span class="na">lib_deps</span><span class="o">=</span><span class="s">jled</span>
+<span class="na">...</span>
+</code></pre></div>
+
+<h2 id="usage"><a class="toclink" href="#usage">Usage</a></h2>
+<p>First, the LED object is constructed and configured, then the state is updated
+with subsequent calls to the <code>Update()</code> method, typically from the <code>loop()</code>
+function. While the effect is active, <code>Update</code> returns <code>true</code>, otherwise
+<code>false</code>.</p>
+<p>The constructor takes the pin, to which the LED is connected to as
+the only argument. Further configuration of the LED object is done using a fluent
+interface, e.g. <code>JLed led = JLed(13).Breathe(2000).DelayAfter(1000).Repeat(5)</code>.
+See the examples section below for further details.</p>
+<h4 id="output-pipeline"><a class="toclink" href="#output-pipeline">Output pipeline</a></h4>
+<p>First the configured effect (e.g. <code>Fade</code>) is evaluated for the current time
+<code>t</code>. JLed internally uses unsigned bytes to represent brightness values,
+ranging from 0 to 255. Next, the value is scaled to the limits set by
+<code>MinBrightness</code> and <code>MaxBrightness</code> (optionally). When the effect is configured
+for a low-active LED using <code>LowActive</code>, the brightness value will be inverted,
+i.e., the value will be subtracted from 255. Finally the value is passed to the
+hardware abstraction, which might scale it to the resolution used by the actual
+device (e.g. 10 bits for an ESP8266). Finally the brightness value is written
+out to the configure GPIO.</p>
+<div class="highlight"><pre><span></span><code>┌───────────┐    ┌────────────┐    ┌─────────┐    ┌────────┐    ┌─────────┐    ┌────────┐
+│ Evaluate  │    │  Scale to  │    │  Low    │YES │ Invert │    │Scale for│    │Write to│
+│ effect(t) ├───►│ [min, max] ├───►│ active? ├───►│ signal ├───►│Hardware ├───►│  GPIO  │
+└───────────┘    └────────────┘    └────┬────┘    └────────┘    └───▲─────┘    └────────┘
+                                        │ NO                        │
+                                        └───────────────────────────┘
+</code></pre></div>
+
+<h3 id="effects"><a class="toclink" href="#effects">Effects</a></h3>
+<h4 id="static-on-and-off"><a class="toclink" href="#static-on-and-off">Static on and off</a></h4>
+<p>Calling <code>On(uint16_t period=1)</code> turns the LED on. To immediately turn a LED on,
+make a call like <code>JLed(LED_BUILTIN).On().Update()</code>. The <code>period</code> is optional
+and defaults to 1ms.</p>
+<p><code>Off()</code> works like <code>On()</code>, except that it turns the LED off, i.e., it sets the
+brightness to 0.</p>
+<p>Use the <code>Set(uint8_t brightness, uint16_t period=1)</code> method to set the
+brightness to the given value, i.e., <code>Set(255)</code> is equivalent to calling <code>On()</code>
+and <code>Set(0)</code> is equivalent to calling <code>Off()</code>.</p>
+<p>Technically, <code>Set</code>, <code>On</code> and <code>Off</code> are effects with a default period of 1ms, that
+set the brightness to a constant value. Specifying a different period has an
+effect on when the <code>Update()</code> method will be done updating the effect and
+return false (like for any other effects). This is important when for example
+in a <code>JLedSequence</code> the LED should stay on for a given amount of time.</p>
+<h5 id="static-on-example"><a class="toclink" href="#static-on-example">Static on example</a></h5>
+<div class="highlight"><pre><span></span><code><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;jled.h&gt;</span>
+
+<span class="c1">// turn builtin LED on after 1 second.</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">led</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLed</span><span class="p">(</span><span class="n">LED_BUILTIN</span><span class="p">).</span><span class="n">On</span><span class="p">().</span><span class="n">DelayBefore</span><span class="p">(</span><span class="mi">1000</span><span class="p">);</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">setup</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">}</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">loop</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">led</span><span class="p">.</span><span class="n">Update</span><span class="p">();</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h4 id="blinking"><a class="toclink" href="#blinking">Blinking</a></h4>
+<p>In blinking mode, the LED cycles through a given number of on-off cycles, on-
+and off-cycle durations are specified independently. The <code>Blink()</code> method takes
+the duration for the on- and off cycle as arguments.</p>
+<h5 id="blinking-example"><a class="toclink" href="#blinking-example">Blinking example</a></h5>
+<div class="highlight"><pre><span></span><code><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;jled.h&gt;</span>
+
+<span class="c1">// blink internal LED every second; 1 second on, 0.5 second off.</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">led</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLed</span><span class="p">(</span><span class="n">LED_BUILTIN</span><span class="p">).</span><span class="n">Blink</span><span class="p">(</span><span class="mi">1000</span><span class="p">,</span><span class="w"> </span><span class="mi">500</span><span class="p">).</span><span class="n">Forever</span><span class="p">();</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">setup</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">}</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">loop</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">led</span><span class="p">.</span><span class="n">Update</span><span class="p">();</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h4 id="breathing"><a class="toclink" href="#breathing">Breathing</a></h4>
+<p>In breathing mode, the LED smoothly changes the brightness using PWM. The
+<code>Breathe()</code> method takes the period of the effect as an argument.</p>
+<h5 id="breathing-example"><a class="toclink" href="#breathing-example">Breathing example</a></h5>
+<div class="highlight"><pre><span></span><code><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;jled.h&gt;</span>
+
+<span class="c1">// connect LED to pin 13 (PWM capable). LED will breathe with period of</span>
+<span class="c1">// 2000ms and a delay of 1000ms after each period.</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">led</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLed</span><span class="p">(</span><span class="mi">13</span><span class="p">).</span><span class="n">Breathe</span><span class="p">(</span><span class="mi">2000</span><span class="p">).</span><span class="n">DelayAfter</span><span class="p">(</span><span class="mi">1000</span><span class="p">).</span><span class="n">Forever</span><span class="p">();</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">setup</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">}</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">loop</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">led</span><span class="p">.</span><span class="n">Update</span><span class="p">();</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>It is also possible to specify fade-on, on- and fade-off durations for the
+breathing mode to customize the effect.</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// LED will fade-on in 500ms, stay on for 1000ms, and fade-off in 500ms.</span>
+<span class="c1">// It will delay for 1000ms afterwards and continue the pattern.</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">led</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLed</span><span class="p">(</span><span class="mi">13</span><span class="p">).</span><span class="n">Breathe</span><span class="p">(</span><span class="mi">500</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p">,</span><span class="w"> </span><span class="mi">500</span><span class="p">).</span><span class="n">DelayAfter</span><span class="p">(</span><span class="mi">1000</span><span class="p">).</span><span class="n">Forever</span><span class="p">();</span>
+</code></pre></div>
+
+<h4 id="candle"><a class="toclink" href="#candle">Candle</a></h4>
+<p>In candle mode, the random flickering of a candle or fire is simulated.
+The builder method has the following signature:
+  <code>Candle(uint8_t speed, uint8_t jitter, uin16_t period)</code></p>
+<ul>
+<li><code>speed</code> - controls the speed of the effect. 0 for fastest, increasing speed
+  divides into halve per increment. The default value is 7.</li>
+<li><code>jitter</code> - the amount of jittering. 0 none (constant on), 255 maximum. Default
+  value is 15.</li>
+<li><code>period</code> - Period of effect in ms.  The default value is 65535 ms.</li>
+</ul>
+<p>The default settings simulate a candle. For a fire effect for example use
+call the method with <code>Candle(5 /*speed*/, 100 /* jitter*/)</code>.</p>
+<h5 id="candle-example"><a class="toclink" href="#candle-example">Candle example</a></h5>
+<div class="highlight"><pre><span></span><code><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;jled.h&gt;</span>
+
+<span class="c1">// Candle on LED pin 13 (PWM capable).</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">led</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLed</span><span class="p">(</span><span class="mi">13</span><span class="p">).</span><span class="n">Candle</span><span class="p">();</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">setup</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">}</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">loop</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">led</span><span class="p">.</span><span class="n">Update</span><span class="p">();</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h4 id="fadeon"><a class="toclink" href="#fadeon">FadeOn</a></h4>
+<p>In FadeOn mode, the LED is smoothly faded on to 100% brightness using PWM. The
+<code>FadeOn()</code> method takes the period of the effect as an argument.</p>
+<p>The brightness function uses an approximation of this function (example with
+period 1000):</p>
+<h5 id="fadeon-example"><a class="toclink" href="#fadeon-example">FadeOn example</a></h5>
+<div class="highlight"><pre><span></span><code><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;jled.h&gt;</span>
+
+<span class="c1">// LED is connected to pin 9 (PWM capable) gpio</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">led</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLed</span><span class="p">(</span><span class="mi">9</span><span class="p">).</span><span class="n">FadeOn</span><span class="p">(</span><span class="mi">1000</span><span class="p">).</span><span class="n">DelayBefore</span><span class="p">(</span><span class="mi">2000</span><span class="p">);</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">setup</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">}</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">loop</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">led</span><span class="p">.</span><span class="n">Update</span><span class="p">();</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h4 id="fadeoff"><a class="toclink" href="#fadeoff">FadeOff</a></h4>
+<p>In FadeOff mode, the LED is smoothly faded off using PWM. The fade starts at
+100% brightness. Internally it is implemented as a mirrored version of the
+FadeOn function, i.e., FadeOff(t) = FadeOn(period-t).  The <code>FadeOff()</code> method
+takes the period of the effect as argument.</p>
+<h4 id="fade"><a class="toclink" href="#fade">Fade</a></h4>
+<p>The Fade effect allows to fade from any start value <code>from</code> to any target value
+<code>to</code> with the given duration. Internally it sets up a <code>FadeOn</code> or <code>FadeOff</code>
+effect and <code>MinBrightness</code> and <code>MaxBrightness</code> values properly. The <code>Fade</code>
+method take three arguments: <code>from</code>, <code>to</code> and <code>duration</code>.</p>
+<p><a href="examples/fade_from_to"><img alt="fade from-to" src="doc/fade_from-to.png" height=200></a></p>
+<h5 id="fade-example"><a class="toclink" href="#fade-example">Fade example</a></h5>
+<div class="highlight"><pre><span></span><code><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;jled.h&gt;</span>
+
+<span class="c1">// fade from 100 to 200 with period 1000</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">led</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLed</span><span class="p">(</span><span class="mi">9</span><span class="p">).</span><span class="n">Fade</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span><span class="w"> </span><span class="mi">200</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p">);</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">setup</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">}</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">loop</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">led</span><span class="p">.</span><span class="n">Update</span><span class="p">();</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h4 id="user-provided-brightness-function"><a class="toclink" href="#user-provided-brightness-function">User provided brightness function</a></h4>
+<p>It is also possible to provide a user defined brightness evaluator. The class
+must be derived from the <code>jled::BrightnessEvaluator</code> class and implement
+two methods:</p>
+<ul>
+<li><code>uint8_t Eval(uint32_t t) const</code> - the brightness evaluation function that
+  calculates a brightness for the given time <code>t</code>. The brightness must be returned
+  as an unsigned byte, where 0 means LED off and 255 means full brightness.</li>
+<li><code>uint16_t Period() const</code> - period of the effect.</li>
+</ul>
+<p>All time values are specified in milliseconds.</p>
+<p>The <a href="examples/user_func">user_func</a> example demonstrates a simple user provided
+brightness function, while the <a href="examples/morse">morse</a> example shows how a more
+complex application, allowing you to send morse codes (not necessarily with an
+LED), can be realized.</p>
+<h5 id="user-provided-brightness-function-example"><a class="toclink" href="#user-provided-brightness-function-example">User provided brightness function example</a></h5>
+<p>The example uses a user provided function to calculate the brightness.</p>
+<div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">UserEffect</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">jled</span><span class="o">::</span><span class="n">BrightnessEvaluator</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">public</span><span class="o">:</span>
+<span class="w">    </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">Eval</span><span class="p">(</span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">t</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// this function changes between 0 and 255 and</span>
+<span class="w">        </span><span class="c1">// vice versa every 250 ms.</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="mi">255</span><span class="o">*</span><span class="p">((</span><span class="n">t</span><span class="o">/</span><span class="mi">250</span><span class="p">)</span><span class="o">%</span><span class="mi">2</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="c1">// duration of effect: 5 seconds.</span>
+<span class="w">    </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">Period</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">5000</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<span class="p">};</span>
+</code></pre></div>
+
+<h4 id="delays-and-repetitions"><a class="toclink" href="#delays-and-repetitions">Delays and repetitions</a></h4>
+<h5 id="initial-delay-before-effect-starts"><a class="toclink" href="#initial-delay-before-effect-starts">Initial delay before effect starts</a></h5>
+<p>Use the <code>DelayBefore()</code> method to specify a delay before the first effect starts.
+The default value is 0 ms.</p>
+<h5 id="delay-after-effect-finished"><a class="toclink" href="#delay-after-effect-finished">Delay after effect finished</a></h5>
+<p>Use the <code>DelayAfter()</code> method to specify a delay after each repetition of
+an effect. The default value is 0 ms.</p>
+<h5 id="repetitions"><a class="toclink" href="#repetitions">Repetitions</a></h5>
+<p>Use the <code>Repeat()</code> method to specify the number of repetitions. The default
+value is 1 repetition. The <code>Forever()</code> methods sets to repeat the effect
+forever. Each repetition includes a full period of the effect and the time
+specified by <code>DelayAfter()</code> method.</p>
+<h4 id="state-functions"><a class="toclink" href="#state-functions">State functions</a></h4>
+<h5 id="update"><a class="toclink" href="#update">Update</a></h5>
+<p>Call <code>Update(int16_t *pLast=nullptr)</code> or <code>Update(uint32_t t, int16_t *pLast=nullptr)</code>
+to periodically update the state of the LED.</p>
+<p><code>Update</code> returns <code>true</code>, if the effect is active, or <code>false</code> when it finished.
+<code>Update()</code> is a shortcut to call <code>Update(uint32_t t)</code> with the current time in
+milliseconds.</p>
+<p>To obtain the value of the last written brightness value (after applying min-
+and max-brightness transformations), pass an additional optional pointer
+<code>*pLast</code> , where this value will be stored, when it was written. Example:</p>
+<div class="highlight"><pre><span></span><code><span class="kt">int16_t</span><span class="w"> </span><span class="n">lastVal</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">-1</span><span class="p">;</span>
+<span class="n">led</span><span class="p">.</span><span class="n">Update</span><span class="p">(</span><span class="o">&amp;</span><span class="n">lastVal</span><span class="p">);</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">lastVal</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">-1</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// the LED was updated with the brightness value now stored in lastVal</span>
+<span class="w">    </span><span class="p">...</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>Most of the time just calling <code>Update()</code> without any parameters is what you want.</p>
+<p>See <a href="examples/last_brightness">last_brightness</a> example for a working example.</p>
+<h5 id="isrunning"><a class="toclink" href="#isrunning">IsRunning</a></h5>
+<p><code>IsRunning()</code> returns <code>true</code> if the current effect is running, else <code>false</code>.</p>
+<h5 id="reset"><a class="toclink" href="#reset">Reset</a></h5>
+<p>A call to <code>Reset()</code> brings the JLed object to its initial state. Use it when
+you want to start-over an effect.</p>
+<h5 id="immediate-stop"><a class="toclink" href="#immediate-stop">Immediate Stop</a></h5>
+<p>Call <code>Stop()</code> to immediately turn the LED off and stop any running effects.
+Further calls to <code>Update()</code> will have no effect, unless the Led is reset using
+<code>Reset()</code> or a new effect is activated. By default, <code>Stop()</code> sets the current
+brightness level to <code>MinBrightness</code>.</p>
+<p><code>Stop()</code> takes an optional argument <code>mode</code> of type <code>JLed::eStopMode</code>:</p>
+<ul>
+<li>if set to <code>JLed::eStopMode::KEEP_CURRENT</code>, the LEDs current level will be kept</li>
+<li>if set to <code>JLed::eStopMode::FULL_OFF</code> the level of the LED is set to <code>0</code>,
+  regardless of what <code>MinBrightness</code> is set to, effectively turning the LED off</li>
+<li>if set to <code>JLed::eStopMode::TO_MIN_BRIGHTNESS</code> (default behavior), the LED
+  will set to the value of <code>MinBrightness</code></li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="c1">// stop the effect and set the brightness level to 0, regardless of min brightness</span>
+<span class="n">led</span><span class="p">.</span><span class="n">Stop</span><span class="p">(</span><span class="n">JLed</span><span class="o">::</span><span class="n">eStopMode</span><span class="o">::</span><span class="n">FULL_OFF</span><span class="p">);</span>
+</code></pre></div>
+
+<h4 id="misc-functions"><a class="toclink" href="#misc-functions">Misc functions</a></h4>
+<h5 id="low-active-for-inverted-output"><a class="toclink" href="#low-active-for-inverted-output">Low active for inverted output</a></h5>
+<p>Use the <code>LowActive()</code> method when the connected LED is low active. All output
+will be inverted by JLed (i.e., instead of x, the value of 255-x will be set).</p>
+<h5 id="minimum-and-maximum-brightness-level"><a class="toclink" href="#minimum-and-maximum-brightness-level">Minimum- and Maximum brightness level</a></h5>
+<p>The <code>MaxBrightness(uint8_t level)</code> method is used to set the maximum brightness
+level of the LED. A level of 255 (the default) is full brightness, while 0
+effectively turns the LED off. In the same way, the <code>MinBrightness(uint8_t level)</code>
+method sets the minimum brightness level. The default minimum level is 0. If
+minimum or maximum brightness levels are set, the output value is scaled to be
+within the interval defined by <code>[minimum brightness, maximum brightness]</code>: a
+value of 0 will be mapped to the minimum brightness level, a value of 255 will
+be mapped to the maximum brightness level.</p>
+<p>The <code>uint_8 MaxBrightness() const</code> method returns the current maximum
+brightness level. <code>uint8_t MinBrightness() const</code> returns the current minimum
+brightness level.</p>
+<h3 id="controlling-a-group-of-leds"><a class="toclink" href="#controlling-a-group-of-leds">Controlling a group of LEDs</a></h3>
+<p>The <code>JLedSequence</code> class allows controlling a group of <code>JLed</code> objects
+simultaneously, either in parallel or sequentially, starting the next <code>JLed</code>
+effect when the previous finished. The constructor takes the mode (<code>PARALLEL</code>,
+<code>SEQUENCE</code>), an array of <code>JLed</code> objects and the size of the array, e.g.</p>
+<div class="highlight"><pre><span></span><code><span class="n">JLed</span><span class="w"> </span><span class="n">leds</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">JLed</span><span class="p">(</span><span class="mi">4</span><span class="p">).</span><span class="n">Blink</span><span class="p">(</span><span class="mi">750</span><span class="p">,</span><span class="w"> </span><span class="mi">250</span><span class="p">).</span><span class="n">Repeat</span><span class="p">(</span><span class="mi">10</span><span class="p">),</span>
+<span class="w">    </span><span class="n">JLed</span><span class="p">(</span><span class="mi">3</span><span class="p">).</span><span class="n">Breathe</span><span class="p">(</span><span class="mi">2000</span><span class="p">).</span><span class="n">Repeat</span><span class="p">(</span><span class="mi">5</span><span class="p">);</span>
+<span class="p">};</span>
+
+<span class="k">auto</span><span class="w"> </span><span class="n">sequence</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLedSequence</span><span class="p">(</span><span class="n">JLedSequence</span><span class="o">::</span><span class="n">eMode</span><span class="o">::</span><span class="n">PARALLEL</span><span class="p">,</span><span class="w"> </span><span class="n">leds</span><span class="p">).</span><span class="n">Repeat</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">setup</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="p">}</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">loop</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">sequence</span><span class="p">.</span><span class="n">Update</span><span class="p">();</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>Because the size of the array is known at compile time in this example, it is
+not necessary to pass the array size to the constructor. A second constructor
+is available in case the <code>JLed</code> array is created dynamically at runtime:
+<code>JLed(eMode mode, JLed* leds, size_t n)</code>.</p>
+<p>The <code>JLedSequence</code> provides the following methods:
+* <code>Update()</code> - updates the active <code>JLed</code> objects controlled by the sequence.
+  Like the <code>JLed::Update()</code> method, it returns <code>true</code> if an effect is running,
+  else <code>false</code>.
+* Use the <code>Repeat(n)</code> method to specify the number of repetitions. The default
+  value is 1 repetition. The <code>Forever()</code> methods sets to repeat the sequence
+  forever.
+* <code>Stop()</code> - turns off all <code>JLed</code> objects controlled by the sequence and
+   stops the sequence. Further calls to <code>Update()</code> will have no effect.
+* <code>Reset()</code> - Resets all <code>JLed</code> objects controlled by the sequence and
+   the sequence, resulting in a start-over.</p>
+<h2 id="framework-notes"><a class="toclink" href="#framework-notes">Framework notes</a></h2>
+<p>JLed supports the Arduino and <a href="https://www.mbed.org">mbed</a> frameworks. When
+using platformio, the framework to be used is configured in the <code>platform.ini</code>
+file, as shown in the following example, which for example selects the <code>mbed</code>
+framework:</p>
+<div class="highlight"><pre><span></span><code><span class="k">[env:nucleo_f401re_mbed]</span>
+<span class="na">platform</span><span class="o">=</span><span class="s">ststm32</span>
+<span class="na">board</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">nucleo_f401re</span>
+<span class="na">framework</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">mbed</span>
+<span class="na">build_flags</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">-Isrc</span>
+<span class="na">src_filter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">+&lt;../../src/&gt;  +&lt;./&gt;</span>
+<span class="na">upload_protocol</span><span class="o">=</span><span class="s">stlink</span>
+</code></pre></div>
+
+<p>An <a href="examples/multiled_mbed/multiled_mbed.cpp">mbed example is provided here</a>.
+To compile it for the F401RE, make your <a href="platform.ini">plaform.ini</a> look like:</p>
+<div class="highlight"><pre><span></span><code><span class="na">...</span>
+<span class="k">[platformio]</span>
+<span class="na">default_envs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">nucleo_f401re_mbed</span>
+<span class="na">src_dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">examples/multiled_mbed</span>
+<span class="na">...</span>
+</code></pre></div>
+
+<h2 id="platform-notes"><a class="toclink" href="#platform-notes">Platform notes</a></h2>
+<h3 id="esp8266"><a class="toclink" href="#esp8266">ESP8266</a></h3>
+<p>The DAC of the ESP8266 operates with 10 bits, every value JLed writes out gets
+automatically scaled to 10 bits, since JLed internally only uses 8 bits.  The
+scaling methods make sure that min/max relationships are preserved, i.e., 0 is
+mapped to 0 and 255 is mapped to 1023. When using a user-defined brightness
+function on the ESP8266, 8-bit values must be returned, all scaling is done by
+JLed transparently for the application, yielding platform-independent code.</p>
+<h3 id="esp32"><a class="toclink" href="#esp32">ESP32</a></h3>
+<p>When compiling for the ESP32, JLed uses <code>ledc</code> functions provided by the ESP32
+ESP-IDF SDK.  (See <a href="https://docs.espressif.com/projects/esp-idf/en/latest/api-reference/peripherals/ledc.html">esspressif
+documentation</a>
+for details).</p>
+<p>The <code>ledc</code> API connects so-called channels to GPIO pins, enabling them to use
+PWM. There are 16 channels available. Unless otherwise specified, JLed
+automatically picks the next free channel, starting with channel 0 and wrapping
+over after channel 15. To manually specify a channel, the JLed object must be
+constructed this way:</p>
+<div class="highlight"><pre><span></span><code><span class="k">auto</span><span class="w"> </span><span class="n">esp32Led</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLed</span><span class="p">(</span><span class="n">jled</span><span class="o">::</span><span class="n">Esp32Hal</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="mi">7</span><span class="p">)).</span><span class="n">Blink</span><span class="p">(</span><span class="mi">1000</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p">).</span><span class="n">Forever</span><span class="p">();</span>
+</code></pre></div>
+
+<p>The <code>jled::Esp32Hal(pin, chan)</code> constructor takes the pin number as the first
+argument and the ESP32 ledc channel number on the second position. Note that
+using the above-mentioned constructor results in non-platform independent code,
+so it should be avoided and is normally not necessary.</p>
+<p>For completeness, the full signature of the Esp32Hal constructor is</p>
+<div class="highlight"><pre><span></span><code>Esp32Hal(PinType pin,
+         int chan = kAutoSelectChan,
+         uint16_t freq = 5000,
+         ledc_timer_t timer = LEDC_TIMER_0)
+</code></pre></div>
+
+<p>which also allows to override the default frequency and timer used, when needed.</p>
+<h4 id="using-esp-idf"><a class="toclink" href="#using-esp-idf">Using ESP-IDF</a></h4>
+<p>Since JLed uses the ESP-IDF SDK, JLed can also be directly used in ESP-IDF
+projects, without the need of using the Arduino Framework (which is also
+possible). See these repositories for example projects:</p>
+<ul>
+<li>https://github.com/jandelgado/jled-esp-idf-example</li>
+<li>https://github.com/jandelgado/jled-esp-idf-platformio-example</li>
+</ul>
+<h3 id="stm32"><a class="toclink" href="#stm32">STM32</a></h3>
+<h4 id="arduino-framework"><a class="toclink" href="#arduino-framework">Arduino framework</a></h4>
+<p>I had success running JLed on a <a href="https://www.st.com/en/evaluation-tools/nucleo-f401re.html">STM32 Nucleo64 F401RE
+board</a> using this
+<a href="https://github.com/rogerclarkmelbourne/Arduino_STM32/tree/master/STM32F4">STM32 Arduino
+core</a>
+and compiling examples from the Arduino IDE. Note that the <code>stlink</code> is
+necessary to upload sketches to the microcontroller.</p>
+<h3 id="raspberry-pi-pico"><a class="toclink" href="#raspberry-pi-pico">Raspberry Pi Pico</a></h3>
+<p>When using JLed on a Raspberry Pi Pico, the Pico-SDK and tools can be
+used.  The Pico supports up to 16 PWM channels in parallel. See
+the <a href="examples/raspi_pico">pico-demo</a> for an example and build instructions when
+the Pico-SDK is used.</p>
+<p>A probably easier approach is to use the Arduino platform. See
+<a href="platformio.ini">platformio.ini</a> for details (look for
+<code>env:raspberrypi_pico_w</code>, which targets the Raspberry Pi Pico W.</p>
+<h2 id="example-sketches"><a class="toclink" href="#example-sketches">Example sketches</a></h2>
+<p>Example sketches are provided in the <a href="examples/">examples</a> directory.</p>
+<ul>
+<li><a href="examples/hello">Hello, world</a></li>
+<li><a href="examples/simple_on">Turn LED on after a delay</a></li>
+<li><a href="examples/breathe">Breathe effect</a></li>
+<li><a href="examples/candle">Candle effect</a></li>
+<li><a href="examples/fade_on">Fade LED on</a></li>
+<li><a href="examples/fade_off">Fade LED off</a></li>
+<li><a href="examples/fade_from_to">Fade from-to effect</a></li>
+<li><a href="examples/pulse">Pulse effect</a></li>
+<li><a href="examples/multiled">Controlling multiple LEDs in parallel</a></li>
+<li><a href="examples/multiled_mbed">Controlling multiple LEDs in parallel (mbed)</a></li>
+<li><a href="examples/sequence">Controlling multiple LEDs sequentially</a></li>
+<li><a href="examples/user_func">Simple User provided effect</a></li>
+<li><a href="examples/morse">Morsecode example</a></li>
+<li><a href="examples/last_brightness">Last brightness value example</a></li>
+<li><a href="examples/custom_hal">Custom HAL example</a></li>
+<li><a href="https://github.com/jandelgado/jled-pca9685-hal">Custom PCA9685 HAL</a></li>
+<li><a href="https://github.com/jandelgado/jled-example-switch-sequence">Dynamically switch sequences</a></li>
+<li><a href="https://jandelgado.github.io/jled-wasm">JLed compiled to WASM and running in the browser</a></li>
+<li><a href="examples/raspi_pico">Raspberry Pi Pico Demo</a></li>
+<li><a href="https://github.com/jandelgado/jled-esp-idf-example">ESP32 ESP-IDF example</a></li>
+<li><a href="https://github.com/jandelgado/jled-esp-idf-platformio-example">ESP32 ESP-IDF PlatformIO example</a></li>
+</ul>
+<h3 id="building-examples-with-platformio"><a class="toclink" href="#building-examples-with-platformio">Building examples with PlatformIO</a></h3>
+<p>To build an example using <a href="http://platformio.org/">the PlatformIO ide</a>,
+uncomment the example to be built in the <a href="platformio.ini">platformio.ini</a>
+project file, e.g.:</p>
+<div class="highlight"><pre><span></span><code><span class="k">[platformio]</span>
+<span class="c1">; uncomment example to build</span>
+<span class="na">src_dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">examples/hello</span>
+<span class="c1">;src_dir = examples/breathe</span>
+</code></pre></div>
+
+<h3 id="building-examples-with-the-arduino-ide"><a class="toclink" href="#building-examples-with-the-arduino-ide">Building examples with the Arduino IDE</a></h3>
+<p>To build an example sketch in the Arduino IDE, select an example from
+the <code>File</code> &gt; <code>Examples</code> &gt; <code>JLed</code> menu.</p>
+<h2 id="extending"><a class="toclink" href="#extending">Extending</a></h2>
+<h3 id="support-new-hardware"><a class="toclink" href="#support-new-hardware">Support new hardware</a></h3>
+<p>JLed uses a very thin hardware abstraction layer (hal) to abstract access to
+the actual MCU/framework used (e.g. ESP32, ESP8266). The hal object encapsulate
+access to the GPIO and time functionality of the MCU under the framework being
+used.  During the unit test, mocked hal instances are used, enabling tests to
+check the generated output.  The <a href="examples/custom_hal">Custom HAL project</a>
+provides an example for a user define HAL.</p>
+<h2 id="unit-tests"><a class="toclink" href="#unit-tests">Unit tests</a></h2>
+<p>JLed comes with an exhaustive host-based unit test suite. Info on how to run
+the host-based provided unit tests <a href="test/README.md">is provided here</a>.</p>
+<h2 id="contributing"><a class="toclink" href="#contributing">Contributing</a></h2>
+<ul>
+<li>fork this repository</li>
+<li>create your feature branch</li>
+<li>add code</li>
+<li>add <a href="test/">unit test(s)</a></li>
+<li>add <a href="README.md">documentation</a></li>
+<li>make sure the cpp <a href="https://github.com/cpplint/cpplint">linter</a> does not
+  report any problems (run <code>make lint</code>). Hint: use <code>clang-format</code> with the
+  provided <a href=".clang-format">settings</a></li>
+<li>commit changes</li>
+<li>submit a PR</li>
+</ul>
+<h2 id="faq"><a class="toclink" href="#faq">FAQ</a></h2>
+<h3 id="how-do-i-check-if-a-jled-object-is-still-being-updated"><a class="toclink" href="#how-do-i-check-if-a-jled-object-is-still-being-updated">How do I check if a JLed object is still being updated?</a></h3>
+<ul>
+<li>Check the return value of the <code>JLed::Update</code> method: the method returns <code>true</code> if
+  the effect is still running, otherwise <code>false</code>.</li>
+<li>The <code>JLed::IsRunning</code> method returns <code>true</code> if an effect is running, else <code>false</code>.</li>
+</ul>
+<h3 id="how-do-i-restart-an-effect"><a class="toclink" href="#how-do-i-restart-an-effect">How do I restart an effect?</a></h3>
+<p>Call <code>Reset()</code> on a <code>JLed</code> object to start over.</p>
+<h3 id="how-do-i-change-a-running-effect"><a class="toclink" href="#how-do-i-change-a-running-effect">How do I change a running effect?</a></h3>
+<p>Just 'reconfigure' the <code>JLed</code> with any of the effect methods (e.g. <code>FadeOn</code>,
+<code>Breathe</code>, <code>Blink</code> etc). Time-wise, the effect will start over.</p>
+<h2 id="author-and-copyright"><a class="toclink" href="#author-and-copyright">Author and Copyright</a></h2>
+<p>Copyright 2017-2022 by Jan Delgado, jdelgado[at]gmx.net.</p>
+<h2 id="license"><a class="toclink" href="#license">License</a></h2>
+<p><a href="LICENSE">MIT</a></p>
+    </div>
+
+    <script>
+        function switchVersion(version) {
+            const base = window.location.pathname.includes('/jled/') ? '/jled/' : '/';
+            window.location.href = base + version + '/';
+        }
+    </script>
+</body>
+</html>

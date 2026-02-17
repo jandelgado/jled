@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>raspi_pico - JLed Examples - v4.12.2</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: #24292f;
+            display: flex;
+        }
+
+        .sidebar {
+            width: 220px;
+            flex-shrink: 0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            padding: 16px;
+            background: #f6f8fa;
+            border-right: 1px solid #d0d7de;
+            font-size: 14px;
+        }
+
+        .content {
+            margin-left: 220px;
+            padding: 32px 40px;
+            max-width: 900px;
+            min-width: 0;
+        }
+
+        select { width: 100%; margin-bottom: 16px; padding: 4px; }
+
+        nav { margin-bottom: 16px; }
+        nav h3 { font-size: 11px; font-weight: 600; text-transform: uppercase; color: #57606a; margin: 16px 0 4px; }
+        nav ul { list-style: none; margin: 0; padding: 0; }
+        nav li { margin: 2px 0; }
+
+        a { color: #0969da; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        /* GitHub README content styles (for README section) */
+        .readme h1, .readme h2 { border-bottom: 1px solid #d0d7de; padding-bottom: .3em; }
+        .readme h1 { font-size: 2em; }
+        .readme h2 { font-size: 1.5em; }
+        .readme h3 { font-size: 1.25em; }
+        .readme h1, .readme h2, .readme h3, .readme h4 { margin: 24px 0 16px; font-weight: 600; }
+        .readme p, .readme ul, .readme ol { margin: 0 0 16px; }
+        .readme ul, .readme ol { padding-left: 2em; }
+        .readme li > ul, .readme li > ol { margin: 0; }
+        .readme img { max-width: 100%; height: auto; }
+        .readme code { background: rgba(175,184,193,.2); padding: .2em .4em; border-radius: 3px; font: 85%/1 ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+        .readme pre { background: #f6f8fa; border-radius: 6px; padding: 16px; overflow-x: auto; margin: 0 0 16px; }
+        .readme pre code { background: none; padding: 0; font-size: 100%; }
+        .readme blockquote { border-left: 4px solid #d0d7de; padding: 0 1em; color: #57606a; margin: 0 0 16px; }
+        .readme table { border-collapse: collapse; width: 100%; margin: 0 0 16px; }
+        .readme th, .readme td { border: 1px solid #d0d7de; padding: 6px 13px; }
+        .readme th { background: #f6f8fa; font-weight: 600; }
+        .readme { margin-bottom: 32px; padding-bottom: 32px; border-bottom: 1px solid #d0d7de; }
+
+        h1 { font-size: 1.8em; font-weight: 600; margin: 0 0 24px; padding-bottom: .3em; border-bottom: 1px solid #d0d7de; }
+
+        .files-list { margin-bottom: 32px; }
+        .files-list h2 { font-size: 1em; font-weight: 600; margin: 0 0 8px; color: #57606a; text-transform: uppercase; font-size: 11px; letter-spacing: .5px; }
+        .files-list ul { list-style: none; margin: 0; padding: 0; }
+        .files-list li { margin: 2px 0; }
+        .files-list a { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 14px; }
+
+        .file-section { margin-bottom: 32px; }
+        .file-header { background: #f6f8fa; border: 1px solid #d0d7de; border-bottom: none; border-radius: 6px 6px 0 0; padding: 8px 16px; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 13px; font-weight: 600; }
+        .file-content { border: 1px solid #d0d7de; border-radius: 0 0 6px 6px; overflow-x: auto; }
+        .file-content .highlight { margin: 0; }
+        .file-content pre { margin: 0; padding: 16px; background: #fff; overflow-x: auto; font: 12px/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+
+        /* Pygments syntax highlighting */
+        .highlight .c, .highlight .cm, .highlight .c1, .highlight .cs { color: #6e7781; font-style: italic }
+        .highlight .cp { color: #6e7781 }
+        .highlight .k, .highlight .kd, .highlight .kr, .highlight .kt { color: #cf222e }
+        .highlight .kc, .highlight .nb, .highlight .no, .highlight .nc { color: #0550ae }
+        .highlight .nf, .highlight .nd { color: #8250df }
+        .highlight .nt { color: #116329 }
+        .highlight .na { color: #0550ae }
+        .highlight .s, .highlight .s1, .highlight .s2, .highlight .sb, .highlight .sc,
+        .highlight .sd, .highlight .se, .highlight .sh, .highlight .si, .highlight .sx,
+        .highlight .sr, .highlight .ss { color: #0a3069 }
+        .highlight .m, .highlight .mf, .highlight .mh, .highlight .mi, .highlight .mo,
+        .highlight .il { color: #0550ae }
+        .highlight .o, .highlight .ow { font-weight: bold }
+        .highlight .err { color: #82071e; background: #ffebe9 }
+        .highlight .nv, .highlight .vc, .highlight .vg, .highlight .vi { color: #953800 }
+        .highlight .gd { color: #82071e; background: #ffebe9 }
+        .highlight .gi { color: #116329; background: #dafbe1 }
+
+        @media (max-width: 700px) {
+            body { flex-direction: column; }
+            .sidebar { position: static; width: 100%; height: auto; border-right: none; border-bottom: 1px solid #d0d7de; }
+            .content { margin-left: 0; padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <select onchange="window.location.href='../../' + this.value + '/examples/raspi_pico/'">
+            
+            <option value="master" >
+                master
+            </option>
+            
+            <option value="v4.15.0" >
+                v4.15.0 (latest)
+            </option>
+            
+            <option value="v4.13.1" >
+                v4.13.1
+            </option>
+            
+            <option value="v4.13.0" >
+                v4.13.0
+            </option>
+            
+            <option value="v4.12.2" selected>
+                v4.12.2
+            </option>
+            
+            <option value="v4.12.1" >
+                v4.12.1
+            </option>
+            
+            <option value="v4.12.0" >
+                v4.12.0
+            </option>
+            
+            <option value="v4.11.0" >
+                v4.11.0
+            </option>
+            
+            <option value="v4.10.0" >
+                v4.10.0
+            </option>
+            
+            <option value="v4.9.0" >
+                v4.9.0
+            </option>
+            
+            <option value="v4.8.0" >
+                v4.8.0
+            </option>
+            
+            <option value="v4.7.1" >
+                v4.7.1
+            </option>
+            
+            <option value="v4.1.0" >
+                v4.1.0
+            </option>
+            
+            <option value="v4.0.0" >
+                v4.0.0
+            </option>
+            
+            <option value="v3.0.0" >
+                v3.0.0
+            </option>
+            
+            <option value="v2.4.0" >
+                v2.4.0
+            </option>
+            
+            <option value="v2.3.0" >
+                v2.3.0
+            </option>
+            
+            <option value="v2.2.3" >
+                v2.2.3
+            </option>
+            
+            <option value="v2.2.2" >
+                v2.2.2
+            </option>
+            
+            <option value="v2.2.1" >
+                v2.2.1
+            </option>
+            
+            <option value="v2.2.0" >
+                v2.2.0
+            </option>
+            
+            <option value="v2.1.0" >
+                v2.1.0
+            </option>
+            
+            <option value="v2.0.1" >
+                v2.0.1
+            </option>
+            
+            <option value="v1.1.0" >
+                v1.1.0
+            </option>
+            
+        </select>
+
+        <nav>
+            <h3>Navigation</h3>
+            <ul>
+                <li><a href="../../index.html">← Back to Docs</a></li>
+            </ul>
+        </nav>
+
+        
+        <nav>
+            <h3>Files</h3>
+            <ul>
+                
+                <li><a href="#pico-demo-cpp">pico_demo.cpp</a></li>
+                
+                <li><a href="#cmakelists-txt">CMakeLists.txt</a></li>
+                
+                <li><a href="#dockerfile">Dockerfile</a></li>
+                
+                <li><a href="#build-sh">build.sh</a></li>
+                
+                <li><a href="#pico-sdk-import-cmake">pico_sdk_import.cmake</a></li>
+                
+            </ul>
+        </nav>
+        
+    </div>
+
+    <div class="content">
+        <h1>raspi_pico</h1>
+
+        
+        <div class="readme"><h1>JLed for the Raspberry Pi Pico</h1>
+<p>This examples demonstrates how to use JLed on the Raspberry Pi Pico. The
+built-in LED (GPIO 25) and a LED on GPIO 16 will be faded.</p>
+<p>Also a Dockerfile is provided to enable a hassle-free build.</p>
+<!-- vim-markdown-toc GFM -->
+
+<ul>
+<li><a href="#building-the-demo">Building the demo</a><ul>
+<li><a href="#docker-build">Docker build</a></li>
+<li><a href="#local-build">Local build</a></li>
+</ul>
+</li>
+<li><a href="#deploy-the-sketch-to-the-raspberry-pi-pico">Deploy the sketch to the Raspberry Pi Pico</a></li>
+<li><a href="#author">Author</a></li>
+</ul>
+<!-- vim-markdown-toc -->
+<h2>Building the demo</h2>
+<p>You have two options to build the demo. Either use a docker image (recommended),
+or setup everything yourself (consult Pico Quickstart Guide).</p>
+<h3>Docker build</h3>
+<p>A <a href="Dockerfile">Dockerfile</a> and a <a href="build.sh">build-script</a> are provided to 
+enable a hassle-free build of the demo. The script will first build a 
+docker-image containing the build environment, then build the example.</p>
+<ul>
+<li>run <code>./build.sh docker-image</code> to build the docker image with the build
+  environment (compilers, pico SDK etc.) - only needed to run once (as long
+  as the Dockerfile is not changed).</li>
+<li>run <code>./build.sh compile</code> to compile the example. The resulting <code>pico_demo.uf2</code>
+  file to be uploaded will be found in this directory afterwards.</li>
+<li>run <code>./build.sh clean</code> to clean up all files created during a build.</li>
+</ul>
+<h3>Local build</h3>
+<p>You need the <a href="https://github.com/raspberrypi/pico-sdk">pico-sdk</a> and 
+necessary tools to compile everything installed.</p>
+<p>The <code>PICO_SDK_PATH</code> environment variable must point to the installation
+directory of the SDK.</p>
+<p>To compile the demo sketch, run <code>cmake . &amp;&amp; make</code>.  The resulting
+<code>pico_demo.uf2</code> file to be uploaded will be found in this directory afterwards.</p>
+<h2>Deploy the sketch to the Raspberry Pi Pico</h2>
+<p>To deploy the demo sketch <code>pico_demo.uf2</code>, press and hold <code>BOOTSEL</code> on the Pico
+and connect the Pico to your PC. The Pico will now be mounted as an external
+drive. Copy the file <code>pico_demo.uf2</code> to the mount point. The sketch should now
+start automatically.</p>
+<h2>Author</h2>
+<p>(c) Copyright 2021 by Jan Delgado, License: MIT</p></div>
+        
+
+        
+        <div class="files-list">
+            <h2>Files</h2>
+            <ul>
+                
+                <li><a href="#pico-demo-cpp">pico_demo.cpp</a></li>
+                
+                <li><a href="#cmakelists-txt">CMakeLists.txt</a></li>
+                
+                <li><a href="#dockerfile">Dockerfile</a></li>
+                
+                <li><a href="#build-sh">build.sh</a></li>
+                
+                <li><a href="#pico-sdk-import-cmake">pico_sdk_import.cmake</a></li>
+                
+            </ul>
+        </div>
+        
+
+        
+        <div class="file-section" id="pico-demo-cpp">
+            <div class="file-header">pico_demo.cpp</div>
+            <div class="file-content"><div class="highlight"><pre><span></span><span class="c1">// JLed demo for the Raspberry Pi Pico</span>
+<span class="c1">// Fade the built-in LED (GPIO 25) and a LED on GPIO 16.</span>
+<span class="c1">//</span>
+<span class="c1">// Copyright 2021 by Jan Delgado. All rights reserved.</span>
+<span class="c1">// https://github.com/jandelgado/jled</span>
+<span class="c1">//</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;pico/stdlib.h&quot;</span><span class="c1">    // NOLINT</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;jled.h&quot;</span><span class="c1">           // NOLINT</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">led1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLed</span><span class="p">(</span><span class="mi">25</span><span class="p">).</span><span class="n">FadeOff</span><span class="p">(</span><span class="mi">2000</span><span class="p">).</span><span class="n">DelayAfter</span><span class="p">(</span><span class="mi">1000</span><span class="p">).</span><span class="n">Forever</span><span class="p">();</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">led2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLed</span><span class="p">(</span><span class="mi">16</span><span class="p">).</span><span class="n">FadeOn</span><span class="p">(</span><span class="mi">2000</span><span class="p">).</span><span class="n">DelayAfter</span><span class="p">(</span><span class="mi">1000</span><span class="p">).</span><span class="n">Forever</span><span class="p">();</span>
+
+<span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="nb">true</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">led1</span><span class="p">.</span><span class="n">Update</span><span class="p">();</span>
+<span class="w">        </span><span class="n">led2</span><span class="p">.</span><span class="n">Update</span><span class="p">();</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+        </div>
+        
+        <div class="file-section" id="cmakelists-txt">
+            <div class="file-header">CMakeLists.txt</div>
+            <div class="file-content"><div class="highlight"><pre><span></span><span class="nb">cmake_minimum_required</span><span class="p">(</span><span class="s">VERSION</span><span class="w"> </span><span class="s">3.13</span><span class="p">)</span>
+
+<span class="nb">set</span><span class="p">(</span><span class="s">CMAKE_C_STANDARD</span><span class="w"> </span><span class="s">11</span><span class="p">)</span>
+<span class="nb">set</span><span class="p">(</span><span class="s">CMAKE_CXX_STANDARD</span><span class="w"> </span><span class="s">17</span><span class="p">)</span>
+
+<span class="c"># Pull in Pico SDK (must be before project) - set PICO_SDK_PATH env var</span>
+<span class="nb">include</span><span class="p">(</span><span class="s">pico_sdk_import.cmake</span><span class="p">)</span>
+
+<span class="nb">project</span><span class="p">(</span><span class="s">pico_demo</span><span class="w"> </span><span class="s">C</span><span class="w"> </span><span class="s">CXX</span><span class="w"> </span><span class="s">ASM</span><span class="p">)</span>
+
+<span class="c"># Initialise the Pico SDK</span>
+<span class="nb">pico_sdk_init</span><span class="p">()</span>
+
+<span class="c"># Add executable. Default name is the project name, version 0.1</span>
+<span class="nb">add_executable</span><span class="p">(</span><span class="s">pico_demo</span><span class="w"> </span><span class="s">pico_demo.cpp</span><span class="w"> </span><span class="p">)</span>
+<span class="nb">pico_set_program_name</span><span class="p">(</span><span class="s">pico_demo</span><span class="w"> </span><span class="s2">&quot;pico_demo&quot;</span><span class="p">)</span>
+<span class="nb">pico_set_program_version</span><span class="p">(</span><span class="s">pico_demo</span><span class="w"> </span><span class="s2">&quot;0.1&quot;</span><span class="p">)</span>
+
+<span class="nb">pico_enable_stdio_uart</span><span class="p">(</span><span class="s">pico_demo</span><span class="w"> </span><span class="s">1</span><span class="p">)</span>
+<span class="nb">pico_enable_stdio_usb</span><span class="p">(</span><span class="s">pico_demo</span><span class="w"> </span><span class="s">0</span><span class="p">)</span>
+
+<span class="c"># Add the standard library to the build</span>
+<span class="nb">target_link_libraries</span><span class="p">(</span><span class="s">pico_demo</span><span class="w"> </span><span class="s">pico_stdlib</span><span class="w"> </span><span class="s">hardware_pwm</span><span class="w"> </span><span class="s">JLed</span><span class="p">)</span>
+
+<span class="nb">pico_add_extra_outputs</span><span class="p">(</span><span class="s">pico_demo</span><span class="p">)</span>
+
+<span class="nb">include_directories</span><span class="p">(</span><span class="o">${</span><span class="nv">CMAKE_CURRENT_SOURCE_DIR</span><span class="o">}</span><span class="s">/../..src</span><span class="p">)</span>
+<span class="nb">add_subdirectory</span><span class="p">(</span><span class="o">${</span><span class="nv">CMAKE_CURRENT_SOURCE_DIR</span><span class="o">}</span><span class="s">/../..</span><span class="w"> </span><span class="s">build</span><span class="p">)</span>
+</pre></div>
+</div>
+        </div>
+        
+        <div class="file-section" id="dockerfile">
+            <div class="file-header">Dockerfile</div>
+            <div class="file-content"><div class="highlight"><pre><span></span><span class="c"># A minimal dockerfile to provide a build environment to compile the JLed</span>
+<span class="c"># raspberry pi pico JLed in a docker container. </span>
+<span class="k">FROM</span><span class="w"> </span><span class="s">ubuntu:20.04</span>
+
+<span class="k">LABEL</span><span class="w"> </span><span class="k">MAINTAINER</span><span class="w"> </span><span class="s">&quot;Jan Delgado &lt;jdelgado@gmx.net&gt;&quot;</span>
+
+<span class="k">ARG</span><span class="w"> </span><span class="nv">TZ</span><span class="o">=</span>Europe/Berlin
+<span class="k">ENV</span><span class="w"> </span><span class="nv">DEBIAN_FRONTEND</span><span class="o">=</span>noninteractive
+
+<span class="k">RUN</span><span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="si">${</span><span class="nv">TZ</span><span class="si">}</span><span class="w"> </span>&gt;<span class="w"> </span>/etc/timezone<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>rm<span class="w"> </span>-f<span class="w"> </span>/etc/localtime<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="o">&amp;&amp;</span><span class="w"> </span>cat<span class="w"> </span>/etc/timezone<span class="se">\</span>
+<span class="w">    </span><span class="o">&amp;&amp;</span><span class="w"> </span>apt-get<span class="w"> </span>update<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="o">&amp;&amp;</span><span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>git<span class="w"> </span>cmake<span class="w"> </span>gcc-arm-none-eabi<span class="w"> </span>libnewlib-arm-none-eabi<span class="w"> </span><span class="se">\</span>
+<span class="w">                          </span>build-essential<span class="w"> </span>vim<span class="w"> </span>python3<span class="w"> </span>python3-pip
+
+<span class="k">RUN</span><span class="w"> </span>mkdir<span class="w"> </span>/pico
+<span class="k">WORKDIR</span><span class="w"> </span><span class="s">/pico</span>
+
+<span class="c"># install SDK</span>
+<span class="k">RUN</span><span class="w">    </span>git<span class="w"> </span>clone<span class="w"> </span>--depth<span class="o">=</span><span class="m">1</span><span class="w"> </span>-b<span class="w"> </span>master<span class="w"> </span>https://github.com/raspberrypi/pico-sdk.git<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>pico-sdk<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>git<span class="w"> </span>submodule<span class="w"> </span>update<span class="w"> </span>--init<span class="w"> </span>
+
+<span class="k">ENV</span><span class="w"> </span><span class="nv">PICO_SDK_PATH</span><span class="o">=</span>/pico/pico-sdk
+</pre></div>
+</div>
+        </div>
+        
+        <div class="file-section" id="build-sh">
+            <div class="file-header">build.sh</div>
+            <div class="file-content"><div class="highlight"><pre><span></span><span class="ch">#!/bin/bash</span>
+<span class="c1"># build the raspberry pi pico JLed example using a docker container.</span>
+<span class="c1"># Run &quot;./build.sh docker-image&quot; first to build the docker-image,</span>
+<span class="c1"># then run &quot;./build.sh compile&quot; to compile the example.</span>
+<span class="c1">#</span>
+<span class="c1"># Jan Delgado 02/2021</span>
+<span class="nb">set</span><span class="w"> </span>-eou<span class="w"> </span>pipefail
+
+usage<span class="o">()</span><span class="w"> </span><span class="o">{</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$0</span><span class="s2">: &lt;docker-image|compile|shell|clean&gt;&quot;</span>
+<span class="o">}</span>
+
+build_image<span class="o">()</span><span class="w"> </span><span class="o">{</span>
+<span class="w">    </span>docker<span class="w"> </span>build<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--build-arg<span class="o">=</span><span class="s2">&quot;TZ=</span><span class="k">$(</span>timedatectl<span class="w"> </span>show<span class="w"> </span>-p<span class="w"> </span>Timezone<span class="w"> </span>--value<span class="k">)</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>-t<span class="w"> </span>picosdk:latest<span class="w"> </span>.
+<span class="o">}</span>
+
+run_cmd<span class="o">()</span><span class="w"> </span><span class="o">{</span>
+<span class="w">    </span>docker<span class="w"> </span>run<span class="w"> </span>-ti<span class="w"> </span>--rm<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--user<span class="o">=</span><span class="s2">&quot;</span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span><span class="s2">:</span><span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>-v<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">/../..:/src:z&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>picosdk:latest<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$@</span><span class="s2">&quot;</span>
+<span class="o">}</span>
+
+main<span class="o">()</span><span class="w"> </span><span class="o">{</span>
+<span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="nv">$action</span><span class="w"> </span><span class="k">in</span>
+<span class="w">        </span>docker-image<span class="o">)</span><span class="w"> </span>build_image<span class="w"> </span><span class="p">;;</span>
+<span class="w">        </span>compile<span class="o">)</span>
+<span class="w">            </span>run_cmd<span class="w"> </span>sh<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;cd /src/examples/raspi_pico &amp;&amp; cmake . &amp;&amp; make&quot;</span>
+<span class="w">            </span><span class="nb">local</span><span class="w"> </span>-r<span class="w"> </span><span class="nv">line</span><span class="o">=</span><span class="k">$(</span><span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;=%.0s&#39;</span><span class="w"> </span><span class="o">{</span><span class="m">1</span>..75<span class="o">}</span><span class="k">)</span>
+<span class="w">            </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$line</span><span class="s2">&quot;</span>
+<span class="w">            </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;BUILD SUCCESSFUL.&quot;</span>
+<span class="w">            </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Now upload the file pico_demo.uf2 to your Pico manually.&quot;</span>
+<span class="w">            </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$line</span><span class="s2">&quot;</span>
+<span class="w">            </span><span class="p">;;</span>
+<span class="w">        </span>shell<span class="o">)</span><span class="w"> </span>run_cmd<span class="w"> </span>bash<span class="w"> </span><span class="p">;;</span>
+<span class="w">        </span>clean<span class="o">)</span><span class="w"> </span>git<span class="w"> </span>clean<span class="w"> </span>-d<span class="w"> </span>-x<span class="w"> </span>-f<span class="w"> </span><span class="p">;;</span>
+<span class="w">        </span>*<span class="o">)</span><span class="w"> </span>usage<span class="w"> </span><span class="p">;;</span>
+<span class="w">    </span><span class="k">esac</span>
+<span class="o">}</span>
+
+<span class="nv">action</span><span class="o">=</span><span class="si">${</span><span class="nv">1</span><span class="k">:-</span><span class="s2">&quot;&quot;</span><span class="si">}</span>
+main<span class="w"> </span>action
+</pre></div>
+</div>
+        </div>
+        
+        <div class="file-section" id="pico-sdk-import-cmake">
+            <div class="file-header">pico_sdk_import.cmake</div>
+            <div class="file-content"><div class="highlight"><pre><span></span><span class="c"># This is a copy of &lt;PICO_SDK_PATH&gt;/external/pico_sdk_import.cmake</span>
+
+<span class="c"># This can be dropped into an external project to help locate this SDK</span>
+<span class="c"># It should be include()ed prior to project()</span>
+
+<span class="nb">if</span><span class="w"> </span><span class="p">(</span><span class="s">DEFINED</span><span class="w"> </span><span class="s">ENV{PICO_SDK_PATH}</span><span class="w"> </span><span class="s">AND</span><span class="w"> </span><span class="p">(</span><span class="s">NOT</span><span class="w"> </span><span class="s">PICO_SDK_PATH</span><span class="p">))</span>
+<span class="w">    </span><span class="nb">set</span><span class="p">(</span><span class="s">PICO_SDK_PATH</span><span class="w"> </span><span class="o">$ENV{</span><span class="nv">PICO_SDK_PATH</span><span class="o">}</span><span class="p">)</span>
+<span class="w">    </span><span class="nb">message</span><span class="p">(</span><span class="s2">&quot;Using PICO_SDK_PATH from environment (&#39;${PICO_SDK_PATH}&#39;)&quot;</span><span class="p">)</span>
+<span class="nb">endif</span><span class="w"> </span><span class="p">()</span>
+
+<span class="nb">if</span><span class="w"> </span><span class="p">(</span><span class="s">DEFINED</span><span class="w"> </span><span class="s">ENV{PICO_SDK_FETCH_FROM_GIT}</span><span class="w"> </span><span class="s">AND</span><span class="w"> </span><span class="p">(</span><span class="s">NOT</span><span class="w"> </span><span class="s">PICO_SDK_FETCH_FROM_GIT</span><span class="p">))</span>
+<span class="w">    </span><span class="nb">set</span><span class="p">(</span><span class="s">PICO_SDK_FETCH_FROM_GIT</span><span class="w"> </span><span class="o">$ENV{</span><span class="nv">PICO_SDK_FETCH_FROM_GIT</span><span class="o">}</span><span class="p">)</span>
+<span class="w">    </span><span class="nb">message</span><span class="p">(</span><span class="s2">&quot;Using PICO_SDK_FETCH_FROM_GIT from environment (&#39;${PICO_SDK_FETCH_FROM_GIT}&#39;)&quot;</span><span class="p">)</span>
+<span class="nb">endif</span><span class="w"> </span><span class="p">()</span>
+
+<span class="nb">if</span><span class="w"> </span><span class="p">(</span><span class="s">DEFINED</span><span class="w"> </span><span class="s">ENV{PICO_SDK_FETCH_FROM_GIT_PATH}</span><span class="w"> </span><span class="s">AND</span><span class="w"> </span><span class="p">(</span><span class="s">NOT</span><span class="w"> </span><span class="s">PICO_SDK_FETCH_FROM_GIT_PATH</span><span class="p">))</span>
+<span class="w">    </span><span class="nb">set</span><span class="p">(</span><span class="s">PICO_SDK_FETCH_FROM_GIT_PATH</span><span class="w"> </span><span class="o">$ENV{</span><span class="nv">PICO_SDK_FETCH_FROM_GIT_PATH</span><span class="o">}</span><span class="p">)</span>
+<span class="w">    </span><span class="nb">message</span><span class="p">(</span><span class="s2">&quot;Using PICO_SDK_FETCH_FROM_GIT_PATH from environment (&#39;${PICO_SDK_FETCH_FROM_GIT_PATH}&#39;)&quot;</span><span class="p">)</span>
+<span class="nb">endif</span><span class="w"> </span><span class="p">()</span>
+
+<span class="nb">set</span><span class="p">(</span><span class="s">PICO_SDK_PATH</span><span class="w"> </span><span class="s2">&quot;${PICO_SDK_PATH}&quot;</span><span class="w"> </span><span class="s">CACHE</span><span class="w"> </span><span class="s">PATH</span><span class="w"> </span><span class="s2">&quot;Path to the Raspberry Pi Pico SDK&quot;</span><span class="p">)</span>
+<span class="nb">set</span><span class="p">(</span><span class="s">PICO_SDK_FETCH_FROM_GIT</span><span class="w"> </span><span class="s2">&quot;${PICO_SDK_FETCH_FROM_GIT}&quot;</span><span class="w"> </span><span class="s">CACHE</span><span class="w"> </span><span class="s">BOOL</span><span class="w"> </span><span class="s2">&quot;Set to ON to fetch copy of SDK from git if not otherwise locatable&quot;</span><span class="p">)</span>
+<span class="nb">set</span><span class="p">(</span><span class="s">PICO_SDK_FETCH_FROM_GIT_PATH</span><span class="w"> </span><span class="s2">&quot;${PICO_SDK_FETCH_FROM_GIT_PATH}&quot;</span><span class="w"> </span><span class="s">CACHE</span><span class="w"> </span><span class="s">FILEPATH</span><span class="w"> </span><span class="s2">&quot;location to download SDK&quot;</span><span class="p">)</span>
+
+<span class="nb">if</span><span class="w"> </span><span class="p">(</span><span class="s">NOT</span><span class="w"> </span><span class="s">PICO_SDK_PATH</span><span class="p">)</span>
+<span class="w">    </span><span class="nb">if</span><span class="w"> </span><span class="p">(</span><span class="s">PICO_SDK_FETCH_FROM_GIT</span><span class="p">)</span>
+<span class="w">        </span><span class="nb">include</span><span class="p">(</span><span class="s">FetchContent</span><span class="p">)</span>
+<span class="w">        </span><span class="nb">set</span><span class="p">(</span><span class="s">FETCHCONTENT_BASE_DIR_SAVE</span><span class="w"> </span><span class="o">${</span><span class="nv">FETCHCONTENT_BASE_DIR</span><span class="o">}</span><span class="p">)</span>
+<span class="w">        </span><span class="nb">if</span><span class="w"> </span><span class="p">(</span><span class="s">PICO_SDK_FETCH_FROM_GIT_PATH</span><span class="p">)</span>
+<span class="w">            </span><span class="nb">get_filename_component</span><span class="p">(</span><span class="s">FETCHCONTENT_BASE_DIR</span><span class="w"> </span><span class="s2">&quot;${PICO_SDK_FETCH_FROM_GIT_PATH}&quot;</span><span class="w"> </span><span class="s">REALPATH</span><span class="w"> </span><span class="s">BASE_DIR</span><span class="w"> </span><span class="s2">&quot;${CMAKE_SOURCE_DIR}&quot;</span><span class="p">)</span>
+<span class="w">        </span><span class="nb">endif</span><span class="w"> </span><span class="p">()</span>
+<span class="w">        </span><span class="nb">FetchContent_Declare</span><span class="p">(</span>
+<span class="w">                </span><span class="s">pico_sdk</span>
+<span class="w">                </span><span class="s">GIT_REPOSITORY</span><span class="w"> </span><span class="s">https://github.com/raspberrypi/pico-sdk</span>
+<span class="w">                </span><span class="s">GIT_TAG</span><span class="w"> </span><span class="s">master</span>
+<span class="w">        </span><span class="p">)</span>
+<span class="w">        </span><span class="nb">if</span><span class="w"> </span><span class="p">(</span><span class="s">NOT</span><span class="w"> </span><span class="s">pico_sdk</span><span class="p">)</span>
+<span class="w">            </span><span class="nb">message</span><span class="p">(</span><span class="s2">&quot;Downloading Raspberry Pi Pico SDK&quot;</span><span class="p">)</span>
+<span class="w">            </span><span class="nb">FetchContent_Populate</span><span class="p">(</span><span class="s">pico_sdk</span><span class="p">)</span>
+<span class="w">            </span><span class="nb">set</span><span class="p">(</span><span class="s">PICO_SDK_PATH</span><span class="w"> </span><span class="o">${</span><span class="nv">pico_sdk_SOURCE_DIR</span><span class="o">}</span><span class="p">)</span>
+<span class="w">        </span><span class="nb">endif</span><span class="w"> </span><span class="p">()</span>
+<span class="w">        </span><span class="nb">set</span><span class="p">(</span><span class="s">FETCHCONTENT_BASE_DIR</span><span class="w"> </span><span class="o">${</span><span class="nv">FETCHCONTENT_BASE_DIR_SAVE</span><span class="o">}</span><span class="p">)</span>
+<span class="w">    </span><span class="nb">else</span><span class="w"> </span><span class="p">()</span>
+<span class="w">        </span><span class="nb">message</span><span class="p">(</span><span class="s">FATAL_ERROR</span>
+<span class="w">                </span><span class="s2">&quot;SDK location was not specified. Please set PICO_SDK_PATH or set PICO_SDK_FETCH_FROM_GIT to on to fetch from git.&quot;</span>
+<span class="w">                </span><span class="p">)</span>
+<span class="w">    </span><span class="nb">endif</span><span class="w"> </span><span class="p">()</span>
+<span class="nb">endif</span><span class="w"> </span><span class="p">()</span>
+
+<span class="nb">get_filename_component</span><span class="p">(</span><span class="s">PICO_SDK_PATH</span><span class="w"> </span><span class="s2">&quot;${PICO_SDK_PATH}&quot;</span><span class="w"> </span><span class="s">REALPATH</span><span class="w"> </span><span class="s">BASE_DIR</span><span class="w"> </span><span class="s2">&quot;${CMAKE_BINARY_DIR}&quot;</span><span class="p">)</span>
+<span class="nb">if</span><span class="w"> </span><span class="p">(</span><span class="s">NOT</span><span class="w"> </span><span class="s">EXISTS</span><span class="w"> </span><span class="o">${</span><span class="nv">PICO_SDK_PATH</span><span class="o">}</span><span class="p">)</span>
+<span class="w">    </span><span class="nb">message</span><span class="p">(</span><span class="s">FATAL_ERROR</span><span class="w"> </span><span class="s2">&quot;Directory &#39;${PICO_SDK_PATH}&#39; not found&quot;</span><span class="p">)</span>
+<span class="nb">endif</span><span class="w"> </span><span class="p">()</span>
+
+<span class="nb">set</span><span class="p">(</span><span class="s">PICO_SDK_INIT_CMAKE_FILE</span><span class="w"> </span><span class="o">${</span><span class="nv">PICO_SDK_PATH</span><span class="o">}</span><span class="s">/pico_sdk_init.cmake</span><span class="p">)</span>
+<span class="nb">if</span><span class="w"> </span><span class="p">(</span><span class="s">NOT</span><span class="w"> </span><span class="s">EXISTS</span><span class="w"> </span><span class="o">${</span><span class="nv">PICO_SDK_INIT_CMAKE_FILE</span><span class="o">}</span><span class="p">)</span>
+<span class="w">    </span><span class="nb">message</span><span class="p">(</span><span class="s">FATAL_ERROR</span><span class="w"> </span><span class="s2">&quot;Directory &#39;${PICO_SDK_PATH}&#39; does not appear to contain the Raspberry Pi Pico SDK&quot;</span><span class="p">)</span>
+<span class="nb">endif</span><span class="w"> </span><span class="p">()</span>
+
+<span class="nb">set</span><span class="p">(</span><span class="s">PICO_SDK_PATH</span><span class="w"> </span><span class="o">${</span><span class="nv">PICO_SDK_PATH</span><span class="o">}</span><span class="w"> </span><span class="s">CACHE</span><span class="w"> </span><span class="s">PATH</span><span class="w"> </span><span class="s2">&quot;Path to the Raspberry Pi Pico SDK&quot;</span><span class="w"> </span><span class="s">FORCE</span><span class="p">)</span>
+
+<span class="nb">include</span><span class="p">(</span><span class="o">${</span><span class="nv">PICO_SDK_INIT_CMAKE_FILE</span><span class="o">}</span><span class="p">)</span>
+</pre></div>
+</div>
+        </div>
+        
+    </div>
+</body>
+</html>

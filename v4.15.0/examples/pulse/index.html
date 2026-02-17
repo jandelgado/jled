@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>pulse - JLed Examples - v4.15.0</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: #24292f;
+            display: flex;
+        }
+
+        .sidebar {
+            width: 220px;
+            flex-shrink: 0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            padding: 16px;
+            background: #f6f8fa;
+            border-right: 1px solid #d0d7de;
+            font-size: 14px;
+        }
+
+        .content {
+            margin-left: 220px;
+            padding: 32px 40px;
+            max-width: 900px;
+            min-width: 0;
+        }
+
+        select { width: 100%; margin-bottom: 16px; padding: 4px; }
+
+        nav { margin-bottom: 16px; }
+        nav h3 { font-size: 11px; font-weight: 600; text-transform: uppercase; color: #57606a; margin: 16px 0 4px; }
+        nav ul { list-style: none; margin: 0; padding: 0; }
+        nav li { margin: 2px 0; }
+
+        a { color: #0969da; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        /* GitHub README content styles (for README section) */
+        .readme h1, .readme h2 { border-bottom: 1px solid #d0d7de; padding-bottom: .3em; }
+        .readme h1 { font-size: 2em; }
+        .readme h2 { font-size: 1.5em; }
+        .readme h3 { font-size: 1.25em; }
+        .readme h1, .readme h2, .readme h3, .readme h4 { margin: 24px 0 16px; font-weight: 600; }
+        .readme p, .readme ul, .readme ol { margin: 0 0 16px; }
+        .readme ul, .readme ol { padding-left: 2em; }
+        .readme li > ul, .readme li > ol { margin: 0; }
+        .readme img { max-width: 100%; height: auto; }
+        .readme code { background: rgba(175,184,193,.2); padding: .2em .4em; border-radius: 3px; font: 85%/1 ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+        .readme pre { background: #f6f8fa; border-radius: 6px; padding: 16px; overflow-x: auto; margin: 0 0 16px; }
+        .readme pre code { background: none; padding: 0; font-size: 100%; }
+        .readme blockquote { border-left: 4px solid #d0d7de; padding: 0 1em; color: #57606a; margin: 0 0 16px; }
+        .readme table { border-collapse: collapse; width: 100%; margin: 0 0 16px; }
+        .readme th, .readme td { border: 1px solid #d0d7de; padding: 6px 13px; }
+        .readme th { background: #f6f8fa; font-weight: 600; }
+        .readme { margin-bottom: 32px; padding-bottom: 32px; border-bottom: 1px solid #d0d7de; }
+
+        h1 { font-size: 1.8em; font-weight: 600; margin: 0 0 24px; padding-bottom: .3em; border-bottom: 1px solid #d0d7de; }
+
+        .files-list { margin-bottom: 32px; }
+        .files-list h2 { font-size: 1em; font-weight: 600; margin: 0 0 8px; color: #57606a; text-transform: uppercase; font-size: 11px; letter-spacing: .5px; }
+        .files-list ul { list-style: none; margin: 0; padding: 0; }
+        .files-list li { margin: 2px 0; }
+        .files-list a { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 14px; }
+
+        .file-section { margin-bottom: 32px; }
+        .file-header { background: #f6f8fa; border: 1px solid #d0d7de; border-bottom: none; border-radius: 6px 6px 0 0; padding: 8px 16px; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 13px; font-weight: 600; }
+        .file-content { border: 1px solid #d0d7de; border-radius: 0 0 6px 6px; overflow-x: auto; }
+        .file-content .highlight { margin: 0; }
+        .file-content pre { margin: 0; padding: 16px; background: #fff; overflow-x: auto; font: 12px/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+
+        /* Pygments syntax highlighting */
+        .highlight .c, .highlight .cm, .highlight .c1, .highlight .cs { color: #6e7781; font-style: italic }
+        .highlight .cp { color: #6e7781 }
+        .highlight .k, .highlight .kd, .highlight .kr, .highlight .kt { color: #cf222e }
+        .highlight .kc, .highlight .nb, .highlight .no, .highlight .nc { color: #0550ae }
+        .highlight .nf, .highlight .nd { color: #8250df }
+        .highlight .nt { color: #116329 }
+        .highlight .na { color: #0550ae }
+        .highlight .s, .highlight .s1, .highlight .s2, .highlight .sb, .highlight .sc,
+        .highlight .sd, .highlight .se, .highlight .sh, .highlight .si, .highlight .sx,
+        .highlight .sr, .highlight .ss { color: #0a3069 }
+        .highlight .m, .highlight .mf, .highlight .mh, .highlight .mi, .highlight .mo,
+        .highlight .il { color: #0550ae }
+        .highlight .o, .highlight .ow { font-weight: bold }
+        .highlight .err { color: #82071e; background: #ffebe9 }
+        .highlight .nv, .highlight .vc, .highlight .vg, .highlight .vi { color: #953800 }
+        .highlight .gd { color: #82071e; background: #ffebe9 }
+        .highlight .gi { color: #116329; background: #dafbe1 }
+
+        @media (max-width: 700px) {
+            body { flex-direction: column; }
+            .sidebar { position: static; width: 100%; height: auto; border-right: none; border-bottom: 1px solid #d0d7de; }
+            .content { margin-left: 0; padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <select onchange="window.location.href='../../' + this.value + '/examples/pulse/'">
+            
+            <option value="master" >
+                master
+            </option>
+            
+            <option value="v4.15.0" selected>
+                v4.15.0 (latest)
+            </option>
+            
+            <option value="v4.13.1" >
+                v4.13.1
+            </option>
+            
+            <option value="v4.13.0" >
+                v4.13.0
+            </option>
+            
+            <option value="v4.12.2" >
+                v4.12.2
+            </option>
+            
+            <option value="v4.12.1" >
+                v4.12.1
+            </option>
+            
+            <option value="v4.12.0" >
+                v4.12.0
+            </option>
+            
+            <option value="v4.11.0" >
+                v4.11.0
+            </option>
+            
+            <option value="v4.10.0" >
+                v4.10.0
+            </option>
+            
+            <option value="v4.9.0" >
+                v4.9.0
+            </option>
+            
+            <option value="v4.8.0" >
+                v4.8.0
+            </option>
+            
+            <option value="v4.7.1" >
+                v4.7.1
+            </option>
+            
+            <option value="v4.1.0" >
+                v4.1.0
+            </option>
+            
+            <option value="v4.0.0" >
+                v4.0.0
+            </option>
+            
+            <option value="v3.0.0" >
+                v3.0.0
+            </option>
+            
+            <option value="v2.4.0" >
+                v2.4.0
+            </option>
+            
+            <option value="v2.3.0" >
+                v2.3.0
+            </option>
+            
+            <option value="v2.2.3" >
+                v2.2.3
+            </option>
+            
+            <option value="v2.2.2" >
+                v2.2.2
+            </option>
+            
+            <option value="v2.2.1" >
+                v2.2.1
+            </option>
+            
+            <option value="v2.2.0" >
+                v2.2.0
+            </option>
+            
+            <option value="v2.1.0" >
+                v2.1.0
+            </option>
+            
+            <option value="v2.0.1" >
+                v2.0.1
+            </option>
+            
+            <option value="v1.1.0" >
+                v1.1.0
+            </option>
+            
+        </select>
+
+        <nav>
+            <h3>Navigation</h3>
+            <ul>
+                <li><a href="../../index.html">← Back to Docs</a></li>
+            </ul>
+        </nav>
+
+        
+        <nav>
+            <h3>Files</h3>
+            <ul>
+                
+                <li><a href="#pulse-ino">pulse.ino</a></li>
+                
+            </ul>
+        </nav>
+        
+    </div>
+
+    <div class="content">
+        <h1>pulse</h1>
+
+        
+
+        
+        <div class="files-list">
+            <h2>Files</h2>
+            <ul>
+                
+                <li><a href="#pulse-ino">pulse.ino</a></li>
+                
+            </ul>
+        </div>
+        
+
+        
+        <div class="file-section" id="pulse-ino">
+            <div class="file-header">pulse.ino</div>
+            <div class="file-content"><div class="highlight"><pre><span></span><span class="c1">// JLed pulse demo.</span>
+<span class="c1">// Copyright 2022 by Jan Delgado. All rights reserved.</span>
+<span class="c1">// https://github.com/jandelgado/jled</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;jled.h&gt;</span>
+
+<span class="c1">// &quot;pulse&quot; LED on GPIO pin 5. The &quot;pulse&quot; is accomplished by setting</span>
+<span class="c1">// a minimal brightness so the LED will not be dark.</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">led</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLed</span><span class="p">(</span><span class="mi">5</span><span class="p">).</span><span class="n">Breathe</span><span class="p">(</span><span class="mi">2000</span><span class="p">).</span><span class="n">MinBrightness</span><span class="p">(</span><span class="mi">20</span><span class="p">).</span><span class="n">Forever</span><span class="p">().</span><span class="n">DelayAfter</span><span class="p">(</span><span class="mi">500</span><span class="p">);</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">setup</span><span class="p">()</span><span class="w"> </span><span class="p">{}</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">loop</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">led</span><span class="p">.</span><span class="n">Update</span><span class="p">();</span><span class="w"> </span><span class="p">}</span>
+</pre></div>
+</div>
+        </div>
+        
+    </div>
+</body>
+</html>
