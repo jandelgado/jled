@@ -2,7 +2,7 @@
 name: Deploy Documentation
 on:
   push:
-    branches: [master, create_doc_site]
+    branches: [master]
   workflow_dispatch:  # Allow manual triggering
 jobs:
   deploy-docs:
