@@ -5,313 +5,94 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JLed Documentation - {{ current_version }}</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        *, *::before, *::after { box-sizing: border-box; }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-            font-size: 16px;
-            line-height: 1.6;
-            color: #24292e;
+            margin: 0;
+            font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: #24292f;
             display: flex;
-            min-height: 100vh;
         }
 
         .sidebar {
-            width: 280px;
-            min-width: 280px;
-            background-color: #f6f8fa;
-            border-right: 1px solid #e1e4e8;
-            padding: 20px;
-            overflow-y: auto;
+            width: 220px;
+            flex-shrink: 0;
             position: fixed;
             height: 100vh;
+            overflow-y: auto;
+            padding: 16px;
+            background: #f6f8fa;
+            border-right: 1px solid #d0d7de;
+            font-size: 14px;
         }
 
         .content {
-            flex: 1;
-            padding: 40px;
-            margin-left: 280px;
-            max-width: 1200px;
+            margin-left: 220px;
+            padding: 32px 40px;
+            max-width: 900px;
+            min-width: 0;
         }
 
-        #version-selector {
-            width: 100%;
-            padding: 8px 12px;
-            font-size: 14px;
-            border: 1px solid #d1d5da;
-            border-radius: 6px;
-            background-color: white;
-            cursor: pointer;
-            margin-bottom: 24px;
-        }
+        select { width: 100%; margin-bottom: 16px; padding: 4px; }
 
-        #version-selector:focus {
-            outline: 2px solid #0969da;
-            outline-offset: 2px;
-        }
+        nav { margin-bottom: 16px; }
+        nav h3 { font-size: 11px; font-weight: 600; text-transform: uppercase; color: #57606a; margin: 16px 0 4px; }
+        nav ul { list-style: none; margin: 0; padding: 0; }
+        nav li { margin: 2px 0; }
+        nav li.nav-level-2 { padding-left: 12px; }
+        nav li.nav-level-3 { padding-left: 24px; font-size: 13px; }
 
-        .sidebar h3 {
-            font-size: 14px;
-            font-weight: 600;
-            color: #57606a;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
+        a { color: #0969da; text-decoration: none; }
+        a:hover { text-decoration: underline; }
 
-        .page-nav, .examples-nav {
-            margin-bottom: 32px;
-        }
+        /* GitHub README content styles */
+        .content h1, .content h2 { border-bottom: 1px solid #d0d7de; padding-bottom: .3em; }
+        .content h1 { font-size: 2em; }
+        .content h2 { font-size: 1.5em; }
+        .content h3 { font-size: 1.25em; }
+        .content h1, .content h2, .content h3, .content h4 { margin: 24px 0 16px; font-weight: 600; }
+        .content p, .content ul, .content ol { margin: 0 0 16px; }
+        .content ul, .content ol { padding-left: 2em; }
+        .content li > ul, .content li > ol { margin: 0; }
+        .content img { max-width: 100%; height: auto; }
+        .content code { background: rgba(175,184,193,.2); padding: .2em .4em; border-radius: 3px; font: 85%/1 ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+        .content pre { background: #f6f8fa; border-radius: 6px; padding: 16px; overflow-x: auto; margin: 0 0 16px; }
+        .content pre code { background: none; padding: 0; font-size: 100%; }
+        .content blockquote { border-left: 4px solid #d0d7de; padding: 0 1em; color: #57606a; margin: 0 0 16px; }
+        .content table { border-collapse: collapse; width: 100%; margin: 0 0 16px; }
+        .content th, .content td { border: 1px solid #d0d7de; padding: 6px 13px; }
+        .content th { background: #f6f8fa; font-weight: 600; }
+        .content hr { border: 0; border-top: 1px solid #d0d7de; margin: 24px 0; }
 
-        .page-nav ul, .examples-nav ul {
-            list-style: none;
-        }
+        /* Pygments syntax highlighting */
+        .highlight .c, .highlight .cm, .highlight .c1, .highlight .cs { color: #6e7781; font-style: italic }
+        .highlight .cp { color: #6e7781 }
+        .highlight .k, .highlight .kd, .highlight .kr, .highlight .kt { color: #cf222e }
+        .highlight .kc, .highlight .nb, .highlight .no, .highlight .nc { color: #0550ae }
+        .highlight .nf, .highlight .nd { color: #8250df }
+        .highlight .nt { color: #116329 }
+        .highlight .na { color: #0550ae }
+        .highlight .s, .highlight .s1, .highlight .s2, .highlight .sb, .highlight .sc,
+        .highlight .sd, .highlight .se, .highlight .sh, .highlight .si, .highlight .sx,
+        .highlight .sr, .highlight .ss { color: #0a3069 }
+        .highlight .m, .highlight .mf, .highlight .mh, .highlight .mi, .highlight .mo,
+        .highlight .il { color: #0550ae }
+        .highlight .o, .highlight .ow { font-weight: bold }
+        .highlight .err { color: #82071e; background: #ffebe9 }
+        .highlight .nv, .highlight .vc, .highlight .vg, .highlight .vi { color: #953800 }
+        .highlight .gd { color: #82071e; background: #ffebe9 }
+        .highlight .gi { color: #116329; background: #dafbe1 }
 
-        .page-nav li, .examples-nav li {
-            margin-bottom: 0;
-        }
-
-        .page-nav a, .examples-nav a {
-            color: #0969da;
-            text-decoration: none;
-            font-size: 14px;
-            display: block;
-            padding: 2px 0;
-        }
-
-        .page-nav a:hover, .examples-nav a:hover {
-            text-decoration: underline;
-        }
-
-        .nav-level-1 {
-            font-weight: 600;
-        }
-
-        .nav-level-2 {
-            padding-left: 12px;
-        }
-
-        .nav-level-3 {
-            padding-left: 24px;
-            font-size: 13px;
-        }
-
-        /* Content styling (GitHub-like) */
-        .content h1 {
-            font-size: 32px;
-            font-weight: 600;
-            border-bottom: 1px solid #e1e4e8;
-            padding-bottom: 8px;
-            margin-bottom: 16px;
-        }
-
-        .content h2 {
-            font-size: 24px;
-            font-weight: 600;
-            border-bottom: 1px solid #e1e4e8;
-            padding-bottom: 8px;
-            margin-top: 24px;
-            margin-bottom: 16px;
-        }
-
-        .content h3 {
-            font-size: 20px;
-            font-weight: 600;
-            margin-top: 24px;
-            margin-bottom: 16px;
-        }
-
-        .content h4 {
-            font-size: 16px;
-            font-weight: 600;
-            margin-top: 24px;
-            margin-bottom: 16px;
-        }
-
-        .content p {
-            margin-bottom: 16px;
-        }
-
-        .content ul, .content ol {
-            margin-bottom: 16px;
-            padding-left: 32px;
-        }
-
-        .content li {
-            margin-bottom: 0;
-            margin-top: 0.25em;
-        }
-
-        .content li:first-child {
-            margin-top: 0;
-        }
-
-        .content li > ul, .content li > ol {
-            margin-top: 0.25em;
-            margin-bottom: 0;
-        }
-
-        .content code {
-            background-color: rgba(175, 184, 193, 0.2);
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
-            font-size: 85%;
-        }
-
-        .content pre {
-            background-color: #f6f8fa;
-            border-radius: 6px;
-            padding: 16px;
-            overflow-x: auto;
-            margin-bottom: 16px;
-            line-height: 1.45;
-        }
-
-        .content pre code {
-            background-color: transparent;
-            padding: 0;
-            line-height: 1.45;
-        }
-
-        .content img {
-            max-width: 100%;
-            height: auto;
-            margin: 16px 0;
-        }
-
-        .content a {
-            color: #0969da;
-            text-decoration: none;
-        }
-
-        .content a:hover {
-            text-decoration: underline;
-        }
-
-        .content blockquote {
-            border-left: 4px solid #d1d5da;
-            padding-left: 16px;
-            color: #57606a;
-            margin-bottom: 16px;
-        }
-
-        .content table {
-            border-collapse: collapse;
-            width: 100%;
-            margin-bottom: 16px;
-        }
-
-        .content table th,
-        .content table td {
-            border: 1px solid #d1d5da;
-            padding: 8px 12px;
-            text-align: left;
-        }
-
-        .content table th {
-            background-color: #f6f8fa;
-            font-weight: 600;
-        }
-
-        .content hr {
-            border: 0;
-            border-top: 1px solid #e1e4e8;
-            margin: 24px 0;
-        }
-
-        /* Syntax highlighting for code blocks */
-        .highlight .hll { background-color: #ffffcc }
-        .highlight .c { color: #6a737d; font-style: italic } /* Comment */
-        .highlight .err { color: #a61717; background-color: #e3d2d2 } /* Error */
-        .highlight .k { color: #d73a49; font-weight: bold } /* Keyword */
-        .highlight .o { font-weight: bold } /* Operator */
-        .highlight .cm { color: #6a737d; font-style: italic } /* Comment.Multiline */
-        .highlight .cp { color: #999999; font-weight: bold } /* Comment.Preproc */
-        .highlight .c1 { color: #6a737d; font-style: italic } /* Comment.Single */
-        .highlight .cs { color: #999999; font-weight: bold; font-style: italic } /* Comment.Special */
-        .highlight .gd { color: #000000; background-color: #ffdddd } /* Generic.Deleted */
-        .highlight .ge { font-style: italic } /* Generic.Emph */
-        .highlight .gr { color: #aa0000 } /* Generic.Error */
-        .highlight .gh { color: #999999 } /* Generic.Heading */
-        .highlight .gi { color: #000000; background-color: #ddffdd } /* Generic.Inserted */
-        .highlight .go { color: #888888 } /* Generic.Output */
-        .highlight .gp { color: #555555 } /* Generic.Prompt */
-        .highlight .gs { font-weight: bold } /* Generic.Strong */
-        .highlight .gu { color: #aaaaaa } /* Generic.Subheading */
-        .highlight .gt { color: #aa0000 } /* Generic.Traceback */
-        .highlight .kc { color: #005cc5; font-weight: bold } /* Keyword.Constant */
-        .highlight .kd { color: #d73a49; font-weight: bold } /* Keyword.Declaration */
-        .highlight .kn { color: #d73a49; font-weight: bold } /* Keyword.Namespace */
-        .highlight .kp { color: #d73a49; font-weight: bold } /* Keyword.Pseudo */
-        .highlight .kr { color: #d73a49; font-weight: bold } /* Keyword.Reserved */
-        .highlight .kt { color: #d73a49; font-weight: bold } /* Keyword.Type */
-        .highlight .m { color: #005cc5 } /* Literal.Number */
-        .highlight .s { color: #032f62 } /* Literal.String */
-        .highlight .na { color: #008080 } /* Name.Attribute */
-        .highlight .nb { color: #005cc5 } /* Name.Builtin */
-        .highlight .nc { color: #445588; font-weight: bold } /* Name.Class */
-        .highlight .no { color: #008080 } /* Name.Constant */
-        .highlight .nd { color: #3c5d5d; font-weight: bold } /* Name.Decorator */
-        .highlight .ni { color: #800080 } /* Name.Entity */
-        .highlight .ne { color: #990000; font-weight: bold } /* Name.Exception */
-        .highlight .nf { color: #6f42c1; font-weight: bold } /* Name.Function */
-        .highlight .nl { color: #990000; font-weight: bold } /* Name.Label */
-        .highlight .nn { color: #555555 } /* Name.Namespace */
-        .highlight .nt { color: #22863a } /* Name.Tag */
-        .highlight .nv { color: #e36209 } /* Name.Variable */
-        .highlight .ow { font-weight: bold } /* Operator.Word */
-        .highlight .w { color: #bbbbbb } /* Text.Whitespace */
-        .highlight .mf { color: #005cc5 } /* Literal.Number.Float */
-        .highlight .mh { color: #005cc5 } /* Literal.Number.Hex */
-        .highlight .mi { color: #005cc5 } /* Literal.Number.Integer */
-        .highlight .mo { color: #005cc5 } /* Literal.Number.Oct */
-        .highlight .sb { color: #032f62 } /* Literal.String.Backtick */
-        .highlight .sc { color: #032f62 } /* Literal.String.Char */
-        .highlight .sd { color: #032f62 } /* Literal.String.Doc */
-        .highlight .s2 { color: #032f62 } /* Literal.String.Double */
-        .highlight .se { color: #032f62 } /* Literal.String.Escape */
-        .highlight .sh { color: #032f62 } /* Literal.String.Heredoc */
-        .highlight .si { color: #032f62 } /* Literal.String.Interpol */
-        .highlight .sx { color: #032f62 } /* Literal.String.Other */
-        .highlight .sr { color: #032f62 } /* Literal.String.Regex */
-        .highlight .s1 { color: #032f62 } /* Literal.String.Single */
-        .highlight .ss { color: #005cc5 } /* Literal.String.Symbol */
-        .highlight .bp { color: #999999 } /* Name.Builtin.Pseudo */
-        .highlight .vc { color: #e36209 } /* Name.Variable.Class */
-        .highlight .vg { color: #e36209 } /* Name.Variable.Global */
-        .highlight .vi { color: #e36209 } /* Name.Variable.Instance */
-        .highlight .il { color: #005cc5 } /* Literal.Number.Integer.Long */
-
-        /* Responsive design */
-        @media (max-width: 768px) {
-            body {
-                flex-direction: column;
-            }
-
-            .sidebar {
-                width: 100%;
-                min-width: 100%;
-                position: static;
-                height: auto;
-                border-right: none;
-                border-bottom: 1px solid #e1e4e8;
-            }
-
-            .content {
-                margin-left: 0;
-                padding: 20px;
-            }
+        @media (max-width: 700px) {
+            body { flex-direction: column; }
+            .sidebar { position: static; width: 100%; height: auto; border-right: none; border-bottom: 1px solid #d0d7de; }
+            .content { margin-left: 0; padding: 16px; }
         }
     </style>
 </head>
 <body>
     <div class="sidebar">
-        <select id="version-selector" onchange="switchVersion(this.value)">
+        <select onchange="switchVersion(this.value)">
             {% for v in versions %}
             <option value="{{ v }}" {% if v == current_version %}selected{% endif %}>
                 {{ v }}{% if v == latest_stable %} (latest){% endif %}
@@ -319,19 +100,17 @@
             {% endfor %}
         </select>
 
-        <nav class="page-nav">
+        <nav>
             <h3>On this page</h3>
             <ul>
             {% for item in navigation %}
-                <li class="nav-level-{{ item.level }}">
-                    <a href="#{{ item.anchor }}">{{ item.text }}</a>
-                </li>
+                <li class="nav-level-{{ item.level }}"><a href="#{{ item.anchor }}">{{ item.text }}</a></li>
             {% endfor %}
             </ul>
         </nav>
 
         {% if examples %}
-        <nav class="examples-nav">
+        <nav>
             <h3>Examples</h3>
             <ul>
             {% for example in examples %}
@@ -347,19 +126,9 @@
     </div>
 
     <script>
-        // Detect base path (either /jled/ for GitHub Pages or / for localhost)
-        function getBasePath() {
-            const path = window.location.pathname;
-            // Check if we're under /jled/
-            if (path.includes('/jled/')) {
-                return '/jled/';
-            }
-            return '/';
-        }
-
         function switchVersion(version) {
-            const basePath = getBasePath();
-            window.location.href = basePath + version + '/';
+            const base = window.location.pathname.includes('/jled/') ? '/jled/' : '/';
+            window.location.href = base + version + '/';
         }
     </script>
 </body>

@@ -120,6 +120,14 @@ def extract_readme_structure(readme_path: str) -> tuple[str, List[Dict[str, Any]
     filtered_lines = [line for line in lines if not re.match(badge_pattern, line)]
     content = '\n'.join(filtered_lines)
 
+    # Remove Contents/ToC section — redundant with the sidebar navigation
+    content = re.sub(
+        r'^#{1,6}\s+Contents\s*\n.*?(?=^#|\Z)',
+        '',
+        content,
+        flags=re.MULTILINE | re.DOTALL
+    )
+
     # Configure markdown with TOC extension
     md = markdown.Markdown(
         extensions=[
