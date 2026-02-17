@@ -104,7 +104,7 @@
 </head>
 <body>
     <div class="sidebar">
-        <select onchange="window.location.href='../../' + this.value + '/examples/{{ example_name }}/'">
+        <select onchange="switchVersion(this.value)">
             {% for version in versions %}
             <option value="{{ version }}" {% if version == current_version %}selected{% endif %}>
                 {{ version }}{% if version == latest_stable %} (latest){% endif %}
@@ -156,5 +156,12 @@
         </div>
         {% endfor %}
     </div>
+
+    <script>
+        function switchVersion(version) {
+            const base = window.location.pathname.includes('/jled/') ? '/jled/' : '/';
+            window.location.href = base + version + '/examples/{{ example_name }}/';
+        }
+    </script>
 </body>
 </html>
