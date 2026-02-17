@@ -1,0 +1,82 @@
+{% extends "_base.html" %}
+
+{% block title %}{{ example_name }} - JLed Examples - {{ current_version }}{% endblock %}
+
+{% block extra_styles %}
+h1 { font-size: 1.8em; font-weight: 600; margin: 0 0 24px; padding-bottom: .3em; border-bottom: 1px solid #d0d7de; }
+
+.prose { margin-bottom: 32px; padding-bottom: 32px; border-bottom: 1px solid #d0d7de; }
+
+.files-list { margin-bottom: 32px; }
+.files-list h2 { font-size: 11px; font-weight: 600; margin: 0 0 8px; color: #57606a; text-transform: uppercase; letter-spacing: .5px; }
+.files-list ul { list-style: none; margin: 0; padding: 0; }
+.files-list li { margin: 2px 0; }
+.files-list a { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 14px; }
+
+.file-section { margin-bottom: 32px; }
+.file-header { background: #f6f8fa; border: 1px solid #d0d7de; border-bottom: none; border-radius: 6px 6px 0 0; padding: 8px 16px; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 13px; font-weight: 600; }
+.file-content { border: 1px solid #d0d7de; border-radius: 0 0 6px 6px; overflow-x: auto; }
+.file-content .highlight { margin: 0; }
+.file-content pre { margin: 0; padding: 16px; background: #fff; overflow-x: auto; font: 0.75rem/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+{% endblock %}
+
+{% block version_options %}
+{% for version in versions %}
+<option value="{{ version }}" {% if version == current_version %}selected{% endif %}>
+    {{ version }}{% if version == latest_stable %} (latest){% endif %}
+</option>
+{% endfor %}
+{% endblock %}
+
+{% block sidebar_nav %}
+<nav>
+    <h3>Navigation</h3>
+    <ul>
+        <li><a href="../../index.html">← Back to Docs</a></li>
+    </ul>
+</nav>
+
+{% if files %}
+<nav>
+    <h3>Files</h3>
+    <ul>
+        {% for file in files %}
+        <li><a href="#{{ file.safe_name }}">{{ file.name }}</a></li>
+        {% endfor %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}
+
+{% block page_content %}
+<h1>{{ example_name }}</h1>
+
+{% if readme_html %}
+<div class="prose">{{ readme_html|safe }}</div>
+{% endif %}
+
+{% if files %}
+<div class="files-list">
+    <h2>Files</h2>
+    <ul>
+        {% for file in files %}
+        <li><a href="#{{ file.safe_name }}">{{ file.name }}</a></li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+{% for file in files %}
+<div class="file-section" id="{{ file.safe_name }}">
+    <div class="file-header">{{ file.name }}</div>
+    <div class="file-content">{{ file.highlighted_content|safe }}</div>
+</div>
+{% endfor %}
+{% endblock %}
+
+{% block scripts %}
+function switchVersion(version) {
+    const base = window.location.pathname.includes('/jled/') ? '/jled/' : '/';
+    window.location.href = base + version + '/examples/{{ example_name }}/';
+}
+{% endblock %}

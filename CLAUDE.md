@@ -18,6 +18,7 @@ parallel or sequentially.
 * `examples/` - End-to-end examples for MCU (`.ino` sketches)
 * `src/` - Library source code (`.h` and `.cpp` files)
 * `test/` - Host-based unit tests with separate Makefile
+* `.tools/` - Development tools (doc site generator)
 * `.github/workflows/` - CI/CD configuration
 * `devbox.json` - Development environment configuration
 * `platformio.ini` - PlatformIO project configuration
@@ -360,6 +361,123 @@ extend `JLed` and b) effectively unit test almost all parts of `JLed`
 * Lint errors: Check `make lint` output
 * Test failures: Review test logs
 * Build errors: Check platform-specific compilation issues
+
+## Documentation Site
+
+JLed has an automated documentation microsite at **https://jandelgado.github.io/jled/** that provides version-aware documentation with easy navigation between different versions.
+
+### Overview
+
+The documentation site:
+* Auto-generates from git tags and master branch
+* Provides version switching between all stable releases
+* Includes README content, images, and examples for each version
+* Deploys automatically to GitHub Pages on every push to `master`
+
+### Site Generator Tool
+
+Located in `.tools/doc-site/`, this Python tool generates the static site:
+
+**Key Files:**
+* `generate_site.py` - Main site generator script
+* `templates/base.html` - Page template with navigation
+* `templates/redirect.html` - Root redirect to latest version
+* `requirements.txt` - Python dependencies (markdown, Jinja2, packaging)
+* `README.md` - Detailed tool documentation
+
+**How It Works:**
+1. Discovers all stable git tags (matching `v*.*.*`, excluding pre-releases)
+2. Sorts versions using semantic versioning
+3. For each version: checks out code, parses README, extracts navigation, copies assets
+4. Generates HTML pages with version selector, page nav, and examples list
+5. Creates root redirect to latest stable version
+
+**Local Usage:**
+```bash
+# Generate site to .doc-site/
+make docs
+
+# Serve locally (always use port 9000)
+cd .doc-site && python -m http.server 9000
+```
+
+The web server only needs to be started once. After re-running `make docs`, the regenerated
+files are served immediately — no need to restart the server.
+
+### Deployment Workflow
+
+**Workflow:** `.github/workflows/deploy-docs.yml`
+
+**Trigger:** Push to `master` branch (or manual dispatch)
+
+**Steps:**
+1. Checkout repository with full history (`fetch-depth: 0`)
+2. Setup Python 3.13
+3. Install dependencies from `requirements.txt`
+4. Generate site to `./site-build`
+5. Deploy to `gh-pages` branch using `peaceiris/actions-gh-pages@v4`
+
+**First-Time Setup:**
+After initial workflow run, enable GitHub Pages in repository settings:
+* Settings → Pages → Source: Deploy from branch `gh-pages`
+
+### Site Structure
+
+```
+/index.html              # Redirects to latest stable
+/versions.json           # Metadata: versions, latest stable
+/v2.0.0/
+│   ├── index.html      # Version page with README + nav
+│   ├── doc/           # Images and assets
+│   └── examples/      # Example folders
+│       ├── hello/
+│       │   ├── index.html    # Example page with syntax-highlighted code
+│       │   └── hello.ino
+│       └── morse/
+│           ├── index.html
+│           ├── morse.ino
+│           └── README.md
+/master/
+    ├── index.html
+    ├── doc/
+    └── examples/
+```
+
+### Example Pages
+
+Individual pages are generated for each example showing syntax-highlighted code:
+
+**Implementation:**
+- `generate_example_page()` in `generate_site.py` processes each example
+- `templates/example.html` provides consistent styling with main docs
+- File filtering excludes backups (*~) and build artifacts
+- Language detection maps extensions to Pygments lexers (.ino → C++, etc.)
+- README.md files in examples are rendered at the bottom
+
+**File Processing:**
+- Include: source (.ino, .cpp, .h), build (CMakeLists.txt), scripts (.sh, .py)
+- Exclude: backups (*~), build artifacts (.o, .bin), large files (>500KB)
+- Order: main source first, README last
+
+Examples with README.md: morse, multiled, multiled_mbed, raspi_pico
+
+### Making Changes
+
+**To update site styling/layout:**
+* Edit `.tools/doc-site/templates/base.html`
+* Test locally before committing
+* Push to `master` to deploy
+
+**To modify content generation:**
+* Edit `.tools/doc-site/generate_site.py`
+* Update logic for version filtering, README parsing, or asset copying
+* Test locally, then commit and push
+
+**To update dependencies:**
+* Modify `.tools/doc-site/requirements.txt`
+* Test locally: `pip install -r .tools/doc-site/requirements.txt --upgrade`
+
+See `.tools/doc-site/README.md` for complete documentation.
 
 ## Debugging Tips
 

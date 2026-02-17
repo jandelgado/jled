@@ -69,18 +69,18 @@ void loop() {
       * [Fade example](#fade-example)
     * [User provided brightness function](#user-provided-brightness-function)
       * [User provided brightness function example](#user-provided-brightness-function-example)
-    * [Delays and repetitions](#delays-and-repetitions)
-      * [Initial delay before effect starts](#initial-delay-before-effect-starts)
-      * [Delay after effect finished](#delay-after-effect-finished)
-      * [Repetitions](#repetitions)
-    * [State functions](#state-functions)
-      * [Update](#update)
-      * [IsRunning](#isrunning)
-      * [Reset](#reset)
-      * [Immediate Stop](#immediate-stop)
-    * [Misc functions](#misc-functions)
-      * [Low active for inverted output](#low-active-for-inverted-output)
-      * [Minimum- and Maximum brightness level](#minimum--and-maximum-brightness-level)
+  * [Delays and repetitions](#delays-and-repetitions)
+    * [Initial delay before effect starts](#initial-delay-before-effect-starts)
+    * [Delay after effect finished](#delay-after-effect-finished)
+    * [Repetitions](#repetitions)
+  * [State functions](#state-functions)
+    * [Update](#update)
+    * [IsRunning](#isrunning)
+    * [Reset](#reset)
+    * [Immediate Stop](#immediate-stop)
+  * [Misc functions](#misc-functions)
+    * [Low active for inverted output](#low-active-for-inverted-output)
+    * [Minimum- and Maximum brightness level](#minimum--and-maximum-brightness-level)
   * [Controlling a group of LEDs](#controlling-a-group-of-leds)
 * [Framework notes](#framework-notes)
 * [Platform notes](#platform-notes)
@@ -387,28 +387,28 @@ class UserEffect : public jled::BrightnessEvaluator {
 };
 ```
 
-#### Delays and repetitions
+### Delays and repetitions
 
-##### Initial delay before effect starts
+#### Initial delay before effect starts
 
 Use the `DelayBefore()` method to specify a delay before the first effect starts.
 The default value is 0 ms.
 
-##### Delay after effect finished
+#### Delay after effect finished
 
 Use the `DelayAfter()` method to specify a delay after each repetition of
 an effect. The default value is 0 ms.
 
-##### Repetitions
+#### Repetitions
 
 Use the `Repeat()` method to specify the number of repetitions. The default
 value is 1 repetition. The `Forever()` methods sets to repeat the effect
 forever. Each repetition includes a full period of the effect and the time
 specified by `DelayAfter()` method.
 
-#### State functions
+### State functions
 
-##### Update
+#### Update
 
 Call `Update(int16_t *pLast=nullptr)` or `Update(uint32_t t, int16_t *pLast=nullptr)`
 to periodically update the state of the LED.
@@ -434,16 +434,16 @@ Most of the time just calling `Update()` without any parameters is what you want
 
 See [last_brightness](examples/last_brightness) example for a working example.
 
-##### IsRunning
+#### IsRunning
 
 `IsRunning()` returns `true` if the current effect is running, else `false`.
 
-##### Reset
+#### Reset
 
 A call to `Reset()` brings the JLed object to its initial state. Use it when
 you want to start-over an effect.
 
-##### Immediate Stop
+#### Immediate Stop
 
 Call `Stop()` to immediately turn the LED off and stop any running effects.
 Further calls to `Update()` will have no effect, unless the Led is reset using
@@ -463,14 +463,14 @@ brightness level to `MinBrightness`.
 led.Stop(JLed::eStopMode::FULL_OFF);
 ```
 
-#### Misc functions
+### Misc functions
 
-##### Low active for inverted output
+#### Low active for inverted output
 
 Use the `LowActive()` method when the connected LED is low active. All output
 will be inverted by JLed (i.e., instead of x, the value of 255-x will be set).
 
-##### Minimum- and Maximum brightness level
+#### Minimum- and Maximum brightness level
 
 The `MaxBrightness(uint8_t level)` method is used to set the maximum brightness
 level of the LED. A level of 255 (the default) is full brightness, while 0

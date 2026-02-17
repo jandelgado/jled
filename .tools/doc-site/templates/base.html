@@ -1,0 +1,44 @@
+{% extends "_base.html" %}
+
+{% block title %}JLed Documentation - {{ current_version }}{% endblock %}
+
+{% block version_options %}
+{% for v in versions %}
+<option value="{{ v }}" {% if v == current_version %}selected{% endif %}>
+    {{ v }}{% if v == latest_stable %} (latest){% endif %}
+</option>
+{% endfor %}
+{% endblock %}
+
+{% block sidebar_nav %}
+<nav>
+    <h3>On this page</h3>
+    <ul>
+    {% for item in navigation %}
+        <li class="nav-level-{{ item.level }}"><a href="#{{ item.anchor }}">{{ item.text }}</a></li>
+    {% endfor %}
+    </ul>
+</nav>
+
+{% if examples %}
+<nav>
+    <h3>Examples</h3>
+    <ul>
+    {% for example in examples %}
+        <li><a href="examples/{{ example.name }}/">{{ example.name }}</a></li>
+    {% endfor %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}
+
+{% block page_content %}
+<div class="prose">{{ readme_html|safe }}</div>
+{% endblock %}
+
+{% block scripts %}
+function switchVersion(version) {
+    const base = window.location.pathname.includes('/jled/') ? '/jled/' : '/';
+    window.location.href = base + version + '/';
+}
+{% endblock %}

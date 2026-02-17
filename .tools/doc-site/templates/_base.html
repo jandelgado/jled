@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}JLed Documentation{% endblock %}</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: #24292f;
+            display: flex;
+        }
+
+        .sidebar {
+            width: 220px;
+            flex-shrink: 0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            padding: 16px;
+            background: #f6f8fa;
+            border-right: 1px solid #d0d7de;
+            font-size: 14px;
+        }
+
+        .content {
+            margin-left: 220px;
+            padding: 32px 40px;
+            max-width: 900px;
+            min-width: 0;
+        }
+
+        select { width: 100%; margin-bottom: 16px; padding: 4px; }
+
+        nav { margin-bottom: 16px; }
+        nav h3 { font-size: 11px; font-weight: 600; text-transform: uppercase; color: #57606a; margin: 16px 0 4px; }
+        nav ul { list-style: none; margin: 0; padding: 0; }
+        nav li { margin: 1px 0; font-size: 13px; }
+        nav li.nav-level-1 { font-weight: 600; }
+        nav li.nav-level-2 { padding-left: 10px; }
+        nav li.nav-level-3 { padding-left: 20px; font-size: 12px; }
+        nav li.nav-level-4 { padding-left: 30px; font-size: 11px; color: #57606a; }
+
+        a { color: #0969da; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        /* Prose — rendered markdown content */
+        .prose h1, .prose h2 { border-bottom: 1px solid #d0d7de; padding-bottom: .3em; }
+        .prose h1 { font-size: 2em; }
+        .prose h2 { font-size: 1.5em; }
+        .prose h3 { font-size: 1.25em; }
+        .prose h1, .prose h2, .prose h3, .prose h4 { margin: 24px 0 16px; font-weight: 600; }
+        .prose p, .prose ul, .prose ol { margin: 0 0 16px; }
+        .prose ul, .prose ol { padding-left: 2em; }
+        .prose li > ul, .prose li > ol { margin: 0; }
+        .prose img { max-width: 100%; height: auto; }
+        .prose code { background: rgba(175,184,193,.2); padding: .2em .4em; border-radius: 3px; font: 85%/1 ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+        .prose pre { background: #f6f8fa; border-radius: 6px; padding: 16px; overflow-x: auto; margin: 0 0 16px; font: 0.75rem/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+        .prose pre code { background: none; padding: 0; font-size: 100%; }
+        .prose blockquote { border-left: 4px solid #d0d7de; padding: 0 1em; color: #57606a; margin: 0 0 16px; }
+        .prose table { border-collapse: collapse; width: 100%; margin: 0 0 16px; }
+        .prose th, .prose td { border: 1px solid #d0d7de; padding: 6px 13px; }
+        .prose th { background: #f6f8fa; font-weight: 600; }
+        .prose hr { border: 0; border-top: 1px solid #d0d7de; margin: 24px 0; }
+
+        /* Pygments syntax highlighting */
+        .highlight .c, .highlight .cm, .highlight .c1, .highlight .cs { color: #6e7781; font-style: italic }
+        .highlight .cp { color: #6e7781 }
+        .highlight .k, .highlight .kd, .highlight .kr, .highlight .kt { color: #cf222e }
+        .highlight .kc, .highlight .nb, .highlight .no, .highlight .nc { color: #0550ae }
+        .highlight .nf, .highlight .nd { color: #8250df }
+        .highlight .nt { color: #116329 }
+        .highlight .na { color: #0550ae }
+        .highlight .s, .highlight .s1, .highlight .s2, .highlight .sb, .highlight .sc,
+        .highlight .sd, .highlight .se, .highlight .sh, .highlight .si, .highlight .sx,
+        .highlight .sr, .highlight .ss { color: #0a3069 }
+        .highlight .m, .highlight .mf, .highlight .mh, .highlight .mi, .highlight .mo,
+        .highlight .il { color: #0550ae }
+        .highlight .o, .highlight .ow { font-weight: bold }
+        .highlight .err { color: #82071e; background: #ffebe9 }
+        .highlight .nv, .highlight .vc, .highlight .vg, .highlight .vi { color: #953800 }
+        .highlight .gd { color: #82071e; background: #ffebe9 }
+        .highlight .gi { color: #116329; background: #dafbe1 }
+
+        {% block extra_styles %}{% endblock %}
+
+        @media (max-width: 700px) {
+            body { flex-direction: column; }
+            .sidebar { position: static; width: 100%; height: auto; border-right: none; border-bottom: 1px solid #d0d7de; }
+            .content { margin-left: 0; padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <select onchange="switchVersion(this.value)">
+            {% block version_options %}{% endblock %}
+        </select>
+        {% block sidebar_nav %}{% endblock %}
+    </div>
+
+    <div class="content">
+        {% block page_content %}{% endblock %}
+    </div>
+
+    <script>
+        {% block scripts %}{% endblock %}
+    </script>
+</body>
+</html>
