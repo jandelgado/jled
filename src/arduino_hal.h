@@ -21,53 +21,59 @@
 //
 #ifndef SRC_ARDUINO_HAL_H_
 #define SRC_ARDUINO_HAL_H_
-
 #include <Arduino.h>
+#include <type_traits>
 #include "brightness.h"
+
+// some MCU like e.g. ESP8266, zero and mkr models support PWM resolutions
+// higher than 8 bits, but the analogWriteResolution() function is only defined
+// for these platforms. By using `__attribute((weak))`  we can check for the
+// existence at runtime and adjust the resolution accordingly.
+extern "C" __attribute__((weak)) void analogWriteResolution(int bits);
 
 namespace jled {
 
+// ArduinoHal controls a single PWM pin.
+//
+// kResBits_: native PWM resolution in bits (default 8).
+//   Use a higher value (e.g. 10 or 12) on platforms that support it, such as
+//   ESP8266 v1/v2 (10-bit) or SAMD/Due (up to 12-bit).  The platform SDK's
+//   analogWriteResolution() is called automatically on first use when
+//   kResBits_ != 8.  Platform selection is handled in jled.h.
+template <uint8_t kResBits_ = 8>
 class ArduinoHal {
  public:
     using PinType = uint8_t;
-    using NativeBrightness = uint8_t;
-    static constexpr uint8_t kNativeBits = 8;
+//    using NativeBrightness =
+//        typename std::conditional<(kResBits_ > 8), uint16_t, uint8_t>::type;
+    static constexpr uint8_t kNativeBits = kResBits_;
 
     explicit ArduinoHal(PinType pin) noexcept : pin_(pin) {}
 
-    // Template analogWrite to accept any brightness type
-    template<typename Brightness>
+    template <typename Brightness>
     void analogWrite(Brightness val) const {
         // some platforms, e.g. STM need lazy initialization
         if (!setup_) {
-            ::pinMode(pin_, OUTPUT);
+//            ::pinMode(pin_, OUTPUT);
+            // configure higher PWM resolution once on first use, if supported
+            if (kResBits_ != 8 && ::analogWriteResolution != nullptr) {
+                ::analogWriteResolution(kResBits_);
+            }
             setup_ = true;
         }
-        // Scale brightness value to native HAL resolution (8-bit)
-        ::analogWrite(pin_, scaleToNative<Brightness>(val));
+        ::analogWrite(pin_, jled::scaleToNative<kResBits_>(val));
     }
 
  private:
-    // Scale brightness value to native 8-bit resolution
-    template<typename Brightness>
-    static uint8_t scaleToNative(Brightness val) {
-        // Use sizeof for compile-time optimization (optimizes same as if constexpr)
-        if (sizeof(Brightness) == 1) {
-            // 8-bit to 8-bit: no scaling needed (zero-cost abstraction)
-            return val;
-        } else {
-            // 16-bit to 8-bit: downscale
-            return static_cast<uint8_t>(val >> 8);
-        }
-    }
-
     mutable bool setup_ = false;
     PinType pin_;
 };
 
 class ArduinoClock {
  public:
-    static uint32_t millis() { return ::millis(); }
+    static uint32_t millis() {
+        return ::millis();
+    }
 };
 
 }  // namespace jled
