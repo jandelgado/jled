@@ -23,49 +23,60 @@
 
 namespace jled {
 
-// pre-calculated fade-on function. This table samples the function
-//   y(x) =  exp(sin((t - period / 2.) * PI / period)) - 0.36787944)
-//   * 108.
+// we pre-calculated fade-on function. This table samples the function
+//   y(x) =  exp(sin((t - period / 2.) * PI / period)) - 0.36787944) * 108.
 // at x={0,32,...,256}. In FadeOnFunc() we us linear interpolation to
 // approximate the original function (so we do not need fp-ops).
 // fade-off and breath functions are all derived from fade-on, see
 // below.
-static constexpr uint8_t kFadeOnTable[] = {0,   3,   13,  33, 68,
-                                           118, 179, 232, 255}; // NOLINT
-
+//
 // https://www.wolframalpha.com/input/?i=plot+(exp(sin((x-100%2F2.)*PI%2F100))-0.36787944)*108.0++x%3D0+to+100
 // The fade-on func is an approximation of
 //   y(x) = exp(sin((t-period/2.) * PI / period)) - 0.36787944) * 108.)
 
-// 8-bit specialization: uses pre-computed 8-bit table
+// 8-bit specialization
 template<>
 uint8_t fadeon_func<uint8_t>(uint32_t t, uint16_t period) {
+	// pre-calculated fade-on function at x={0,16,...,256}
+	static constexpr uint8_t lut8[] = {
+        0, 0, 3, 7, 13, 22, 33, 49, 68, 91, 118, 148, 179, 208, 232, 248, 255
+    };
     if (t + 1 >= period) return 255;
 
     // approximate by linear interpolation.
-    // scale t according to period to 0..255
-    t = ((t << 8) / period) & 0xff;
-    const auto i = (t >> 5);  // -> i will be in range 0 .. 7
-    const auto y0 = kFadeOnTable[i];
-    const auto y1 = kFadeOnTable[i + 1];
-    const auto x0 = i << 5;  // *32
+    // normalize t to [0, 256) scale
+    const auto tnorm = (t << 8) / period;
+    const auto i = tnorm >> 4;  // segment index (0..15)
 
-    // y(t) = mt+b, with m = dy/dx = (y1-y0)/32 = (y1-y0) >> 5
-    return (((t - x0) * (y1 - y0)) >> 5) + y0;
+    const auto y0 = lut8[i];
+    const auto y1 = lut8[i + 1];
+
+    const auto x0 = i << 4;  // segment start in normalized space
+    return (((tnorm - x0) * (y1 - y0)) >> 4) + y0;
 }
 
-// 16-bit specialization: interpolate from 8-bit table, then scale to 16-bit
+// t = 0..period-1
 template<>
 uint16_t fadeon_func<uint16_t>(uint32_t t, uint16_t period) {
+	// pre computed fade-func at x={0,2048,...,65536}
+	static constexpr uint16_t lut16[] = {
+        0, 49, 198, 448, 807, 1278, 1874, 2600, 3474, 4505,
+        5714, 7110, 8719, 10548, 12625, 14949, 17545, 20398,
+        23524, 26888, 30485, 34254, 38166, 42127, 46081, 49910,
+        53536, 56829, 59707, 62054, 63801, 64874, 65535
+    };
+
     if (t + 1 >= period) return 65535;
 
-    // Get 8-bit value from table
-    const uint8_t val8 = fadeon_func<uint8_t>(t, period);
+    // normalize t to [0, 65536) scale
+    const auto tnorm = (t << 16) / period;
+    const auto i = tnorm >> 11;  // segment index (0..31), since 65536/32 = 2048 = 2^11
 
-    // Scale 8-bit [0,255] to 16-bit [0,65535]
-    // Use formula: val16 = (val8 * 65535) / 255 = (val8 * 257)
-    // This is exact: 255 * 257 = 65535
-    return static_cast<uint16_t>(val8) * 257;
+    const auto y0 = lut16[i];
+    const auto y1 = lut16[i + 1];
+
+    const auto x0 = i << 11;  // segment start in normalized space
+    return (((tnorm - x0) * (y1 - y0)) >> 11) + y0;
 }
 
 static uint32_t rand_ = 0;

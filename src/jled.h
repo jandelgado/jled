@@ -35,21 +35,57 @@
 
 #include "jled_base.h"  // NOLINT
 
-#ifdef PICO_SDK_VERSION_MAJOR
+// PICO_SDK_VERSION_MAJOR is also defined by Earle Philhower's arduino-pico SDK
+// (which wraps the Pico SDK), so exclude ARDUINO_ARCH_RP2040 here to let it fall
+// through to the Arduino branch below where ArduinoHal<12> is selected.
+#if defined(PICO_SDK_VERSION_MAJOR)
+//#if defined(PICO_SDK_VERSION_MAJOR) && !defined(ARDUINO_ARCH_RP2040)
 #include "pico_hal.h"   // NOLINT
-namespace jled {using JLedHal = PicoHal; using JLedClockType = PicoClock;}
+namespace jled {
+using JLedHal = PicoHal<8>;
+using JLedHal16 = PicoHal<16>;
+using JLedClockType = PicoClock;
+#warning USING PICO NATIVE HAL
+}  // namespace jled
+
+
 #elif defined(__MBED__) && !defined(ARDUINO_API_VERSION)
 #include "mbed_hal.h"  // NOLINT
-namespace jled {using JLedHal = MbedHal; using JLedClockType = MbedClock;}
+namespace jled {
+using JLedHal = MbedHal;
+using JLedHal16 = MbedHal;
+using JLedClockType = MbedClock;
+}  // namespace jled
+
+
 #elif defined(ESP32)
 #include "esp32_hal.h"  // NOLINT
-namespace jled {using JLedHal = Esp32Hal; using JLedClockType = Esp32Clock;}
-#elif defined(ESP8266)
-#include "esp8266_hal.h"  // NOLINT
-namespace jled {using JLedHal = Esp8266Hal; using JLedClockType = Esp8266Clock;}
+namespace jled {
+using JLedHal = Esp32Hal;
+using JLedHal16 = Esp32Hal;
+using JLedClockType = Esp32Clock;
+}  // namespace jled
+
+
 #else
 #include "arduino_hal.h"  // NOLINT
-namespace jled {using JLedHal = ArduinoHal; using JLedClockType = ArduinoClock;}
+namespace jled {
+// JLed (8-bit) always uses 8-bit HAL — no benefit in upscaling 8-bit values
+using JLedHal = ArduinoHal<8>;
+// JLed16 uses the platform's native PWM resolution for full dynamic range:
+//   RP2040 (Earle Philhower arduino-pico SDK): 12-bit
+//   ESP8266 Core v1/v2: 10-bit (Core v3+ reverted to 8-bit for compatibility)
+//   All other Arduino-compatible platforms: 8-bit
+#if defined(ARDUINO_ARCH_RP2040)
+using JLedHal16 = ArduinoHal<12>;
+#elif defined(ESP8266) && \
+    !(defined(HAS_ESP8266_VERSION_NUMERIC) && ARDUINO_ESP8266_VERSION_MAJOR >= 3)
+using JLedHal16 = ArduinoHal<10>;
+#else
+using JLedHal16 = ArduinoHal<8>;
+#endif
+using JLedClockType = ArduinoClock;
+}  // namespace jled
 #endif
 
 namespace jled {
@@ -59,8 +95,8 @@ class JLed : public TJLed<JLedHal, JLedClockType, uint8_t, JLed> {
 };
 
 // JLed16: 16-bit brightness control for smoother effects on high-resolution MCUs
-class JLed16 : public TJLed<JLedHal, JLedClockType, uint16_t, JLed16> {
-    using TJLed<JLedHal, JLedClockType, uint16_t, JLed16>::TJLed;
+class JLed16 : public TJLed<JLedHal16, JLedClockType, uint16_t, JLed16> {
+    using TJLed<JLedHal16, JLedClockType, uint16_t, JLed16>::TJLed;
 };
 
 // a group of JLed objects which can be controlled simultanously

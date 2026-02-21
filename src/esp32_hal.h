@@ -75,7 +75,7 @@ class Esp32ChanMapper {
 };
 
 class Esp32Hal {
-    static constexpr auto kLedcTimerResolution = LEDC_TIMER_8_BIT;
+    static constexpr auto kLedcTimerResolution = LEDC_TIMER_13_BIT;
     static constexpr auto kLedcSpeedMode = LEDC_LOW_SPEED_MODE;
 
  public:
@@ -127,8 +127,8 @@ class Esp32Hal {
 
     template<typename Brightness>
     void analogWrite(Brightness val) const {
-        // Scale brightness to native 8-bit resolution
-        const uint8_t duty = scaleToNative<Brightness>(val);
+        // Scale brightness to native 13-bit resolution
+        const uint16_t duty = jled::scaleToNative<kLedcTimerResolution>(val);
 
         // Fixing if all bits in resolution is set = LEDC FULL ON
         const uint32_t _duty = (duty == (1 << kLedcTimerResolution) - 1)
@@ -142,19 +142,6 @@ class Esp32Hal {
     PinType chan() const { return chan_; }
 
  private:
-    // Scale brightness value to native 8-bit resolution
-    template<typename Brightness>
-    static uint8_t scaleToNative(Brightness val) {
-        // Use sizeof for compile-time optimization (optimizes same as if constexpr)
-        if (sizeof(Brightness) == 1) {
-            // 8-bit to 8-bit: no scaling needed (zero-cost abstraction)
-            return val;
-        } else {
-            // 16-bit to 8-bit: downscale
-            return static_cast<uint8_t>(val >> 8);
-        }
-    }
-
     static Esp32ChanMapper chanMapper_;
     ledc_channel_t chan_;
 };
