@@ -45,9 +45,7 @@ namespace jled {
 using JLedHal = PicoHal<8>;
 using JLedHal16 = PicoHal<16>;
 using JLedClockType = PicoClock;
-#warning USING PICO NATIVE HAL
 }  // namespace jled
-
 
 #elif defined(__MBED__) && !defined(ARDUINO_API_VERSION)
 #include "mbed_hal.h"  // NOLINT
@@ -57,7 +55,6 @@ using JLedHal16 = MbedHal;
 using JLedClockType = MbedClock;
 }  // namespace jled
 
-
 #elif defined(ESP32)
 #include "esp32_hal.h"  // NOLINT
 namespace jled {
@@ -65,7 +62,6 @@ using JLedHal = Esp32Hal;
 using JLedHal16 = Esp32Hal;
 using JLedClockType = Esp32Clock;
 }  // namespace jled
-
 
 #else
 #include "arduino_hal.h"  // NOLINT
