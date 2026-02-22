@@ -90,15 +90,15 @@ uint16_t scaleToNative(Brightness val) {
     static_assert(sizeof(Brightness) == 1 || sizeof(Brightness) == 2,
                   "Brightness must be uint8_t or uint16_t");
 
-    constexpr uint8_t  kSrcBits   = sizeof(Brightness) * 8; // 8 or 16
+    constexpr uint8_t  kSrcBits   = sizeof(Brightness) * 8;  // 8 or 16
 
     if /*constexpr*/ (ResBits == kSrcBits) {
         return static_cast<uint16_t>(val);
     } else if /*constexpr*/ (ResBits > kSrcBits) {
         // Upscale via bit replication for lower bits, while keeping min/max
-		// relationships: 0→0, max→max, linear in between
+        // relationships: 0→0, max→max, linear in between
         constexpr uint8_t shift = ResBits - kSrcBits;
-		static_assert(shift >= 0, "unexpected bit-shift value calculated");
+        static_assert(shift >= 0, "unexpected bit-shift value calculated");
         uint16_t v = static_cast<uint16_t>(val);
         return (v << shift) | (v >> (kSrcBits - shift));
     } else {
@@ -106,7 +106,6 @@ uint16_t scaleToNative(Brightness val) {
         // because (2^kSrcBits - 1) >> (kSrcBits - ResBits) == 2^ResBits - 1
         return static_cast<uint16_t>(val >> (kSrcBits - ResBits));
     }
-
 }
 
 }  // namespace jled
