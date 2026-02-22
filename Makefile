@@ -11,7 +11,7 @@ all: phony
 	pio run
 
 lint: phony
-	cpplint --filter -readability/check \
+	cpplint --filter -readability/check,-build/include_subdir \
 		    --linelength=100\
 		    --exclude test/catch2 \
 		    --extensions=cpp,h,ino $(shell find . -maxdepth 3 \( ! -regex '.*/\..*' \) \
