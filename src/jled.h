@@ -39,7 +39,7 @@
 // (which wraps the Pico SDK), so exclude ARDUINO_ARCH_RP2040 here to let it fall
 // through to the Arduino branch below where ArduinoHal<12> is selected.
 #if defined(PICO_SDK_VERSION_MAJOR)
-//#if defined(PICO_SDK_VERSION_MAJOR) && !defined(ARDUINO_ARCH_RP2040)
+// #if defined(PICO_SDK_VERSION_MAJOR) && !defined(ARDUINO_ARCH_RP2040)
 #include "pico_hal.h"   // NOLINT
 namespace jled {
 using JLedHal = PicoHal<8>;
