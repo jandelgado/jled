@@ -37,18 +37,18 @@ namespace jled {
 
 template <uint8_t kResBits_ = 8>
 class PicoHal {
-public:
+ public:
     using PinType = uint8_t;
     using NativeBrightness = uint16_t;  // Pico supports 16-bit PWM natively
-    //static constexpr auto TOP_MAX = 65534;
+    // static constexpr auto TOP_MAX = 65534;
     static constexpr uint8_t kNativeBits = kResBits_;
 
-private:
-    static constexpr auto TOP_MAX = (1u<<kNativeBits)-1;
+ private:
+    static constexpr auto TOP_MAX = (1u << kNativeBits)-1;
     static constexpr auto HW_TOP_MAX = 65535;
     static constexpr auto DEFAULT_FREQ_HZ = 5000;
 
-	// f_pwm = f_clk / (divider × (TOP + 1))
+    // f_pwm = f_clk / (divider × (TOP + 1))
     static int set_pwm_freq(uint slice, int freq, uint32_t *div,
                             uint32_t *top_) {
         // Set the frequency, making "top_" as large as possible for maximum
@@ -89,7 +89,7 @@ private:
 
     static void set_pwm_duty(uint slice, uint channel, uint32_t top,
                              uint32_t duty) {
-		// duty is in [0..TOP_MAX] (kResBits_ wide).
+        // duty is in [0..TOP_MAX] (kResBits_ wide).
         // Scale to [0..top] using shift to avoid division (TOP_MAX+1 is always a power of 2).
         // Use 64-bit multiply to avoid overflow when top is large (up to 65535).
         const uint32_t cc = (static_cast<uint64_t>(duty) * (top + 1)) >> kResBits_;
@@ -99,7 +99,6 @@ private:
     }
 
  public:
-
     explicit PicoHal(PinType pin) noexcept {
         slice_num_ = pwm_gpio_to_slice_num(pin);
         channel_ = pwm_gpio_to_channel(pin);

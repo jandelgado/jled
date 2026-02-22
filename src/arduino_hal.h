@@ -22,7 +22,6 @@
 #ifndef SRC_ARDUINO_HAL_H_
 #define SRC_ARDUINO_HAL_H_
 #include <Arduino.h>
-#include <type_traits>
 #include "brightness.h"
 
 // some MCU like e.g. ESP8266, zero and mkr models support PWM resolutions

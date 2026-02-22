@@ -153,8 +153,8 @@ class BreatheBrightnessEvaluator : public CloneableBrightnessEvaluator<Brightnes
           duration_fade_off_(duration_fade_off),
           from_(from),
           to_(to),
-          inv_fade_on_(duration_fade_on ? (1u << 16) / duration_fade_on : 0),
-          inv_fade_off_(duration_fade_off ? (1u << 16) / duration_fade_off : 0) {}
+          inv_fade_on_(duration_fade_on ? (1UL << 16) / duration_fade_on : 0),
+          inv_fade_off_(duration_fade_off ? (1UL << 16) / duration_fade_off : 0) {}
     BrightnessEvaluator<Brightness>* clone(void* ptr) const override {
         return new (ptr) BreatheBrightnessEvaluator(*this);
     }
@@ -238,7 +238,6 @@ class CandleBrightnessEvaluator : public CloneableBrightnessEvaluator<Brightness
 
 template <typename Hal, typename Clock, typename Brightness, typename Derived>
 class TJLed {
-
  protected:
     // pointer to a (user defined) brightness evaluator.
     BrightnessEvaluator<Brightness>* brightness_eval_ = nullptr;
@@ -564,7 +563,7 @@ class TJLed {
     void updateCyclePeriodCache() {
         if (brightness_eval_) {
             cycle_period_ = brightness_eval_->Period() + delay_after_;
-            cycle_period_inv_ = cycle_period_ ? ((1u << 16) / cycle_period_) : 0;
+            cycle_period_inv_ = cycle_period_ ? ((1UL << 16) / cycle_period_) : 0;
         }
     }
 
