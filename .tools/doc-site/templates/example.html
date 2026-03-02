@@ -23,7 +23,7 @@ h1 { font-size: 1.8em; font-weight: 600; margin: 0 0 24px; padding-bottom: .3em;
 {% block version_options %}
 {% for version in versions %}
 <option value="{{ version }}" {% if version == current_version %}selected{% endif %}>
-    {{ version }}{% if version == latest_stable %} (latest){% endif %}
+    {{ version }}{% if version == latest_stable %} (latest){% elif version == "master" %} (dev){% endif %}
 </option>
 {% endfor %}
 {% endblock %}

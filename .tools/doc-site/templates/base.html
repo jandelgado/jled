@@ -5,7 +5,7 @@
 {% block version_options %}
 {% for v in versions %}
 <option value="{{ v }}" {% if v == current_version %}selected{% endif %}>
-    {{ v }}{% if v == latest_stable %} (latest){% endif %}
+    {{ v }}{% if v == latest_stable %} (latest){% elif v == "master" %} (dev){% endif %}
 </option>
 {% endfor %}
 {% endblock %}

@@ -5,7 +5,7 @@ a JLed implementation for CircuitPython and MicroPython.
 
 # JLed - Advanced LED Library
 
-![run tests](https://github.com/jandelgado/jled/workflows/run%20tests/badge.svg)
+![run tests](https://github.com/jandelgado/jled/workflows/run%20tests/badge.svg?branch=master)
 [![Coverage Status](https://coveralls.io/repos/github/jandelgado/jled/badge.svg?branch=master&dummy=1)](https://coveralls.io/github/jandelgado/jled?branch=master)
 
 An embedded C++ library to control LEDs. It uses a **non-blocking** approach and can
@@ -724,7 +724,7 @@ Just 'reconfigure' the `JLed` with any of the effect methods (e.g. `FadeOn`,
 
 ## Author and Copyright
 
-Copyright 2017-2022 by Jan Delgado, jdelgado[at]gmx.net.
+Copyright © 2017-2026 by Jan Delgado.
 
 ## License
 
