@@ -464,9 +464,10 @@ def generate_site(output_dir: str, script_dir: str):
     with tempfile.TemporaryDirectory() as temp_dir:
         work_dir = os.path.join(temp_dir, 'worktree')
 
-        # Create worktree
+        # Create worktree using --detach to allow creation even when master is
+        # already checked out (e.g. in CI environments).
         print(f"Creating temporary worktree at {work_dir}...")
-        run_git_command(['git', 'worktree', 'add', work_dir, 'master'])
+        run_git_command(['git', 'worktree', 'add', '--detach', work_dir, 'master'])
 
         try:
             # Process each version
