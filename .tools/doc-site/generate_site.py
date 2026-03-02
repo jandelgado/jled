@@ -435,7 +435,7 @@ def generate_example_page(
 
 def checkout_version(version: str, work_dir: str):
     """Checkout a specific version in the given work directory."""
-    run_git_command(['git', 'checkout', version], cwd=work_dir)
+    run_git_command(['git', 'checkout', '--detach', version], cwd=work_dir)
 
 
 def generate_site(output_dir: str, script_dir: str):
