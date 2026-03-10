@@ -4,11 +4,13 @@
 #include <jled.h>
 
 // blink builtin LED for 5 times
-auto led = JLed(LED_BUILTIN).Blink(1000, 1000).Repeat(5);
+auto led2 = JLed16(16).Breathe(18000).Forever();
+auto led3 = JLed(17).Breathe(18000).Forever();
 
 void setup() {
 }
 
 void loop() {
-  led.Update();
+  led2.Update();
+  led3.Update();
 }
