@@ -25,30 +25,6 @@
 #include <inttypes.h>
 
 namespace jled {
-
-// Simple type comparison (avoids std::is_same dependency for Arduino compatibility)
-template<typename T, typename U>
-struct is_same {
-    static constexpr bool value = false;
-};
-
-template<typename T>
-struct is_same<T, T> {
-    static constexpr bool value = true;
-};
-
-// Helper for C++14 compatibility (avoids variable templates which cause warnings)
-template<typename T, typename U>
-struct is_same_helper {
-    static constexpr bool value = is_same<T, U>::value;
-};
-
-// C++14-style variable template for convenience (with fallback for pre-C++14)
-#if __cplusplus >= 201402L
-template<typename T, typename U>
-constexpr bool is_same_v = is_same<T, U>::value;
-#endif
-
 // Type traits for brightness types - provides constants and metadata
 template<typename T>
 struct BrightnessTraits;
@@ -72,6 +48,34 @@ struct BrightnessTraits<uint16_t> {
 // Convenience aliases for brightness types (follow _t naming convention)
 using brightness8_t = uint8_t;
 using brightness16_t = uint16_t;
+
+// Represents a brightness level as a percentage (0-100).
+// Implicitly converts to uint8_t or uint16_t so it works transparently
+// with both JLed (8-bit) and JLed16 (16-bit) without any code changes:
+//
+//   JLed   led   = JLed(13)  .MaxBrightness(75_pct).Breathe(500);
+//   JLed16 led16 = JLed16(13).MaxBrightness(75_pct).Breathe(500);
+//
+class Percentage {
+    uint8_t pct_;
+
+ public:
+    constexpr explicit Percentage(uint8_t pct) : pct_(pct) {}
+
+    constexpr operator uint8_t() const {
+        return static_cast<uint8_t>(
+            uint16_t(pct_) * BrightnessTraits<uint8_t>::kFullBrightness / 100);
+    }
+    constexpr operator uint16_t() const {
+        return static_cast<uint16_t>(
+            uint32_t(pct_) * BrightnessTraits<uint16_t>::kFullBrightness / 100);
+    }
+};
+
+constexpr Percentage operator""_pct(unsigned long long pct) {
+    return Percentage(static_cast<uint8_t>(pct));
+}
+
 
 // Scale Brightness value to target PWM resolution.
 //
