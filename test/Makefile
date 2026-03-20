@@ -73,10 +73,8 @@ bin/test_example_morse: $(TEST_MORSE_OBJECTS)
 	$(CXX) -o $@ $(LDFLAGS) $(TEST_MORSE_OBJECTS)
 
 coverage: test
-	lcov --config-file=.lcovrc --directory ../src --directory .. --capture --output-file coverage.lcov --no-external
-	lcov --config-file=.lcovrc --list coverage.lcov
 	mkdir -p report
-	genhtml coverage.lcov -o report
+	gcovr --root .. --filter ../src/ --print-summary --txt --coveralls coverage.json --html-details report/index.html
 
 test: depend all
 	./bin/test_jled

@@ -2,8 +2,8 @@ name: 'Setup PlatformIO'
 description: 'Install PlatformIO and required Python dependencies for embedded development'
 
 inputs:
-  install-lcov:
-    description: 'Whether to install lcov for coverage reporting'
+  install-gcovr:
+    description: 'Whether to install gcovr for coverage reporting'
     required: false
     default: 'false'
 
@@ -17,8 +17,8 @@ runs:
         # some SDKs relying on older python versions (e.g. STM32)
         pip install platformio==6.1.18 zombie-imp==0.0.4 setuptools intelhex==2.3.0
 
-    - name: Install lcov
-      if: inputs.install-lcov == 'true'
+    - name: Install gcovr
+      if: inputs.install-gcovr == 'true'
       shell: bash
       run: |
-        sudo apt-get update && sudo apt-get install -y lcov
+        pip install gcovr==8.6

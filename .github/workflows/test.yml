@@ -40,7 +40,7 @@ jobs:
       - name: install tools
         uses: ./.github/actions/setup-platformio
         with:
-          install-lcov: 'true'
+          install-gcovr: 'true'
       - name: run tests
         run: |
           cd test
@@ -50,7 +50,7 @@ jobs:
         uses: coverallsapp/github-action@v2.3.6
         with:
           github-token: ${{ secrets.github_token }}
-          file: test/coverage.lcov
+          file: test/coverage.json
   examples:
     runs-on: ubuntu-24.04
     strategy:

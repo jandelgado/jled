@@ -2,7 +2,7 @@
   "packages": [
     "python@3.13",
     "python3Packages.pip",
-    "lcov@1.16",
+    "python3Packages.gcovr@8.6",
     "cpplint@2.0.2",
   ],
   "shell": {
