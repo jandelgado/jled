@@ -1,4 +1,13 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.12"
+# dependencies = [
+#     "markdown>=3.6",
+#     "Jinja2>=3.1",
+#     "packaging>=24.0",
+#     "Pygments>=2.17",
+# ]
+# ///
 """
 JLed Documentation Site Generator
 
@@ -46,7 +55,7 @@ EXCLUDE_DIRS = {'CMakeFiles', '.vscode', '.idea', 'build', 'dist', '__pycache__'
 MAX_FILE_SIZE = 500 * 1024  # 500KB
 
 
-def run_git_command(cmd: List[str], cwd: str = None) -> str:
+def run_git_command(cmd: List[str], cwd: str = None, quiet: bool = False) -> str:
     """Run a git command and return the output."""
     try:
         result = subprocess.run(
@@ -58,9 +67,19 @@ def run_git_command(cmd: List[str], cwd: str = None) -> str:
         )
         return result.stdout.strip()
     except subprocess.CalledProcessError as e:
-        print(f"Error running git command: {' '.join(cmd)}", file=sys.stderr)
-        print(f"Error output: {e.stderr}", file=sys.stderr)
+        if not quiet:
+            print(f"Error running git command: {' '.join(cmd)}", file=sys.stderr)
+            print(f"Error output: {e.stderr}", file=sys.stderr)
         raise
+
+
+def resolve_ref(ref: str) -> str:
+    """Return ref if it exists locally, otherwise return origin/ref."""
+    try:
+        run_git_command(['git', 'rev-parse', '--verify', ref], quiet=True)
+        return ref
+    except subprocess.CalledProcessError:
+        return f'origin/{ref}'
 
 
 def get_versions() -> List[str]:
@@ -105,7 +124,7 @@ def get_latest_stable(versions: List[str]) -> str:
     return 'master'  # Fallback if no releases exist
 
 
-def extract_readme_structure(readme_path: str) -> tuple[str, List[Dict[str, Any]]]:
+def extract_readme_structure(readme_path: str, version: str = None) -> tuple[str, List[Dict[str, Any]]]:
     """
     Parse README.md and extract HTML content plus navigation structure.
     Returns (html_content, navigation_items).
@@ -127,6 +146,16 @@ def extract_readme_structure(readme_path: str) -> tuple[str, List[Dict[str, Any]
         content,
         flags=re.MULTILINE | re.DOTALL
     )
+
+    # Inject version line after the first top-level heading
+    if version is not None:
+        content = re.sub(
+            r'^(#\s+.+)$',
+            rf'\1\n\nVersion: {version}',
+            content,
+            count=1,
+            flags=re.MULTILINE
+        )
 
     # Configure markdown with TOC extension
     md = markdown.Markdown(
@@ -435,7 +464,7 @@ def generate_example_page(
 
 def checkout_version(version: str, work_dir: str):
     """Checkout a specific version in the given work directory."""
-    run_git_command(['git', 'checkout', '--detach', version], cwd=work_dir)
+    run_git_command(['git', 'checkout', '--detach', resolve_ref(version)], cwd=work_dir)
 
 
 def generate_site(output_dir: str, script_dir: str):
@@ -467,7 +496,7 @@ def generate_site(output_dir: str, script_dir: str):
         # Create worktree using --detach to allow creation even when master is
         # already checked out (e.g. in CI environments).
         print(f"Creating temporary worktree at {work_dir}...")
-        run_git_command(['git', 'worktree', 'add', '--detach', work_dir, 'master'])
+        run_git_command(['git', 'worktree', 'add', '--detach', work_dir, resolve_ref('master')])
 
         try:
             # Process each version
@@ -487,7 +516,7 @@ def generate_site(output_dir: str, script_dir: str):
 
                 # Extract README content and structure
                 if os.path.exists(readme_path):
-                    readme_html, navigation = extract_readme_structure(readme_path)
+                    readme_html, navigation = extract_readme_structure(readme_path, version=ver)
                 else:
                     print(f"Warning: README.md not found for {ver}")
                     readme_html = "<p>Documentation not available for this version.</p>"
