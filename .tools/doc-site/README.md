@@ -39,23 +39,14 @@ The site generator:
 
 ### Prerequisites
 
-Install Python dependencies:
-
-```bash
-pip install -r requirements.txt
-```
-
-Required packages:
-- `markdown>=3.6` - README parsing and HTML rendering
-- `Jinja2>=3.1` - HTML template rendering
-- `packaging>=24.0` - Semantic version parsing and sorting
+[uv](https://docs.astral.sh/uv/) must be installed. The script uses a `uv` shebang and inline dependency metadata, so it self-installs all required packages on first run — no manual `pip install` needed.
 
 ### Running the Generator
 
 From the repository root:
 
 ```bash
-python .tools/doc-site/generate_site.py --output /tmp/jled-docs
+.tools/doc-site/generate_site.py --output /tmp/jled-docs
 ```
 
 Options:
@@ -264,10 +255,9 @@ To modify the generated pages:
 
 ### Updating Dependencies
 
-Update `requirements.txt` and test locally:
+Update the version pins in the `# /// script` inline metadata block at the top of `generate_site.py`, then test locally:
 ```bash
-pip install -r requirements.txt --upgrade
-python generate_site.py --output /tmp/test
+.tools/doc-site/generate_site.py --output /tmp/test
 ```
 
 ### Excluding Versions
