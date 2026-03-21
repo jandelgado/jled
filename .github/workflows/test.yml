@@ -55,6 +55,11 @@ jobs:
           github-token: ${{ secrets.github_token }}
           file: test/coverage.json
           git-commit: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Upload HTML coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: test/report/
   setup-examples:
     runs-on: ubuntu-24.04
     steps:
