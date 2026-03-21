@@ -2,13 +2,12 @@
   "packages": [
     "python@3.13",
     "python3Packages.pip",
-    "python3Packages.gcovr@8.6",
-    "cpplint@2.0.2",
+    "cpplint@2.0.2"
   ],
   "shell": {
     "init_hook": [
       "test -z $FISH_VERSION && . $VENV_DIR/bin/activate || source $VENV_DIR/bin/activate.fish",
-      "pip install --quiet --upgrade pip platformio==6.1.18 zombie-imp packaging intelhex setuptools"
+      "pip install --quiet --upgrade pip platformio==6.1.18 zombie-imp packaging intelhex setuptools gcovr==8.6"
     ],
     "scripts": {
       "test": [
