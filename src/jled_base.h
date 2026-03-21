@@ -539,7 +539,6 @@ class TJLed {
 
     // Fast modulo using reciprocal multiplication (Hacker's Delight technique)
     // Returns: elapsed % cycle_period, computed efficiently without division
-    // Pure function with no side effects - cache management done by caller
     static inline uint32_t fastModulo(uint32_t elapsed, uint32_t cycle_period,
                                       uint16_t period_inv) {
         // Avoid uint64_t (expensive on 8-bit AVR) by splitting into high/low words

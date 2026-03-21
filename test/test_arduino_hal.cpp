@@ -5,8 +5,10 @@
 
 using jled::ArduinoHal;
 
-TEST_CASE("first call to analogWrite() sets pin mode to OUTPUT (8-bit)",
+TEST_CASE(".first call to analogWrite() sets pin mode to OUTPUT (8-bit)",
           "[araduino_hal]") {
+	SKIP("currently disabled since we disabled calling pinMode because it is not needed");
+
     arduinoMockInit();
     constexpr auto kPin = 10;
     auto h = ArduinoHal<>(kPin);
@@ -47,13 +49,13 @@ TEST_CASE("ArduinoHal<10>: 8-bit input upscaled to 10-bit", "[arduino_hal]") {
     REQUIRE(arduinoMockGetPinState(kPin) == 0);
 
     h.analogWrite<uint8_t>(255);
-    REQUIRE(arduinoMockGetPinState(kPin) == 1023);  // (1<<10)-1
+    REQUIRE(arduinoMockGetPinState(kPin) == 1023);
 
     h.analogWrite<uint8_t>(1);
-    REQUIRE(arduinoMockGetPinState(kPin) == 4);  // 1 << (10-8)
+    REQUIRE(arduinoMockGetPinState(kPin) == 4);
 
     h.analogWrite<uint8_t>(128);
-    REQUIRE(arduinoMockGetPinState(kPin) == 512);  // 128 << 2
+    REQUIRE(arduinoMockGetPinState(kPin) == 514);
 }
 
 TEST_CASE("ArduinoHal<10>: 16-bit input downscaled to 10-bit", "[arduino_hal]") {

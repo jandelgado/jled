@@ -58,8 +58,8 @@ using JLedClockType = MbedClock;
 #elif defined(ESP32)
 #include "esp32_hal.h"  // NOLINT
 namespace jled {
-using JLedHal = Esp32Hal;
-using JLedHal16 = Esp32Hal;
+using JLedHal = Esp32Hal<8, LEDC_TIMER_0>;
+using JLedHal16 = Esp32Hal<13, LEDC_TIMER_1>;
 using JLedClockType = Esp32Clock;
 }  // namespace jled
 

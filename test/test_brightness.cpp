@@ -6,7 +6,37 @@
 #include <catch2/catch_amalgamated.hpp>
 #include "brightness.h"  // NOLINT
 
+using jled::Percentage;
 using jled::scaleToNative;
+using jled::operator""_pct;
+
+TEST_CASE("Percentage - converts to uint8_t", "[brightness]") {
+    REQUIRE(static_cast<uint8_t>(Percentage(0))   == 0);
+    REQUIRE(static_cast<uint8_t>(Percentage(1))   == 2);    // 1*255/100
+    REQUIRE(static_cast<uint8_t>(Percentage(50))  == 127);  // 50*255/100
+    REQUIRE(static_cast<uint8_t>(Percentage(75))  == 191);  // 75*255/100
+    REQUIRE(static_cast<uint8_t>(Percentage(99))  == 252);  // 99*255/100
+    REQUIRE(static_cast<uint8_t>(Percentage(100)) == 255);
+}
+
+TEST_CASE("Percentage - converts to uint16_t", "[brightness]") {
+    REQUIRE(static_cast<uint16_t>(Percentage(0))   == 0);
+    REQUIRE(static_cast<uint16_t>(Percentage(1))   == 655);    // 1*65535/100
+    REQUIRE(static_cast<uint16_t>(Percentage(50))  == 32767);  // 50*65535/100
+    REQUIRE(static_cast<uint16_t>(Percentage(75))  == 49151);  // 75*65535/100
+    REQUIRE(static_cast<uint16_t>(Percentage(99))  == 64879);  // 99*65535/100
+    REQUIRE(static_cast<uint16_t>(Percentage(100)) == 65535);
+}
+
+TEST_CASE("Percentage - _pct literal matches Percentage constructor", "[brightness]") {
+    REQUIRE(static_cast<uint8_t>(0_pct)   == static_cast<uint8_t>(Percentage(0)));
+    REQUIRE(static_cast<uint8_t>(50_pct)  == static_cast<uint8_t>(Percentage(50)));
+    REQUIRE(static_cast<uint8_t>(100_pct) == static_cast<uint8_t>(Percentage(100)));
+
+    REQUIRE(static_cast<uint16_t>(0_pct)   == static_cast<uint16_t>(Percentage(0)));
+    REQUIRE(static_cast<uint16_t>(50_pct)  == static_cast<uint16_t>(Percentage(50)));
+    REQUIRE(static_cast<uint16_t>(100_pct) == static_cast<uint16_t>(Percentage(100)));
+}
 
 TEST_CASE("scaleToNative - 8-bit to 8-bit (no scaling)", "[brightness]") {
     REQUIRE(scaleToNative<8>(static_cast<uint8_t>(0)) == 0);
@@ -17,8 +47,8 @@ TEST_CASE("scaleToNative - 8-bit to 8-bit (no scaling)", "[brightness]") {
 TEST_CASE("scaleToNative - 8-bit to 10-bit (upscaling)", "[brightness]") {
     REQUIRE(scaleToNative<10>(static_cast<uint8_t>(0)) == 0);
     REQUIRE(scaleToNative<10>(static_cast<uint8_t>(1)) == 4);      // 1 << 2
-    REQUIRE(scaleToNative<10>(static_cast<uint8_t>(128)) == 512);  // 128 << 2
-    REQUIRE(scaleToNative<10>(static_cast<uint8_t>(254)) == 1016);  // 254 << 2
+    REQUIRE(scaleToNative<10>(static_cast<uint8_t>(128)) == 514);	// not 512 because of "bit replication"
+    REQUIRE(scaleToNative<10>(static_cast<uint8_t>(254)) == 1019);
     // Special case: 255 maps to full brightness (1023, not 1020)
     REQUIRE(scaleToNative<10>(static_cast<uint8_t>(255)) == 1023);
 }
@@ -26,8 +56,8 @@ TEST_CASE("scaleToNative - 8-bit to 10-bit (upscaling)", "[brightness]") {
 TEST_CASE("scaleToNative - 8-bit to 12-bit (upscaling)", "[brightness]") {
     REQUIRE(scaleToNative<12>(static_cast<uint8_t>(0)) == 0);
     REQUIRE(scaleToNative<12>(static_cast<uint8_t>(1)) == 16);     // 1 << 4
-    REQUIRE(scaleToNative<12>(static_cast<uint8_t>(128)) == 2048);  // 128 << 4
-    REQUIRE(scaleToNative<12>(static_cast<uint8_t>(254)) == 4064);  // 254 << 4
+    REQUIRE(scaleToNative<12>(static_cast<uint8_t>(128)) == 2056);
+    REQUIRE(scaleToNative<12>(static_cast<uint8_t>(254)) == 4079);
     // Special case: 255 maps to full brightness (4095, not 4080)
     REQUIRE(scaleToNative<12>(static_cast<uint8_t>(255)) == 4095);
 }
@@ -35,17 +65,17 @@ TEST_CASE("scaleToNative - 8-bit to 12-bit (upscaling)", "[brightness]") {
 TEST_CASE("scaleToNative - 8-bit to 13-bit (upscaling)", "[brightness]") {
     REQUIRE(scaleToNative<13>(static_cast<uint8_t>(0)) == 0);
     REQUIRE(scaleToNative<13>(static_cast<uint8_t>(1)) == 32);     // 1 << 5
-    REQUIRE(scaleToNative<13>(static_cast<uint8_t>(128)) == 4096);  // 128 << 5
-    REQUIRE(scaleToNative<13>(static_cast<uint8_t>(254)) == 8128);  // 254 << 5
+    REQUIRE(scaleToNative<13>(static_cast<uint8_t>(128)) == 4112);
+    REQUIRE(scaleToNative<13>(static_cast<uint8_t>(254)) == 8159);
     // Special case: 255 maps to full brightness (8191, not 8160)
     REQUIRE(scaleToNative<13>(static_cast<uint8_t>(255)) == 8191);
 }
 
 TEST_CASE("scaleToNative - 8-bit to 16-bit (upscaling)", "[brightness]") {
     REQUIRE(scaleToNative<16>(static_cast<uint8_t>(0)) == 0);
-    REQUIRE(scaleToNative<16>(static_cast<uint8_t>(1)) == 256);      // 1 << 8
-    REQUIRE(scaleToNative<16>(static_cast<uint8_t>(128)) == 32768);  // 128 << 8
-    REQUIRE(scaleToNative<16>(static_cast<uint8_t>(254)) == 65024);  // 254 << 8
+    REQUIRE(scaleToNative<16>(static_cast<uint8_t>(1)) == 257);
+    REQUIRE(scaleToNative<16>(static_cast<uint8_t>(128)) == 32896);
+    REQUIRE(scaleToNative<16>(static_cast<uint8_t>(254)) == 65278);
     // Special case: 255 maps to full brightness (65535, not 65280)
     REQUIRE(scaleToNative<16>(static_cast<uint8_t>(255)) == 65535);
 }
