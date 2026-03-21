@@ -17,6 +17,7 @@ test/bin
 *.gcda
 *.lcov
 test/coverage.info
+test/coverage.json
 test/report
 **/tags
 .vscode

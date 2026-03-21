@@ -5,6 +5,9 @@ on:
   pull_request:
     branches: [master]
 name: run tests
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   lint:
     runs-on: ubuntu-24.04
@@ -40,7 +43,7 @@ jobs:
       - name: install tools
         uses: ./.github/actions/setup-platformio
         with:
-          install-lcov: 'true'
+          install-gcovr: 'true'
       - name: run tests
         run: |
           cd test
@@ -50,12 +53,48 @@ jobs:
         uses: coverallsapp/github-action@v2.3.6
         with:
           github-token: ${{ secrets.github_token }}
-          file: test/coverage.lcov
+          file: test/coverage.json
+          git-commit: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Upload HTML coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: test/report/
+  setup-examples:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v6
+      - name: install python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Cache PlatformIO
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.platformio
+            ~/.cache/pip
+          key: ${{ runner.os }}-pio-${{ hashFiles('**/platformio.ini', '.github/workflows/test.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-pio-
+      - name: install tools
+        uses: ./.github/actions/setup-platformio
+      - name: install rpipico platform and toolchain
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          pio platform install "https://github.com/maxgerhardt/platform-raspberrypi.git"
+          pio ci --board=rpipico \
+              --lib="src" \
+              --project-option="board_build.core = earlephilhower" \
+              "examples/hello/hello.ino"
   examples:
+    needs: setup-examples
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        board: [uno, esp01, nano33ble, esp32dev]
+        board: [uno, esp01, nano33ble, esp32dev, rpipico]
         example:
           - custom_hal
           - morse
@@ -70,6 +109,8 @@ jobs:
         include:
           - board: esp32dev
             extra_flags: --project-option="build_flags = -DLED_BUILTIN=1"
+          - board: rpipico
+            extra_flags: --project-option="board_build.core = earlephilhower"
           - example: morse
             extra_libs: --lib="examples/morse"
           - board: nucleo_f401re
@@ -77,17 +118,17 @@ jobs:
             extra_flags: --project-option="framework=mbed"
             ext: cpp
     steps:
+      - name: checkout code
+        uses: actions/checkout@v6
       - name: Cache PlatformIO
         uses: actions/cache@v4
         with:
           path: |
             ~/.platformio
             ~/.cache/pip
-          key: ${{ runner.os }}-pio-${{ hashFiles('**/platformio.ini') }}
+          key: ${{ runner.os }}-pio-${{ hashFiles('**/platformio.ini', '.github/workflows/test.yml') }}
           restore-keys: |
             ${{ runner.os }}-pio-
-      - name: checkout code
-        uses: actions/checkout@v6
       - name: install python
         uses: actions/setup-python@v6
         with:
