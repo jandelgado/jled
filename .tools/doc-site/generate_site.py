@@ -55,7 +55,7 @@ EXCLUDE_DIRS = {'CMakeFiles', '.vscode', '.idea', 'build', 'dist', '__pycache__'
 MAX_FILE_SIZE = 500 * 1024  # 500KB
 
 
-def run_git_command(cmd: List[str], cwd: str = None) -> str:
+def run_git_command(cmd: List[str], cwd: str = None, quiet: bool = False) -> str:
     """Run a git command and return the output."""
     try:
         result = subprocess.run(
@@ -67,9 +67,19 @@ def run_git_command(cmd: List[str], cwd: str = None) -> str:
         )
         return result.stdout.strip()
     except subprocess.CalledProcessError as e:
-        print(f"Error running git command: {' '.join(cmd)}", file=sys.stderr)
-        print(f"Error output: {e.stderr}", file=sys.stderr)
+        if not quiet:
+            print(f"Error running git command: {' '.join(cmd)}", file=sys.stderr)
+            print(f"Error output: {e.stderr}", file=sys.stderr)
         raise
+
+
+def resolve_ref(ref: str) -> str:
+    """Return ref if it exists locally, otherwise return origin/ref."""
+    try:
+        run_git_command(['git', 'rev-parse', '--verify', ref], quiet=True)
+        return ref
+    except subprocess.CalledProcessError:
+        return f'origin/{ref}'
 
 
 def get_versions() -> List[str]:
@@ -454,7 +464,7 @@ def generate_example_page(
 
 def checkout_version(version: str, work_dir: str):
     """Checkout a specific version in the given work directory."""
-    run_git_command(['git', 'checkout', '--detach', version], cwd=work_dir)
+    run_git_command(['git', 'checkout', '--detach', resolve_ref(version)], cwd=work_dir)
 
 
 def generate_site(output_dir: str, script_dir: str):
@@ -486,7 +496,7 @@ def generate_site(output_dir: str, script_dir: str):
         # Create worktree using --detach to allow creation even when master is
         # already checked out (e.g. in CI environments).
         print(f"Creating temporary worktree at {work_dir}...")
-        run_git_command(['git', 'worktree', 'add', '--detach', work_dir, 'master'])
+        run_git_command(['git', 'worktree', 'add', '--detach', work_dir, resolve_ref('master')])
 
         try:
             # Process each version

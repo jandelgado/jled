@@ -1,0 +1,28 @@
+---
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+name: build doc-site
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build-docs:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository with full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for all tags
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v5
+      - name: Generate documentation site
+        run: |
+          .tools/doc-site/generate_site.py --output ./site-build
+      - name: Upload doc-site artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: doc-site
+          path: ./site-build
