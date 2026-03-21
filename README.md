@@ -572,10 +572,10 @@ documentation](https://docs.espressif.com/projects/esp-idf/en/latest/api-referen
 for details).
 
 The `ledc` API connects so-called channels to GPIO pins, enabling them to use
-PWM. There are 16 channels available. Unless otherwise specified, JLed
-automatically picks the next free channel, starting with channel 0 and wrapping
-over after channel 15. To manually specify a channel, the JLed object must be
-constructed this way:
+PWM. There are `LEDC_CHANNEL_MAX` (8) channels available per speed mode. Unless
+otherwise specified, JLed automatically picks the next free channel, starting
+with channel 0 and wrapping over after the last channel. To manually specify a
+channel, the JLed object must be constructed this way:
 
 ```c++
 auto esp32Led = JLed(jled::Esp32Hal(2, 7)).Blink(1000, 1000).Forever();
@@ -586,20 +586,29 @@ argument and the ESP32 ledc channel number on the second position. Note that
 using the above-mentioned constructor results in non-platform independent code,
 so it should be avoided and is normally not necessary.
 
-For completeness, the full signature of the Esp32Hal constructor is
+For completeness, the full signature of the `Esp32Hal` constructor is
 
-```
-Esp32Hal(PinType pin,
-         int chan = kAutoSelectChan,
-         uint16_t freq = 5000,
-         ledc_timer_t timer = LEDC_TIMER_0)
+```cpp
+Esp32Hal(PinType pin, int chan = kAutoSelectChan, uint16_t freq = 5000)
 ```
 
-which also allows to override the default frequency and timer used, when needed.
+The PWM resolution and timer are template parameters, not runtime arguments:
+
+```cpp
+// default: 8-bit resolution, LEDC_TIMER_0
+template<uint8_t kResBits = 8, ledc_timer_t kTimer = LEDC_TIMER_0>
+class Esp32Hal;
+```
+
+This allows to override the default frequency, resolution, and timer when needed.
 
 **Important**: Do not call Arduino SDK functions `pinMode` or `digitalWrite` on GPIO pins
-that are controlled by JLed, because that would interfere with JLed using the Espressif 
+that are controlled by JLed, because that would interfere with JLed using the Espressif
 `ledc` API directly, resulting in malfunctioning JLed LEDs.
+
+**Important**: Each GPIO pin must be controlled by at most one `JLed` (or `JLed16`) object
+at a time. Constructing a second JLed on the same pin will silently reconfigure the shared
+LEDC channel, disrupting the first object.
 
 #### Using ESP-IDF
 

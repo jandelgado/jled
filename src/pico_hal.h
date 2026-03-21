@@ -42,6 +42,7 @@ class PicoHal {
     using NativeBrightness = uint16_t;  // Pico supports 16-bit PWM natively
     // static constexpr auto TOP_MAX = 65534;
     static constexpr uint8_t kNativeBits = kResBits_;
+	static constexpr uint16_t kMaxBrightness = (1 << kResBits_) - 1;
 
  private:
     static constexpr auto TOP_MAX = (1u << kNativeBits)-1;
@@ -114,12 +115,15 @@ class PicoHal {
     template<typename Brightness>
     void analogWrite(Brightness val) const {
         // Scale to kResBits_ resolution and set PWM duty
-        const uint16_t duty16 = jled::scaleToNative<kResBits_>(val);
-        set_pwm_duty(slice_num_, channel_, top_, duty16);
+        const uint16_t duty = jled::scaleToNative<kResBits_>(val);
+
+        // Fixing if all bits in resolution is set
+        //const uint32_t _duty = (duty == kMaxBrightness) ? kMaxBrightness + 1 : duty;
+        set_pwm_duty(slice_num_, channel_, top_, duty);
     }
 
  private:
-    uint slice_num_, channel_;
+	uint16_t slice_num_, channel_;
     uint32_t top_ = 0;
 };
 

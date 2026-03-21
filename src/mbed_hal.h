@@ -25,19 +25,23 @@
 #ifdef __MBED__
 
 #include <mbed.h>
+#include "jled_std.h"
 #include "brightness.h"
 
 namespace jled {
 
+template<uint8_t kResBits_ = 8>
 class MbedHal {
  public:
     using PinType = ::PinName;
-    using NativeBrightness = uint8_t;  // Mbed uses float internally, but we expose 8-bit API
-    static constexpr uint8_t kNativeBits = 8;
+    using NativeBrightness =
+        typename Conditional<(kResBits_ > 8), uint16_t, uint8_t>::type;
+    static constexpr uint8_t kNativeBits = kResBits_;
+    static constexpr NativeBrightness kMaxBrightness = (1u << kResBits_) - 1;
 
     explicit MbedHal(PinType pin) noexcept : pin_(pin) {}
 
-    MbedHal(const MbedHal& rhs) { pin_ = rhs.pin_; }
+    MbedHal(const MbedHal& rhs) : pin_(rhs.pin_) {}
 
     ~MbedHal() {
         delete pwmout_;
@@ -49,9 +53,9 @@ class MbedHal {
         if (!pwmout_) {
             pwmout_ = new PwmOut(pin_);
         }
-        // Mbed uses float in range [0.0, 1.0]
-        constexpr auto kMax = BrightnessTraits<Brightness>::kFullBrightness;
-        pwmout_->write(static_cast<float>(val) / static_cast<float>(kMax));
+        const uint16_t duty = jled::scaleToNative<kNativeBits>(val);
+        // Mbed PwmOut::write() takes a float in [0.0, 1.0]
+        pwmout_->write(static_cast<float>(duty) / static_cast<float>(kMaxBrightness));
     }
 
     MbedHal& operator=(const MbedHal& rhs) {

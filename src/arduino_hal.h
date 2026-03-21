@@ -22,6 +22,7 @@
 #ifndef SRC_ARDUINO_HAL_H_
 #define SRC_ARDUINO_HAL_H_
 #include <Arduino.h>
+#include "jled_std.h"
 #include "brightness.h"
 
 // some MCU like e.g. ESP8266, zero and mkr models support PWM resolutions
@@ -30,7 +31,7 @@
 // existence at runtime and adjust the resolution accordingly.
 extern "C" __attribute__((weak)) void analogWriteResolution(int bits);
 
-namespace jled {
+namespace jled {;
 
 // ArduinoHal controls a single PWM pin.
 //
@@ -43,9 +44,10 @@ template <uint8_t kResBits_ = 8>
 class ArduinoHal {
  public:
     using PinType = uint8_t;
-//    using NativeBrightness =
-//        typename std::conditional<(kResBits_ > 8), uint16_t, uint8_t>::type;
+    using NativeBrightness =
+        typename Conditional<(kResBits_ > 8), uint16_t, uint8_t>::type;
     static constexpr uint8_t kNativeBits = kResBits_;
+    static constexpr NativeBrightness kMaxBrightness = (1 << kResBits_) - 1;
 
     explicit ArduinoHal(PinType pin) noexcept : pin_(pin) {}
 
