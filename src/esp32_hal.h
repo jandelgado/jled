@@ -29,8 +29,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //
-#ifndef SRC_ESP32_HAL_H_
-#define SRC_ESP32_HAL_H_
+#pragma once
 
 #include <driver/ledc.h>
 #include <esp_timer.h>
@@ -165,4 +164,3 @@ class Esp32Clock {
 };
 
 }  // namespace jled
-#endif  // SRC_ESP32_HAL_H_

@@ -19,8 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //
-#ifndef SRC_JLED_BASE_H_
-#define SRC_JLED_BASE_H_
+#pragma once
 
 #include <inttypes.h>  // types, e.g. uint8_t
 #include <stddef.h>    // size_t
@@ -764,4 +763,3 @@ template<>
 uint16_t fadeon_func<uint16_t>(uint32_t t, uint16_t period, uint16_t inv_period);
 
 };  // namespace jled
-#endif  // SRC_JLED_BASE_H_
