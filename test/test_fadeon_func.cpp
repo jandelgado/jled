@@ -1,7 +1,9 @@
+// JLed Unit tests for the fadeon_func (runs on host).
+// Copyright 2024-2025 Jan Delgado jdelgado@gmx.net
 #include "catch2/catch_amalgamated.hpp"
 #include "jled_base.h"
 
-using namespace jled;
+using jled::fadeon_func;
 
 static uint16_t calc_inv_period(uint16_t period) {
     return static_cast<uint16_t>((1UL << 16) / period);
@@ -65,8 +67,8 @@ TEST_CASE("fadeon_func 16-bit edge cases and common values", "[fadeon]") {
         // lut16 = {0,49,198,448,807,...,65535}
         REQUIRE(fadeon_func<uint16_t>(1024,  period, ip) == 49);    // lut16[1]
         REQUIRE(fadeon_func<uint16_t>(2048,  period, ip) == 198);   // lut16[2]
-        REQUIRE(fadeon_func<uint16_t>(16384, period, ip) == 17545); // lut16[16]
-        REQUIRE(fadeon_func<uint16_t>(24576, period, ip) == 46081); // lut16[24]
+        REQUIRE(fadeon_func<uint16_t>(16384, period, ip) == 17545);  // lut16[16]
+        REQUIRE(fadeon_func<uint16_t>(24576, period, ip) == 46081);  // lut16[24]
     }
 
     SECTION("output is monotonically non-decreasing") {

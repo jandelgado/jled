@@ -47,7 +47,8 @@ TEST_CASE("scaleToNative - 8-bit to 8-bit (no scaling)", "[brightness]") {
 TEST_CASE("scaleToNative - 8-bit to 10-bit (upscaling)", "[brightness]") {
     REQUIRE(scaleToNative<10>(static_cast<uint8_t>(0)) == 0);
     REQUIRE(scaleToNative<10>(static_cast<uint8_t>(1)) == 4);      // 1 << 2
-    REQUIRE(scaleToNative<10>(static_cast<uint8_t>(128)) == 514);	// not 512 because of "bit replication"
+    // not 512 because of "bit replication"
+    REQUIRE(scaleToNative<10>(static_cast<uint8_t>(128)) == 514);
     REQUIRE(scaleToNative<10>(static_cast<uint8_t>(254)) == 1019);
     // Special case: 255 maps to full brightness (1023, not 1020)
     REQUIRE(scaleToNative<10>(static_cast<uint8_t>(255)) == 1023);

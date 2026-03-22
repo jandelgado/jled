@@ -1,4 +1,5 @@
 // JLed Unit tests for the pico_hal class (run on host).
+// Copyright 2024-2025 Jan Delgado jdelgado@gmx.net
 #include "catch2/catch_amalgamated.hpp"
 
 #include <pico_hal.h>   // NOLINT

@@ -1,4 +1,5 @@
 // Minimal Pico SDK mock for testing JLed hardware accessing functions
+// Copyright 2024-2025 Jan Delgado jdelgado@gmx.net
 #include "pico_mock.h"          // NOLINT
 #include "pico-sdk/hardware/clocks.h"  // NOLINT
 #include "pico-sdk/hardware/pwm.h"     // NOLINT

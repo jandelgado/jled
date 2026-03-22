@@ -63,15 +63,15 @@ class Percentage {
 
     constexpr operator uint8_t() const {
         return static_cast<uint8_t>(
-            uint16_t(pct_) * BrightnessTraits<uint8_t>::kFullBrightness / 100);
+            static_cast<uint16_t>(pct_) * BrightnessTraits<uint8_t>::kFullBrightness / 100);
     }
     constexpr operator uint16_t() const {
         return static_cast<uint16_t>(
-            uint32_t(pct_) * BrightnessTraits<uint16_t>::kFullBrightness / 100);
+            static_cast<uint32_t>(pct_) * BrightnessTraits<uint16_t>::kFullBrightness / 100);
     }
 };
 
-constexpr Percentage operator""_pct(unsigned long long pct) {
+constexpr Percentage operator""_pct(unsigned long long pct) {  // NOLINT(runtime/int)
     return Percentage(static_cast<uint8_t>(pct));
 }
 

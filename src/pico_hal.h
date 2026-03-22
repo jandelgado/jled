@@ -26,7 +26,8 @@
 //
 // The RP2040 has 8 PWM slices (numbered 0-7), and each slice has two channels (A and B). That gives
 // you up to 16 PWM outputs total. Each GPIO pin on the chip is mapped to a specific slice and
-// channel. The mapping follows a fixed pattern: GPIO 0 -> Slice 0 Channel A, GPIO 1 -> Slice 0 Channel B,
+// channel. The mapping follows a fixed pattern: GPIO 0 -> Slice 0 Channel A,
+// GPIO 1 -> Slice 0 Channel B,
 // GPIO 2 -> Slice 1 Channel A, and so on, wrapping around after GPIO 15.
 //
 // NOTE: Both channels of a slice share the same wrap/clkdiv settings, so two PicoHal instances on
@@ -67,7 +68,7 @@ class PicoHal {
     using NativeBrightness =
         typename Conditional<(kResBits_ > 8), uint16_t, uint8_t>::type;
     static constexpr uint8_t kNativeBits = kResBits_;
-    static constexpr NativeBrightness kMaxBrightness = (1 << kResBits_) - 1;
+    static constexpr NativeBrightness kMaxBrightness = (1u << kResBits_) - 1;
 
  private:
     // divider=1.0, so wrap = 2^kResBits_-1 gives exactly kResBits_ resolution
