@@ -7,7 +7,7 @@ using jled::ArduinoHal;
 
 TEST_CASE(".first call to analogWrite() sets pin mode to OUTPUT (8-bit)",
           "[araduino_hal]") {
-	SKIP("currently disabled since we disabled calling pinMode because it is not needed");
+    SKIP("currently disabled since we disabled calling pinMode because it is not needed");
 
     arduinoMockInit();
     constexpr auto kPin = 10;

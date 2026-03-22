@@ -1,4 +1,5 @@
 // Minimal Pico SDK mock for testing JLed hardware accessing functions
+// Copyright 2024-2025 Jan Delgado jdelgado@gmx.net
 #ifndef TEST_PICO_MOCK_H_
 #define TEST_PICO_MOCK_H_
 

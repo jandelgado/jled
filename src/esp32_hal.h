@@ -77,7 +77,7 @@ class Esp32ChanMapper {
 // All Esp32Hal template instantiations must share the same Esp32ChanMapper instance,
 // so channels for different resolutions end up in the one and only channel mapper.
 class Esp32HalBase {
-protected:
+ protected:
     static Esp32ChanMapper& chanMapper() {
         static Esp32ChanMapper instance;
         return instance;
@@ -92,7 +92,7 @@ class Esp32Hal : public Esp32HalBase {
     using PinType = Esp32ChanMapper::PinType;
     using NativeBrightness = uint16_t;
     static constexpr uint8_t kNativeBits = kResBits_;
-	static constexpr uint16_t kMaxBrightness = (1 << kResBits_) - 1;
+    static constexpr uint16_t kMaxBrightness = (1u << kResBits_) - 1;
 
     static constexpr auto kAutoSelectChan = -1;
 
@@ -102,7 +102,7 @@ class Esp32Hal : public Esp32HalBase {
     //       channel automatically; pass an explicit value to override.
     // freq  LEDC base frequency in Hz (default: 5000).
     // The PWM resolution (kResBits_) and timer (kTimer_) are template parameters.
-    Esp32Hal(PinType pin, int chan = kAutoSelectChan, uint16_t freq = 5000) noexcept {
+    explicit Esp32Hal(PinType pin, int chan = kAutoSelectChan, uint16_t freq = 5000) noexcept {
         chan_ = (chan == kAutoSelectChan)
                     ? Esp32Hal::chanMapper().chanForPin(pin)
                     : (ledc_channel_t)chan;
@@ -136,14 +136,14 @@ class Esp32Hal : public Esp32HalBase {
         // Scale brightness to actual resolution
         const uint16_t duty = jled::scaleToNative<kNativeBits>(val);
 
-		// from: https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/peripherals/ledc.html
+        // from: https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/peripherals/ledc.html
         // The range of the duty cycle values passed to functions depends on selected
         // duty_resolution and should be from 0 to (2 ** duty_resolution). For example, if the
         // selected duty resolution is 10, then the duty cycle values can range from 0 to 1024. This
         // provides the resolution of ~ 0.1%.
 
         // Fixing if all bits in resolution is set = LEDC FULL ON. This is important
-		// for low active LEDs since these would not be 100% without this fix.
+        // for low active LEDs since these would not be 100% without this fix.
         const uint32_t full_duty = (duty == kMaxBrightness) ? kMaxBrightness + 1 : duty;
 
         ledc_set_duty(kLedcSpeedMode, chan_, full_duty);

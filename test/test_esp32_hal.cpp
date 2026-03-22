@@ -146,7 +146,8 @@ TEST_CASE("analogWrite() writes 16-bit values correctly (16-bit)", "[esp32_hal]"
 
     hal.analogWrite<uint16_t>(65535);  // max 16-bit
     auto set_duty2 = esp32_mock_get_ledc_set_duty_args((ledc_channel_t)kChan);
-    REQUIRE(set_duty2.duty == (1<<13));  // full-brightness maps to kMaxBrightness+1 per ESP32 full-on spec
+    // full-brightness maps to kMaxBrightness+1 per ESP32 full-on spec
+    REQUIRE(set_duty2.duty == (1<<13));
 
     hal.analogWrite<uint16_t>(32768);  // mid 16-bit
     auto set_duty3 = esp32_mock_get_ledc_set_duty_args((ledc_channel_t)kChan);

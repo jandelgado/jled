@@ -46,7 +46,7 @@ class ArduinoHal {
     using NativeBrightness =
         typename Conditional<(kResBits_ > 8), uint16_t, uint8_t>::type;
     static constexpr uint8_t kNativeBits = kResBits_;
-    static constexpr NativeBrightness kMaxBrightness = (1 << kResBits_) - 1;
+    static constexpr NativeBrightness kMaxBrightness = (1u << kResBits_) - 1;
 
     explicit ArduinoHal(PinType pin) noexcept : pin_(pin) {}
 
