@@ -42,10 +42,14 @@ TEST_BRIGHTNESS_OBJECTS=$(TEST_BRIGHTNESS_SRC:.cpp=.o)
 TEST_FADEON_SRC=test_fadeon_func.cpp test_main.cpp ../src/jled_base.cpp ${CATCH}
 TEST_FADEON_OBJECTS=$(TEST_FADEON_SRC:.cpp=.o)
 
+TEST_PICO_SRC=pico_mock.cpp test_pico_hal.cpp test_main.cpp ${CATCH}
+TEST_PICO_OBJECTS=$(TEST_PICO_SRC:.cpp=.o)
+
 
 all: bin bin/test_arduino_mock  \
 	 bin/test_jled bin/test_jled_sequence \
 	 bin/test_esp32_hal bin/test_arduino_hal bin/test_mbed_hal \
+	 bin/test_pico_hal \
 	 bin/test_example_morse bin/test_brightness bin/test_fadeon_func
 
 bin/test_arduino_mock: $(TEST_ARDUINO_MOCK_OBJECTS)
@@ -68,6 +72,10 @@ bin/test_mbed_hal: $(TEST_MBED_OBJECTS)
 bin/test_arduino_hal: $(TEST_ARDUINO_OBJECTS)
 	$(CXX) -o $@ $(LDFLAGS) $(TEST_ARDUINO_OBJECTS)
 
+bin/test_pico_hal: CFLAGS += -I./pico-sdk
+bin/test_pico_hal: $(TEST_PICO_OBJECTS)
+	$(CXX) -o $@ $(LDFLAGS) $(TEST_PICO_OBJECTS)
+
 bin/test_example_morse: CFLAGS += -I../examples/morse
 bin/test_example_morse: $(TEST_MORSE_OBJECTS)
 	$(CXX) -o $@ $(LDFLAGS) $(TEST_MORSE_OBJECTS)
@@ -88,6 +96,7 @@ test: depend all
 	./bin/test_mbed_hal
 	./bin/test_esp32_hal
 	./bin/test_arduino_hal
+	./bin/test_pico_hal
 	./bin/test_example_morse
 	./bin/test_brightness
 	./bin/test_fadeon_func
@@ -109,10 +118,10 @@ clobber: clean
 
 depend: .depend
 
-.depend: $(TEST_JLED_SRC) $(TEST_JLED_SEQUENCE_SRC) $(TEST_ESP32_SRC) $(TEST_ARDUINO_SRC) $(TEST_MBED_SRC) $(TEST_MORSE_SRC) $(TEST_BRIGHTNESS_SRC) $(TEST_FADEON_SRC)
+.depend: $(TEST_JLED_SRC) $(TEST_JLED_SEQUENCE_SRC) $(TEST_ESP32_SRC) $(TEST_ARDUINO_SRC) $(TEST_MBED_SRC) $(TEST_PICO_SRC) $(TEST_MORSE_SRC) $(TEST_BRIGHTNESS_SRC) $(TEST_FADEON_SRC)
 	@echo updating dependencies in .depend
 	@rm -f ./.depend
-	@$(CC) -I ../src -I .  -MM $^ > .depend
+	@$(CC) -I ../src -I . -I ./pico-sdk -MM $^ > .depend
 
 include .depend
 
