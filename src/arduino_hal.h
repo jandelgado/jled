@@ -19,8 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //
-#ifndef SRC_ARDUINO_HAL_H_
-#define SRC_ARDUINO_HAL_H_
+#pragma once
 #include <Arduino.h>
 #include "jled_std.h"
 #include "brightness.h"
@@ -78,4 +77,3 @@ class ArduinoClock {
 };
 
 }  // namespace jled
-#endif  // SRC_ARDUINO_HAL_H_

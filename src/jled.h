@@ -19,8 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //
-#ifndef SRC_JLED_H_
-#define SRC_JLED_H_
+#pragma once
 
 // JLed - non-blocking LED abstraction library.
 //
@@ -112,4 +111,3 @@ using JLed16 = jled::JLed16;
 using JLedSequence = jled::JLedSequence;
 using JLedSequence16 = jled::JLedSequence16;
 
-#endif  // SRC_JLED_H_

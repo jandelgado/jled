@@ -19,8 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //
-#ifndef SRC_BRIGHTNESS_H_
-#define SRC_BRIGHTNESS_H_
+#pragma once
 
 #include <inttypes.h>
 
@@ -114,4 +113,3 @@ uint16_t scaleToNative(Brightness val) {
 
 }  // namespace jled
 
-#endif  // SRC_BRIGHTNESS_H_

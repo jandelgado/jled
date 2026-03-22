@@ -19,8 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //
-#ifndef SRC_JLED_STD_H_
-#define SRC_JLED_STD_H_
+#pragma once
 
 namespace jled {
 
@@ -30,4 +29,3 @@ template <typename T, typename F>
 struct Conditional<true, T, F> { using type = T; };
 
 }  // namespace jled
-#endif  // SRC_JLED_STD_H_

@@ -19,8 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //
-#ifndef SRC_MBED_HAL_H_
-#define SRC_MBED_HAL_H_
+#pragma once
 
 #ifdef __MBED__
 
@@ -79,4 +78,3 @@ class MbedClock {
 
 }  // namespace jled
 #endif  // __MBED__
-#endif  // SRC_MBED_HAL_H_

@@ -51,8 +51,7 @@
 // Even at 16-bit resolution the PWM frequency remains above 1 kHz, which produces smooth
 // visible output on LEDs.
 //
-#ifndef SRC_PICO_HAL_H_
-#define SRC_PICO_HAL_H_
+#pragma once
 
 #include "hardware/pwm.h"
 #include "pico/time.h"
@@ -101,4 +100,3 @@ class PicoClock {
 };
 
 }  // namespace jled
-#endif  // SRC_PICO_HAL_H_
