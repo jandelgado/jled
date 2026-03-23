@@ -24,10 +24,11 @@
 #include "jled_std.h"
 #include "brightness.h"
 
-// some MCU like e.g. ESP8266, zero and mkr models support PWM resolutions
-// higher than 8 bits, but the analogWriteResolution() function is only defined
-// for these platforms. By using `__attribute((weak))`  we can check for the
-// existence at runtime and adjust the resolution accordingly.
+// Some platforms support PWM resolutions higher than 8 bits (e.g. SAMD/Due
+// up to 12-bit, RP2040 up to 16-bit). ESP8266 Core v1/v2 used 10-bit natively
+// but v3 reverted to 8-bit. analogWriteResolution() is called on first use
+// when kResBits_ != 8, via a weak symbol check so it is safe on platforms that
+// don't provide it.
 extern "C" __attribute__((weak)) void analogWriteResolution(int bits);
 
 namespace jled {;
