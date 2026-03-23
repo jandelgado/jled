@@ -103,6 +103,32 @@ TEST_CASE("ArduinoHal<12>: 16-bit input downscaled to 12-bit", "[arduino_hal]") 
     REQUIRE(arduinoMockGetPinState(kPin) == 2048);  // 32768 >> 4
 }
 
+TEST_CASE("ArduinoHal<10>: analogWriteResolution() called once with kResBits",
+          "[arduino_hal]") {
+    arduinoMockInit();
+    constexpr auto kPin = 10;
+    auto h = ArduinoHal<10>(kPin);
+
+    // first call must trigger analogWriteResolution(10)
+    h.analogWrite<uint8_t>(128);
+    REQUIRE(arduinoMockGetAnalogWriteResolution() == 10);
+
+    // reset to detect whether it's called again on the second write
+    arduinoMockInit();
+    h.analogWrite<uint8_t>(64);
+    REQUIRE(arduinoMockGetAnalogWriteResolution() == 0);  // not called again
+}
+
+TEST_CASE("ArduinoHal<8>: analogWriteResolution() not called for 8-bit HAL",
+          "[arduino_hal]") {
+    arduinoMockInit();
+    constexpr auto kPin = 10;
+    auto h = ArduinoHal<>(kPin);  // default 8-bit
+
+    h.analogWrite<uint8_t>(128);
+    REQUIRE(arduinoMockGetAnalogWriteResolution() == 0);  // never called
+}
+
 TEST_CASE("millis() returns correct time", "[arduino_hal]") {
     arduinoMockInit();
     REQUIRE(jled::ArduinoClock::millis() == 0);
