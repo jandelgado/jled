@@ -40,33 +40,43 @@ class MbedHal {
 
     explicit MbedHal(PinType pin) noexcept : pin_(pin) {}
 
-    MbedHal(const MbedHal& rhs) : pin_(rhs.pin_) {}
+    MbedHal(const MbedHal& rhs) noexcept : pin_(rhs.pin_) {}
 
     ~MbedHal() {
-        delete pwmout_;
-        pwmout_ = nullptr;
+        if (initialized_) {
+            pwmout()->~PwmOut();
+        }
     }
 
     template<typename Brightness>
     void analogWrite(Brightness val) const {
-        if (!pwmout_) {
-            pwmout_ = new PwmOut(pin_);
+        if (!initialized_) {
+            new (pwmout_buf_.data) PwmOut(pin_);
+            initialized_ = true;
         }
         const uint16_t duty = jled::scaleToNative<kNativeBits>(val);
         // Mbed PwmOut::write() takes a float in [0.0, 1.0]
-        pwmout_->write(static_cast<float>(duty) / static_cast<float>(kMaxBrightness));
+        pwmout()->write(static_cast<float>(duty) / static_cast<float>(kMaxBrightness));
     }
 
     MbedHal& operator=(const MbedHal& rhs) {
-        delete pwmout_;
-        pwmout_ = nullptr;
+        if (initialized_) {
+            pwmout()->~PwmOut();
+            initialized_ = false;
+        }
         pin_ = rhs.pin_;
         return *this;
     }
 
  private:
+    PwmOut* pwmout() const {
+        return reinterpret_cast<PwmOut*>(pwmout_buf_.data);
+    }
+
     PinType pin_;
-    mutable PwmOut* pwmout_ = nullptr;
+    mutable bool initialized_ = false;
+    struct alignas(PwmOut) PwmOutBuf { uint8_t data[sizeof(PwmOut)]; };
+    mutable PwmOutBuf pwmout_buf_;
 };
 
 class MbedClock {
