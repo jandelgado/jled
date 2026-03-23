@@ -11,6 +11,7 @@ struct ArduinoState {
 
     int pin_state[ARDUINO_PINS];
     uint8_t pin_modes[ARDUINO_PINS];
+    int analog_write_resolution;  // last value passed to analogWriteResolution()
 } ArduinoState_;
 
 void arduinoMockInit() {
@@ -33,4 +34,12 @@ int arduinoMockGetPinState(uint8_t pin) { return ArduinoState_.pin_state[pin]; }
 uint32_t millis(void) { return ArduinoState_.millis; }
 
 void arduinoMockSetMillis(uint32_t value) { ArduinoState_.millis = value; }
+
+extern "C" void analogWriteResolution(int bits) {
+    ArduinoState_.analog_write_resolution = bits;
+}
+
+int arduinoMockGetAnalogWriteResolution() {
+    return ArduinoState_.analog_write_resolution;
+}
 
