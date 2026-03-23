@@ -262,7 +262,12 @@ class TJLed {
           minBrightness_{BrightnessTraits<Brightness>::kZeroBrightness},
           maxBrightness_{BrightnessTraits<Brightness>::kFullBrightness} {}
 
-    explicit TJLed(typename Hal::PinType pin) : TJLed{Hal{pin}} {}
+    explicit TJLed(typename Hal::PinType pin)
+        : hal_{pin},
+          state_{ST_INIT},
+          bLowActive_{false},
+          minBrightness_{BrightnessTraits<Brightness>::kZeroBrightness},
+          maxBrightness_{BrightnessTraits<Brightness>::kFullBrightness} {}
 
     TJLed(const TJLed& rLed) : hal_{rLed.hal_} { *this = rLed; }
 
