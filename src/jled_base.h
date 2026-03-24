@@ -774,10 +774,10 @@ class TJLedSequence {
 //   scale(x, max) == x for all x (where max is the maximum value for the type)
 // This algorithm avoids division, but is not 100% accurate, but "good enough".
 // It is the same algorithmn used in FastLED.
-template<typename BrightnessType>
-BrightnessType scale(BrightnessType val, BrightnessType factor) {
+template<typename Brightness>
+Brightness scale(Brightness val, Brightness factor) {
     // Use sizeof to determine type at compile time (optimizes to same code as if constexpr)
-    if (sizeof(BrightnessType) == 1) {
+    if (sizeof(Brightness) == 1) {
         return (static_cast<uint16_t>(val) * static_cast<uint16_t>(1+factor)) >> 8;
     } else {
         return (static_cast<uint32_t>(val) * static_cast<uint32_t>(1+factor)) >> 16;
