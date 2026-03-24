@@ -33,7 +33,7 @@ and someone did a [video tutorial for JLed](https://youtu.be/x5V2vdpZq1w) - Than
 // breathe LED (on gpio 9) 6 times for 1500ms, waiting for 500ms after each run
 #include <jled.h>
 
-auto led_breathe = JLed(9).Breathe(1500).Repeat(6).DelayAfter(500);
+auto led_breathe = JLed(9).Breathe(1500).DelayAfter(500).Repeat(6);
 
 void setup() { }
 
@@ -46,66 +46,66 @@ void loop() {
 
 <!-- vim-markdown-toc GFM -->
 
-* [Features](#features)
-* [Cheat Sheet](#cheat-sheet)
-* [Installation](#installation)
-  * [Arduino IDE](#arduino-ide)
-  * [PlatformIO](#platformio)
-* [Usage](#usage)
-    * [Output pipeline](#output-pipeline)
-  * [Effects](#effects)
-    * [Static on and off](#static-on-and-off)
-      * [Static on example](#static-on-example)
-    * [Blinking](#blinking)
-      * [Blinking example](#blinking-example)
-    * [Breathing](#breathing)
-      * [Breathing example](#breathing-example)
-    * [Candle](#candle)
-      * [Candle example](#candle-example)
-    * [FadeOn](#fadeon)
-      * [FadeOn example](#fadeon-example)
-    * [FadeOff](#fadeoff)
-    * [Fade](#fade)
-      * [Fade example](#fade-example)
-    * [User provided brightness function](#user-provided-brightness-function)
-      * [User provided brightness function example](#user-provided-brightness-function-example)
-  * [Delays and repetitions](#delays-and-repetitions)
-    * [Initial delay before effect starts](#initial-delay-before-effect-starts)
-    * [Delay after effect finished](#delay-after-effect-finished)
-    * [Repetitions](#repetitions)
-  * [State functions](#state-functions)
-    * [Update](#update)
-    * [IsRunning](#isrunning)
-    * [Reset](#reset)
-    * [Immediate Stop](#immediate-stop)
-  * [Misc functions](#misc-functions)
-    * [Low active for inverted output](#low-active-for-inverted-output)
-    * [Minimum- and Maximum brightness level](#minimum--and-maximum-brightness-level)
-  * [Controlling a group of LEDs](#controlling-a-group-of-leds)
-* [Framework notes](#framework-notes)
-* [Platform notes](#platform-notes)
-  * [Resolution and the `Brightness` type](#resolution-and-the-brightness-type)
-    * [`ArduinoHal` and the global `analogWriteResolution` limit](#arduinohal-and-the-global-analogwriteresolution-limit)
-    * [`JLED_FORCE_ARDUINO_HAL`](#jled_force_arduino_hal)
-  * [ESP8266](#esp8266)
-  * [ESP32](#esp32)
-    * [Using ESP-IDF](#using-esp-idf)
-  * [STM32](#stm32)
-    * [Arduino framework](#arduino-framework)
-  * [Raspberry Pi Pico](#raspberry-pi-pico)
-* [Example sketches](#example-sketches)
-  * [Building examples with PlatformIO](#building-examples-with-platformio)
-  * [Building examples with the Arduino IDE](#building-examples-with-the-arduino-ide)
-* [Extending](#extending)
-  * [Support new hardware](#support-new-hardware)
-* [Unit tests](#unit-tests)
-* [Contributing](#contributing)
-* [FAQ](#faq)
-  * [How do I check if a JLed object is still being updated?](#how-do-i-check-if-a-jled-object-is-still-being-updated)
-  * [How do I restart an effect?](#how-do-i-restart-an-effect)
-  * [How do I change a running effect?](#how-do-i-change-a-running-effect)
-* [Author and Copyright](#author-and-copyright)
-* [License](#license)
+- [Features](#features)
+- [Cheat Sheet](#cheat-sheet)
+- [Installation](#installation)
+  - [Arduino IDE](#arduino-ide)
+  - [PlatformIO](#platformio)
+- [Usage](#usage)
+  - [Output pipeline](#output-pipeline)
+  - [Effects](#effects)
+    - [Static on and off](#static-on-and-off)
+      - [Static on example](#static-on-example)
+    - [Blinking](#blinking)
+      - [Blinking example](#blinking-example)
+    - [Breathing](#breathing)
+      - [Breathing example](#breathing-example)
+    - [Candle](#candle)
+      - [Candle example](#candle-example)
+    - [FadeOn](#fadeon)
+      - [FadeOn example](#fadeon-example)
+    - [FadeOff](#fadeoff)
+    - [Fade](#fade)
+      - [Fade example](#fade-example)
+    - [User provided brightness function](#user-provided-brightness-function)
+      - [User provided brightness function example](#user-provided-brightness-function-example)
+  - [Delays and repetitions](#delays-and-repetitions)
+    - [Initial delay before effect starts](#initial-delay-before-effect-starts)
+    - [Delay after effect finished](#delay-after-effect-finished)
+    - [Repetitions](#repetitions)
+  - [State functions](#state-functions)
+    - [Update](#update)
+    - [IsRunning](#isrunning)
+    - [Reset](#reset)
+    - [Immediate Stop](#immediate-stop)
+  - [Misc functions](#misc-functions)
+    - [Low active for inverted output](#low-active-for-inverted-output)
+    - [Minimum- and Maximum brightness level](#minimum--and-maximum-brightness-level)
+  - [Controlling a group of LEDs](#controlling-a-group-of-leds)
+- [Framework notes](#framework-notes)
+- [Platform notes](#platform-notes)
+  - [Resolution and the `Brightness` type](#resolution-and-the-brightness-type)
+    - [`ArduinoHal` and the global `analogWriteResolution` limit](#arduinohal-and-the-global-analogwriteresolution-limit)
+    - [`JLED_FORCE_ARDUINO_HAL`](#jled_force_arduino_hal)
+  - [ESP8266](#esp8266)
+  - [ESP32](#esp32)
+    - [Using ESP-IDF](#using-esp-idf)
+  - [STM32](#stm32)
+    - [Arduino framework](#arduino-framework)
+  - [Raspberry Pi Pico](#raspberry-pi-pico)
+- [Example sketches](#example-sketches)
+  - [Building examples with PlatformIO](#building-examples-with-platformio)
+  - [Building examples with the Arduino IDE](#building-examples-with-the-arduino-ide)
+- [Extending](#extending)
+  - [Support new hardware](#support-new-hardware)
+- [Unit tests](#unit-tests)
+- [Contributing](#contributing)
+- [FAQ](#faq)
+  - [How do I check if a JLed object is still being updated?](#how-do-i-check-if-a-jled-object-is-still-being-updated)
+  - [How do I restart an effect?](#how-do-i-restart-an-effect)
+  - [How do I change a running effect?](#how-do-i-change-a-running-effect)
+- [Author and Copyright](#author-and-copyright)
+- [License](#license)
 
 <!-- vim-markdown-toc -->
 
@@ -113,6 +113,7 @@ void loop() {
 
 - non-blocking
 - effects: simple on/off, breathe, blink, candle, fade-on, fade-off, [user-defined](examples/morse) (e.g. morse)
+- high resolution (up to 16-bit) effects, if the hardware supports it with `JLedHD` (since JLed 5.0)
 - supports inverted polarity of LED
 - easy configuration using fluent interface
 - can control groups of LEDs sequentially or in parallel
@@ -158,19 +159,19 @@ function. While the effect is active, `Update` returns `true`, otherwise
 
 The constructor takes the pin, to which the LED is connected to as
 the only argument. Further configuration of the LED object is done using a fluent
-interface, e.g. `JLed led = JLed(13).Breathe(2000).DelayAfter(1000).Repeat(5)`.
+interface, e.g. `auto led = JLed(13).Breathe(2000).DelayAfter(1000).Repeat(5)`.
 See the examples section below for further details.
 
 #### Output pipeline
 
 First the configured effect (e.g. `Fade`) is evaluated for the current time
 `t`. JLed internally uses either 8-bit (`JLed`, `uint8_t`, 0–255) or 16-bit
-(`JLed16`, `uint16_t`, 0–65535) values to represent brightness. Next, the value
+(`JLedHD`, `uint16_t`, 0–65535) values to represent brightness. Next, the value
 is scaled to the limits set by `MinBrightness` and `MaxBrightness` (optionally).
 When the effect is configured for a low-active LED using `LowActive`, the
 brightness value will be inverted. Finally the value is passed to the hardware
 abstraction, which scales it to the native PWM resolution of the platform (e.g.
-13 bits for ESP32 `JLed16`, 16 bits for Pico `JLed16`). The brightness value is
+13 bits for ESP32 `JLedHD`, 16 bits for Pico `JLedHD`). The brightness value is
 then written out to the configured GPIO.
 
 ```text
@@ -376,7 +377,7 @@ LED), can be realized.
 ##### User provided brightness function example
 
 The example shows how to implement a user defined effect that works both with `JLed` and
-`JLed16`
+`JLedHD`
 
 ```c++
 template<typename Brightness>
@@ -493,8 +494,8 @@ brightness level.
 
 The `JLedSequence` class allows controlling a group of `JLed` objects
 simultaneously, either in parallel or sequentially, starting the next `JLed`
-effect when the previous finished. The companion `JLedSequence16` class works
-identically but controls `JLed16` objects. The constructor takes the mode
+effect when the previous finished. The companion `JLedSequenceHD` class works
+identically but controls `JLedHD` objects. The constructor takes the mode
 (`PARALLEL`, `SEQUENCE`), an array of `JLed` objects and the size of the
 array, e.g.
 
@@ -565,12 +566,12 @@ src_dir = examples/multiled_mbed
 ### Resolution and the `Brightness` type
 
 JLed calculates all effects in either **8-bit** precision (`uint8_t`, used by `JLed`) or
-**16-bit** precision (`uint16_t`, used by `JLed16`). Before writing to hardware, the value is
+**16-bit** precision (`uint16_t`, used by `JLedHD`). Before writing to hardware, the value is
 scaled from the internal precision to the native PWM resolution of the HAL. This scaling is
 performed by a single bit-shift and is zero-cost when source and target resolutions are
 identical (e.g. 8-bit internal → 8-bit HAL, or 16-bit internal → 16-bit HAL).
 
-To specify brightness values that work transparently with both `JLed` and `JLed16` without
+To specify brightness values that work transparently with both `JLed` and `JLedHD` without
 any code changes, use `Percentage` or the `_pct` user-defined literal:
 
 ```c++
@@ -578,14 +579,14 @@ using jled::operator""_pct;
 
 JLed   led   = JLed(13)  .MaxBrightness(75_pct).Breathe(500);  // 75 % of 255
 // or ...
-JLed16 led16 = JLed16(13).MaxBrightness(75_pct).Breathe(500);  // 75 % of 65535
+JLedHD led16 = JLedHD(13).MaxBrightness(75_pct).Breathe(500);  // 75 % of 65535
 // Both of the above are equivalent to: .MaxBrightness(jled::Percentage(75))
 ```
 
-The following table shows the HAL and native PWM resolution used by `JLed` and `JLed16` on
+The following table shows the HAL and native PWM resolution used by `JLed` and `JLedHD` on
 each supported platform:
 
-| Platform                                                | `JLed`                    | `JLed16`                  |
+| Platform                                                | `JLed`                    | `JLedHD`                  |
 | ------------------------------------------------------- | ------------------------- | ------------------------- |
 | ESP32 (native SDK / ESP-IDF)                            | `Esp32Hal<8>` (8-bit)     | `Esp32Hal<13>` (13-bit)   |
 | Raspberry Pi Pico (native Pico SDK)                     | `PicoHal<8>` (8-bit)      | `PicoHal<16>` (16-bit)    |
@@ -599,16 +600,16 @@ each supported platform:
 | All other Arduino-compatible platforms                  | `ArduinoHal<8>` (8-bit)   | `ArduinoHal<8>` (8-bit)   |
 
 User-defined brightness evaluators always work in terms of the internal `Brightness` type
-(0–255 for `JLed`, 0–65535 for `JLed16`). All platform-specific scaling to the native
+(0–255 for `JLed`, 0–65535 for `JLedHD`). All platform-specific scaling to the native
 PWM resolution is handled transparently by JLed.
 
 #### `ArduinoHal` and the global `analogWriteResolution` limit
 
 `ArduinoHal` uses Arduino's `analogWriteResolution()` to configure PWM resolution, which is
 a **global, sketch-wide setting** that applies to every PWM pin at once. As a consequence,
-you **cannot mix** `JLed` (8-bit) and `JLed16` objects in the same sketch when both resolve
+you **cannot mix** `JLed` (8-bit) and `JLedHD` objects in the same sketch when both resolve
 to `ArduinoHal` with different bit widths. The last `analogWriteResolution()` call wins and
-silently misconfigures the other instances. This affects all platforms where `JLed16` maps
+silently misconfigures the other instances. This affects all platforms where `JLedHD` maps
 to a higher resolution than 8-bit: Teensy (16-bit), SAMD21 / Arduino Due / STM32 / nRF5 (12-bit),
 ESP8266 core v1/v2 (10-bit), and RP2040 via arduino-pico (16-bit). On all remaining
 Arduino-compatible platforms both types share the same 8-bit resolution, so mixing is safe.
@@ -626,16 +627,16 @@ platform = ...
 build_flags = -DJLED_FORCE_ARDUINO_HAL
 ```
 
-When `JLED_FORCE_ARDUINO_HAL` is set on an RP2040 board, `JLed16` maps to
+When `JLED_FORCE_ARDUINO_HAL` is set on an RP2040 board, `JLedHD` maps to
 `ArduinoHal<16>` (Earle Philhower arduino-pico SDK) instead of `PicoHal<16>`, subject to
 the global `analogWriteResolution` constraint described above.
 
 ### ESP8266
 
-The ESP8266 PWM peripheral supports up to 10-bit resolution. Both `JLed` and `JLed16` on
+The ESP8266 PWM peripheral supports up to 10-bit resolution. Both `JLed` and `JLedHD` on
 Arduino core v1/v2 operate at native 10-bit resolution (`ArduinoHal<10>`), with brightness
 values scaled from 8-bit or 16-bit internal precision accordingly. Note that ESP8266 Arduino
-core v3+ reverted PWM to 8 bits for compatibility, so `JLed16` maps to `ArduinoHal<8>`
+core v3+ reverted PWM to 8 bits for compatibility, so `JLedHD` maps to `ArduinoHal<8>`
 there and offers no additional resolution over `JLed`.
 
 ### ESP32
@@ -655,7 +656,7 @@ channel, the JLed object must be constructed this way:
 auto esp32Led = JLed(jled::Esp32Hal<8>(2, 7)).Blink(1000, 1000).Forever();
 ```
 
-`JLed` uses `Esp32Hal<8>` (8-bit PWM, `LEDC_TIMER_0`) and `JLed16` uses `Esp32Hal<13>`
+`JLed` uses `Esp32Hal<8>` (8-bit PWM, `LEDC_TIMER_0`) and `JLedHD` uses `Esp32Hal<13>`
 (13-bit PWM, `LEDC_TIMER_1`). Both types can be used simultaneously because they are
 assigned to separate timers and LEDC channels. Higher resolutions produce smoother
 brightness gradients at the cost of a lower maximum PWM frequency. At 13-bit resolution
@@ -686,7 +687,7 @@ This allows to override the default frequency, resolution, and timer when needed
 that are controlled by JLed, because that would interfere with JLed using the Espressif
 `ledc` API directly, resulting in malfunctioning JLed LEDs.
 
-**Important**: Each GPIO pin must be controlled by at most one `JLed` (or `JLed16`) object
+**Important**: Each GPIO pin must be controlled by at most one `JLed` (or `JLedHD`) object
 at a time. Constructing a second JLed on the same pin will silently reconfigure the shared
 LEDC channel, disrupting the first object.
 
@@ -713,8 +714,8 @@ necessary to upload sketches to the microcontroller.
 ### Raspberry Pi Pico
 
 When using JLed on a Raspberry Pi Pico with the native **Pico SDK**, `JLed` uses
-`PicoHal<8>` (8-bit PWM) and `JLed16` uses `PicoHal<16>` (16-bit PWM). Each PWM slice is
-configured independently, so `JLed` and `JLed16` instances can be mixed freely, **except**
+`PicoHal<8>` (8-bit PWM) and `JLedHD` uses `PicoHal<16>` (16-bit PWM). Each PWM slice is
+configured independently, so `JLed` and `JLedHD` instances can be mixed freely, **except**
 when two pins share the same PWM slice (e.g. GPIO 10 and GPIO 11 both use slice 5): pins on
 the same slice must use the same resolution, otherwise their wrap register will be silently
 overwritten.
@@ -733,7 +734,7 @@ output on LEDs. The Pico supports up to 16 PWM channels in parallel. See the
 [pico-demo](examples/raspi_pico) for an example and build instructions.
 
 When using the **Arduino framework** on the RP2040 (Earle Philhower arduino-pico SDK),
-`JLed16` maps to `ArduinoHal<16>` (16-bit) instead. The `analogWriteResolution` global
+`JLedHD` maps to `ArduinoHal<16>` (16-bit) instead. The `analogWriteResolution` global
 constraint described above applies in this case. See [platformio.ini](platformio.ini) for
 details (look for `env:raspberrypi_pico_w`, which targets the Raspberry Pi Pico W).
 

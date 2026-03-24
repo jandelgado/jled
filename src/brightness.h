@@ -50,10 +50,10 @@ using brightness16_t = uint16_t;
 
 // Represents a brightness level as a percentage (0-100).
 // Implicitly converts to uint8_t or uint16_t so it works transparently
-// with both JLed (8-bit) and JLed16 (16-bit) without any code changes:
+// with both JLed (8-bit) and JLedHD (16-bit) without any code changes:
 //
 //   JLed   led   = JLed(13)  .MaxBrightness(75_pct).Breathe(500);
-//   JLed16 led16 = JLed16(13).MaxBrightness(75_pct).Breathe(500);
+//   JLedHD ledHD = JLedHD(13).MaxBrightness(75_pct).Breathe(500);
 //
 class Percentage {
     uint8_t pct_;

@@ -43,7 +43,7 @@ make envdump    # dump PlatformIO env info
 
 **Core files:**
 - `src/jled_base.h` — platform-agnostic: `TJLed<Hal, Clock, B>`, `BrightnessEvaluator`, all effects, `TJLedSequence`
-- `src/jled.h` — platform detection (preprocessor macros), exposes `JLed`, `JLed16`, `JLedSequence`
+- `src/jled.h` — platform detection (preprocessor macros), exposes `JLed`, `JLedHD`, `JLedSequence`
 - `src/*_hal.h` — HAL per platform (Arduino, ESP32, ESP8266, mbed, Pico)
 
 **HAL**: each platform has two abstractions in `src/*_hal.h`:
@@ -52,7 +52,7 @@ make envdump    # dump PlatformIO env info
 
 **Effects**: implement `BrightnessEvaluator` with `Period()` and `Eval(t)`. Must be stateless and copyable.
 
-**Resolution**: `JLed`/`JLed16` etc. are template instances; higher resolution = smoother PWM.
+**Resolution**: `JLed`/`JLedHD` etc. are template instances; higher resolution = smoother PWM.
 
 **Memory**: placement new into fixed per-instance buffer `brightness_eval_buf_[MAX_SIZE]` (no heap). `MAX_SIZE` = compile-time max of all evaluator sizes.
 
