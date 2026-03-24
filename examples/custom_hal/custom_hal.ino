@@ -16,8 +16,6 @@
 class CustomHal {
  public:
     using PinType = uint8_t;
-    using NativeBrightness = uint8_t;
-    static constexpr uint8_t kNativeBits = 8;
 
     explicit CustomHal(PinType pin) noexcept : pin_(pin) {}
 

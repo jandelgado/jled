@@ -588,13 +588,13 @@ each supported platform:
 | ---------------------------------------------------------- | ------------------------ | -------------------------- |
 | ESP32 (native SDK / ESP-IDF)                               | `Esp32Hal<8>` (8-bit)    | `Esp32Hal<13>` (13-bit)    |
 | Raspberry Pi Pico (native Pico SDK)                        | `PicoHal<8>` (8-bit)     | `PicoHal<16>` (16-bit)     |
-| mbed                                                       | `MbedHal` (8-bit)        | `MbedHal` (8-bit)          |
+| mbed                                                       | `MbedHal<8>` (8-bit)     | `MbedHal<16>` (16-bit)     |
 | Teensy 4.x / 3.x / LC                                     | `ArduinoHal<8>` (8-bit)  | `ArduinoHal<16>` (16-bit)  |
 | SAMD21 (Arduino Zero, MKR series) / Arduino Due            | `ArduinoHal<8>` (8-bit)  | `ArduinoHal<12>` (12-bit)  |
 | STM32 (STM32duino)                                         | `ArduinoHal<8>` (8-bit)  | `ArduinoHal<12>` (12-bit)  |
 | nRF5 (Nordic)                                              | `ArduinoHal<8>` (8-bit)  | `ArduinoHal<12>` (12-bit)  |
 | RP2040 arduino-pico SDK (with `JLED_FORCE_ARDUINO_HAL`)    | `ArduinoHal<8>` (8-bit)  | `ArduinoHal<16>` (16-bit)  |
-| ESP8266 Arduino core v1/v2                                 | `ArduinoHal<8>` (8-bit)  | `ArduinoHal<10>` (10-bit)  |
+| ESP8266 Arduino core v1/v2                                 | `ArduinoHal<10>` (10-bit) | `ArduinoHal<10>` (10-bit) |
 | All other Arduino-compatible platforms                     | `ArduinoHal<8>` (8-bit)  | `ArduinoHal<8>` (8-bit)    |
 
 User-defined brightness evaluators always work in terms of the internal `Brightness` type
@@ -631,9 +631,9 @@ the global `analogWriteResolution` constraint described above.
 
 ### ESP8266
 
-The ESP8266 PWM peripheral supports up to 10-bit resolution. With `JLed` (8-bit), values
-are passed directly to the hardware (no scaling needed). With `JLed16` on Arduino core v1/v2,
-JLed operates at native 10-bit resolution (`ArduinoHal<10>`). Note that ESP8266 Arduino
+The ESP8266 PWM peripheral supports up to 10-bit resolution. Both `JLed` and `JLed16` on
+Arduino core v1/v2 operate at native 10-bit resolution (`ArduinoHal<10>`), with brightness
+values scaled from 8-bit or 16-bit internal precision accordingly. Note that ESP8266 Arduino
 core v3+ reverted PWM to 8 bits for compatibility, so `JLed16` maps to `ArduinoHal<8>`
 there and offers no additional resolution over `JLed`.
 
@@ -732,7 +732,7 @@ output on LEDs. The Pico supports up to 16 PWM channels in parallel. See the
 [pico-demo](examples/raspi_pico) for an example and build instructions.
 
 When using the **Arduino framework** on the RP2040 (Earle Philhower arduino-pico SDK),
-`JLed16` maps to `ArduinoHal<12>` (12-bit) instead. The `analogWriteResolution` global
+`JLed16` maps to `ArduinoHal<16>` (16-bit) instead. The `analogWriteResolution` global
 constraint described above applies in this case. See [platformio.ini](platformio.ini) for
 details (look for `env:raspberrypi_pico_w`, which targets the Raspberry Pi Pico W).
 
