@@ -76,7 +76,8 @@ jobs:
           path: |
             ~/.platformio
             ~/.cache/pip
-          key: ${{ runner.os }}-pio-${{ hashFiles('**/platformio.ini', '.github/workflows/test.yml') }}
+          key: ${{ runner.os }}-pio-${{ hashFiles('**/platformio.ini', '.github/workflows/test.yml')
+            }}
           restore-keys: |
             ${{ runner.os }}-pio-
       - name: install tools
@@ -106,6 +107,7 @@ jobs:
           - simple_on
           - fade_on
           - sequence
+          - hires
         include:
           - board: esp32dev
             extra_flags: --project-option="build_flags = -DLED_BUILTIN=1"
@@ -126,7 +128,8 @@ jobs:
           path: |
             ~/.platformio
             ~/.cache/pip
-          key: ${{ runner.os }}-pio-${{ hashFiles('**/platformio.ini', '.github/workflows/test.yml') }}
+          key: ${{ runner.os }}-pio-${{ hashFiles('**/platformio.ini', '.github/workflows/test.yml')
+            }}
           restore-keys: |
             ${{ runner.os }}-pio-
       - name: install python
