@@ -46,66 +46,66 @@ void loop() {
 
 <!-- vim-markdown-toc GFM -->
 
-- [Features](#features)
-- [Cheat Sheet](#cheat-sheet)
-- [Installation](#installation)
-  - [Arduino IDE](#arduino-ide)
-  - [PlatformIO](#platformio)
-- [Usage](#usage)
-  - [Output pipeline](#output-pipeline)
-  - [Effects](#effects)
-    - [Static on and off](#static-on-and-off)
-      - [Static on example](#static-on-example)
-    - [Blinking](#blinking)
-      - [Blinking example](#blinking-example)
-    - [Breathing](#breathing)
-      - [Breathing example](#breathing-example)
-    - [Candle](#candle)
-      - [Candle example](#candle-example)
-    - [FadeOn](#fadeon)
-      - [FadeOn example](#fadeon-example)
-    - [FadeOff](#fadeoff)
-    - [Fade](#fade)
-      - [Fade example](#fade-example)
-    - [User provided brightness function](#user-provided-brightness-function)
-      - [User provided brightness function example](#user-provided-brightness-function-example)
-  - [Delays and repetitions](#delays-and-repetitions)
-    - [Initial delay before effect starts](#initial-delay-before-effect-starts)
-    - [Delay after effect finished](#delay-after-effect-finished)
-    - [Repetitions](#repetitions)
-  - [State functions](#state-functions)
-    - [Update](#update)
-    - [IsRunning](#isrunning)
-    - [Reset](#reset)
-    - [Immediate Stop](#immediate-stop)
-  - [Misc functions](#misc-functions)
-    - [Low active for inverted output](#low-active-for-inverted-output)
-    - [Minimum- and Maximum brightness level](#minimum--and-maximum-brightness-level)
-  - [Controlling a group of LEDs](#controlling-a-group-of-leds)
-- [Framework notes](#framework-notes)
-- [Platform notes](#platform-notes)
-  - [Resolution and the `Brightness` type](#resolution-and-the-brightness-type)
-    - [`ArduinoHal` and the global `analogWriteResolution` limit](#arduinohal-and-the-global-analogwriteresolution-limit)
-    - [`JLED_FORCE_ARDUINO_HAL`](#jled_force_arduino_hal)
-  - [ESP8266](#esp8266)
-  - [ESP32](#esp32)
-    - [Using ESP-IDF](#using-esp-idf)
-  - [STM32](#stm32)
-    - [Arduino framework](#arduino-framework)
-  - [Raspberry Pi Pico](#raspberry-pi-pico)
-- [Example sketches](#example-sketches)
-  - [Building examples with PlatformIO](#building-examples-with-platformio)
-  - [Building examples with the Arduino IDE](#building-examples-with-the-arduino-ide)
-- [Extending](#extending)
-  - [Support new hardware](#support-new-hardware)
-- [Unit tests](#unit-tests)
-- [Contributing](#contributing)
-- [FAQ](#faq)
-  - [How do I check if a JLed object is still being updated?](#how-do-i-check-if-a-jled-object-is-still-being-updated)
-  - [How do I restart an effect?](#how-do-i-restart-an-effect)
-  - [How do I change a running effect?](#how-do-i-change-a-running-effect)
-- [Author and Copyright](#author-and-copyright)
-- [License](#license)
+* [Features](#features)
+* [Cheat Sheet](#cheat-sheet)
+* [Installation](#installation)
+  * [Arduino IDE](#arduino-ide)
+  * [PlatformIO](#platformio)
+* [Usage](#usage)
+    * [Output pipeline](#output-pipeline)
+  * [Effects](#effects)
+    * [Static on and off](#static-on-and-off)
+      * [Static on example](#static-on-example)
+    * [Blinking](#blinking)
+      * [Blinking example](#blinking-example)
+    * [Breathing](#breathing)
+      * [Breathing example](#breathing-example)
+    * [Candle](#candle)
+      * [Candle example](#candle-example)
+    * [FadeOn](#fadeon)
+      * [FadeOn example](#fadeon-example)
+    * [FadeOff](#fadeoff)
+    * [Fade](#fade)
+      * [Fade example](#fade-example)
+    * [User provided brightness function](#user-provided-brightness-function)
+      * [User provided brightness function example](#user-provided-brightness-function-example)
+  * [Delays and repetitions](#delays-and-repetitions)
+    * [Initial delay before effect starts](#initial-delay-before-effect-starts)
+    * [Delay after effect finished](#delay-after-effect-finished)
+    * [Repetitions](#repetitions)
+  * [State functions](#state-functions)
+    * [Update](#update)
+    * [IsRunning](#isrunning)
+    * [Reset](#reset)
+    * [Immediate Stop](#immediate-stop)
+  * [Misc functions](#misc-functions)
+    * [Low active for inverted output](#low-active-for-inverted-output)
+    * [Minimum- and Maximum brightness level](#minimum--and-maximum-brightness-level)
+  * [Controlling a group of LEDs](#controlling-a-group-of-leds)
+* [Framework notes](#framework-notes)
+* [Platform notes](#platform-notes)
+  * [Resolution and the `Brightness` type](#resolution-and-the-brightness-type)
+    * [`ArduinoHal` and the global `analogWriteResolution` limit](#arduinohal-and-the-global-analogwriteresolution-limit)
+    * [`JLED_FORCE_ARDUINO_HAL`](#jled_force_arduino_hal)
+  * [ESP8266](#esp8266)
+  * [ESP32](#esp32)
+    * [Using ESP-IDF](#using-esp-idf)
+  * [STM32](#stm32)
+    * [Arduino framework](#arduino-framework)
+  * [Raspberry Pi Pico](#raspberry-pi-pico)
+* [Example sketches](#example-sketches)
+  * [Building examples with PlatformIO](#building-examples-with-platformio)
+  * [Building examples with the Arduino IDE](#building-examples-with-the-arduino-ide)
+* [Extending](#extending)
+  * [Support new hardware](#support-new-hardware)
+* [Unit tests](#unit-tests)
+* [Contributing](#contributing)
+* [FAQ](#faq)
+  * [How do I check if a JLed object is still being updated?](#how-do-i-check-if-a-jled-object-is-still-being-updated)
+  * [How do I restart an effect?](#how-do-i-restart-an-effect)
+  * [How do I change a running effect?](#how-do-i-change-a-running-effect)
+* [Author and Copyright](#author-and-copyright)
+* [License](#license)
 
 <!-- vim-markdown-toc -->
 
@@ -357,13 +357,13 @@ void loop() {
 
 #### User provided brightness function
 
-It is also possible to provide a user defined brightness evaluator. The class
-must be derived from the `jled::BrightnessEvaluator` class and implement
-two methods:
+It is also possible to provide a user defined brightness evaluator. The class must be derived from
+the `jled::BrightnessEvaluator<Brightness>` template class and implement two methods:
 
-- `uint8_t Eval(uint32_t t) const` - the brightness evaluation function that
+- `Brightness Eval(uint32_t t) const` - the brightness evaluation function that
   calculates a brightness for the given time `t`. The brightness must be returned
-  as an unsigned byte, where 0 means LED off and 255 means full brightness.
+  as an unsigned byte, where 0 means LED off and 255 means full brightness if `Brightness`
+  is `uint8_t` and as an unsigned int between 0 and 65535 if `Brightness` is `uint16_t`.
 - `uint16_t Period() const` - period of the effect.
 
 All time values are specified in milliseconds.
@@ -375,15 +375,16 @@ LED), can be realized.
 
 ##### User provided brightness function example
 
-The example uses a user provided function to calculate the brightness.
+The example shows how to implement a user defined effect that works both with `JLed` and
+`JLed16`
 
 ```c++
-class UserEffect : public jled::BrightnessEvaluator {
+template<typename Brightness>
+class UserEffect : public jled::BrightnessEvaluator<Brightness> {
   public:
-    uint8_t Eval(uint32_t t) const override {
-        // this function changes between 0 and 255 and
-        // vice versa every 250 ms.
-        return 255*((t/250)%2);
+    Brightness Eval(uint32_t t) const override {
+        // this function changes between OFF and ON  every 250 ms.
+        return jled::BrightnessTraits<Brightness>::kFullBrightness*((t/250)%2);
     }
     // duration of effect: 5 seconds.
     uint16_t Period() const override { return 5000; }
@@ -584,18 +585,18 @@ JLed16 led16 = JLed16(13).MaxBrightness(75_pct).Breathe(500);  // 75 % of 65535
 The following table shows the HAL and native PWM resolution used by `JLed` and `JLed16` on
 each supported platform:
 
-| Platform                                                   | `JLed`                   | `JLed16`                   |
-| ---------------------------------------------------------- | ------------------------ | -------------------------- |
-| ESP32 (native SDK / ESP-IDF)                               | `Esp32Hal<8>` (8-bit)    | `Esp32Hal<13>` (13-bit)    |
-| Raspberry Pi Pico (native Pico SDK)                        | `PicoHal<8>` (8-bit)     | `PicoHal<16>` (16-bit)     |
-| mbed                                                       | `MbedHal<8>` (8-bit)     | `MbedHal<16>` (16-bit)     |
-| Teensy 4.x / 3.x / LC                                     | `ArduinoHal<8>` (8-bit)  | `ArduinoHal<16>` (16-bit)  |
-| SAMD21 (Arduino Zero, MKR series) / Arduino Due            | `ArduinoHal<8>` (8-bit)  | `ArduinoHal<12>` (12-bit)  |
-| STM32 (STM32duino)                                         | `ArduinoHal<8>` (8-bit)  | `ArduinoHal<12>` (12-bit)  |
-| nRF5 (Nordic)                                              | `ArduinoHal<8>` (8-bit)  | `ArduinoHal<12>` (12-bit)  |
-| RP2040 arduino-pico SDK (with `JLED_FORCE_ARDUINO_HAL`)    | `ArduinoHal<8>` (8-bit)  | `ArduinoHal<16>` (16-bit)  |
-| ESP8266 Arduino core v1/v2                                 | `ArduinoHal<10>` (10-bit) | `ArduinoHal<10>` (10-bit) |
-| All other Arduino-compatible platforms                     | `ArduinoHal<8>` (8-bit)  | `ArduinoHal<8>` (8-bit)    |
+| Platform                                                | `JLed`                    | `JLed16`                  |
+| ------------------------------------------------------- | ------------------------- | ------------------------- |
+| ESP32 (native SDK / ESP-IDF)                            | `Esp32Hal<8>` (8-bit)     | `Esp32Hal<13>` (13-bit)   |
+| Raspberry Pi Pico (native Pico SDK)                     | `PicoHal<8>` (8-bit)      | `PicoHal<16>` (16-bit)    |
+| mbed                                                    | `MbedHal<8>` (8-bit)      | `MbedHal<16>` (16-bit)    |
+| Teensy 4.x / 3.x / LC                                   | `ArduinoHal<8>` (8-bit)   | `ArduinoHal<16>` (16-bit) |
+| SAMD21 (Arduino Zero, MKR series) / Arduino Due         | `ArduinoHal<8>` (8-bit)   | `ArduinoHal<12>` (12-bit) |
+| STM32 (STM32duino)                                      | `ArduinoHal<8>` (8-bit)   | `ArduinoHal<12>` (12-bit) |
+| nRF5 (Nordic)                                           | `ArduinoHal<8>` (8-bit)   | `ArduinoHal<12>` (12-bit) |
+| RP2040 arduino-pico SDK (with `JLED_FORCE_ARDUINO_HAL`) | `ArduinoHal<8>` (8-bit)   | `ArduinoHal<16>` (16-bit) |
+| ESP8266 Arduino core v1/v2                              | `ArduinoHal<10>` (10-bit) | `ArduinoHal<10>` (10-bit) |
+| All other Arduino-compatible platforms                  | `ArduinoHal<8>` (8-bit)   | `ArduinoHal<8>` (8-bit)   |
 
 User-defined brightness evaluators always work in terms of the internal `Brightness` type
 (0–255 for `JLed`, 0–65535 for `JLed16`). All platform-specific scaling to the native
