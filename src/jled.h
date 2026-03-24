@@ -45,7 +45,7 @@
 #include "pico_hal.h"   // NOLINT
 namespace jled {
 using JLedHal = PicoHal<8>;
-using JLedHal16 = PicoHal<16>;
+using JLedHalHD = PicoHal<16>;
 using JLedClockType = PicoClock;
 }  // namespace jled
 
@@ -55,7 +55,7 @@ using JLedClockType = PicoClock;
 #include "mbed_hal.h"  // NOLINT
 namespace jled {
 using JLedHal = MbedHal<8>;
-using JLedHal16 = MbedHal<16>;
+using JLedHalHD = MbedHal<16>;
 using JLedClockType = MbedClock;
 }  // namespace jled
 
@@ -65,7 +65,7 @@ using JLedClockType = MbedClock;
 #include "esp32_hal.h"  // NOLINT
 namespace jled {
 using JLedHal = Esp32Hal<8, LEDC_TIMER_0>;
-using JLedHal16 = Esp32Hal<13, LEDC_TIMER_1>;
+using JLedHalHD = Esp32Hal<13, LEDC_TIMER_1>;
 using JLedClockType = Esp32Clock;
 }  // namespace jled
 
@@ -83,7 +83,7 @@ using JLedHal = ArduinoHal<10>;
 #else
 using JLedHal = ArduinoHal<8>;
 #endif
-// JLed16 uses the best practical PWM resolution per platform.
+// JLedHD uses the best practical PWM resolution per platform.
 // Bit-depth is chosen to keep PWM frequency well above the visible flicker
 // threshold (~100 Hz) while maximising smoothness:
 //   - Platforms where frequency and resolution are independent (Teensy): 16-bit
@@ -92,20 +92,20 @@ using JLedHal = ArduinoHal<8>;
 //   - ESP8266 Core v1/v2: 10-bit (Core v3+ reverted to 8-bit for compatibility)
 //   - All other Arduino-compatible platforms: 8-bit
 #if defined(ARDUINO_ARCH_RP2040)    // only hit if also JLED_FORCE_ARDUINO_HAL is set
-using JLedHal16 = ArduinoHal<16>;
+using JLedHalHD = ArduinoHal<16>;
 #elif defined(__IMXRT1062__) || defined(KINETISK) || defined(KINETISL)  // Teensy 4.x/3.x/LC
-using JLedHal16 = ArduinoHal<16>;  // frequency/resolution are independent on Teensy
+using JLedHalHD = ArduinoHal<16>;  // frequency/resolution are independent on Teensy
 #elif defined(__SAMD21__) || defined(ARDUINO_ARCH_SAM)  // SAMD21 (Zero, MKR), Arduino Due
-using JLedHal16 = ArduinoHal<12>;  // 12-bit -> ~11.7 kHz on 48 MHz GCLK (SAMD21) / 84 MHz (Due)
+using JLedHalHD = ArduinoHal<12>;  // 12-bit -> ~11.7 kHz on 48 MHz GCLK (SAMD21) / 84 MHz (Due)
 #elif defined(ARDUINO_ARCH_STM32)
-using JLedHal16 = ArduinoHal<12>;  // 12-bit avoids timer prescaler issues in STM32duino
+using JLedHalHD = ArduinoHal<12>;  // 12-bit avoids timer prescaler issues in STM32duino
 #elif defined(ARDUINO_ARCH_NRF5)
-using JLedHal16 = ArduinoHal<12>;  // 16-bit -> ~244 Hz on nRF52; 12-bit -> ~3.9 kHz
+using JLedHalHD = ArduinoHal<12>;  // 16-bit -> ~244 Hz on nRF52; 12-bit -> ~3.9 kHz
 #elif defined(ESP8266) && \
     !(defined(HAS_ESP8266_VERSION_NUMERIC) && ARDUINO_ESP8266_VERSION_MAJOR >= 3)
-using JLedHal16 = ArduinoHal<10>;
+using JLedHalHD = ArduinoHal<10>;
 #else
-using JLedHal16 = ArduinoHal<8>;
+using JLedHalHD = ArduinoHal<8>;
 #endif
 using JLedClockType = ArduinoClock;
 }  // namespace jled
@@ -117,9 +117,9 @@ class JLed : public TJLed<JLedHal, JLedClockType, uint8_t, JLed> {
     using TJLed<JLedHal, JLedClockType, uint8_t, JLed>::TJLed;
 };
 
-// JLed16: 16-bit brightness control for smoother effects on high-resolution MCUs
-class JLed16 : public TJLed<JLedHal16, JLedClockType, uint16_t, JLed16> {
-    using TJLed<JLedHal16, JLedClockType, uint16_t, JLed16>::TJLed;
+// JLedHD: high-definition brightness control for smoother effects on high-resolution MCUs
+class JLedHD : public TJLed<JLedHalHD, JLedClockType, uint16_t, JLedHD> {
+    using TJLed<JLedHalHD, JLedClockType, uint16_t, JLedHD>::TJLed;
 };
 
 // a group of JLed objects which can be controlled simultanously
@@ -127,15 +127,15 @@ class JLedSequence : public TJLedSequence<JLed, JLedClockType, JLedSequence> {
     using TJLedSequence<JLed, JLedClockType, JLedSequence>::TJLedSequence;
 };
 
-// a group of JLed16 objects which can be controlled simultanously
-class JLedSequence16 : public TJLedSequence<JLed16, JLedClockType, JLedSequence16> {
-    using TJLedSequence<JLed16, JLedClockType, JLedSequence16>::TJLedSequence;
+// a group of JLedHD objects which can be controlled simultanously
+class JLedSequenceHD : public TJLedSequence<JLedHD, JLedClockType, JLedSequenceHD> {
+    using TJLedSequence<JLedHD, JLedClockType, JLedSequenceHD>::TJLedSequence;
 };
 
 };  // namespace jled
 
 using JLed = jled::JLed;
-using JLed16 = jled::JLed16;
+using JLedHD = jled::JLedHD;
 using JLedSequence = jled::JLedSequence;
-using JLedSequence16 = jled::JLedSequence16;
+using JLedSequenceHD = jled::JLedSequenceHD;
 
