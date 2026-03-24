@@ -7,7 +7,6 @@ using jled::ArduinoHal;
 
 TEST_CASE(".first call to analogWrite() sets pin mode to OUTPUT (8-bit)",
           "[araduino_hal]") {
-
     arduinoMockInit();
     constexpr auto kPin = 10;
     auto h = ArduinoHal<>(kPin);
