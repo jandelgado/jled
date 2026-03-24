@@ -1,0 +1,6 @@
+-std=c++14
+-Isrc
+-Itest
+-Wall
+-Wextra
+-DARDUINO=100
