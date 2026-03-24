@@ -57,7 +57,6 @@
 #include "hardware/pwm.h"
 #include "pico/time.h"
 #include "brightness.h"
-#include "jled_std.h"
 
 namespace jled {
 
@@ -65,14 +64,10 @@ template <uint8_t kResBits_ = 8>
 class PicoHal {
  public:
     using PinType = uint8_t;
-    using NativeBrightness =
-        typename Conditional<(kResBits_ > 8), uint16_t, uint8_t>::type;
-    static constexpr uint8_t kNativeBits = kResBits_;
-    static constexpr NativeBrightness kMaxBrightness = (1u << kResBits_) - 1;
 
  private:
     // divider=1.0, so wrap = 2^kResBits_-1 gives exactly kResBits_ resolution
-    static constexpr uint16_t kWrap = kMaxBrightness;
+    static constexpr uint16_t kWrap = (1u << kResBits_) - 1;
 
  public:
     explicit PicoHal(PinType pin) noexcept {

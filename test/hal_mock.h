@@ -9,8 +9,6 @@
 class HalMock {
  public:
     using PinType = uint8_t;
-    using NativeBrightness = uint8_t;
-    static constexpr uint8_t kNativeBits = 8;
 
     HalMock() {}
     explicit HalMock(PinType pin) : pin_(pin) {}

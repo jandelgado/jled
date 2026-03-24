@@ -1,4 +1,5 @@
 .envrc
+__pycache__/
 .venv/
 .pio/
 **/.vscode

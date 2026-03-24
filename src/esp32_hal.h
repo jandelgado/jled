@@ -35,6 +35,7 @@
 #include <esp_timer.h>
 #include <stdint.h>
 #include "brightness.h"
+#include "jled_std.h"
 
 namespace jled {
 
@@ -90,9 +91,6 @@ class Esp32Hal : public Esp32HalBase {
 
  public:
     using PinType = Esp32ChanMapper::PinType;
-    using NativeBrightness = uint16_t;
-    static constexpr uint8_t kNativeBits = kResBits_;
-    static constexpr uint16_t kMaxBrightness = (1u << kResBits_) - 1;
 
     static constexpr auto kAutoSelectChan = -1;
 
@@ -109,7 +107,7 @@ class Esp32Hal : public Esp32HalBase {
 
         ledc_timer_config_t ledc_timer{};
         ledc_timer.speed_mode = kLedcSpeedMode;
-        ledc_timer.duty_resolution = static_cast<ledc_timer_bit_t>(kNativeBits);
+        ledc_timer.duty_resolution = static_cast<ledc_timer_bit_t>(kResBits_);
         ledc_timer.timer_num = kTimer_;
         ledc_timer.freq_hz = freq;
 #if ESP_IDF_VERSION_MAJOR > 3
@@ -134,7 +132,7 @@ class Esp32Hal : public Esp32HalBase {
     template<typename Brightness>
     void analogWrite(Brightness val) const {
         // Scale brightness to actual resolution
-        const uint16_t duty = jled::scaleToNative<kNativeBits>(val);
+        const uint16_t duty = jled::scaleToNative<kResBits_>(val);
 
         // from: https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/peripherals/ledc.html
         // The range of the duty cycle values passed to functions depends on selected
@@ -153,6 +151,7 @@ class Esp32Hal : public Esp32HalBase {
     PinType chan() const { return chan_; }
 
  private:
+    static constexpr uint16_t kMaxBrightness = (1u << kResBits_) - 1;
     ledc_channel_t chan_;
 };
 

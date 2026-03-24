@@ -33,10 +33,6 @@ template<uint8_t kResBits_ = 8>
 class MbedHal {
  public:
     using PinType = ::PinName;
-    using NativeBrightness =
-        typename Conditional<(kResBits_ > 8), uint16_t, uint8_t>::type;
-    static constexpr uint8_t kNativeBits = kResBits_;
-    static constexpr NativeBrightness kMaxBrightness = (1u << kResBits_) - 1;
 
     explicit MbedHal(PinType pin) noexcept : pin_(pin) {}
 
@@ -54,7 +50,7 @@ class MbedHal {
             new (pwmout_buf_.data) PwmOut(pin_);
             initialized_ = true;
         }
-        const uint16_t duty = jled::scaleToNative<kNativeBits>(val);
+        const uint16_t duty = jled::scaleToNative<kResBits_>(val);
         // Mbed PwmOut::write() takes a float in [0.0, 1.0]
         pwmout()->write(static_cast<float>(duty) / static_cast<float>(kMaxBrightness));
     }
@@ -69,6 +65,8 @@ class MbedHal {
     }
 
  private:
+    static constexpr uint16_t kMaxBrightness = (1u << kResBits_) - 1;
+
     PwmOut* pwmout() const {
         return reinterpret_cast<PwmOut*>(pwmout_buf_.data);
     }

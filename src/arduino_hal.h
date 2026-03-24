@@ -21,7 +21,6 @@
 //
 #pragma once
 #include <Arduino.h>
-#include "jled_std.h"
 #include "brightness.h"
 
 // Some platforms support PWM resolutions higher than 8 bits (e.g. SAMD/Due
@@ -31,7 +30,7 @@
 // don't provide it.
 extern "C" __attribute__((weak)) void analogWriteResolution(int bits);
 
-namespace jled {;
+namespace jled {
 
 // ArduinoHal controls a single PWM pin.
 //
@@ -44,10 +43,6 @@ template <uint8_t kResBits_ = 8>
 class ArduinoHal {
  public:
     using PinType = uint8_t;
-    using NativeBrightness =
-        typename Conditional<(kResBits_ > 8), uint16_t, uint8_t>::type;
-    static constexpr uint8_t kNativeBits = kResBits_;
-    static constexpr NativeBrightness kMaxBrightness = (1u << kResBits_) - 1;
 
     explicit ArduinoHal(PinType pin) noexcept : pin_(pin) {}
 
@@ -55,7 +50,7 @@ class ArduinoHal {
     void analogWrite(Brightness val) const {
         // some platforms, e.g. STM need lazy initialization
         if (!setup_) {
-//            ::pinMode(pin_, OUTPUT);
+            ::pinMode(pin_, OUTPUT);
             // configure higher PWM resolution once on first use, if supported
             if (kResBits_ != 8 && ::analogWriteResolution != nullptr) {
                 ::analogWriteResolution(kResBits_);
