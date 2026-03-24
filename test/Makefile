@@ -88,7 +88,7 @@ bin/test_fadeon_func: $(TEST_FADEON_OBJECTS)
 
 coverage: test
 	mkdir -p report
-	gcovr --root .. --filter ../src/ --print-summary --txt --coveralls coverage.json --html-details report/index.html
+	gcovr --root .. --filter ../src/ --print-summary --txt --coveralls coverage.json --html-details report/index.html --lcov report.info
 
 test: depend all
 	./bin/test_jled
