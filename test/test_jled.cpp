@@ -121,6 +121,26 @@ TEST_CASE("using Breathe() configures BreatheBrightnessEvaluator", "[jled]") {
     TestableJLed::test();
 }
 
+TEST_CASE("Breathe(period) splits period evenly into fade-on and fade-off",
+          "[jled]") {
+    class TestableJLed : public TestJLed {
+     public:
+        using TestJLed::TestJLed;
+        static void test() {
+            TestableJLed jled(1);
+            jled.Breathe(1000);
+            REQUIRE(dynamic_cast<BreatheBrightnessEvaluator *>(
+                        jled.brightness_eval_) != nullptr);
+            auto eval = dynamic_cast<BreatheBrightnessEvaluator *>(
+                jled.brightness_eval_);
+            CHECK(500 == eval->DurationFadeOn());
+            CHECK(0 == eval->DurationOn());
+            CHECK(500 == eval->DurationFadeOff());
+        }
+    };
+    TestableJLed::test();
+}
+
 TEST_CASE("using Candle() configures CandleBrightnessEvaluator", "[jled]") {
     class TestableJLed : public TestJLed {
      public:
