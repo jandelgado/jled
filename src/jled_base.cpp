@@ -23,62 +23,35 @@
 
 namespace jled {
 
-// we pre-calculated fade-on function. This table samples the function
+// pre-calculated fade-on function. This look up table samples the function
 //   y(x) =  exp(sin((t - period / 2.) * PI / period)) - 0.36787944) * 108.
-// at x={0,32,...,256}. In FadeOnFunc() we us linear interpolation to
+// at x={0,32,...,256} (8-bit case). We us linear interpolation to
 // approximate the original function (so we do not need fp-ops).
-// fade-off and breath functions are all derived from fade-on, see
-// below.
+// fade-off and breath functions are all derived from fade-on.
 //
 // https://www.wolframalpha.com/input/?i=plot+(exp(sin((x-100%2F2.)*PI%2F100))-0.36787944)*108.0++x%3D0+to+100
 // The fade-on func is an approximation of
 //   y(x) = exp(sin((t-period/2.) * PI / period)) - 0.36787944) * 108.)
 
 // 8-bit specialization
-template<>
+template <>
 uint8_t fadeon_func<uint8_t>(uint32_t t, uint16_t period, uint16_t inv_period) {
     // pre-calculated fade-on function at x={0,16,...,256}
-    static constexpr uint8_t lut8[] = {
-        0, 0, 3, 7, 13, 22, 33, 49, 68, 91, 118, 148, 179, 208, 232, 248, 255
-    };
-    if (t + 1 >= period) return 255;
-
-    // approximate by linear interpolation.
-    // normalize t to [0, 256) scale using precomputed inverse period
-    // This replaces division with multiplication for 2-5x speedup on MCUs
-    const auto tnorm = (static_cast<uint32_t>(t) * inv_period) >> 8;
-    const auto i = tnorm >> 4;  // segment index (0..15)
-
-    const auto y0 = lut8[i];
-    const auto y1 = lut8[i + 1];
-
-    const auto x0 = i << 4;  // segment start in normalized space
-    return (((tnorm - x0) * (y1 - y0)) >> 4) + y0;
+    static constexpr uint8_t lut[] = {
+        0, 0, 3, 7, 13, 22, 33, 49, 68, 91, 118, 148, 179, 208, 232, 248, 255};
+    return lut_lerp(t, period, inv_period, lut);
 }
 
 // t = 0..period-1
-template<>
+template <>
 uint16_t fadeon_func<uint16_t>(uint32_t t, uint16_t period, uint16_t inv_period) {
-    // pre computed fade-func at x={0,2048,...,65536}
-    static constexpr uint16_t lut16[] = {
-        0, 49, 198, 448, 807, 1278, 1874, 2600, 3474, 4505,
-        5714, 7110, 8719, 10548, 12625, 14949, 17545, 20398,
-        23524, 26888, 30485, 34254, 38166, 42127, 46081, 49910,
-        53536, 56829, 59707, 62054, 63801, 64874, 65535
-    };
-
-    if (t + 1 >= period) return 65535;
-
-    // normalize t to [0, 65536) scale using precomputed inverse period
-    // This replaces division with multiplication for 2-5x speedup on MCUs
-    const auto tnorm = static_cast<uint32_t>(t) * inv_period;
-    const auto i = tnorm >> 11;  // segment index (0..31), since 65536/32 = 2048 = 2^11
-
-    const auto y0 = lut16[i];
-    const auto y1 = lut16[i + 1];
-
-    const auto x0 = i << 11;  // segment start in normalized space
-    return (((tnorm - x0) * (y1 - y0)) >> 11) + y0;
+    // pre-calculated fade-on function at x={0,2048,...,65536}
+    static constexpr uint16_t lut[] = {
+        0,     49,    198,   448,   807,   1278,  1874,  2600,  3474,  4505,
+        5714,  7110,  8719,  10548, 12625, 14949, 17545, 20398, 23524, 26888,
+        30485, 34254, 38166, 42127, 46081, 49910, 53536, 56829, 59707, 62054,
+        63801, 64874, 65535};
+    return lut_lerp(t, period, inv_period, lut);
 }
 
 static uint32_t rand_ = 0;

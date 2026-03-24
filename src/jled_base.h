@@ -46,6 +46,43 @@ static constexpr uint8_t kZeroBrightness = 0;
 uint8_t rand8();
 void rand_seed(uint32_t s);
 
+// Compile-time log2 (C++14 compatible single-expression constexpr)
+constexpr uint8_t log2_floor(size_t n) {
+    return n <= 1 ? 0 : 1 + log2_floor(n >> 1);
+}
+
+// Generic LUT-based linear interpolation.
+//
+// Maps t in [0, period) to [lut[0], lut[N-1]] using a pre-computed lookup
+// table and piecewise linear interpolation between adjacent entries.
+// T and N are deduced from the lut array argument.
+//
+// inv_period is a fixed-point reciprocal of period, pre-computed by the caller
+// as (1 << 16) / period. Multiplying t by inv_period and shifting right
+// normalises t into the LUT's index space without a division with a 2-5x speedup
+// on MCUs that lack a hardware divider. The shift amount (kNormShift) is
+// derived from sizeof(T): 8 bits for uint8_t (range [0,256)), 0 for uint16_t
+// (range [0,65536)).
+//
+// kSegShift encodes the width of each LUT segment as a power-of-two and is
+// computed from N and kNormShift at compile time.
+//
+// Requires: N >= 2 and (N-1) is a power of two (checked by static_assert).
+template <typename T, size_t N>
+T lut_lerp(uint32_t t, uint16_t period, uint16_t inv_period, const T (&lut)[N]) {
+    static_assert(N >= 2 && ((N - 1) & (N - 2)) == 0,
+                  "lut_lerp: N-1 must be a power of 2");
+    constexpr uint8_t kNormShift = 16 - sizeof(T) * 8;
+    constexpr uint8_t kSegShift = (16 - kNormShift) - log2_floor(N - 1);
+    if (t + 1 >= period) return lut[N - 1];
+    const auto tnorm = (static_cast<uint32_t>(t) * inv_period) >> kNormShift;
+    const auto i = tnorm >> kSegShift;
+    const auto y0 = lut[i];
+    const auto y1 = lut[i + 1];
+    const auto x0 = i << kSegShift;
+    return static_cast<T>((((tnorm - x0) * (y1 - y0)) >> kSegShift) + y0);
+}
+
 // Template helper functions - implemented below after evaluator definitions
 template<typename Brightness>
 Brightness fadeon_func(uint32_t t, uint16_t period, uint16_t inv_period);
