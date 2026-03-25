@@ -46,66 +46,67 @@ void loop() {
 
 <!-- vim-markdown-toc GFM -->
 
-* [Features](#features)
-* [Cheat Sheet](#cheat-sheet)
-* [Installation](#installation)
-  * [Arduino IDE](#arduino-ide)
-  * [PlatformIO](#platformio)
-* [Usage](#usage)
-    * [Output pipeline](#output-pipeline)
-  * [Effects](#effects)
-    * [Static on and off](#static-on-and-off)
-      * [Static on example](#static-on-example)
-    * [Blinking](#blinking)
-      * [Blinking example](#blinking-example)
-    * [Breathing](#breathing)
-      * [Breathing example](#breathing-example)
-    * [Candle](#candle)
-      * [Candle example](#candle-example)
-    * [FadeOn](#fadeon)
-      * [FadeOn example](#fadeon-example)
-    * [FadeOff](#fadeoff)
-    * [Fade](#fade)
-      * [Fade example](#fade-example)
-    * [User provided brightness function](#user-provided-brightness-function)
-      * [User provided brightness function example](#user-provided-brightness-function-example)
-  * [Delays and repetitions](#delays-and-repetitions)
-    * [Initial delay before effect starts](#initial-delay-before-effect-starts)
-    * [Delay after effect finished](#delay-after-effect-finished)
-    * [Repetitions](#repetitions)
-  * [State functions](#state-functions)
-    * [Update](#update)
-    * [IsRunning](#isrunning)
-    * [Reset](#reset)
-    * [Immediate Stop](#immediate-stop)
-  * [Misc functions](#misc-functions)
-    * [Low active for inverted output](#low-active-for-inverted-output)
-    * [Minimum- and Maximum brightness level](#minimum--and-maximum-brightness-level)
-  * [Controlling a group of LEDs](#controlling-a-group-of-leds)
-* [Framework notes](#framework-notes)
-* [Platform notes](#platform-notes)
-  * [Resolution and the `Brightness` type](#resolution-and-the-brightness-type)
-    * [`ArduinoHal` and the global `analogWriteResolution` limit](#arduinohal-and-the-global-analogwriteresolution-limit)
-    * [`JLED_FORCE_ARDUINO_HAL`](#jled_force_arduino_hal)
-  * [ESP8266](#esp8266)
-  * [ESP32](#esp32)
-    * [Using ESP-IDF](#using-esp-idf)
-  * [STM32](#stm32)
-    * [Arduino framework](#arduino-framework)
-  * [Raspberry Pi Pico](#raspberry-pi-pico)
-* [Example sketches](#example-sketches)
-  * [Building examples with PlatformIO](#building-examples-with-platformio)
-  * [Building examples with the Arduino IDE](#building-examples-with-the-arduino-ide)
-* [Extending](#extending)
-  * [Support new hardware](#support-new-hardware)
-* [Unit tests](#unit-tests)
-* [Contributing](#contributing)
-* [FAQ](#faq)
-  * [How do I check if a JLed object is still being updated?](#how-do-i-check-if-a-jled-object-is-still-being-updated)
-  * [How do I restart an effect?](#how-do-i-restart-an-effect)
-  * [How do I change a running effect?](#how-do-i-change-a-running-effect)
-* [Author and Copyright](#author-and-copyright)
-* [License](#license)
+- [Features](#features)
+- [Cheat Sheet](#cheat-sheet)
+- [Installation](#installation)
+  - [Arduino IDE](#arduino-ide)
+  - [PlatformIO](#platformio)
+- [Usage](#usage)
+  - [JLed vs JLedHD](#jled-vs-jledhd)
+  - [Output pipeline](#output-pipeline)
+  - [Effects](#effects)
+    - [Static on and off](#static-on-and-off)
+      - [Static on example](#static-on-example)
+    - [Blinking](#blinking)
+      - [Blinking example](#blinking-example)
+    - [Breathing](#breathing)
+      - [Breathing example](#breathing-example)
+    - [Candle](#candle)
+      - [Candle example](#candle-example)
+    - [FadeOn](#fadeon)
+      - [FadeOn example](#fadeon-example)
+    - [FadeOff](#fadeoff)
+    - [Fade](#fade)
+      - [Fade example](#fade-example)
+    - [User provided brightness function](#user-provided-brightness-function)
+      - [User provided brightness function example](#user-provided-brightness-function-example)
+  - [Delays and repetitions](#delays-and-repetitions)
+    - [Initial delay before effect starts](#initial-delay-before-effect-starts)
+    - [Delay after effect finished](#delay-after-effect-finished)
+    - [Repetitions](#repetitions)
+  - [State functions](#state-functions)
+    - [Update](#update)
+    - [IsRunning](#isrunning)
+    - [Reset](#reset)
+    - [Immediate Stop](#immediate-stop)
+  - [Misc functions](#misc-functions)
+    - [Low active for inverted output](#low-active-for-inverted-output)
+    - [Minimum- and Maximum brightness level](#minimum--and-maximum-brightness-level)
+  - [Controlling a group of LEDs](#controlling-a-group-of-leds)
+- [Framework notes](#framework-notes)
+- [Platform notes](#platform-notes)
+  - [Resolution and the `Brightness` type](#resolution-and-the-brightness-type)
+    - [`ArduinoHal` and the global `analogWriteResolution` limit](#arduinohal-and-the-global-analogwriteresolution-limit)
+    - [`JLED_FORCE_ARDUINO_HAL`](#jled_force_arduino_hal)
+  - [ESP8266](#esp8266)
+  - [ESP32](#esp32)
+    - [Using ESP-IDF](#using-esp-idf)
+  - [STM32](#stm32)
+    - [Arduino framework](#arduino-framework)
+  - [Raspberry Pi Pico](#raspberry-pi-pico)
+- [Example sketches](#example-sketches)
+  - [Building examples with PlatformIO](#building-examples-with-platformio)
+  - [Building examples with the Arduino IDE](#building-examples-with-the-arduino-ide)
+- [Extending](#extending)
+  - [Support new hardware](#support-new-hardware)
+- [Unit tests](#unit-tests)
+- [Contributing](#contributing)
+- [FAQ](#faq)
+  - [How do I check if a JLed object is still being updated?](#how-do-i-check-if-a-jled-object-is-still-being-updated)
+  - [How do I restart an effect?](#how-do-i-restart-an-effect)
+  - [How do I change a running effect?](#how-do-i-change-a-running-effect)
+- [Author and Copyright](#author-and-copyright)
+- [License](#license)
 
 <!-- vim-markdown-toc -->
 
@@ -162,7 +163,29 @@ the only argument. Further configuration of the LED object is done using a fluen
 interface, e.g. `auto led = JLed(13).Breathe(2000).DelayAfter(1000).Repeat(5)`.
 See the examples section below for further details.
 
-#### Output pipeline
+### JLed vs JLedHD
+
+`JLed` uses 8-bit brightness internally (`uint8_t`, 0–255), while `JLedHD` ("high-definition")
+uses 16-bit (`uint16_t`, 0–65535). Both share the same API and effects — the extra resolution is
+a zero-cost abstraction: the brightness type is a template parameter, so no virtual dispatch or
+runtime branching is involved.
+
+**When to use `JLedHD`:** On long fade or breathe effects the 256 discrete steps of `JLed` can
+produce visible "staircase" banding, especially at low brightness. `JLedHD` eliminates this by
+giving the HAL up to 65536 values to work with; the HAL then maps them to the native PWM
+resolution of the platform (e.g. 13-bit on ESP32, 16-bit on Pico/Teensy).
+
+**When to stick with `JLed`:** For simple on/off or blink effects the extra resolution buys
+nothing, and 8-bit uses half the memory per brightness value. Also note that on some platforms
+(see the table below) `JLed` and `JLedHD` resolve to the same HAL width (e.g. standard 8-bit
+Arduino boards), so `JLedHD` has no practical benefit there.
+
+> **Note:** You cannot mix `JLed` and `JLedHD` objects in the same sketch when both map to
+> `ArduinoHal` with *different* bit widths, because `analogWriteResolution()` is a global
+> setting. See the [`ArduinoHal` note](#arduinohal-and-the-global-analogwriteresolution-limit)
+> below.
+
+### Output pipeline
 
 First the configured effect (e.g. `Fade`) is evaluated for the current time
 `t`. JLed internally uses either 8-bit (`JLed`, `uint8_t`, 0–255) or 16-bit
@@ -194,9 +217,26 @@ and defaults to 1ms.
 `Off()` works like `On()`, except that it turns the LED off, i.e., it sets the
 brightness to 0.
 
-Use the `Set(uint8_t brightness, uint16_t period=1)` method to set the
-brightness to the given value, i.e., `Set(255)` is equivalent to calling `On()`
-and `Set(0)` is equivalent to calling `Off()`.
+Use the `Set(Brightness brightness, uint16_t period=1)` method to set the
+brightness to a specific value. The type of `brightness` depends on the
+instantiation: `uint8_t` (0–255) for `JLed`, and `uint16_t` (0–65535) for
+`JLedHD`. For example, `Set(255)` is equivalent to calling `On()` and `Set(0)`
+is equivalent to calling `Off()` when using `JLed`; with `JLedHD` the full
+range is `Set(65535)` for full brightness.
+
+To write brightness values that work with both `JLed` and `JLedHD` without
+change, use `jled::Percentage` or the `_pct` user-defined literal (requires
+`using jled::operator""_pct`). `Percentage` converts implicitly to the correct
+range for whichever brightness type is active:
+
+```c++
+using jled::operator""_pct;
+
+JLed   led   = JLed(13)  .Set(75_pct);  // 75 % of 255  → 191
+JLedHD ledHD = JLedHD(13).Set(75_pct);  // 75 % of 65535 → 49151
+// Equivalent explicit form:
+JLed   led2  = JLed(13)  .Set(jled::Percentage(75));
+```
 
 Technically, `Set`, `On` and `Off` are effects with a default period of 1ms, that
 set the brightness to a constant value. Specifying a different period has an
@@ -274,10 +314,10 @@ auto led = JLed(13).Breathe(500, 1000, 500).DelayAfter(1000).Forever();
 
 In candle mode, the random flickering of a candle or fire is simulated.
 The builder method has the following signature:
-`Candle(uint8_t speed, uint8_t jitter, uin16_t period)`
+`Candle(uint8_t speed, uint8_t jitter, uint16_t period)`
 
 - `speed` - controls the speed of the effect. 0 for fastest, increasing speed
-  divides into halve per increment. The default value is 7.
+  divides into halve per increment. The default value is 6.
 - `jitter` - the amount of jittering. 0 none (constant on), 255 maximum. Default
   value is 15.
 - `period` - Period of effect in ms. The default value is 65535 ms.
@@ -407,9 +447,10 @@ an effect. The default value is 0 ms.
 #### Repetitions
 
 Use the `Repeat()` method to specify the number of repetitions. The default
-value is 1 repetition. The `Forever()` methods sets to repeat the effect
+value is 1 repetition. The `Forever()` method sets to repeat the effect
 forever. Each repetition includes a full period of the effect and the time
-specified by `DelayAfter()` method.
+specified by `DelayAfter()` method. Use `IsForever()` to query whether the
+effect is set to repeat forever.
 
 ### State functions
 
@@ -473,29 +514,37 @@ led.Stop(JLed::eStopMode::FULL_OFF);
 #### Low active for inverted output
 
 Use the `LowActive()` method when the connected LED is low active. All output
-will be inverted by JLed (i.e., instead of x, the value of 255-x will be set).
+will be inverted by JLed (i.e., instead of x, the value of `FullBrightness - x`
+will be set, where `FullBrightness` is 255 for `JLed` and 65535 for `JLedHD`).
+Use `IsLowActive()` to query whether the LED is configured as low active.
 
 #### Minimum- and Maximum brightness level
 
-The `MaxBrightness(uint8_t level)` method is used to set the maximum brightness
-level of the LED. A level of 255 (the default) is full brightness, while 0
-effectively turns the LED off. In the same way, the `MinBrightness(uint8_t level)`
-method sets the minimum brightness level. The default minimum level is 0. If
-minimum or maximum brightness levels are set, the output value is scaled to be
-within the interval defined by `[minimum brightness, maximum brightness]`: a
-value of 0 will be mapped to the minimum brightness level, a value of 255 will
-be mapped to the maximum brightness level.
+The `MaxBrightness(Brightness level)` method is used to set the maximum
+brightness level of the LED, where `Brightness` is `uint8_t` for `JLed` and
+`uint16_t` for `JLedHD`. A level of full brightness (255 / 65535, the default)
+is maximum output, while 0 effectively turns the LED off. In the same way, the
+`MinBrightness(Brightness level)` method sets the minimum brightness level. The
+default minimum level is 0. If minimum or maximum brightness levels are set,
+the output value is scaled to be within the interval defined by
+`[minimum brightness, maximum brightness]`: a value of 0 will be mapped to the
+minimum brightness level, and a value of full brightness will be mapped to the
+maximum brightness level.
 
-The `uint_8 MaxBrightness() const` method returns the current maximum
-brightness level. `uint8_t MinBrightness() const` returns the current minimum
-brightness level.
+To specify levels independently of the brightness type, use `jled::Percentage`
+or the `_pct` literal (see [Percentage](#percentage) below).
+
+The `Brightness MaxBrightness() const` method returns the current maximum
+brightness level. `Brightness MinBrightness() const` returns the current
+minimum brightness level.
 
 ### Controlling a group of LEDs
 
 The `JLedSequence` class allows controlling a group of `JLed` objects
 simultaneously, either in parallel or sequentially, starting the next `JLed`
 effect when the previous finished. The companion `JLedSequenceHD` class works
-identically but controls `JLedHD` objects. The constructor takes the mode
+identically but controls `JLedHD` objects. Note that `JLed` and `JLedHD`
+objects cannot be mixed in the same sequence. The constructor takes the mode
 (`PARALLEL`, `SEQUENCE`), an array of `JLed` objects and the size of the
 array, e.g.
 
@@ -599,9 +648,14 @@ each supported platform:
 | ESP8266 Arduino core v1/v2                              | `ArduinoHal<10>` (10-bit) | `ArduinoHal<10>` (10-bit) |
 | All other Arduino-compatible platforms                  | `ArduinoHal<8>` (8-bit)   | `ArduinoHal<8>` (8-bit)   |
 
-User-defined brightness evaluators always work in terms of the internal `Brightness` type
-(0–255 for `JLed`, 0–65535 for `JLedHD`). All platform-specific scaling to the native
-PWM resolution is handled transparently by JLed.
+Internally, `JLed` performs all effect calculations in 8-bit arithmetic (`uint8_t`). The result
+is passed directly to the HAL, which writes it via `analogWrite` using 8-bit resolution.
+
+`JLedHD` performs the same calculations in 16-bit arithmetic (`uint16_t`), giving 256× finer
+intermediate values. If the platform's native PWM resolution is lower than 16 bits (e.g. 13-bit
+on ESP32), the HAL right-shifts the value to fit: a 16-bit brightness of 65535 becomes
+8191 in 13-bit space. No precision is fabricated — the extra bits simply allow the effect
+evaluator to express smoother transitions before the final hardware mapping is applied.
 
 #### `ArduinoHal` and the global `analogWriteResolution` limit
 
