@@ -45,7 +45,7 @@ TEST_CASE("ledc ctor correctly initializes hardware", "[esp32_hal]") {
 
     constexpr auto kChan = 5;
     constexpr auto kPin = 10;
-    auto hal[[gnu::unused]] = Esp32Hal(kPin, kChan);
+    auto hal[[gnu::unused]] = Esp32Hal<8>(kPin, kChan);
 
     // check that ledc is initialized correctly
     auto timer_config = esp32_mock_get_ledc_timer_config_args();
@@ -71,8 +71,8 @@ TEST_CASE("ledc selects same channel for same pin", "[esp32_hal]") {
 
     // note: we test a static property here (auto incremented next channel
     // number). so test has side effects. TODO avoid/reset
-    auto hal1 = Esp32Hal(kPin);
-    auto hal2 = Esp32Hal(kPin);
+    auto hal1 = Esp32Hal<8>(kPin);
+    auto hal2 = Esp32Hal<8>(kPin);
 
     // same channel is to be selected, since pin did not change
     REQUIRE(hal1.chan() == hal2.chan());
@@ -81,20 +81,20 @@ TEST_CASE("ledc selects same channel for same pin", "[esp32_hal]") {
 TEST_CASE("ledc selects different channels for different pins", "[esp32_hal]") {
     constexpr auto kPin = 10;
 
-    auto hal1 = Esp32Hal(kPin);
-    auto hal2 = Esp32Hal(kPin + 1);
+    auto hal1 = Esp32Hal<8>(kPin);
+    auto hal2 = Esp32Hal<8>(kPin + 1);
 
     REQUIRE(hal1.chan() != hal2.chan());
 }
 
-TEST_CASE("analogWrite() writes value", "[esp32_hal]") {
+TEST_CASE("analogWrite() writes value (8-bit)", "[esp32_hal]") {
     esp32_mock_init();
 
     constexpr auto kChan = 5;
     constexpr auto kPin = 10;
-    auto hal = Esp32Hal(kPin, kChan);
+    auto hal = Esp32Hal<8>(kPin, kChan);
 
-    hal.analogWrite(123);
+    hal.analogWrite<uint8_t>(123);
 
     auto set_duty = esp32_mock_get_ledc_set_duty_args((ledc_channel_t)kChan);
     REQUIRE(set_duty.speed_mode == LEDC_LOW_SPEED_MODE);
@@ -105,31 +105,53 @@ TEST_CASE("analogWrite() writes value", "[esp32_hal]") {
     REQUIRE(update_duty.speed_mode == LEDC_LOW_SPEED_MODE);
 }
 
-TEST_CASE("analogWrite() writes 0 as 0", "[esp32_hal]") {
+TEST_CASE("analogWrite() writes 0 as 0 (8-bit)", "[esp32_hal]") {
     esp32_mock_init();
 
     // attach channel 2 to pin 1
     constexpr auto kChan = 5;
     constexpr auto kPin = 10;
-    auto hal = Esp32Hal(kPin, kChan);
+    auto hal = Esp32Hal<8>(kPin, kChan);
 
-    hal.analogWrite(0);
+    hal.analogWrite<uint8_t>(0);
 
     auto set_duty = esp32_mock_get_ledc_set_duty_args((ledc_channel_t)kChan);
     REQUIRE(set_duty.duty == 0);
 }
 
-TEST_CASE("analogWrite() writes 255 as 256", "[esp32_hal]") {
+TEST_CASE("analogWrite() writes 255 as 256 (8-bit)", "[esp32_hal]") {
     esp32_mock_init();
 
     constexpr auto kChan = 5;
     constexpr auto kPin = 10;
-    auto hal = Esp32Hal(kPin, kChan);
+    auto hal = Esp32Hal<8>(kPin, kChan);
 
-    hal.analogWrite(255);
+    hal.analogWrite<uint8_t>(255);
 
     auto set_duty = esp32_mock_get_ledc_set_duty_args((ledc_channel_t)kChan);
     REQUIRE(set_duty.duty == 256);
+}
+
+TEST_CASE("analogWrite() writes 16-bit values correctly (16-bit)", "[esp32_hal]") {
+    esp32_mock_init();
+
+    constexpr auto kChan = 5;
+    constexpr auto kPin = 10;
+    auto hal = Esp32Hal<13>(kPin, kChan);
+
+    // Test downscaling from 16-bit to 13-bit
+    hal.analogWrite<uint16_t>(0);
+    auto set_duty1 = esp32_mock_get_ledc_set_duty_args((ledc_channel_t)kChan);
+    REQUIRE(set_duty1.duty == 0);
+
+    hal.analogWrite<uint16_t>(65535);  // max 16-bit
+    auto set_duty2 = esp32_mock_get_ledc_set_duty_args((ledc_channel_t)kChan);
+    // full-brightness maps to kMaxBrightness+1 per ESP32 full-on spec
+    REQUIRE(set_duty2.duty == (1<<13));
+
+    hal.analogWrite<uint16_t>(32768);  // mid 16-bit
+    auto set_duty3 = esp32_mock_get_ledc_set_duty_args((ledc_channel_t)kChan);
+    REQUIRE(set_duty3.duty == 4096);
 }
 
 TEST_CASE("millis() returns correct time", "[esp32_hal]") {

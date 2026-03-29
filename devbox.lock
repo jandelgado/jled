@@ -69,54 +69,6 @@
       "last_modified": "2026-02-11T21:01:36Z",
       "resolved": "github:NixOS/nixpkgs/2343bbb58f99267223bc2aac4fc9ea301a155a16?lastModified=1770843696&narHash=sha256-LovWTGDwXhkfCOmbgLVA10bvsi%2FP8eDDpRudgk68HA8%3D"
     },
-    "lcov@1.16": {
-      "last_modified": "2024-06-12T20:55:33Z",
-      "resolved": "github:NixOS/nixpkgs/a9858885e197f984d92d7fe64e9fff6b2e488d40#lcov",
-      "source": "devbox-search",
-      "version": "1.16",
-      "systems": {
-        "aarch64-darwin": {
-          "outputs": [
-            {
-              "name": "out",
-              "path": "/nix/store/5jf7n8834965vqdxszi8mcncjryzvk6i-lcov-1.16",
-              "default": true
-            }
-          ],
-          "store_path": "/nix/store/5jf7n8834965vqdxszi8mcncjryzvk6i-lcov-1.16"
-        },
-        "aarch64-linux": {
-          "outputs": [
-            {
-              "name": "out",
-              "path": "/nix/store/jz82ahds1cbw8plaa6gv8nx1xwgl0zrh-lcov-1.16",
-              "default": true
-            }
-          ],
-          "store_path": "/nix/store/jz82ahds1cbw8plaa6gv8nx1xwgl0zrh-lcov-1.16"
-        },
-        "x86_64-darwin": {
-          "outputs": [
-            {
-              "name": "out",
-              "path": "/nix/store/zimvfrcfdpgbwps77gm0yi6fb9hgihxd-lcov-1.16",
-              "default": true
-            }
-          ],
-          "store_path": "/nix/store/zimvfrcfdpgbwps77gm0yi6fb9hgihxd-lcov-1.16"
-        },
-        "x86_64-linux": {
-          "outputs": [
-            {
-              "name": "out",
-              "path": "/nix/store/akn46c3x0kvv5hg2ql4bzj1ybm4m22fb-lcov-1.16",
-              "default": true
-            }
-          ],
-          "store_path": "/nix/store/akn46c3x0kvv5hg2ql4bzj1ybm4m22fb-lcov-1.16"
-        }
-      }
-    },
     "python3Packages.pip": {
       "resolved": "github:NixOS/nixpkgs/2343bbb58f99267223bc2aac4fc9ea301a155a16?narHash=sha256-LovWTGDwXhkfCOmbgLVA10bvsi%2FP8eDDpRudgk68HA8%3D#python3Packages.pip",
       "source": "nixpkg",

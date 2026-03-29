@@ -17,6 +17,9 @@ uint8_t arduinoMockGetPinMode(uint8_t pin);
 void analogWrite(uint8_t pint, int value);
 int arduinoMockGetPinState(uint8_t pin);
 
+extern "C" void analogWriteResolution(int bits);
+int arduinoMockGetAnalogWriteResolution();
+
 uint32_t millis(void);
 void arduinoMockSetMillis(uint32_t value);
 

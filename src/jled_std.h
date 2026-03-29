@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Jan Delgado <jdelgado[at]gmx.net>
+// Copyright (c) 2017-2020 Jan Delgado <jdelgado[at]gmx.net>
 // https://github.com/jandelgado/jled
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -19,11 +19,13 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //
-#ifdef ESP32
-#include "esp32_hal.h"  // NOLINT
+#pragma once
 
-using jled::Esp32ChanMapper;
-using jled::Esp32Hal;
+namespace jled {
 
-Esp32ChanMapper Esp32Hal::chanMapper_ = Esp32ChanMapper();
-#endif
+// C++14-compatible conditional type selector (substitute for std::conditional)
+template <bool, typename T, typename F> struct Conditional { using type = F; };
+template <typename T, typename F>
+struct Conditional<true, T, F> { using type = T; };
+
+}  // namespace jled
