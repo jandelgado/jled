@@ -318,7 +318,6 @@ class TJLed {
         delay_before_ = rLed.delay_before_;
         delay_after_ = rLed.delay_after_;
         time_start_ = rLed.time_start_;
-        cycle_period_ = rLed.cycle_period_;
         cycle_period_inv_ = rLed.cycle_period_inv_;
         hal_ = rLed.hal_;
 
@@ -536,13 +535,12 @@ class TJLed {
             Write(val);
         };
 
-        // Use cached cycle_period_ (computed in updateCyclePeriodCache())
-        // Derive period from cached value (cheap subtraction vs expensive virtual call)
-        const auto period = cycle_period_ - delay_after_;
+        const auto period = brightness_eval_->Period();
+        const auto cycle_period = period + delay_after_;
 
         if (!IsForever()) {
             const auto time_end = time_start_ +
-                                  cycle_period_ * num_repetitions_ - 1;
+                                  cycle_period * num_repetitions_ - 1;
 
             if (static_cast<int32_t>(t - time_end) >= 0) {
                 // make sure final value of t = (period-1) is set
@@ -554,7 +552,7 @@ class TJLed {
 
         // Compute cycle time using fast modulo (reciprocal multiplication)
         const uint32_t elapsed = t - time_start_;
-        const uint32_t t_cycle = fastModulo(elapsed, cycle_period_, cycle_period_inv_);
+        const uint32_t t_cycle = fastModulo(elapsed, cycle_period, cycle_period_inv_);
 
         if (t_cycle < period) {
             state_ = ST_RUNNING;
@@ -598,12 +596,11 @@ class TJLed {
         return t_cycle;
     }
 
-    // Update cycle period cache when effect or delay changes
-    // This helper avoids code duplication between Reset() and DelayAfter()
+    // Update cycle period reciprocal when effect or delay changes
     void updateCyclePeriodCache() {
         if (brightness_eval_) {
-            cycle_period_ = brightness_eval_->Period() + delay_after_;
-            cycle_period_inv_ = cycle_period_ ? ((1UL << 16) / cycle_period_) : 0;
+            const auto cycle_period = brightness_eval_->Period() + delay_after_;
+            cycle_period_inv_ = cycle_period ? ((1UL << 16) / cycle_period) : 0;
         }
     }
 
@@ -654,10 +651,9 @@ class TJLed {
     uint16_t delay_before_ = 0;  // delay before the first effect starts
     uint16_t delay_after_ = 0;   // delay after each repetition
 
-    // Cached cycle period (period + delay_after_) and reciprocal for fast modulo
+    // Precomputed reciprocal of cycle period for fast modulo in Update()
     // Computed in updateCyclePeriodCache() when effect or delay changes
-    uint32_t cycle_period_ = 0;       // Cached: Period() + delay_after_
-    uint16_t cycle_period_inv_ = 0;   // Precomputed reciprocal: (1<<16)/cycle_period_
+    uint16_t cycle_period_inv_ = 0;   // (1<<16) / (Period() + delay_after_)
 };
 
 template <typename T>
