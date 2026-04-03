@@ -92,11 +92,6 @@ Brightness lerp(Brightness val, Brightness a, Brightness b);
 inline uint8_t scale8(uint8_t val, uint8_t f) { return scale<uint8_t>(val, f); }
 inline uint8_t lerp8by8(uint8_t val, uint8_t a, uint8_t b) { return lerp<uint8_t>(val, a, b); }
 
-template <typename T>
-static constexpr T __max(T a, T b) {
-    return (a > b) ? a : b;
-}
-
 // a function f(t,period,param) that calculates the LEDs brightness for a given
 // point in time and the given period. param is an optionally user provided
 // parameter. t will always be in range [0..period-1].
@@ -110,43 +105,21 @@ class BrightnessEvaluator {
 };
 
 template<typename Brightness>
-class CloneableBrightnessEvaluator : public BrightnessEvaluator<Brightness> {
- public:
-    virtual BrightnessEvaluator<Brightness>* clone(void* ptr) const = 0;
-    static void* operator new(size_t, void* ptr) { return ptr; }
-    static void operator delete(void*) {}
-};
-
-template<typename Brightness>
-class ConstantBrightnessEvaluator : public CloneableBrightnessEvaluator<Brightness> {
+struct ConstantBrightnessEvaluator {
     Brightness val_;
     uint16_t duration_;
 
- public:
-    ConstantBrightnessEvaluator() = delete;
-    explicit ConstantBrightnessEvaluator(Brightness val, uint16_t duration = 1)
-        : val_(val), duration_(duration) {}
-    BrightnessEvaluator<Brightness>* clone(void* ptr) const override {
-        return new (ptr) ConstantBrightnessEvaluator(*this);
-    }
-    uint16_t Period() const override { return duration_; }
-    Brightness Eval(uint32_t) const override { return val_; }
+    uint16_t Period() const { return duration_; }
+    Brightness Eval(uint32_t) const { return val_; }
 };
 
 // BlinkBrightnessEvaluator does one on-off cycle in the specified period
 template<typename Brightness>
-class BlinkBrightnessEvaluator : public CloneableBrightnessEvaluator<Brightness> {
+struct BlinkBrightnessEvaluator {
     uint16_t duration_on_, duration_off_;
 
- public:
-    BlinkBrightnessEvaluator() = delete;
-    BlinkBrightnessEvaluator(uint16_t duration_on, uint16_t duration_off)
-        : duration_on_(duration_on), duration_off_(duration_off) {}
-    BrightnessEvaluator<Brightness>* clone(void* ptr) const override {
-        return new (ptr) BlinkBrightnessEvaluator(*this);
-    }
-    uint16_t Period() const override { return duration_on_ + duration_off_; }
-    Brightness Eval(uint32_t t) const override {
+    uint16_t Period() const { return duration_on_ + duration_off_; }
+    Brightness Eval(uint32_t t) const {
         return (t < duration_on_) ? BrightnessTraits<Brightness>::kFullBrightness
                                   : BrightnessTraits<Brightness>::kZeroBrightness;
     }
@@ -159,35 +132,16 @@ class BlinkBrightnessEvaluator : public CloneableBrightnessEvaluator<Brightness>
 //   http://sean.voisen.org/blog/2011/10/breathing-led-with-arduino/
 // But we do it with integers only.
 template<typename Brightness>
-class BreatheBrightnessEvaluator : public CloneableBrightnessEvaluator<Brightness> {
+struct BreatheBrightnessEvaluator {
     uint16_t duration_fade_on_;
     uint16_t duration_on_;
     uint16_t duration_fade_off_;
     Brightness from_;
     Brightness to_;
-
- public:
-    BreatheBrightnessEvaluator() = delete;
-    explicit BreatheBrightnessEvaluator(
-        uint16_t duration_fade_on,
-        uint16_t duration_on,
-        uint16_t duration_fade_off,
-        Brightness from =
-            BrightnessTraits<Brightness>::kZeroBrightness,
-        Brightness to =
-            BrightnessTraits<Brightness>::kFullBrightness)
-        : duration_fade_on_(duration_fade_on),
-          duration_on_(duration_on),
-          duration_fade_off_(duration_fade_off),
-          from_(from),
-          to_(to) {}
-    BrightnessEvaluator<Brightness>* clone(void* ptr) const override {
-        return new (ptr) BreatheBrightnessEvaluator(*this);
-    }
-    uint16_t Period() const override {
+    uint16_t Period() const {
         return duration_fade_on_ + duration_on_ + duration_fade_off_;
     }
-    Brightness Eval(uint32_t t) const override {
+    Brightness Eval(uint32_t t) const {
         Brightness val = BrightnessTraits<Brightness>::kZeroBrightness;
         if (t < duration_fade_on_)
             val = fadeon_func<Brightness>(t, duration_fade_on_);
@@ -206,14 +160,13 @@ class BreatheBrightnessEvaluator : public CloneableBrightnessEvaluator<Brightnes
 };
 
 template<typename Brightness>
-class CandleBrightnessEvaluator : public CloneableBrightnessEvaluator<Brightness> {
+struct CandleBrightnessEvaluator {
     uint8_t speed_;
     uint8_t jitter_;
     uint16_t period_;
     mutable Brightness last_;
     mutable uint32_t last_t_ = 0;
 
- public:
     CandleBrightnessEvaluator() = delete;
 
     // speed - speed of effect (0..15). 0 fastest. Each increment by 1
@@ -225,12 +178,8 @@ class CandleBrightnessEvaluator : public CloneableBrightnessEvaluator<Brightness
           last_(scale<Brightness>(BrightnessTraits<Brightness>::kFullBrightness,
                                       static_cast<Brightness>(5))) {}
 
-    BrightnessEvaluator<Brightness>* clone(void* ptr) const override {
-        return new (ptr) CandleBrightnessEvaluator(*this);
-    }
-
-    uint16_t Period() const override { return period_; }
-    Brightness Eval(uint32_t t) const override {
+    uint16_t Period() const { return period_; }
+    Brightness Eval(uint32_t t) const {
         // idea from
         // https://cpldcpu.wordpress.com/2013/12/08/hacking-a-candleflicker-led/
         // TODO(jd) finetune values
@@ -262,17 +211,61 @@ class CandleBrightnessEvaluator : public CloneableBrightnessEvaluator<Brightness
     }
 };
 
+// Identifies which brightness evaluator is active in EvalStorage.
+enum class EvalType : uint8_t { NONE = 0, CONSTANT, BLINK, BREATHE, CANDLE, USER };
+
+// Type-safe discriminated union holding the active brightness evaluator.
+// Dispatches Period() and Eval() via switch — no virtual functions for
+// built-in effects. The USER arm calls through the user's virtual pointer.
+template<typename Brightness>
+struct EvalStorage {
+    EvalType type = EvalType::NONE;
+
+    union Data {
+        ConstantBrightnessEvaluator<Brightness> constant;
+        BlinkBrightnessEvaluator<Brightness>    blink;
+        BreatheBrightnessEvaluator<Brightness>  breathe;
+        CandleBrightnessEvaluator<Brightness>   candle;
+        BrightnessEvaluator<Brightness>*        user;
+        Data() {}
+        ~Data() {}
+    } data;
+
+    bool IsSet() const { return type != EvalType::NONE; }
+
+    uint16_t Period() const {
+        switch (type) {
+            case EvalType::CONSTANT: return data.constant.Period();
+            case EvalType::BLINK:    return data.blink.Period();
+            case EvalType::BREATHE:  return data.breathe.Period();
+            case EvalType::CANDLE:   return data.candle.Period();
+            case EvalType::USER:     return data.user->Period();
+            default:                 return 0;
+        }
+    }
+
+    Brightness Eval(uint32_t t) const {
+        switch (type) {
+            case EvalType::CONSTANT: return data.constant.Eval(t);
+            case EvalType::BLINK:    return data.blink.Eval(t);
+            case EvalType::BREATHE:  return data.breathe.Eval(t);
+            case EvalType::CANDLE:   return data.candle.Eval(t);
+            case EvalType::USER:     return data.user->Eval(t);
+            default:                 return BrightnessTraits<Brightness>::kZeroBrightness;
+        }
+    }
+};
+
 template <typename Hal, typename Clock, typename Brightness, typename Derived>
 class TJLed {
  protected:
-    // pointer to a (user defined) brightness evaluator.
-    BrightnessEvaluator<Brightness>* brightness_eval_ = nullptr;
+    // Active brightness evaluator (discriminated union).
+    EvalStorage<Brightness> eval_storage_;
     // Hardware abstraction giving access to the MCU
     Hal hal_;
 
-    // Evaluate effect(t) and scale to be within [minBrightness, maxBrightness]
-    // assumes brigthness_eval_ is set as it is not checked here.
-    Brightness Eval(uint32_t t) const { return brightness_eval_->Eval(t); }
+    // Evaluate effect(t) — assumes eval_storage_.IsSet().
+    Brightness Eval(uint32_t t) const { return eval_storage_.Eval(t); }
 
     // Write val out to the "hardware", inverting signal when active-low is set.
     void Write(Brightness val) {
@@ -309,18 +302,7 @@ class TJLed {
         delay_after_ = rLed.delay_after_;
         time_start_ = rLed.time_start_;
         hal_ = rLed.hal_;
-
-        if (rLed.brightness_eval_ !=
-            reinterpret_cast<const BrightnessEvaluator<Brightness>*>(
-                rLed.brightness_eval_buf_)) {
-            // nullptr or points to (external) user provided evaluator
-            brightness_eval_ = rLed.brightness_eval_;
-        } else {
-            brightness_eval_ =
-                (reinterpret_cast<const CloneableBrightnessEvaluator<Brightness>*>(
-                     rLed.brightness_eval_))
-                    ->clone(brightness_eval_buf_);
-        }
+        eval_storage_ = rLed.eval_storage_;
         return static_cast<Derived&>(*this);
     }
 
@@ -348,29 +330,27 @@ class TJLed {
     // Sets LED to given brightness. As for every effect, a duration can be
     // specified. Update() will return false after the duration elapsed.
     Derived& Set(Brightness brightness, uint16_t duration = 1) {
-        // note: we use placement new and therefore not need to keep track of
-        // mem allocated
-        return SetBrightnessEval(
-            new (brightness_eval_buf_)
-                ConstantBrightnessEvaluator<Brightness>(brightness, duration));
+        eval_storage_.type = EvalType::CONSTANT;
+        eval_storage_.data.constant = {brightness, duration};
+        return Reset();
     }
 
     // Fade LED on
     Derived& FadeOn(uint16_t duration,
                     Brightness from = BrightnessTraits<Brightness>::kZeroBrightness,
                     Brightness to = BrightnessTraits<Brightness>::kFullBrightness) {
-        return SetBrightnessEval(
-            new (brightness_eval_buf_)
-                BreatheBrightnessEvaluator<Brightness>(duration, 0, 0, from, to));
+        eval_storage_.type = EvalType::BREATHE;
+        eval_storage_.data.breathe = {duration, 0, 0, from, to};
+        return Reset();
     }
 
-    // Fade LED off - acutally is just inverted version of FadeOn()
+    // Fade LED off - actually is just inverted version of FadeOn()
     Derived& FadeOff(uint16_t duration,
                      Brightness from = BrightnessTraits<Brightness>::kFullBrightness,
                      Brightness to = BrightnessTraits<Brightness>::kZeroBrightness) {
-        return SetBrightnessEval(
-            new (brightness_eval_buf_)
-                BreatheBrightnessEvaluator<Brightness>(0, 0, duration, to, from));
+        eval_storage_.type = EvalType::BREATHE;
+        eval_storage_.data.breathe = {0, 0, duration, to, from};
+        return Reset();
     }
 
     // Fade from "from" to "to" with period "duration". Sets up the breathe
@@ -391,29 +371,33 @@ class TJLed {
     // duration values.
     Derived& Breathe(uint16_t duration_fade_on, uint16_t duration_on,
                      uint16_t duration_fade_off) {
-        return SetBrightnessEval(
-            new (brightness_eval_buf_) BreatheBrightnessEvaluator<Brightness>(
-                duration_fade_on, duration_on, duration_fade_off));
+        eval_storage_.type = EvalType::BREATHE;
+        eval_storage_.data.breathe = {duration_fade_on, duration_on, duration_fade_off,
+            BrightnessTraits<Brightness>::kZeroBrightness,
+            BrightnessTraits<Brightness>::kFullBrightness};
+        return Reset();
     }
 
     // Set effect to Blink, with the given on- and off- duration values.
     Derived& Blink(uint16_t duration_on, uint16_t duration_off) {
-        return SetBrightnessEval(
-            new (brightness_eval_buf_)
-                BlinkBrightnessEvaluator<Brightness>(duration_on, duration_off));
+        eval_storage_.type = EvalType::BLINK;
+        eval_storage_.data.blink = {duration_on, duration_off};
+        return Reset();
     }
 
     // Set effect to Candle light simulation
     Derived& Candle(uint8_t speed = 6, uint8_t jitter = 15,
                     uint16_t period = 0xffff) {
-        return SetBrightnessEval(
-            new (brightness_eval_buf_)
-                CandleBrightnessEvaluator<Brightness>(speed, jitter, period));
+        eval_storage_.type = EvalType::CANDLE;
+        eval_storage_.data.candle = CandleBrightnessEvaluator<Brightness>(speed, jitter, period);
+        return Reset();
     }
 
     // Use a user provided brightness evaluator.
     Derived& UserFunc(BrightnessEvaluator<Brightness>* user_eval) {
-        return SetBrightnessEval(user_eval);
+        eval_storage_.type = EvalType::USER;
+        eval_storage_.data.user = user_eval;
+        return Reset();
     }
 
     // set number of repetitions for effect.
@@ -500,7 +484,7 @@ class TJLed {
     }
 
     bool Update(uint32_t t, int16_t* pLast = nullptr) {
-        if (state_ == ST_STOPPED || !brightness_eval_) return false;
+        if (state_ == ST_STOPPED || !eval_storage_.IsSet()) return false;
 
         if (state_ == ST_INIT) {
             time_start_ = t + delay_before_;
@@ -522,7 +506,7 @@ class TJLed {
             Write(val);
         };
 
-        const auto period = brightness_eval_->Period();
+        const auto period = eval_storage_.Period();
         const auto cycle_period = period + delay_after_;
 
         if (!IsForever()) {
@@ -562,12 +546,6 @@ class TJLed {
 
     void trackLastUpdateTime(uint32_t t) { last_update_time_ = (t & 255); }
 
-    Derived& SetBrightnessEval(BrightnessEvaluator<Brightness>* be) {
-        brightness_eval_ = be;
-        // start over after the brightness evaluator changed
-        return Reset();
-    }
-
  public:
     // Number of bits used to control brightness with Min/MaxBrightness().
     static constexpr uint8_t kBitsBrightness = BrightnessTraits<Brightness>::kBits;
@@ -583,16 +561,6 @@ class TJLed {
     uint8_t bLowActive_ : 1;
     Brightness minBrightness_;
     Brightness maxBrightness_;
-
-    // this is where the BrightnessEvaluator object will be stored using
-    // placment new.  Set MAX_SIZE to class occupying most memory
-    static constexpr auto MAX_SIZE =
-        __max(sizeof(CandleBrightnessEvaluator<Brightness>),
-              __max(sizeof(BreatheBrightnessEvaluator<Brightness>),
-                    __max(sizeof(ConstantBrightnessEvaluator<Brightness>),  // NOLINT
-                          sizeof(BlinkBrightnessEvaluator<Brightness>))));
-    alignas(alignof(
-        CloneableBrightnessEvaluator<Brightness>)) char brightness_eval_buf_[MAX_SIZE];
 
     static constexpr uint16_t kRepeatForever = 65535;
     uint16_t num_repetitions_ = 1;
