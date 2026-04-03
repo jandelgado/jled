@@ -67,9 +67,8 @@ TEST_CASE("On/Off function configuration", "[jled]") {
                 "on") {
                 TestableJLed jled(1);
                 jled.On();
-                REQUIRE(dynamic_cast<ConstantBrightnessEvaluator *>(
-                            jled.brightness_eval_) != nullptr);
-                CHECK(jled.brightness_eval_->Eval(0) == 255);
+                REQUIRE(jled.eval_storage_.type == jled::EvalType::CONSTANT);
+                CHECK(jled.eval_storage_.Eval(0) == 255);
             }
 
             SECTION(
@@ -77,25 +76,22 @@ TEST_CASE("On/Off function configuration", "[jled]") {
                 "off") {
                 TestableJLed jled(1);
                 jled.Off();
-                REQUIRE(dynamic_cast<ConstantBrightnessEvaluator *>(
-                            jled.brightness_eval_) != nullptr);
-                CHECK(jled.brightness_eval_->Eval(0) == 0);
+                REQUIRE(jled.eval_storage_.type == jled::EvalType::CONSTANT);
+                CHECK(jled.eval_storage_.Eval(0) == 0);
             }
 
             SECTION("using Set() allows to set custom brightness level") {
                 TestableJLed jled(1);
                 jled.Set(123);
-                REQUIRE(dynamic_cast<ConstantBrightnessEvaluator *>(
-                            jled.brightness_eval_) != nullptr);
-                CHECK(jled.brightness_eval_->Eval(0) == 123);
+                REQUIRE(jled.eval_storage_.type == jled::EvalType::CONSTANT);
+                CHECK(jled.eval_storage_.Eval(0) == 123);
             }
 
             SECTION("using Set(0) allows to set custom turn LED off") {
                 TestableJLed jled(1);
                 jled.Set(0);
-                REQUIRE(dynamic_cast<ConstantBrightnessEvaluator *>(
-                            jled.brightness_eval_) != nullptr);
-                CHECK(jled.brightness_eval_->Eval(0) == 0);
+                REQUIRE(jled.eval_storage_.type == jled::EvalType::CONSTANT);
+                CHECK(jled.eval_storage_.Eval(0) == 0);
             }
         }
     };
@@ -109,13 +105,11 @@ TEST_CASE("using Breathe() configures BreatheBrightnessEvaluator", "[jled]") {
         static void test() {
             TestableJLed jled(1);
             jled.Breathe(100, 200, 300);
-            REQUIRE(dynamic_cast<BreatheBrightnessEvaluator *>(
-                        jled.brightness_eval_) != nullptr);
-            auto eval = dynamic_cast<BreatheBrightnessEvaluator *>(
-                jled.brightness_eval_);
-            CHECK(100 == eval->DurationFadeOn());
-            CHECK(200 == eval->DurationOn());
-            CHECK(300 == eval->DurationFadeOff());
+            REQUIRE(jled.eval_storage_.type == jled::EvalType::BREATHE);
+            auto& eval = jled.eval_storage_.data.breathe;
+            CHECK(100 == eval.DurationFadeOn());
+            CHECK(200 == eval.DurationOn());
+            CHECK(300 == eval.DurationFadeOff());
         }
     };
     TestableJLed::test();
@@ -129,13 +123,11 @@ TEST_CASE("Breathe(period) splits period evenly into fade-on and fade-off",
         static void test() {
             TestableJLed jled(1);
             jled.Breathe(1000);
-            REQUIRE(dynamic_cast<BreatheBrightnessEvaluator *>(
-                        jled.brightness_eval_) != nullptr);
-            auto eval = dynamic_cast<BreatheBrightnessEvaluator *>(
-                jled.brightness_eval_);
-            CHECK(500 == eval->DurationFadeOn());
-            CHECK(0 == eval->DurationOn());
-            CHECK(500 == eval->DurationFadeOff());
+            REQUIRE(jled.eval_storage_.type == jled::EvalType::BREATHE);
+            auto& eval = jled.eval_storage_.data.breathe;
+            CHECK(500 == eval.DurationFadeOn());
+            CHECK(0 == eval.DurationOn());
+            CHECK(500 == eval.DurationFadeOff());
         }
     };
     TestableJLed::test();
@@ -148,8 +140,7 @@ TEST_CASE("using Candle() configures CandleBrightnessEvaluator", "[jled]") {
         static void test() {
             TestableJLed jled(1);
             jled.Candle(1, 2, 3);
-            REQUIRE(dynamic_cast<CandleBrightnessEvaluator *>(
-                        jled.brightness_eval_) != nullptr);
+            REQUIRE(jled.eval_storage_.type == jled::EvalType::CANDLE);
         }
     };
     TestableJLed::test();
@@ -164,24 +155,20 @@ TEST_CASE("using Fadeon(), FadeOff() configures Fade-BrightnessEvaluators",
             SECTION("FadeOff() initializes with BreatheBrightnessEvaluator") {
                 TestableJLed jled(1);
                 jled.FadeOff(100);
-                REQUIRE(dynamic_cast<BreatheBrightnessEvaluator *>(
-                            jled.brightness_eval_) != nullptr);
-                auto eval = dynamic_cast<BreatheBrightnessEvaluator *>(
-                    jled.brightness_eval_);
-                CHECK(0 == eval->DurationFadeOn());
-                CHECK(0 == eval->DurationOn());
-                CHECK(100 == eval->DurationFadeOff());
+                REQUIRE(jled.eval_storage_.type == jled::EvalType::BREATHE);
+                auto& eval = jled.eval_storage_.data.breathe;
+                CHECK(0 == eval.DurationFadeOn());
+                CHECK(0 == eval.DurationOn());
+                CHECK(100 == eval.DurationFadeOff());
             }
             SECTION("FadeOn() initializes with BreatheBrightnessEvaluator") {
                 TestableJLed jled(1);
                 jled.FadeOn(100);
-                REQUIRE(dynamic_cast<BreatheBrightnessEvaluator *>(
-                            jled.brightness_eval_) != nullptr);
-                auto eval = dynamic_cast<BreatheBrightnessEvaluator *>(
-                    jled.brightness_eval_);
-                CHECK(100 == eval->DurationFadeOn());
-                CHECK(0 == eval->DurationOn());
-                CHECK(0 == eval->DurationFadeOff());
+                REQUIRE(jled.eval_storage_.type == jled::EvalType::BREATHE);
+                auto& eval = jled.eval_storage_.data.breathe;
+                CHECK(100 == eval.DurationFadeOn());
+                CHECK(0 == eval.DurationOn());
+                CHECK(0 == eval.DurationFadeOff());
             }
         }
     };
@@ -196,28 +183,24 @@ TEST_CASE("using Fade() configures BreatheBrightnessEvaluator", "[jled]") {
             SECTION("fade with from < to") {
                 TestableJLed jled(1);
                 jled.Fade(100, 200, 300);  // from, to, duration
-                REQUIRE(dynamic_cast<BreatheBrightnessEvaluator *>(
-                            jled.brightness_eval_) != nullptr);
-                auto eval = dynamic_cast<BreatheBrightnessEvaluator *>(
-                    jled.brightness_eval_);
-                CHECK(300 == eval->DurationFadeOn());
-                CHECK(0 == eval->DurationOn());
-                CHECK(0 == eval->DurationFadeOff());
-                CHECK(100 == static_cast<int>(eval->From()));
-                CHECK(200 == static_cast<int>(eval->To()));
+                REQUIRE(jled.eval_storage_.type == jled::EvalType::BREATHE);
+                auto& eval = jled.eval_storage_.data.breathe;
+                CHECK(300 == eval.DurationFadeOn());
+                CHECK(0 == eval.DurationOn());
+                CHECK(0 == eval.DurationFadeOff());
+                CHECK(100 == static_cast<int>(eval.From()));
+                CHECK(200 == static_cast<int>(eval.To()));
             }
             SECTION("fade with from >= to") {
                 TestableJLed jled(1);
                 jled.Fade(200, 100, 300);
-                REQUIRE(dynamic_cast<BreatheBrightnessEvaluator *>(
-                            jled.brightness_eval_) != nullptr);
-                auto eval = dynamic_cast<BreatheBrightnessEvaluator *>(
-                    jled.brightness_eval_);
-                CHECK(0 == eval->DurationFadeOn());
-                CHECK(0 == eval->DurationOn());
-                CHECK(300 == eval->DurationFadeOff());
-                CHECK(100 == static_cast<int>(eval->From()));
-                CHECK(200 == static_cast<int>(eval->To()));
+                REQUIRE(jled.eval_storage_.type == jled::EvalType::BREATHE);
+                auto& eval = jled.eval_storage_.data.breathe;
+                CHECK(0 == eval.DurationFadeOn());
+                CHECK(0 == eval.DurationOn());
+                CHECK(300 == eval.DurationFadeOff());
+                CHECK(100 == static_cast<int>(eval.From()));
+                CHECK(200 == static_cast<int>(eval.To()));
             }
         }
     };
@@ -231,8 +214,7 @@ TEST_CASE("UserFunc() allows to use a custom brightness evaluator", "[jled]") {
             TestableJLed jled(1);
             auto cust = MockBrightnessEvaluator(ByteVec{});
             jled.UserFunc(&cust);
-            REQUIRE(dynamic_cast<MockBrightnessEvaluator *>(
-                        jled.brightness_eval_) != nullptr);
+            REQUIRE(jled.eval_storage_.type == jled::EvalType::USER);
         }
     };
     TestableJLed::test();
@@ -240,12 +222,12 @@ TEST_CASE("UserFunc() allows to use a custom brightness evaluator", "[jled]") {
 
 TEST_CASE("ConstantBrightnessEvaluator returns constant provided value",
           "[jled]") {
-    auto cbZero = ConstantBrightnessEvaluator(0);
+    auto cbZero = ConstantBrightnessEvaluator{0, 1};
     CHECK(1 == cbZero.Period());
     CHECK(0 == cbZero.Eval(0));
     CHECK(0 == cbZero.Eval(1000));
 
-    auto cbFull = ConstantBrightnessEvaluator(255);
+    auto cbFull = ConstantBrightnessEvaluator{255, 1};
     CHECK(1 == cbFull.Period());
     CHECK(255 == cbFull.Eval(0));
     CHECK(255 == cbFull.Eval(1000));
@@ -255,7 +237,7 @@ TEST_CASE(
     "BlinkBrightnessEvaluator calculates switches between on and off in given "
     "time frames",
     "[jled]") {
-    auto eval = BlinkBrightnessEvaluator(10, 5);
+    auto eval = BlinkBrightnessEvaluator{10, 5};
     CHECK(10 + 5 == eval.Period());
     CHECK(255 == eval.Eval(0));
     CHECK(255 == eval.Eval(9));
@@ -273,7 +255,7 @@ TEST_CASE("CandleBrightnessEvaluator simulated candle flickering", "[jled]") {
 TEST_CASE(
     "BreatheEvaluator evaluates to bell curve distributed brightness curve",
     "[jled]") {
-    auto eval = BreatheBrightnessEvaluator(100, 200, 300);
+    auto eval = BreatheBrightnessEvaluator{100, 200, 300, 0, 255};
     CHECK(100 + 200 + 300 == eval.Period());
 
     const std::map<uint32_t, uint8_t> test_values = {

@@ -8,27 +8,19 @@ JLed is an embedded C++ library for non-blocking, time-driven LED control (blink
 
 ## Repository Structure
 
-| Path | Purpose |
-|------|---------|
-| `src/` | Library source (`.h`/`.cpp`) |
-| `test/` | Host-based unit tests (Catch2, separate Makefile) |
-| `examples/` | MCU `.ino` sketches |
-| `.tools/` | Dev tools (doc site generator) |
-| `platformio.ini` | PlatformIO config |
-| `devbox.json` | Dev environment (Python 3.13, lcov, cpplint, pio) |
+| Path             | Purpose                                           |
+| ---------------- | ------------------------------------------------- |
+| `src/`           | Library source (`.h`/`.cpp`)                      |
+| `test/`          | Host-based unit tests (Catch2, separate Makefile) |
+| `examples/`      | MCU `.ino` sketches                               |
+| `.tools/`        | Dev tools (doc site generator)                    |
+| `platformio.ini` | PlatformIO config                                 |
+| `devbox.json`    | Dev environment (Python 3.13, lcov, cpplint, pio) |
 
 ## Build & Test
 
-```bash
-make lint       # cpplint all C++ files
-make test       # run unit tests + coverage
-make ci         # build all examples for all platforms (~10 min)
-make upload     # flash to MCU
-make monitor    # serial monitor
-make envdump    # dump PlatformIO env info
-```
-
-`test/Makefile` targets: `test`, `clean`, `clobber`, `coverage` (HTML report in `test/report/`)
+- `Makefile` targets: `lint`, `test`, `ci` (build for all platforms examples ~10min), `envdump`
+- `test/Makefile` targets: `test`, `clean`, `clobber`, `coverage` (HTML report in `test/report/`)
 
 ## Code Style
 
@@ -42,21 +34,25 @@ make envdump    # dump PlatformIO env info
 **Strict separation**: state machine logic / effect calculation / hardware access.
 
 **Core files:**
+
 - `src/jled_base.h` — platform-agnostic: `TJLed<Hal, Clock, B>`, `BrightnessEvaluator`, all effects, `TJLedSequence`
 - `src/jled.h` — platform detection (preprocessor macros), exposes `JLed`, `JLedHD`, `JLedSequence`
 - `src/*_hal.h` — HAL per platform (Arduino, ESP32, ESP8266, mbed, Pico)
 
 **HAL**: each platform has two abstractions in `src/*_hal.h`:
+
 - **PWM HAL** (e.g. `ArduinoHal`) — `analogWrite(Brightness val)`
 - **Clock** (e.g. `ArduinoClock`) — `static uint32_t millis()`
 
-**Effects**: implement `BrightnessEvaluator` with `Period()` and `Eval(t)`. Must be stateless and copyable.
+**Effects**: simple structs with `Period()` and `Eval(t)`. Must be stateless and copyable (see
+ConstantBrightnessEvaluator)
 
 **Resolution**: `JLed`/`JLedHD` etc. are template instances; higher resolution = smoother PWM.
 
-**Memory**: placement new into fixed per-instance buffer `brightness_eval_buf_[MAX_SIZE]` (no heap). `MAX_SIZE` = compile-time max of all evaluator sizes.
+**Memory**: no dynamic memory allocation, use fixed buffers or placement new.
 
 **Fluent API** via CRTP — methods return `B&`:
+
 ```cpp
 JLed led = JLed(21).DelayBefore(1500).Breathe(500).Repeat(5).MaxBrightness(150);
 ```
@@ -75,10 +71,9 @@ JLed led = JLed(21).DelayBefore(1500).Breathe(500).Repeat(5).MaxBrightness(150);
 ## Common Tasks
 
 **New effect** (`src/jled_base.h`):
-1. Create evaluator class (see `BlinkBrightnessEvaluator`)
-2. Update `MAX_SIZE` in `TJLed`
-3. Add fluent method: `return SetBrightnessEval(new (brightness_eval_buf_) MyEval(...))`
-4. Add tests in `test/test_jled.cpp`, example in `examples/`, update `README.md`
+
+1. use `BlinkBrightnessEvaluator` and `TJLed::Blink` etc. as reference
+2. Add tests in `test/test_jled.cpp`, example in `examples/`, update `README.md`
 
 **New HAL**: use `src/arduino_hal.h` as reference → create `src/[platform]_hal.h` → add detection in `src/jled.h` → add tests in `test/test_[platform]_hal.cpp`
 
@@ -89,12 +84,12 @@ JLed led = JLed(21).DelayBefore(1500).Breathe(500).Repeat(5).MaxBrightness(150);
 **DO**: preserve API backwards compatibility · add tests for all changes · `make lint && make test` before commit
 
 **DON'T**:
+
 - Add platform-specific code to `jled_base.h`
 - Use float in core logic
 - Use dynamic allocation, exceptions, or RTTI
 - Use `delay()` or blocking operations
 - Break public API without a major version bump
-- Add external dependencies
 - **Change a test to make it pass** — fix the code instead
 
 ## CI/CD
