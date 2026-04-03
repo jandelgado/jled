@@ -19,26 +19,45 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //
-#ifndef SRC_ARDUINO_HAL_H_
-#define SRC_ARDUINO_HAL_H_
-
+#pragma once
 #include <Arduino.h>
+#include "brightness.h"
+
+// Some platforms support PWM resolutions higher than 8 bits (e.g. SAMD/Due
+// up to 12-bit, RP2040 up to 16-bit). ESP8266 Core v1/v2 used 10-bit natively
+// but v3 reverted to 8-bit. analogWriteResolution() is called on first use
+// when kResBits_ != 8, via a weak symbol check so it is safe on platforms that
+// don't provide it.
+extern "C" __attribute__((weak)) void analogWriteResolution(int bits);
 
 namespace jled {
 
+// ArduinoHal controls a single PWM pin.
+//
+// kResBits_: native PWM resolution in bits (default 8).
+//   Use a higher value (e.g. 10 or 12) on platforms that support it, such as
+//   ESP8266 v1/v2 (10-bit) or SAMD/Due (up to 12-bit).  The platform SDK's
+//   analogWriteResolution() is called automatically on first use when
+//   kResBits_ != 8.  Platform selection is handled in jled.h.
+template <uint8_t kResBits_ = 8>
 class ArduinoHal {
  public:
     using PinType = uint8_t;
 
     explicit ArduinoHal(PinType pin) noexcept : pin_(pin) {}
 
-    void analogWrite(uint8_t val) const {
+    template <typename Brightness>
+    void analogWrite(Brightness val) const {
         // some platforms, e.g. STM need lazy initialization
         if (!setup_) {
             ::pinMode(pin_, OUTPUT);
+            // configure higher PWM resolution once on first use, if supported
+            if (kResBits_ != 8 && ::analogWriteResolution != nullptr) {
+                ::analogWriteResolution(kResBits_);
+            }
             setup_ = true;
         }
-        ::analogWrite(pin_, val);
+        ::analogWrite(pin_, jled::scaleToNative<kResBits_>(val));
     }
 
  private:
@@ -48,8 +67,9 @@ class ArduinoHal {
 
 class ArduinoClock {
  public:
-    static uint32_t millis() { return ::millis(); }
+    static uint32_t millis() {
+        return ::millis();
+    }
 };
 
 }  // namespace jled
-#endif  // SRC_ARDUINO_HAL_H_

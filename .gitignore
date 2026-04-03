@@ -1,4 +1,5 @@
 .envrc
+__pycache__/
 .venv/
 .pio/
 **/.vscode
@@ -19,6 +20,7 @@ test/bin
 test/coverage.info
 test/coverage.json
 test/report
+test/report.info
 **/tags
 .vscode
 .claude/

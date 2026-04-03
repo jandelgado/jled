@@ -11,7 +11,7 @@ all: phony
 	pio run
 
 lint: phony
-	cpplint --filter -readability/check \
+	cpplint --filter -readability/check,-build/include_subdir \
 		    --linelength=100\
 		    --exclude test/catch2 \
 		    --extensions=cpp,h,ino $(shell find . -maxdepth 3 \( ! -regex '.*/\..*' \) \
@@ -36,7 +36,8 @@ envdump: phony
 clean: phony
 	-pio run --target clean
 	cd test && make clean
-	rm -f src/{*.o,*.gcno,*.gcda} .doc-site
+	rm -f src/{*.o,*.gcno,*.gcda}
+	rm -rf .doc-site/
 
 upload: phony
 	pio run --target upload
@@ -48,8 +49,7 @@ test: phony
 	$(MAKE) -C test coverage
 
 docs: phony
-	uvx --with markdown --with Jinja2 --with packaging --with Pygments \
-	    python .tools/doc-site/generate_site.py --output .doc-site
+	.tools/doc-site/generate_site.py --output .doc-site
 
 tags: phony
 	ctags -R

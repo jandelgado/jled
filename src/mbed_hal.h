@@ -19,45 +19,62 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //
-#ifndef SRC_MBED_HAL_H_
-#define SRC_MBED_HAL_H_
+#pragma once
 
 #ifdef __MBED__
 
 #include <mbed.h>
+#include "jled_std.h"
+#include "brightness.h"
 
 namespace jled {
 
+template<uint8_t kResBits_ = 8>
 class MbedHal {
  public:
     using PinType = ::PinName;
 
     explicit MbedHal(PinType pin) noexcept : pin_(pin) {}
 
-    MbedHal(const MbedHal& rhs) { pin_ = rhs.pin_; }
+    MbedHal(const MbedHal& rhs) noexcept : pin_(rhs.pin_) {}
 
     ~MbedHal() {
-        delete pwmout_;
-        pwmout_ = nullptr;
+        if (initialized_) {
+            pwmout()->~PwmOut();
+        }
     }
 
-    void analogWrite(uint8_t val) const {
-        if (!pwmout_) {
-            pwmout_ = new PwmOut(pin_);
+    template<typename Brightness>
+    void analogWrite(Brightness val) const {
+        if (!initialized_) {
+            new (pwmout_buf_.data) PwmOut(pin_);
+            initialized_ = true;
         }
-        pwmout_->write(val / 255.);
+        const uint16_t duty = jled::scaleToNative<kResBits_>(val);
+        // Mbed PwmOut::write() takes a float in [0.0, 1.0]
+        pwmout()->write(static_cast<float>(duty) / static_cast<float>(kMaxBrightness));
     }
 
     MbedHal& operator=(const MbedHal& rhs) {
-        delete pwmout_;
-        pwmout_ = nullptr;
+        if (initialized_) {
+            pwmout()->~PwmOut();
+            initialized_ = false;
+        }
         pin_ = rhs.pin_;
         return *this;
     }
 
  private:
+    static constexpr uint16_t kMaxBrightness = (1u << kResBits_) - 1;
+
+    PwmOut* pwmout() const {
+        return reinterpret_cast<PwmOut*>(pwmout_buf_.data);
+    }
+
     PinType pin_;
-    mutable PwmOut* pwmout_ = nullptr;
+    mutable bool initialized_ = false;
+    struct alignas(PwmOut) PwmOutBuf { uint8_t data[sizeof(PwmOut)]; };
+    mutable PwmOutBuf pwmout_buf_;
 };
 
 class MbedClock {
@@ -69,4 +86,3 @@ class MbedClock {
 
 }  // namespace jled
 #endif  // __MBED__
-#endif  // SRC_MBED_HAL_H_
