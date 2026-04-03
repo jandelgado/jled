@@ -35,23 +35,23 @@ namespace jled {
 
 // 8-bit specialization
 template <>
-uint8_t fadeon_func<uint8_t>(uint32_t t, uint16_t period, uint16_t inv_period) {
+uint8_t fadeon_func<uint8_t>(uint32_t t, uint16_t period) {
     // pre-calculated fade-on function at x={0,16,...,256}
     static constexpr uint8_t lut[] = {
         0, 0, 3, 7, 13, 22, 33, 49, 68, 91, 118, 148, 179, 208, 232, 248, 255};
-    return lut_lerp(t, period, inv_period, lut);
+    return lut_lerp(t, period, lut);
 }
 
 // t = 0..period-1
 template <>
-uint16_t fadeon_func<uint16_t>(uint32_t t, uint16_t period, uint16_t inv_period) {
+uint16_t fadeon_func<uint16_t>(uint32_t t, uint16_t period) {
     // pre-calculated fade-on function at x={0,2048,...,65536}
     static constexpr uint16_t lut[] = {
         0,     49,    198,   448,   807,   1278,  1874,  2600,  3474,  4505,
         5714,  7110,  8719,  10548, 12625, 14949, 17545, 20398, 23524, 26888,
         30485, 34254, 38166, 42127, 46081, 49910, 53536, 56829, 59707, 62054,
         63801, 64874, 65535};
-    return lut_lerp(t, period, inv_period, lut);
+    return lut_lerp(t, period, lut);
 }
 
 static uint32_t rand_ = 0;

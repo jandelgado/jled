@@ -57,35 +57,30 @@ constexpr uint8_t log2_floor(size_t n) {
 // table and piecewise linear interpolation between adjacent entries.
 // T and N are deduced from the lut array argument.
 //
-// inv_period is a fixed-point reciprocal of period, pre-computed by the caller
-// as (1 << 16) / period. Multiplying t by inv_period and shifting right
-// normalises t into the LUT's index space without a division with a 2-5x speedup
-// on MCUs that lack a hardware divider. The shift amount (kNormShift) is
-// derived from sizeof(T): 8 bits for uint8_t (range [0,256)), 0 for uint16_t
-// (range [0,65536)).
-//
-// kSegShift encodes the width of each LUT segment as a power-of-two and is
-// computed from N and kNormShift at compile time.
+// kNormShift is derived from sizeof(T): 8 bits for uint8_t (range [0,256)),
+// 0 for uint16_t (range [0,65536)). kSegShift encodes the width of each LUT
+// segment as a power-of-two, computed from N and kNormShift at compile time.
 //
 // Requires: N >= 2 and (N-1) is a power of two (checked by static_assert).
 template <typename T, size_t N>
-T lut_lerp(uint32_t t, uint16_t period, uint16_t inv_period, const T (&lut)[N]) {
+T lut_lerp(uint32_t t, uint16_t period, const T (&lut)[N]) {
     static_assert(N >= 2 && ((N - 1) & (N - 2)) == 0,
                   "lut_lerp: N-1 must be a power of 2");
     constexpr uint8_t kNormShift = 16 - sizeof(T) * 8;
     constexpr uint8_t kSegShift = (16 - kNormShift) - log2_floor(N - 1);
     if (t + 1 >= period) return lut[N - 1];
-    const auto tnorm = (static_cast<uint32_t>(t) * inv_period) >> kNormShift;
-    const auto i = tnorm >> kSegShift;
+    const uint16_t tnorm = static_cast<uint16_t>(
+        (t << (16 - kNormShift)) / static_cast<uint16_t>(period));
+    const uint16_t i = tnorm >> kSegShift;
     const auto y0 = lut[i];
     const auto y1 = lut[i + 1];
-    const auto x0 = i << kSegShift;
+    const uint16_t x0 = i << kSegShift;
     return static_cast<T>((((tnorm - x0) * (y1 - y0)) >> kSegShift) + y0);
 }
 
 // Template helper functions - implemented below after evaluator definitions
 template<typename Brightness>
-Brightness fadeon_func(uint32_t t, uint16_t period, uint16_t inv_period);
+Brightness fadeon_func(uint32_t t, uint16_t period);
 
 template<typename Brightness>
 Brightness scale(Brightness val, Brightness factor);
@@ -170,9 +165,6 @@ class BreatheBrightnessEvaluator : public CloneableBrightnessEvaluator<Brightnes
     uint16_t duration_fade_off_;
     Brightness from_;
     Brightness to_;
-    // Precomputed inverse periods for fast multiplication instead of division
-    uint16_t inv_fade_on_;
-    uint16_t inv_fade_off_;
 
  public:
     BreatheBrightnessEvaluator() = delete;
@@ -188,9 +180,7 @@ class BreatheBrightnessEvaluator : public CloneableBrightnessEvaluator<Brightnes
           duration_on_(duration_on),
           duration_fade_off_(duration_fade_off),
           from_(from),
-          to_(to),
-          inv_fade_on_(duration_fade_on ? (1UL << 16) / duration_fade_on : 0),
-          inv_fade_off_(duration_fade_off ? (1UL << 16) / duration_fade_off : 0) {}
+          to_(to) {}
     BrightnessEvaluator<Brightness>* clone(void* ptr) const override {
         return new (ptr) BreatheBrightnessEvaluator(*this);
     }
@@ -200,11 +190,11 @@ class BreatheBrightnessEvaluator : public CloneableBrightnessEvaluator<Brightnes
     Brightness Eval(uint32_t t) const override {
         Brightness val = BrightnessTraits<Brightness>::kZeroBrightness;
         if (t < duration_fade_on_)
-            val = fadeon_func<Brightness>(t, duration_fade_on_, inv_fade_on_);
+            val = fadeon_func<Brightness>(t, duration_fade_on_);
         else if (t < duration_fade_on_ + duration_on_)
             val = BrightnessTraits<Brightness>::kFullBrightness;
         else
-            val = fadeon_func<Brightness>(Period() - t, duration_fade_off_, inv_fade_off_);
+            val = fadeon_func<Brightness>(Period() - t, duration_fade_off_);
         return lerp<Brightness>(val, from_, to_);
     }
 
@@ -318,7 +308,6 @@ class TJLed {
         delay_before_ = rLed.delay_before_;
         delay_after_ = rLed.delay_after_;
         time_start_ = rLed.time_start_;
-        cycle_period_inv_ = rLed.cycle_period_inv_;
         hal_ = rLed.hal_;
 
         if (rLed.brightness_eval_ !=
@@ -447,7 +436,6 @@ class TJLed {
     // Set amount of time to wait in ms after each iteration.
     Derived& DelayAfter(uint16_t delay_after) {
         delay_after_ = delay_after;
-        updateCyclePeriodCache();  // Recompute cache when delay changes
         return static_cast<Derived&>(*this);
     }
 
@@ -470,7 +458,6 @@ class TJLed {
     Derived& Reset() {
         time_start_ = 0;
         last_update_time_ = 0;
-        updateCyclePeriodCache();  // Compute cycle period and reciprocal
         state_ = ST_INIT;
         return static_cast<Derived&>(*this);
     }
@@ -550,9 +537,8 @@ class TJLed {
             }
         }
 
-        // Compute cycle time using fast modulo (reciprocal multiplication)
         const uint32_t elapsed = t - time_start_;
-        const uint32_t t_cycle = fastModulo(elapsed, cycle_period, cycle_period_inv_);
+        const uint32_t t_cycle = elapsed % cycle_period;
 
         if (t_cycle < period) {
             state_ = ST_RUNNING;
@@ -575,34 +561,6 @@ class TJLed {
     }
 
     void trackLastUpdateTime(uint32_t t) { last_update_time_ = (t & 255); }
-
-    // Fast modulo using reciprocal multiplication (Hacker's Delight technique)
-    // Returns: elapsed % cycle_period, computed efficiently without division
-    static inline uint32_t fastModulo(uint32_t elapsed, uint32_t cycle_period,
-                                      uint16_t period_inv) {
-        // Avoid uint64_t (expensive on 8-bit AVR) by splitting into high/low words
-        // Math: (elapsed * inv) >> 16 = (high * inv) + ((low * inv) >> 16)
-        const uint32_t elapsed_low = elapsed & 0xFFFF;
-        const uint32_t elapsed_high = elapsed >> 16;
-        const uint32_t quotient = (elapsed_high * period_inv) +
-                                  ((elapsed_low * period_inv) >> 16);
-        uint32_t t_cycle = elapsed - quotient * cycle_period;
-
-        // Correction for reciprocal rounding error
-        // For small periods: loop executes 0-1 times (fast)
-        // For large periods: loop executes a few times (still faster than division)
-        while (t_cycle >= cycle_period) t_cycle -= cycle_period;
-
-        return t_cycle;
-    }
-
-    // Update cycle period reciprocal when effect or delay changes
-    void updateCyclePeriodCache() {
-        if (brightness_eval_) {
-            const auto cycle_period = brightness_eval_->Period() + delay_after_;
-            cycle_period_inv_ = cycle_period ? ((1UL << 16) / cycle_period) : 0;
-        }
-    }
 
     Derived& SetBrightnessEval(BrightnessEvaluator<Brightness>* be) {
         brightness_eval_ = be;
@@ -650,10 +608,6 @@ class TJLed {
 
     uint16_t delay_before_ = 0;  // delay before the first effect starts
     uint16_t delay_after_ = 0;   // delay after each repetition
-
-    // Precomputed reciprocal of cycle period for fast modulo in Update()
-    // Computed in updateCyclePeriodCache() when effect or delay changes
-    uint16_t cycle_period_inv_ = 0;   // (1<<16) / (Period() + delay_after_)
 };
 
 template <typename T>
@@ -793,11 +747,11 @@ Brightness lerp(Brightness val, Brightness a, Brightness b) {
 // Fade-on function: approximates exp(sin(x)) curve for smooth LED fading
 // 8-bit specialization uses pre-computed table from jled_base.cpp
 template<>
-uint8_t fadeon_func<uint8_t>(uint32_t t, uint16_t period, uint16_t inv_period);
+uint8_t fadeon_func<uint8_t>(uint32_t t, uint16_t period);
 
 // 16-bit specialization: interpolate from 8-bit table and scale to 16-bit
 // This is implemented in jled_base.cpp
 template<>
-uint16_t fadeon_func<uint16_t>(uint32_t t, uint16_t period, uint16_t inv_period);
+uint16_t fadeon_func<uint16_t>(uint32_t t, uint16_t period);
 
 };  // namespace jled
