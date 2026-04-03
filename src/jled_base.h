@@ -552,12 +552,12 @@ class TJLed {
     static constexpr Brightness kBrightnessStep = 1;
 
  private:
-    static constexpr uint8_t ST_STOPPED = 0;
-    static constexpr uint8_t ST_INIT = 1;
-    static constexpr uint8_t ST_RUNNING = 2;
-    static constexpr uint8_t ST_IN_DELAY_AFTER_PHASE = 3;
+    enum State : uint8_t { ST_STOPPED = 0,
+                           ST_INIT = 1,
+                           ST_RUNNING = 2,
+                           ST_IN_DELAY_AFTER_PHASE = 3 };
 
-    uint8_t state_ : 2;
+    State state_ : 2;
     uint8_t bLowActive_ : 1;
     Brightness minBrightness_;
     Brightness maxBrightness_;
