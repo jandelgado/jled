@@ -1,55 +1,70 @@
 # use this makefile to build with platformio
 #
+SHELL := /bin/bash
 .PHONY: phony
-
-# some of the examples use LED_BUILTIN which is not defined for ESP32
-CIOPTS=--board=uno --board=esp01 --board=nano33ble --lib="src"
-CIOPTS_MBED=--board=nucleo_f401re -Oframework=mbed --lib="src"
-CIOPTSALL=--board=esp32dev --board=uno --board=nano33ble --board=esp01 --lib="src"
+RUN := $(if $(shell which devbox 2>/dev/null),devbox run --,)
 
 all: phony
-	pio run
+	$(RUN) pio run
 
 lint: phony
-	cpplint --filter -readability/check,-build/include_subdir \
+	$(RUN) cpplint --filter -readability/check,-build/include_subdir \
 		    --linelength=100\
 		    --exclude test/catch2 \
 		    --extensions=cpp,h,ino $(shell find . -maxdepth 3 \( ! -regex '.*/\..*' \) \
 		       -type f -a \( -name "*\.cpp" -o -name "*\.h" -o -name "*\.ino" \) )
 
-ci: phony
-	pio ci $(CIOPTS) examples/custom_hal/custom_hal.ino
-	pio ci $(CIOPTS_MBED) examples/multiled_mbed/multiled_mbed.cpp
-	pio ci $(CIOPTS) --lib="examples/morse" examples/morse/morse.ino
-	pio ci $(CIOPTS) examples/candle/candle.ino
-	pio ci $(CIOPTS) examples/multiled/multiled.ino
-	pio ci $(CIOPTS) examples/user_func/user_func.ino
-	pio ci $(CIOPTS) examples/hello/hello.ino
-	pio ci $(CIOPTSALL) examples/breathe/breathe.ino
-	pio ci $(CIOPTS) examples/simple_on/simple_on.ino
-	pio ci $(CIOPTSALL) examples/fade_on/fade_on.ino
-	pio ci $(CIOPTSALL) examples/sequence/sequence.ino
+test: phony
+	$(RUN) $(MAKE) -C test coverage
+
+# Seed ~/.cache/act/ before the parallel run. Parallel matrix jobs race on
+# git-cloning the same actions simultaneously, corrupting the download
+# (https://github.com/nektos/act/issues/1943, closed won't-fix).
+# Run one real job first to fully populate the action cache; --action-offline-mode
+# on the main run then prevents any re-cloning during the parallel execution.
+ACT_CONTAINER_OPTS = -v $(CURDIR)/.pio-cache:/home/runner/.platformio
+
+ci-act: phony
+	@set -e; \
+	OUTDIR=$$(mktemp -d "$(CURDIR)/.act-run.XXXXXX"); \
+	echo "Act output dir: $$OUTDIR"; \
+	mkdir -p "$(CURDIR)/.pio-cache"; \
+	# Seed: run one real job so ~/.cache/act/ is populated before the parallel run. \
+	$(RUN) act --job examples \
+	    --matrix board:uno --matrix example:hello --env ACT=true \
+	    --container-options "$(ACT_CONTAINER_OPTS)" \
+	    || true; \
+	ACT_LOG=$$OUTDIR/act.ndjson; \
+	$(RUN) act --job examples --json --action-offline-mode \
+	    --env ACT=true \
+	    --container-options "$(ACT_CONTAINER_OPTS)" \
+	    2>&1 | tee $$ACT_LOG | jq -Rr 'try (fromjson | .msg // empty) catch empty' || true; \
+	jq -Rr 'try (fromjson | select(.matrix.board? and .matrix.example?) | "\(.matrix.board)\t\(.matrix.example)\t\(tojson)") catch empty' $$ACT_LOG \
+	    | while IFS=$$'\t' read -r board example json; do \
+	        printf '%s\n' "$$json" >> $$OUTDIR/$${board}_$${example}.ndjson; \
+	    done; \
+	printf '=== Summary ===\n'; \
+	jq -Rr 'try (fromjson | select(.jobResult != null and .matrix.board != null) | [if .jobResult == "success" then "OK" else "FAIL" end, .matrix.board, .matrix.example] | @tsv) catch empty' $$ACT_LOG \
+	    | sort | grep . | column -t
+
 
 envdump: phony
-	-pio run --target envdump
+	-$(RUN) pio run --target envdump
 
 clean: phony
-	-pio run --target clean
-	cd test && make clean
+	-$(RUN) pio run --target clean
+	make -C test clean
 	rm -f src/{*.o,*.gcno,*.gcda}
 	rm -rf .doc-site/
 
 upload: phony
-	pio run --target upload
+	$(RUN) pio run --target upload
 
 monitor: phony
-	pio device monitor
-
-test: phony
-	$(MAKE) -C test coverage
+	$(RUN) pio device monitor
 
 docs: phony
-	.tools/doc-site/generate_site.py --output .doc-site
+	$(RUN) .tools/doc-site/generate_site.py --output .doc-site
 
 tags: phony
-	ctags -R
+	$(RUN) ctags -R

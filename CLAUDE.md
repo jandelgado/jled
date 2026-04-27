@@ -94,7 +94,9 @@ JLed led = JLed(21).DelayBefore(1500).Breathe(500).Repeat(5).MaxBrightness(150);
 
 ## CI/CD
 
-GitHub Actions (`.github/workflows/test.yml`) on push/PR to `master`: lint → unit tests + coverage (Coveralls) → `make ci`. All must pass.
+CI runs unit tests and a test matrix of `examples/` and selected MCUs. Locally `act` is
+used to run the test matrix (`make act-ci-run`).
+GitHub Actions (`.github/workflows/test.yml`) on push/PR to `master`: lint → unit tests + coverage (Coveralls) → `make act-ci-run`. All must pass.
 
 ## Documentation Site
 

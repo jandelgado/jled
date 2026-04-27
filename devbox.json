@@ -2,7 +2,8 @@
   "packages": [
     "python@3.13",
     "python3Packages.pip",
-    "cpplint@2.0.2"
+    "cpplint@2.0.2",
+    "act@latest"
   ],
   "shell": {
     "init_hook": [

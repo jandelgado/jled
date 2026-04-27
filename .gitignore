@@ -27,3 +27,5 @@ test/report.info
 userstories/
 .doc-site/
 .tools/fade-func/
+.act-run.*/
+.pio-cache/
