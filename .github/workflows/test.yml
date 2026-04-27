@@ -89,7 +89,7 @@ jobs:
           # to speed things up we don't use (platform x example) matrix, but iterate
           # over the examples of the current platform ourselfes.
           passed=(); failed=()
-          for example in ${{ matrix.examples || 'blink breathe candle custom_hal fade_on hello hires morse multiled sequence simple_on user_func' }}; do
+          for example in ${{ matrix.examples || 'custom_hal morse candle multiled user_func hello blink breathe simple_on fade_on sequence group group_ref hires' }}; do
             extra_opts=()
             [[ "$example" == "morse" ]] && extra_opts+=(--lib=examples/morse)
             echo "::group::$example"
