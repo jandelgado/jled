@@ -44,73 +44,75 @@ void loop() {
 }
 ```
 
-## Contents
+<!-- TOC -->
 
-<!-- vim-markdown-toc GFM -->
+## Table of Contents
 
-* [Features](#features)
-* [Cheat Sheet](#cheat-sheet)
-* [Installation](#installation)
-  * [Arduino IDE](#arduino-ide)
-  * [PlatformIO](#platformio)
-* [Usage](#usage)
-  * [JLed vs JLedHD](#jled-vs-jledhd)
-  * [Output pipeline](#output-pipeline)
-  * [Effects](#effects)
-    * [Static on and off](#static-on-and-off)
-      * [Static on example](#static-on-example)
-    * [Blinking](#blinking)
-      * [Blinking example](#blinking-example)
-    * [Breathing](#breathing)
-      * [Breathing example](#breathing-example)
-    * [Candle](#candle)
-      * [Candle example](#candle-example)
-    * [FadeOn](#fadeon)
-      * [FadeOn example](#fadeon-example)
-    * [FadeOff](#fadeoff)
-    * [Fade](#fade)
-      * [Fade example](#fade-example)
-    * [User provided brightness function](#user-provided-brightness-function)
-      * [User provided brightness function example](#user-provided-brightness-function-example)
-  * [Delays and repetitions](#delays-and-repetitions)
-    * [Initial delay before effect starts](#initial-delay-before-effect-starts)
-    * [Delay after effect finished](#delay-after-effect-finished)
-    * [Repetitions](#repetitions)
-  * [State functions](#state-functions)
-    * [Update](#update)
-    * [IsRunning](#isrunning)
-    * [Reset](#reset)
-    * [Immediate Stop](#immediate-stop)
-  * [Misc functions](#misc-functions)
-    * [Low active for inverted output](#low-active-for-inverted-output)
-    * [Minimum- and Maximum brightness level](#minimum--and-maximum-brightness-level)
-  * [Controlling a group of LEDs](#controlling-a-group-of-leds)
-* [Framework notes](#framework-notes)
-* [Platform notes](#platform-notes)
-  * [Resolution and the `Brightness` type](#resolution-and-the-brightness-type)
-    * [`ArduinoHal` and the global `analogWriteResolution` limit](#arduinohal-and-the-global-analogwriteresolution-limit)
-    * [`JLED_FORCE_ARDUINO_HAL`](#jled_force_arduino_hal)
-  * [ESP8266](#esp8266)
-  * [ESP32](#esp32)
-    * [Using ESP-IDF](#using-esp-idf)
-  * [STM32](#stm32)
-    * [Arduino framework](#arduino-framework)
-  * [Raspberry Pi Pico](#raspberry-pi-pico)
-* [Example sketches](#example-sketches)
-  * [Building examples with PlatformIO](#building-examples-with-platformio)
-  * [Building examples with the Arduino IDE](#building-examples-with-the-arduino-ide)
-* [Extending](#extending)
-  * [Support new hardware](#support-new-hardware)
-* [Unit tests](#unit-tests)
-* [Contributing](#contributing)
-* [FAQ](#faq)
-  * [How do I check if a JLed object is still being updated?](#how-do-i-check-if-a-jled-object-is-still-being-updated)
-  * [How do I restart an effect?](#how-do-i-restart-an-effect)
-  * [How do I change a running effect?](#how-do-i-change-a-running-effect)
-* [Author and Copyright](#author-and-copyright)
-* [License](#license)
+- [Features](#features)
+- [Cheat Sheet](#cheat-sheet)
+- [Installation](#installation)
+  - [Arduino IDE](#arduino-ide)
+  - [PlatformIO](#platformio)
+- [Usage](#usage)
+  - [JLed vs JLedHD](#jled-vs-jledhd)
+  - [Output pipeline](#output-pipeline)
+  - [Effects](#effects)
+    - [Static on and off](#static-on-and-off)
+      - [Static on example](#static-on-example)
+    - [Blinking](#blinking)
+      - [Blinking example](#blinking-example)
+    - [Breathing](#breathing)
+      - [Breathing example](#breathing-example)
+    - [Candle](#candle)
+      - [Candle example](#candle-example)
+    - [FadeOn](#fadeon)
+      - [FadeOn example](#fadeon-example)
+    - [FadeOff](#fadeoff)
+    - [Fade](#fade)
+      - [Fade example](#fade-example)
+    - [User provided brightness function](#user-provided-brightness-function)
+      - [User provided brightness function example](#user-provided-brightness-function-example)
+  - [Delays and repetitions](#delays-and-repetitions)
+    - [Initial delay before effect starts](#initial-delay-before-effect-starts)
+    - [Delay after effect finished](#delay-after-effect-finished)
+    - [Repetitions](#repetitions)
+  - [State functions](#state-functions)
+    - [Update](#update)
+    - [IsRunning](#isrunning)
+    - [Reset](#reset)
+    - [Immediate Stop](#immediate-stop)
+  - [Misc functions](#misc-functions)
+    - [Low active for inverted output](#low-active-for-inverted-output)
+    - [Minimum- and Maximum brightness level](#minimum--and-maximum-brightness-level)
+  - [Controlling a group of LEDs](#controlling-a-group-of-leds)
+    - [JLedRefGroup, pointer-based groups for named LED objects](#jledrefgroup-pointer-based-groups-for-named-led-objects)
+    - [JLedSequence (deprecated)](#jledsequence-deprecated)
+- [Framework notes](#framework-notes)
+- [Platform notes](#platform-notes)
+  - [Resolution and the `Brightness` type](#resolution-and-the-brightness-type)
+    - [`ArduinoHal` and the global `analogWriteResolution` limit](#arduinohal-and-the-global-analogwriteresolution-limit)
+    - [`JLED_FORCE_ARDUINO_HAL`](#jled_force_arduino_hal)
+  - [ESP8266](#esp8266)
+  - [ESP32](#esp32)
+    - [Using ESP-IDF](#using-esp-idf)
+  - [STM32](#stm32)
+    - [Arduino framework](#arduino-framework)
+  - [Raspberry Pi Pico](#raspberry-pi-pico)
+- [Example sketches](#example-sketches)
+  - [Building examples with PlatformIO](#building-examples-with-platformio)
+  - [Building examples with the Arduino IDE](#building-examples-with-the-arduino-ide)
+- [Extending](#extending)
+  - [Support new hardware](#support-new-hardware)
+- [Unit tests](#unit-tests)
+- [Contributing](#contributing)
+- [FAQ](#faq)
+  - [How do I check if a JLed object is still being updated?](#how-do-i-check-if-a-jled-object-is-still-being-updated)
+  - [How do I restart an effect?](#how-do-i-restart-an-effect)
+  - [How do I change a running effect?](#how-do-i-change-a-running-effect)
+- [Author and Copyright](#author-and-copyright)
+- [License](#license)
 
-<!-- vim-markdown-toc -->
+<!-- /TOC -->
 
 ## Features
 
@@ -168,7 +170,7 @@ See the examples section below for further details.
 ### JLed vs JLedHD
 
 `JLed` uses 8-bit brightness internally (`uint8_t`, 0–255), while `JLedHD` ("high-definition")
-uses 16-bit (`uint16_t`, 0–65535). Both share the same API and effects — the extra resolution is
+uses 16-bit (`uint16_t`, 0–65535). Both share the same API and effects, the extra resolution is
 a zero-cost abstraction: the brightness type is a template parameter, so no virtual dispatch or
 runtime branching is involved.
 
@@ -244,7 +246,7 @@ Technically, `Set`, `On` and `Off` are effects with a default period of 1ms, tha
 set the brightness to a constant value. Specifying a different period has an
 effect on when the `Update()` method will be done updating the effect and
 return false (like for any other effects). This is important when for example
-in a `JLedSequence` the LED should stay on for a given amount of time.
+in a `JLedGroup` the LED should stay on for a given amount of time.
 
 ##### Static on example
 
@@ -546,47 +548,94 @@ minimum brightness level.
 
 ### Controlling a group of LEDs
 
-The `JLedSequence` class allows controlling a group of `JLed` objects
-simultaneously, either in parallel or sequentially, starting the next `JLed`
-effect when the previous finished. The companion `JLedSequenceHD` class works
-identically but controls `JLedHD` objects. Note that `JLed` and `JLedHD`
-objects cannot be mixed in the same sequence. The constructor takes the mode
-(`PARALLEL`, `SEQUENCE`), an array of `JLed` objects and the size of the
-array, e.g.
+The `JLedGroup` class controls a group of LEDs in parallel or sequentially.
+It accepts any mix of `JLed`, `JLedHD`, nested `JLedGroup` objects, and
+user-defined LED types (any class derived from `TJLed`). Elements are wrapped
+in `JLedAny`, a type-erased value container with no heap allocation.
 
 ```c++
-JLed leds[] = {
-    JLed(4).Blink(750, 250).Repeat(10),
-    JLed(3).Breathe(2000).Repeat(5);
+JLedAny inner[] = {
+    JLed(5).Blink(250, 250).Repeat(2),
+    JLedHD(6).FadeOn(1000)
+};
+JLedAny leds[] = {
+    JLed(4).Blink(750, 250).Repeat(2),
+    JLedHD(3).Breathe(2000),
+    JLedGroup::Parallel(inner).Repeat(2)
 };
 
-auto sequence = JLedSequence(JLedSequence::eMode::PARALLEL, leds).Repeat(2);
+auto group = JLedGroup::Sequential(leds);
 
-void setup() {
-}
+void setup() { }
 
 void loop() {
-    sequence.Update();
+    group.Update();
+    delay(1);
 }
 ```
 
-Because the size of the array is known at compile time in this example, it is
-not necessary to pass the array size to the constructor. A second constructor
-is available in case the `JLed` array is created dynamically at runtime:
-`JLed(eMode mode, JLed* leds, size_t n)`.
+Use the static factory methods `JLedGroup::Parallel(leds)` and
+`JLedGroup::Sequential(leds)` to create a group. The array size is deduced
+automatically. A runtime-size overload is also available:
+`JLedGroup::Parallel(leds, n)`.
 
-The `JLedSequence` provides the following methods:
+`JLedGroup` provides the following methods:
 
-- `Update()` - updates the active `JLed` objects controlled by the sequence.
-  Like the `JLed::Update()` method, it returns `true` if an effect is running,
-  else `false`.
-- Use the `Repeat(n)` method to specify the number of repetitions. The default
-  value is 1 repetition. The `Forever()` methods sets to repeat the sequence
-  forever.
-- `Stop()` - turns off all `JLed` objects controlled by the sequence and
-  stops the sequence. Further calls to `Update()` will have no effect.
-- `Reset()` - Resets all `JLed` objects controlled by the sequence and
-  the sequence, resulting in a start-over.
+- `Update()` - updates all elements. Returns `true` while the group is
+  running, `false` when it has finished.
+- `Repeat(n)` - plays the group `n` times. Default is 1.
+- `Forever()` - plays the group indefinitely.
+- `Stop()` - stops all elements immediately. Further calls to `Update()`
+  have no effect.
+- `Reset()` - resets all elements and restarts the group from the beginning.
+
+`JLedAny` has a fixed-size internal buffer sized to hold `JLed`, `JLedHD`,
+or `JLedGroup`. If you use a custom LED type that is larger, define your own
+alias: `using MyLedAny = TJLedAny<sizeof(MyBigLed)>;`
+
+#### JLedRefGroup, pointer-based groups for named LED objects
+
+`JLedRef` and `JLedRefGroup` are a more memory-efficient alternative to
+`JLedAny` and `JLedGroup`. Each `JLedRef` slot stores only a pointer and a
+shared vtable pointer (4 bytes on 32-bit, 2 bytes on 8-bit AVR), rather than
+a full copy of the LED state. The tradeoff is ergonomics: LED objects must be
+declared as named variables, anonymous inline construction is not possible.
+
+```c++
+static JLed   led1 = JLed(4).Blink(750, 250).Repeat(2);
+static JLedHD led2 = JLedHD(3).Breathe(2000);
+
+JLedRef refs[] = {&led1, &led2};
+auto group = JLedRefGroup::Parallel(refs);
+```
+
+Nested groups work the same way, declare the inner group as a named variable
+and take its address:
+
+```c++
+static JLed   inner0 = JLed(5).Blink(250, 250).Repeat(2);
+static JLedHD inner1 = JLedHD(6).FadeOn(1000);
+static JLedRef inner_refs[] = {&inner0, &inner1};
+static auto innerGroup = JLedRefGroup::Parallel(inner_refs);
+
+static JLed   led0 = JLed(4).Blink(750, 250).Repeat(2);
+static JLedHD led1 = JLedHD(3).Breathe(2000);
+JLedRef leds[] = {&led0, &led1, &innerGroup};
+auto group = JLedRefGroup::Sequential(leds);
+```
+
+`JLedRef` accepts pointers to `JLed`, `JLedHD`, `JLedGroup`, `JLedRefGroup`,
+or any user-defined `TJLed` subclass. Mixed types work without any extra
+syntax, the array element type is declared as `JLedRef` and the compiler
+applies the implicit conversion per element.
+
+> **Lifetime:** LED objects must outlive the `JLedRef` / `JLedRefGroup` that
+> references them. Do not create `JLedRef` from temporaries.
+
+#### JLedSequence (deprecated)
+
+The `JLedSequence` class is now deprecated use [JLedGroup](#controlling-a-group-of-leds)
+instead.
 
 ## Framework notes
 
@@ -660,7 +709,7 @@ is passed directly to the HAL, which writes it via `analogWrite` using 8-bit res
 `JLedHD` performs the same calculations in 16-bit arithmetic (`uint16_t`), giving 256× finer
 intermediate values. If the platform's native PWM resolution is lower than 16 bits (e.g. 13-bit
 on ESP32), the HAL right-shifts the value to fit: a 16-bit brightness of 65535 becomes
-8191 in 13-bit space. No precision is fabricated — the extra bits simply allow the effect
+8191 in 13-bit space. No precision is fabricated, the extra bits simply allow the effect
 evaluator to express smoother transitions before the final hardware mapping is applied.
 
 #### `ArduinoHal` and the global `analogWriteResolution` limit

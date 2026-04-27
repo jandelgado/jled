@@ -80,6 +80,8 @@ jobs:
           - simple_on
           - fade_on
           - sequence
+          - group
+          - group_ref
           - hires
         include:
           - board: esp32dev
