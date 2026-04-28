@@ -1,0 +1,15 @@
+CMakeFiles/
+elf2uf2/
+cmake_install.cmake/
+generated/
+pico-sdk/
+build/
+CMakeCache.txt
+Makefile
+cmake_install.cmake
+*.bin
+*.dis
+*.elf
+*.map
+*.hex
+*.uf2
