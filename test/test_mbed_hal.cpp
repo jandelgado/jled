@@ -79,5 +79,5 @@ TEST_CASE("mbed_hal copy assignment writes to correct pin", "[mbed_hal]") {
 
 TEST_CASE("mbed_hal destructs without crash when uninitialised", "[mbed_hal]") {
     mbedMockInit();
-    { MbedHal<> hal(5); }  // pwmout_ is null — must not crash
+    { MbedHal<> hal(5); }  // pwmout_ is null, must not crash
 }

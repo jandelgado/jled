@@ -15,21 +15,30 @@ class HalMock {
 
     template<typename Brightness>
     void analogWrite(Brightness val) {
-        // For testing, always store as uint8_t (downscale if needed)
-        // Use sizeof for compile-time optimization (optimizes same as if constexpr)
-        if (sizeof(Brightness) == 1) {
-            val_ = val;
-        } else {
-            val_ = static_cast<uint8_t>(val >> 8);
-        }
+        val_ = static_cast<uint16_t>(val);
+        pin_values()[pin_] = val_;
     }
 
-    uint8_t Pin() const { return pin_; }
-    uint8_t Value() const { return val_; }
+    uint8_t  Pin()   const { return pin_; }
+    uint16_t Value() const { return val_; }
+
+    // Global pin-state table: allows reading back brightness from LEDs stored
+    // inside type-erased containers (where GetHal() is not accessible).
+    static uint16_t PinValue(uint8_t pin) { return pin_values()[pin]; }
+
+    static void Init() {
+        uint16_t* p = pin_values();
+        for (int i = 0; i < 256; i++) p[i] = 0;
+    }
 
  private:
-    uint8_t val_ = 0;
-    PinType pin_ = 0;
+    uint16_t val_ = 0;
+    PinType  pin_ = 0;
+
+    static uint16_t* pin_values() {
+        static uint16_t values[256] = {};
+        return values;
+    }
 };
 
 class TimeMock {

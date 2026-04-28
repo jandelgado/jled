@@ -83,7 +83,11 @@ class PicoHal {
     template<typename Brightness>
     void analogWrite(Brightness val) const {
         const uint16_t duty = jled::scaleToNative<kResBits_>(val);
-        pwm_set_chan_level(slice_num_, channel_, duty);
+        // Level kWrap+1 means fully on; adding the bool is branchless on ARM.
+        // Guard prevents uint16_t overflow at kResBits_=16 and folds away at compile time.
+        const uint16_t full_duty =
+            duty + static_cast<uint16_t>(kResBits_ < 16 && duty == kWrap);
+        pwm_set_chan_level(slice_num_, channel_, full_duty);
     }
 
  private:
