@@ -248,8 +248,66 @@ TEST_CASE(
 TEST_CASE("CandleBrightnessEvaluator simulated candle flickering", "[jled]") {
     auto eval = CandleBrightnessEvaluator(7, 15, 1000);
     CHECK(1000 == eval.Period());
-    CHECK(eval.Eval(0) > 0);
-    CHECK(eval.Eval(999) > 0);
+    // hash8(0>>7 + 0) = hash8(0) = 0xf3 = 243 >= 15 -> full brightness
+    CHECK(255 == eval.Eval(0));
+    // deterministic: same t always yields the same result
+    CHECK(eval.Eval(0) == eval.Eval(0));
+    CHECK(eval.Eval(128) == eval.Eval(128));
+}
+
+TEST_CASE("CandleBrightnessEvaluator jitter=0 always returns full brightness",
+          "[jled]") {
+    auto eval = CandleBrightnessEvaluator(0, 0, 1000);
+    // rnd >= 0 is always true
+    CHECK(255 == eval.Eval(0));
+    CHECK(255 == eval.Eval(500));
+    CHECK(255 == eval.Eval(999));
+}
+
+TEST_CASE("CandleBrightnessEvaluator table lookup", "[jled]") {
+    // jitter=255: gate=hash8(slot), index=hash8(~slot)&0xf (decoupled)
+    // slot=0: hash8(0)=243 < 255 -> table; hash8(~0)&0xf=2 -> kCandleTable[2]=21
+    auto eval = CandleBrightnessEvaluator(0, 255, 1000);
+    CHECK(21 == eval.Eval(0));
+    // slot=1: hash8(1)=148 < 255 -> table; hash8(~1)&0xf=10 -> kCandleTable[10]=124
+    CHECK(124 == eval.Eval(1));
+}
+
+TEST_CASE("CandleBrightnessEvaluator offset shifts sequence", "[jled]") {
+    auto eval0 = CandleBrightnessEvaluator(0, 255, 1000, 0);
+    auto eval1 = CandleBrightnessEvaluator(0, 255, 1000, 1);
+    // different offsets produce different outputs for the same t
+    CHECK(eval0.Eval(0) != eval1.Eval(0));
+    // same offset always produces the same output
+    CHECK(eval0.Eval(42) == eval0.Eval(42));
+}
+
+TEST_CASE("CandleBrightnessEvaluator offset is equivalent to time shift", "[jled]") {
+    // Candle(offset=N).Eval(t) == Candle(offset=0).Eval(t+N) for any t
+    constexpr uint16_t kOffset = 100;
+    auto base = CandleBrightnessEvaluator(0, 15, 65535, 0);
+    auto shifted = CandleBrightnessEvaluator(0, 15, 65535, kOffset);
+    for (uint32_t t : {0u, 50u, 200u}) {
+        CHECK(base.Eval(t + kOffset) == shifted.Eval(t));
+    }
+}
+
+TEST_CASE("CandleBrightnessEvaluator speed groups same slot", "[jled]") {
+    // speed=1: t>>1 is the slot index, so t=0,1 share slot 0
+    auto eval = CandleBrightnessEvaluator(1, 15, 1000);
+    CHECK(eval.Eval(0) == eval.Eval(1));
+    CHECK(eval.Eval(2) == eval.Eval(3));
+}
+
+TEST_CASE("CandleBrightnessEvaluator 16-bit scales table values correctly",
+          "[jled]") {
+    auto eval = jled::CandleBrightnessEvaluator<uint16_t>(0, 255, 1000);
+    // gate: hash8(0)=243 < 255 -> table; index: hash8(~0)&0xf=2 -> kCandleTable[2]=21
+    const uint16_t expected = static_cast<uint16_t>((21u << 8) | 21u);
+    CHECK(expected == eval.Eval(0));
+    // jitter=0 → always full brightness → 0xffff
+    auto eval_full = jled::CandleBrightnessEvaluator<uint16_t>(0, 0, 1000);
+    CHECK(0xffffu == eval_full.Eval(0));
 }
 
 TEST_CASE(
@@ -556,11 +614,6 @@ TEST_CASE("timeChangeSinceLastUpdate detects time changes", "[jled]") {
     TestableJLed::test();
 }
 
-TEST_CASE("random generator delivers pseudo random numbers", "[rand]") {
-    jled::rand_seed(0);
-    CHECK(0x59 == jled::rand8());
-    CHECK(0x159 >> 1 == jled::rand8());
-}
 
 TEST_CASE("scaling a value with factor 0 scales it to 0", "[scale8]") {
     CHECK(0 == jled::scale8(0, 0));

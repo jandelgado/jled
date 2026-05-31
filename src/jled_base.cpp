@@ -54,18 +54,28 @@ uint16_t fadeon_func<uint16_t>(uint32_t t, uint16_t period) {
     return lut_lerp(t, period, lut);
 }
 
-static uint32_t rand_ = 0;
+static uint8_t hash8(uint32_t x) {
+    x += 0x9e3779b9u;
+    x ^= x >> 16;
+    x *= 0x45d9f3bu;
+    x ^= x >> 16;
+    return static_cast<uint8_t>(x);
+}
 
-void rand_seed(uint32_t seed) { rand_ = seed; }
+template <>
+uint8_t candle_func<uint8_t>(uint32_t t, uint8_t speed, uint8_t jitter) {
+    // gamma-corrected (γ=2.2) flicker values
+    static constexpr uint8_t kCandleTable[] = {
+        9, 14, 21, 29, 38, 48, 60, 74, 89, 106, 124, 143, 165, 188, 212, 238};
+    const uint32_t slot = t >> (speed & 0x1f);
+    if (hash8(slot) >= jitter) return kFullBrightness;
+    return kCandleTable[hash8(~slot) & 0xf];
+}
 
-uint8_t rand8() {
-    if (rand_ & 1) {
-        rand_ = (rand_ >> 1);
-    } else {
-        rand_ = (rand_ >> 1) ^ 0x7FFFF159;
-    }
-
-    return (uint8_t)rand_;
+template <>
+uint16_t candle_func<uint16_t>(uint32_t t, uint8_t speed, uint8_t jitter) {
+    const uint8_t val8 = candle_func<uint8_t>(t, speed, jitter);
+    return static_cast<uint16_t>((val8 << 8) | val8);
 }
 
 };  // namespace jled
