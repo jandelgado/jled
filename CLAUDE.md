@@ -19,7 +19,7 @@ JLed is an embedded C++ library for non-blocking, time-driven LED control (blink
 
 ## Build & Test
 
-- `Makefile` targets: `lint`, `test`, `ci-act` (build for all platforms/examples via act, ~10min), `envdump`
+- `Makefile` targets: run "make help" for discovery
 - `test/Makefile` targets: `test`, `clean`, `clobber`, `coverage` (HTML report in `test/report/`)
 
 ## Code Style
@@ -94,11 +94,11 @@ JLed led = JLed(21).DelayBefore(1500).Breathe(500).Repeat(5).MaxBrightness(150);
 
 ## CI/CD
 
-GitHub Actions on push/PR to `master`: lint → unit tests + coverage (Coveralls) → `make ci-act`. All must pass.
+GitHub Actions on push/PR to `master`: lint → unit tests + coverage (Coveralls). All must pass.
 
 `make ci-act` runs the full build matrix locally via `act` (~10min), stores NDJSON logs in `.act-logs/`.
 
-Analyse results with `.tools/act-log/act-log.py`:
+Analyse results with
 
 ```sh
 .tools/act-log/act-log.py report                    # summary table; exits 1 on failures
