@@ -73,7 +73,6 @@ jobs:
           - custom_hal
           - morse
           - candle
-          - multiled
           - user_func
           - hello
           - breathe
@@ -82,6 +81,7 @@ jobs:
           - sequence
           - group
           - group_ref
+          - nested_group
           - hires
         include:
           - board: esp32dev
@@ -91,7 +91,7 @@ jobs:
           - example: morse
             extra_libs: --lib="examples/morse"
           - board: nucleo_f401re
-            example: multiled_mbed
+            example: group_mbed
             extra_flags: --project-option="framework=mbed"
             ext: cpp
     steps:

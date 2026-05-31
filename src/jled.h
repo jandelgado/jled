@@ -123,18 +123,6 @@ class JLedHD : public TJLed<JLedHalHD, JLedClockType, uint16_t, JLedHD> {
     using TJLed<JLedHalHD, JLedClockType, uint16_t, JLedHD>::TJLed;
 };
 
-// a group of JLed objects which can be controlled simultanously
-class JLedSequence  // NOLINT
-    : public TJLedSequence<JLed, JLedClockType, JLedSequence> {  // NOLINT
-    using TJLedSequence<JLed, JLedClockType, JLedSequence>::TJLedSequence;
-};
-
-// a group of JLedHD objects which can be controlled simultanously
-class JLedSequenceHD  // NOLINT
-    : public TJLedSequence<JLedHD, JLedClockType, JLedSequenceHD> {  // NOLINT
-    using TJLedSequence<JLedHD, JLedClockType, JLedSequenceHD>::TJLedSequence;
-};
-
 // Buffer size for JLedAny: large enough to hold JLed, JLedHD, or JLedGroup.
 // Users with a custom LED type that is larger should define their own alias:
 //   using MyLedAny   = TJLedAny<sizeof(MyBigLed)>;
@@ -165,8 +153,6 @@ using JLedRefGroup = TJLedGroup<JLedClockType, JLedRef>;
 
 using JLed = jled::JLed;
 using JLedHD = jled::JLedHD;
-using JLedSequence = jled::JLedSequence;
-using JLedSequenceHD = jled::JLedSequenceHD;
 using JLedGroup    = jled::JLedGroup;
 using JLedAny      = jled::JLedAny;
 using JLedRef      = jled::JLedRef;

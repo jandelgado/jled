@@ -23,7 +23,7 @@ implementation for CircuitPython and MicroPython.
   <th>Interactive JLed playground</th>
  </tr>
 <tr>
-  <td><a href="examples/multiled"><img alt="JLed in action" src="doc/jled.gif" width=256></a></td>
+  <td><a href="examples/group"><img alt="JLed in action" src="doc/jled.gif" width=256></a></td>
   <td><a href="https://jandelgado.github.io/jled-wasm"><img alt="jled running in the browser" src="doc/jled-wasm.png" width=256></a>
   </td>
  </tr>
@@ -48,69 +48,69 @@ void loop() {
 
 ## Table of Contents
 
-- [Features](#features)
-- [Cheat Sheet](#cheat-sheet)
-- [Installation](#installation)
-  - [Arduino IDE](#arduino-ide)
-  - [PlatformIO](#platformio)
-- [Usage](#usage)
-  - [JLed vs JLedHD](#jled-vs-jledhd)
-  - [Output pipeline](#output-pipeline)
-  - [Effects](#effects)
-    - [Static on and off](#static-on-and-off)
-      - [Static on example](#static-on-example)
-    - [Blinking](#blinking)
-      - [Blinking example](#blinking-example)
-    - [Breathing](#breathing)
-      - [Breathing example](#breathing-example)
-    - [Candle](#candle)
-      - [Candle example](#candle-example)
-    - [FadeOn](#fadeon)
-      - [FadeOn example](#fadeon-example)
-    - [FadeOff](#fadeoff)
-    - [Fade](#fade)
-      - [Fade example](#fade-example)
-    - [User provided brightness function](#user-provided-brightness-function)
-      - [User provided brightness function example](#user-provided-brightness-function-example)
-  - [Delays and repetitions](#delays-and-repetitions)
-    - [Initial delay before effect starts](#initial-delay-before-effect-starts)
-    - [Delay after effect finished](#delay-after-effect-finished)
-    - [Repetitions](#repetitions)
-  - [State functions](#state-functions)
-    - [Update](#update)
-    - [IsRunning](#isrunning)
-    - [Reset](#reset)
-    - [Immediate Stop](#immediate-stop)
-  - [Misc functions](#misc-functions)
-    - [Low active for inverted output](#low-active-for-inverted-output)
-    - [Minimum- and Maximum brightness level](#minimum--and-maximum-brightness-level)
-  - [Controlling a group of LEDs](#controlling-a-group-of-leds)
-    - [JLedRefGroup, pointer-based groups for named LED objects](#jledrefgroup-pointer-based-groups-for-named-led-objects)
-    - [JLedSequence (deprecated)](#jledsequence-deprecated)
-- [Framework notes](#framework-notes)
-- [Platform notes](#platform-notes)
-  - [Resolution and the `Brightness` type](#resolution-and-the-brightness-type)
-    - [`ArduinoHal` and the global `analogWriteResolution` limit](#arduinohal-and-the-global-analogwriteresolution-limit)
-    - [`JLED_FORCE_ARDUINO_HAL`](#jled_force_arduino_hal)
-  - [ESP8266](#esp8266)
-  - [ESP32](#esp32)
-    - [Using ESP-IDF](#using-esp-idf)
-  - [STM32](#stm32)
-    - [Arduino framework](#arduino-framework)
-  - [Raspberry Pi Pico](#raspberry-pi-pico)
-- [Example sketches](#example-sketches)
-  - [Building examples with PlatformIO](#building-examples-with-platformio)
-  - [Building examples with the Arduino IDE](#building-examples-with-the-arduino-ide)
-- [Extending](#extending)
-  - [Support new hardware](#support-new-hardware)
-- [Unit tests](#unit-tests)
-- [Contributing](#contributing)
-- [FAQ](#faq)
-  - [How do I check if a JLed object is still being updated?](#how-do-i-check-if-a-jled-object-is-still-being-updated)
-  - [How do I restart an effect?](#how-do-i-restart-an-effect)
-  - [How do I change a running effect?](#how-do-i-change-a-running-effect)
-- [Author and Copyright](#author-and-copyright)
-- [License](#license)
+* [Features](#features)
+* [Cheat Sheet](#cheat-sheet)
+* [Installation](#installation)
+  * [Arduino IDE](#arduino-ide)
+  * [PlatformIO](#platformio)
+* [Usage](#usage)
+  * [JLed vs JLedHD](#jled-vs-jledhd)
+  * [Output pipeline](#output-pipeline)
+  * [Effects](#effects)
+    * [Static on and off](#static-on-and-off)
+      * [Static on example](#static-on-example)
+    * [Blinking](#blinking)
+      * [Blinking example](#blinking-example)
+    * [Breathing](#breathing)
+      * [Breathing example](#breathing-example)
+    * [Candle](#candle)
+      * [Candle example](#candle-example)
+    * [FadeOn](#fadeon)
+      * [FadeOn example](#fadeon-example)
+    * [FadeOff](#fadeoff)
+    * [Fade](#fade)
+      * [Fade example](#fade-example)
+    * [User provided brightness function](#user-provided-brightness-function)
+      * [User provided brightness function example](#user-provided-brightness-function-example)
+  * [Delays and repetitions](#delays-and-repetitions)
+    * [Initial delay before effect starts](#initial-delay-before-effect-starts)
+    * [Delay after effect finished](#delay-after-effect-finished)
+    * [Repetitions](#repetitions)
+  * [State functions](#state-functions)
+    * [Update](#update)
+    * [IsRunning](#isrunning)
+    * [Reset](#reset)
+    * [Immediate Stop](#immediate-stop)
+  * [Misc functions](#misc-functions)
+    * [Low active for inverted output](#low-active-for-inverted-output)
+    * [Minimum- and Maximum brightness level](#minimum--and-maximum-brightness-level)
+  * [Controlling a group of LEDs](#controlling-a-group-of-leds)
+    * [JLedRefGroup, pointer-based groups for named LED objects](#jledrefgroup-pointer-based-groups-for-named-led-objects)
+    * [JLedSequence to JLedGroup migration](#jledsequence-to-jledgroup-migration)
+* [Framework notes](#framework-notes)
+* [Platform notes](#platform-notes)
+  * [Resolution and the `Brightness` type](#resolution-and-the-brightness-type)
+    * [`ArduinoHal` and the global `analogWriteResolution` limit](#arduinohal-and-the-global-analogwriteresolution-limit)
+    * [`JLED_FORCE_ARDUINO_HAL`](#jled_force_arduino_hal)
+  * [ESP8266](#esp8266)
+  * [ESP32](#esp32)
+    * [Using ESP-IDF](#using-esp-idf)
+  * [STM32](#stm32)
+    * [Arduino framework](#arduino-framework)
+  * [Raspberry Pi Pico](#raspberry-pi-pico)
+* [Example sketches](#example-sketches)
+  * [Building examples with PlatformIO](#building-examples-with-platformio)
+  * [Building examples with the Arduino IDE](#building-examples-with-the-arduino-ide)
+* [Extending](#extending)
+  * [Support new hardware](#support-new-hardware)
+* [Unit tests](#unit-tests)
+* [Contributing](#contributing)
+* [FAQ](#faq)
+  * [How do I check if a JLed object is still being updated?](#how-do-i-check-if-a-jled-object-is-still-being-updated)
+  * [How do I restart an effect?](#how-do-i-restart-an-effect)
+  * [How do I change a running effect?](#how-do-i-change-a-running-effect)
+* [Author and Copyright](#author-and-copyright)
+* [License](#license)
 
 <!-- /TOC -->
 
@@ -632,10 +632,22 @@ applies the implicit conversion per element.
 > **Lifetime:** LED objects must outlive the `JLedRef` / `JLedRefGroup` that
 > references them. Do not create `JLedRef` from temporaries.
 
-#### JLedSequence (deprecated)
+#### JLedSequence to JLedGroup migration
 
-The `JLedSequence` class is now deprecated use [JLedGroup](#controlling-a-group-of-leds)
-instead.
+`JLedSequence` is removed. Replace `JLed leds[]` with `JLedAny leds[]` and use the
+`JLedGroup` factory methods:
+
+```cpp
+// before
+JLed leds[] = {JLed(4).Blink(500, 500), JLed(5).Breathe(1000)};
+JLedSequence seq(JLedSequence::eMode::PARALLEL, leds);   // parallel
+JLedSequence seq(JLedSequence::eMode::SEQUENCE, leds);   // sequential
+
+// after
+JLedAny leds[] = {JLed(4).Blink(500, 500), JLed(5).Breathe(1000)};
+auto seq = JLedGroup::Parallel(leds);    // parallel
+auto seq = JLedGroup::Sequential(leds);  // sequential
+```
 
 ## Framework notes
 
@@ -654,14 +666,14 @@ src_filter = +<../../src/>  +<./>
 upload_protocol=stlink
 ```
 
-An [mbed example is provided here](examples/multiled_mbed/multiled_mbed.cpp).
+An [mbed example is provided here](examples/group_mbed/group_mbed.cpp).
 To compile it for the F401RE, make your [plaform.ini](platform.ini) look like:
 
 ```ini
 ...
 [platformio]
 default_envs = nucleo_f401re_mbed
-src_dir = examples/multiled_mbed
+src_dir = examples/group_mbed
 ...
 ```
 
@@ -860,9 +872,10 @@ Example sketches are provided in the [examples](examples/) directory.
 - [Fade LED off](examples/fade_off)
 - [Fade from-to effect](examples/fade_from_to)
 - [Pulse effect](examples/pulse)
-- [Controlling multiple LEDs in parallel](examples/multiled)
-- [Controlling multiple LEDs in parallel (mbed)](examples/multiled_mbed)
-- [Controlling multiple LEDs sequentially](examples/sequence)
+- [Controlling a group of LEDs](examples/group)
+- [Controlling a group of LEDs by reference](examples/group_red)
+- [Controlling a group of LEDs (mbed)](examples/group_mbed)
+- [Controlling a nested group of LEDs](examples/nested_group)
 - [Simple User provided effect](examples/user_func)
 - [Morsecode example](examples/morse)
 - [Last brightness value example](examples/last_brightness)

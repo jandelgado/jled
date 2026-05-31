@@ -664,33 +664,6 @@ class TJLedGroup {
     bool is_running_ = true;
 };
 
-// a group of JLed objects which can be controlled simultanously, in parallel
-// or sequentially. Deprecated — use TJLedGroup directly.
-template <typename L, typename Clock, typename B>
-class TJLedSequence : public TJLedGroup<Clock, L> {
-    using Base = TJLedGroup<Clock, L>;
-
- public:
-    TJLedSequence() = delete;
-
-    template <size_t N>
-    TJLedSequence(typename Base::eMode mode, L (&leds)[N])
-        : Base(mode, leds, N) {}
-
-    TJLedSequence(typename Base::eMode mode, L* leds, size_t n)
-        : Base(mode, leds, n) {}
-
-    B& Repeat(uint16_t num_repetitions) {
-        Base::Repeat(num_repetitions);
-        return static_cast<B&>(*this);
-    }
-
-    B& Forever() {
-        Base::Forever();
-        return static_cast<B&>(*this);
-    }
-};
-
 // TJLedAny is a type-erased LED container. It stores any TJLed subclass or
 // TJLedGroup by value in a fixed-size aligned buffer using a manual vtable.
 // No heap allocation is required.
