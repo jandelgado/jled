@@ -9,7 +9,9 @@
 #######################################
 
 JLed	KEYWORD1
-JLedSequence	KEYWORD1
+JLedHD	KEYWORD1
+JLedGroup	KEYWORD1
+JLedAny	KEYWORD1
 BlinkBrightnessEvaluator	KEYWORD1
 BrightnessEvaluator	KEYWORD1
 BreatheBrightnessEvaluator	KEYWORD1

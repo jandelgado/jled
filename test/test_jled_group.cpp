@@ -335,3 +335,21 @@ TEST_CASE("Stop on group with nested JLedGroup stops inner group", "[jled_group]
     TimeMock::set_millis(1);
     REQUIRE(!group.Update());
 }
+
+TEST_CASE("group stays off after Stop() when Update() is called again"
+          " (https://github.com/jandelgado/jled/issues/115)",
+          "[jled_group]") {
+    HalMock::Init();
+    auto mode = GENERATE(TestJLedGroupAny::eMode::SEQUENCE,
+                         TestJLedGroupAny::eMode::PARALLEL);
+    SECTION("group stays off") {
+        INFO("mode = " << mode);
+        TestJLedAny leds[] = {TestJLed(HalMock(1)).On()};
+        auto group = TestJLedGroupAny(mode, leds, 1).Forever();
+
+        TimeMock::set_millis(0);
+        REQUIRE(group.Update());
+        group.Stop();
+        REQUIRE(!group.Update());
+    }
+}

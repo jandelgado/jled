@@ -35,8 +35,8 @@ JLed is an embedded C++ library for non-blocking, time-driven LED control (blink
 
 **Core files:**
 
-- `src/jled_base.h` — platform-agnostic: `TJLed<Hal, Clock, B>`, `BrightnessEvaluator`, all effects, `TJLedSequence`
-- `src/jled.h` — platform detection (preprocessor macros), exposes `JLed`, `JLedHD`, `JLedSequence`
+- `src/jled_base.h` — platform-agnostic: `TJLed<Hal, Clock, B>`, `BrightnessEvaluator`, all effects, `TJLedGroup`
+- `src/jled.h` — platform detection (preprocessor macros), exposes `JLed`, `JLedHD`, `JLedGroup`, `JLedAny`
 - `src/*_hal.h` — HAL per platform (Arduino, ESP32, ESP8266, mbed, Pico)
 
 **HAL**: each platform has two abstractions in `src/*_hal.h`:
