@@ -32,7 +32,7 @@ jobs:
         with:
           python-version: '3.13'
       - name: Cache PlatformIO
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.platformio
@@ -56,7 +56,7 @@ jobs:
           file: test/coverage.json
           git-commit: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Upload HTML coverage report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-report
           path: test/report/
@@ -94,7 +94,7 @@ jobs:
         uses: actions/checkout@v6
       - name: Cache PlatformIO
         id: cache-pio
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.platformio
