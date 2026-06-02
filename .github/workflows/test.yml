@@ -18,10 +18,10 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: '3.13'
+      - name: install cpplint
+        run: pip install cpplint==2.0.0
       - name: linter
-        run: |
-          pip install cpplint==2.0.0
-          make lint
+        run: make lint
   test:
     runs-on: ubuntu-24.04
     steps:
@@ -60,40 +60,10 @@ jobs:
         with:
           name: coverage-report
           path: test/report/
-  setup-examples:
-    runs-on: ubuntu-24.04
-    steps:
-      - name: checkout code
-        uses: actions/checkout@v6
-      - name: install python
-        uses: actions/setup-python@v6
-        with:
-          python-version: '3.13'
-      - name: Cache PlatformIO
-        id: cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.platformio
-            ~/.cache/pip
-          key: ${{ runner.os }}-pio-${{ hashFiles('**/platformio.ini', '.github/workflows/test.yml')
-            }}
-          restore-keys: |
-            ${{ runner.os }}-pio-
-      - name: install tools
-        uses: ./.github/actions/setup-platformio
-      - name: install rpipico platform and toolchain
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: |
-          pio platform install "https://github.com/maxgerhardt/platform-raspberrypi.git"
-          pio ci --board=rpipico \
-              --lib="src" \
-              --project-option="board_build.core = earlephilhower" \
-              "examples/hello/hello.ino"
   examples:
-    needs: setup-examples
     runs-on: ubuntu-24.04
     strategy:
+      fail-fast: false
       matrix:
         board: [uno, esp01, nano33ble, esp32dev, rpipico]
         example:
@@ -123,14 +93,16 @@ jobs:
       - name: checkout code
         uses: actions/checkout@v6
       - name: Cache PlatformIO
+        id: cache-pio
         uses: actions/cache@v4
         with:
           path: |
             ~/.platformio
             ~/.cache/pip
-          key: ${{ runner.os }}-pio-${{ hashFiles('**/platformio.ini', '.github/workflows/test.yml')
-            }}
+          key: ${{ runner.os }}-pio-${{ matrix.board }}-${{ hashFiles('**/platformio.ini',
+            '.github/workflows/test.yml') }}
           restore-keys: |
+            ${{ runner.os }}-pio-${{ matrix.board }}-
             ${{ runner.os }}-pio-
       - name: install python
         uses: actions/setup-python@v6
@@ -138,6 +110,10 @@ jobs:
           python-version: '3.13'
       - name: install tools
         uses: ./.github/actions/setup-platformio
+      - name: install rpipico platform
+        if: matrix.board == 'rpipico' && steps.cache-pio.outputs.cache-hit != 'true'
+        run: |
+          pio platform install "https://github.com/maxgerhardt/platform-raspberrypi.git"
       - name: build examples
         run: |-
           # the mbed examples explicitely sets the extension to cpp, default is ino
