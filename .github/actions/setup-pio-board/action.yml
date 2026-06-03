@@ -1,0 +1,42 @@
+name: 'Setup PlatformIO Board Environment'
+description: 'Restore PlatformIO cache, install Python and tools, and install board-specific platforms. Run actions/checkout before this action.'
+
+inputs:
+  board:
+    description: 'PlatformIO board identifier'
+    required: true
+
+outputs:
+  cache-hit:
+    description: 'Whether the PlatformIO cache was restored from an exact key match'
+    value: ${{ steps.cache-pio.outputs.cache-hit }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Cache PlatformIO
+      id: cache-pio
+      uses: actions/cache@v5
+      with:
+        path: |
+          ~/.platformio
+          ~/.cache/pip
+        key: ${{ runner.os }}-pio-${{ inputs.board }}-${{ hashFiles('**/platformio.ini', '.github/workflows/test.yml') }}
+        restore-keys: |
+          ${{ runner.os }}-pio-${{ inputs.board }}-
+          ${{ runner.os }}-pio-
+
+    - name: install python
+      uses: actions/setup-python@v6
+      with:
+        python-version: '3.13'
+
+    - name: install tools
+      uses: ./.github/actions/setup-platformio
+
+    - name: install rpipico platform
+      if: inputs.board == 'rpipico' && steps.cache-pio.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        pio platform list 2>/dev/null | grep -q raspberrypi || \
+          pio platform install "https://github.com/maxgerhardt/platform-raspberrypi.git"

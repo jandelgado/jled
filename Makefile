@@ -17,35 +17,47 @@ lint: phony
 test: phony
 	$(RUN) $(MAKE) -C test coverage
 
-# Seed ~/.cache/act/ before the parallel run. Parallel matrix jobs race on
-# git-cloning the same actions simultaneously, corrupting the download
+# Parallel matrix jobs race on git-cloning the same actions simultaneously
 # (https://github.com/nektos/act/issues/1943, closed won't-fix).
-# Run one real job first to fully populate the action cache; --action-offline-mode
-# on the main run then prevents any re-cloning during the parallel execution.
-ACT_CONTAINER_OPTS = -v $(CURDIR)/.pio-cache:/home/runner/.platformio
+# Strategy: run warmup jobs one board at a time (no parallel races), restore
+# the .gitignore files act removes between each run, then run examples with
+# --action-offline-mode and with the warmup dependency stripped so there is no
+# warmup stage 0 racing in parallel.
+LOCAL_WORKFLOW    := $(CURDIR)/.act-logs/jled-test-local.yml
+ACT_CACHE_DIR      = $(HOME)/.cache/act/jled-cache
+ACT_CACHE          = --cache-server-path $(ACT_CACHE_DIR)
+ACT_CONTAINER_OPTS = --user $(shell id -u):$(shell id -g)
 
 ci-act: phony
-	@set -e; \
-	OUTDIR=$$(mktemp -d "$(CURDIR)/.act-run.XXXXXX"); \
-	echo "Act output dir: $$OUTDIR"; \
-	mkdir -p "$(CURDIR)/.pio-cache"; \
-	# Seed: run one real job so ~/.cache/act/ is populated before the parallel run. \
-	$(RUN) act --job examples \
-	    --matrix board:uno --matrix example:hello --env ACT=true \
+	@rm -rf "$(CURDIR)/.act-logs" && mkdir -p "$(CURDIR)/.act-logs"; \
+	# Seed uno online: populates ~/.cache/act/ action cache for offline mode. \
+	$(RUN) act --job warmup \
+	    --matrix board:uno \
+	    $(ACT_CACHE) \
 	    --container-options "$(ACT_CONTAINER_OPTS)" \
 	    || true; \
-	ACT_LOG=$$OUTDIR/act.ndjson; \
+	# Warm up each remaining board sequentially (offline) to fill act cache \
+	# without triggering parallel .gitignore races. \
+	for board in esp01 nano33ble esp32dev rpipico nucleo_f401re; do \
+	    $(RUN) act --job warmup \
+	        --matrix board:$$board \
+	        --action-offline-mode \
+	        $(ACT_CACHE) \
+	        --container-options "$(ACT_CONTAINER_OPTS)" \
+	        || true; \
+	done; \
+	# Run examples only (warmup done above; strip needs:[warmup] so there is no \
+	# parallel warmup stage 0 that would race on the same .gitignore files). \
+	sed '/^    needs: \[warmup\]$$/d' "$(CURDIR)/.github/workflows/test.yml" \
+	    > "$(LOCAL_WORKFLOW)"; \
 	$(RUN) act --job examples --json --action-offline-mode \
-	    --env ACT=true \
+	    -W "$(LOCAL_WORKFLOW)" \
+	    $(ACT_CACHE) \
 	    --container-options "$(ACT_CONTAINER_OPTS)" \
-	    2>&1 | tee $$ACT_LOG | jq -Rr 'try (fromjson | .msg // empty) catch empty' || true; \
-	jq -Rr 'try (fromjson | select(.matrix.board? and .matrix.example?) | "\(.matrix.board)\t\(.matrix.example)\t\(tojson)") catch empty' $$ACT_LOG \
-	    | while IFS=$$'\t' read -r board example json; do \
-	        printf '%s\n' "$$json" >> $$OUTDIR/$${board}_$${example}.ndjson; \
-	    done; \
-	printf '=== Summary ===\n'; \
-	jq -Rr 'try (fromjson | select(.jobResult != null and .matrix.board != null) | [if .jobResult == "success" then "OK" else "FAIL" end, .matrix.board, .matrix.example] | @tsv) catch empty' $$ACT_LOG \
-	    | sort | grep . | column -t
+	    2>&1 | tee "$(CURDIR)/.act-logs/act.ndjson" \
+	    | jq -Rr 'try (fromjson | select(.raw_output != true and (.msg | test("(✅|❌)"))) | "[" + (.matrix.board // "?") + "/" + (.matrix.example // "?") + "] " + (.msg | ltrimstr("  "))) catch empty' \
+	    || true; \
+	$(RUN) .tools/act-log/act-log.py report
 
 
 envdump: phony
@@ -56,6 +68,7 @@ clean: phony
 	make -C test clean
 	rm -f src/{*.o,*.gcno,*.gcda}
 	rm -rf .doc-site/
+	rm -rf .act-logs/
 
 upload: phony
 	$(RUN) pio run --target upload

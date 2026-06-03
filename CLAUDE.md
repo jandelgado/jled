@@ -13,13 +13,13 @@ JLed is an embedded C++ library for non-blocking, time-driven LED control (blink
 | `src/`           | Library source (`.h`/`.cpp`)                      |
 | `test/`          | Host-based unit tests (Catch2, separate Makefile) |
 | `examples/`      | MCU `.ino` sketches                               |
-| `.tools/`        | Dev tools (doc site generator)                    |
+| `.tools/`        | Dev tools (doc site generator, act log analyser)  |
 | `platformio.ini` | PlatformIO config                                 |
 | `devbox.json`    | Dev environment (Python 3.13, lcov, cpplint, pio) |
 
 ## Build & Test
 
-- `Makefile` targets: `lint`, `test`, `ci` (build for all platforms examples ~10min), `envdump`
+- `Makefile` targets: `lint`, `test`, `ci-act` (build for all platforms/examples via act, ~10min), `envdump`
 - `test/Makefile` targets: `test`, `clean`, `clobber`, `coverage` (HTML report in `test/report/`)
 
 ## Code Style
@@ -94,9 +94,18 @@ JLed led = JLed(21).DelayBefore(1500).Breathe(500).Repeat(5).MaxBrightness(150);
 
 ## CI/CD
 
-CI runs unit tests and a test matrix of `examples/` and selected MCUs. Locally `act` is
-used to run the test matrix (`make act-ci-run`).
-GitHub Actions (`.github/workflows/test.yml`) on push/PR to `master`: lint → unit tests + coverage (Coveralls) → `make act-ci-run`. All must pass.
+GitHub Actions on push/PR to `master`: lint → unit tests + coverage (Coveralls) → `make ci-act`. All must pass.
+
+`make ci-act` runs the full build matrix locally via `act` (~10min), stores NDJSON logs in `.act-logs/`.
+
+Analyse results with `.tools/act-log/act-log.py`:
+
+```sh
+.tools/act-log/act-log.py report                    # summary table; exits 1 on failures
+.tools/act-log/act-log.py report <board> <example>  # full log, e.g.: report uno hello
+```
+
+Status: `OK` = build succeeded · `FAIL` = build failed (code bug) · `INFRA` = job never reached build step (act issue, not a code bug). Ignore `jobResult` in the NDJSON — it's buggy for parallel jobs; the analyser uses `stepResult` instead.
 
 ## Documentation Site
 
