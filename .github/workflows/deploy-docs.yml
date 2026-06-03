@@ -9,11 +9,11 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository with full history
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0  # Fetch all history for all tags
       - name: Setup uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v7
       - name: Generate documentation site
         run: |
           .tools/doc-site/generate_site.py --output ./site-build
