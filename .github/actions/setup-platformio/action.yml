@@ -15,10 +15,10 @@ runs:
       run: |
         # zombie-imp and setuptools needed for compatibility for
         # some SDKs relying on older python versions (e.g. STM32)
-        pip install platformio==6.1.18 zombie-imp==0.0.4 setuptools intelhex==2.3.0
+        python3 -m pip install platformio==6.1.18 zombie-imp==0.0.4 setuptools intelhex==2.3.0
 
     - name: Install gcovr
       if: inputs.install-gcovr == 'true'
       shell: bash
       run: |
-        pip install gcovr==8.6
+        python3 -m pip install gcovr==8.6

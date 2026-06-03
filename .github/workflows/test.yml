@@ -60,8 +60,49 @@ jobs:
         with:
           name: coverage-report
           path: test/report/
+  warmup:
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      # run cache warmup sequentially to avoid concurrency problems with the pio-cache
+      max-parallel: 1
+      matrix:
+        include:
+          - board: uno
+            example: hello
+          - board: esp01
+            example: hello
+          - board: nano33ble
+            example: hello
+          - board: esp32dev
+            example: hello
+            extra_flags: --project-option="build_flags = -DLED_BUILTIN=1"
+          - board: rpipico
+            example: hello
+            extra_flags: --project-option="board_build.core = earlephilhower"
+          - board: nucleo_f401re
+            example: multiled_mbed
+            extra_flags: --project-option="framework=mbed"
+            ext: cpp
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-pio-board
+        id: setup
+        with:
+          board: ${{ matrix.board }}
+      - name: build example
+        if: steps.setup.outputs.cache-hit != 'true'
+        run: |
+          EXT=${{ matrix.ext || 'ino' }}
+          pio ci --board="${{ matrix.board }}" \
+              --lib="src" \
+              ${{ matrix.extra_flags }} \
+              "examples/${{ matrix.example }}/${{ matrix.example }}.${EXT}"
   examples:
     runs-on: ubuntu-24.04
+    needs: [warmup]
     strategy:
       fail-fast: false
       matrix:
@@ -92,28 +133,9 @@ jobs:
     steps:
       - name: checkout code
         uses: actions/checkout@v6
-      - name: Cache PlatformIO
-        id: cache-pio
-        uses: actions/cache@v5
+      - uses: ./.github/actions/setup-pio-board
         with:
-          path: |
-            ~/.platformio
-            ~/.cache/pip
-          key: ${{ runner.os }}-pio-${{ matrix.board }}-${{ hashFiles('**/platformio.ini',
-            '.github/workflows/test.yml') }}
-          restore-keys: |
-            ${{ runner.os }}-pio-${{ matrix.board }}-
-            ${{ runner.os }}-pio-
-      - name: install python
-        uses: actions/setup-python@v6
-        with:
-          python-version: '3.13'
-      - name: install tools
-        uses: ./.github/actions/setup-platformio
-      - name: install rpipico platform
-        if: matrix.board == 'rpipico' && steps.cache-pio.outputs.cache-hit != 'true'
-        run: |
-          pio platform install "https://github.com/maxgerhardt/platform-raspberrypi.git"
+          board: ${{ matrix.board }}
       - name: build examples
         run: |-
           # the mbed examples explicitely sets the extension to cpp, default is ino
