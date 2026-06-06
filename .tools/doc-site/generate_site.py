@@ -139,6 +139,14 @@ def extract_readme_structure(readme_path: str, version: str = None) -> tuple[str
     filtered_lines = [line for line in lines if not re.match(badge_pattern, line)]
     content = '\n'.join(filtered_lines)
 
+    # Remove "This is the development version..." notice
+    content = re.sub(
+        r'^This is the documentation for the development version.*?\n\n',
+        '',
+        content,
+        flags=re.MULTILINE | re.DOTALL
+    )
+
     # Remove Contents/ToC section — redundant with the sidebar navigation
     content = re.sub(
         r'^#{1,6}\s+Contents\s*\n.*?(?=^#|\Z)',

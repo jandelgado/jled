@@ -1,19 +1,21 @@
-<table><tr><td>
-<b>Preferring Python?</b> I just released <a href="https://github.com/jandelgado/jled-circuitpython">jled-circuitpython</a>,
-a JLed implementation for CircuitPython and MicroPython.
-</td></tr></table>
-
 # JLed - Advanced LED Library
 
 ![run tests](https://github.com/jandelgado/jled/workflows/run%20tests/badge.svg?branch=master)
 [![Coverage Status](https://coveralls.io/repos/github/jandelgado/jled/badge.svg?branch=master&dummy=1)](https://coveralls.io/github/jandelgado/jled?branch=master)
 
-An embedded C++ library to control LEDs. It uses a **non-blocking** approach and can
-control LEDs in simple (**on**/**off**) and complex (**blinking**,
-**breathing** and more) ways in a **time-driven** manner.
+This is the documentation for the development version of JLed. [Find the documentation of
+the latest release version here](https://jandelgado.github.io/jled)
 
-JLed got some [coverage on Hackaday](https://hackaday.com/2018/06/13/simplifying-basic-led-effects/)
-and someone did a [video tutorial for JLed](https://youtu.be/x5V2vdpZq1w) - Thanks!
+JLed is an embedded C++ library to control LEDs. It uses a **non-blocking** approach and can
+control LEDs in simple (**on**/**off**) and complex (**blinking**,
+**breathing**, and more) ways in a **time-driven** manner.
+
+JLed was featured on [Hackaday](https://hackaday.com/2018/06/13/simplifying-basic-led-effects/)
+and someone made a [video tutorial for JLed](https://youtu.be/x5V2vdpZq1w). Thanks!
+
+<b>Preferring Python?</b> Check out <a
+href="https://github.com/jandelgado/jled-circuitpython">jled-circuitpython</a>, a JLed
+implementation for CircuitPython and MicroPython.
 
 <table>
  <tr>
@@ -181,7 +183,7 @@ nothing, and 8-bit uses half the memory per brightness value. Also note that on 
 Arduino boards), so `JLedHD` has no practical benefit there.
 
 > **Note:** You cannot mix `JLed` and `JLedHD` objects in the same sketch when both map to
-> `ArduinoHal` with *different* bit widths, because `analogWriteResolution()` is a global
+> `ArduinoHal` with _different_ bit widths, because `analogWriteResolution()` is a global
 > setting. See the [`ArduinoHal` note](#arduinohal-and-the-global-analogwriteresolution-limit)
 > below.
 
