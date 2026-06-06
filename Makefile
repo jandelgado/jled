@@ -79,5 +79,8 @@ clean: phony ## remove build artifacts and generated files
 docs: phony ## generate documentation site to .doc-site/
 	$(RUN) .tools/doc-site/generate_site.py --output .doc-site
 
+run-docs-server: phony ## serve the generated doc site on http://localhost:8000
+	python3 -m http.server 8000 --directory .doc-site
+
 tags: phony ## generate ctags for src/ and test/
 	$(RUN) ctags -R --exclude='examples/raspi_pico/pico-sdk/*' --exclude='*json' --exclude='test/report/*' --exclude='test/catch2/*' src/ test/
