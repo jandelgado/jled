@@ -39,4 +39,4 @@ runs:
       shell: bash
       run: |
         pio platform list 2>/dev/null | grep -q raspberrypi || \
-          pio platform install "https://github.com/maxgerhardt/platform-raspberrypi.git"
+          pio platform install "https://github.com/maxgerhardt/platform-raspberrypi.git#v1.4.0-gcc14-arduinopico460"

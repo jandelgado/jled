@@ -1,24 +1,22 @@
-name: 'Setup PlatformIO'
-description: 'Install PlatformIO and required Python dependencies for embedded development'
-
+---
+name: Setup PlatformIO
+description: Install PlatformIO and required Python dependencies for embedded development
 inputs:
   install-gcovr:
-    description: 'Whether to install gcovr for coverage reporting'
+    description: Whether to install gcovr for coverage reporting
     required: false
     default: 'false'
-
 runs:
-  using: 'composite'
+  using: composite
   steps:
     - name: Install Python dependencies
       shell: bash
       run: |
         # zombie-imp and setuptools needed for compatibility for
         # some SDKs relying on older python versions (e.g. STM32)
-        python3 -m pip install platformio==6.1.18 zombie-imp==0.0.4 setuptools intelhex==2.3.0
-
+        python3 -m pip install platformio==6.1.19 zombie-imp==0.0.4 setuptools intelhex==2.3.0
     - name: Install gcovr
       if: inputs.install-gcovr == 'true'
       shell: bash
-      run: |
+      run: |-
         python3 -m pip install gcovr==8.6
