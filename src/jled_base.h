@@ -42,10 +42,6 @@ namespace jled {
 static constexpr uint8_t kFullBrightness = 255;
 static constexpr uint8_t kZeroBrightness = 0;
 
-// Random number generation (shared across all brightness types)
-uint8_t rand8();
-void rand_seed(uint32_t s);
-
 // Compile-time log2 (C++14 compatible single-expression constexpr)
 constexpr uint8_t log2_floor(size_t n) {
     return n <= 1 ? 0 : 1 + log2_floor(n >> 1);
@@ -81,6 +77,9 @@ T lut_lerp(uint32_t t, uint16_t period, const T (&lut)[N]) {
 // Template helper functions - implemented below after evaluator definitions
 template<typename Brightness>
 Brightness fadeon_func(uint32_t t, uint16_t period);
+
+template<typename Brightness>
+Brightness candle_func(uint32_t t, uint8_t speed, uint8_t jitter);
 
 template<typename Brightness>
 Brightness scale(Brightness val, Brightness factor);
@@ -164,50 +163,24 @@ struct CandleBrightnessEvaluator {
     uint8_t speed_;
     uint8_t jitter_;
     uint16_t period_;
-    mutable Brightness last_;
-    mutable uint32_t last_t_ = 0;
+    uint16_t offset_;
 
     CandleBrightnessEvaluator() = delete;
 
-    // speed - speed of effect (0..15). 0 fastest. Each increment by 1
-    //         halfes the speed.
+    // speed  - speed of effect (0..15). 0 fastest. Each increment by 1 halves the speed.
     // jitter - amount of jittering to apply. 0 - no jitter, 15 - candle,
     //                                        64 - fire, 255 - storm
-    CandleBrightnessEvaluator(uint8_t speed, uint8_t jitter, uint16_t period)
-        : speed_(speed), jitter_(jitter), period_(period),
-          last_(scale<Brightness>(BrightnessTraits<Brightness>::kFullBrightness,
-                                      static_cast<Brightness>(5))) {}
+    // period - period of the effect
+    // offset - time offset in ms added before speed scaling; use different values
+    //          per LED for independent flicker.
+    CandleBrightnessEvaluator(uint8_t speed, uint8_t jitter, uint16_t period,
+                              uint16_t offset = 0)
+        : speed_(speed), jitter_(jitter), period_(period), offset_(offset) {}
 
     uint16_t Period() const { return period_; }
-    Brightness Eval(uint32_t t) const {
-        // idea from
-        // https://cpldcpu.wordpress.com/2013/12/08/hacking-a-candleflicker-led/
-        // TODO(jd) finetune values
-        // Table values are 8-bit, need to be scaled to Brightness
-        static constexpr uint8_t kCandleTable[] = {
-            5, 10, 20, 30, 50, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 255};
-        if ((t >> speed_) == last_t_) return last_;
-        last_t_ = (t >> speed_);
-        const auto rnd = rand8() & 255;
 
-        // Scale 8-bit table values to Brightness
-        constexpr auto kFullBright = BrightnessTraits<Brightness>::kFullBrightness;
-        if (rnd >= jitter_) {
-            last_ = kFullBright;
-        } else {
-            // Scale table value from 8-bit to Brightness
-            const uint8_t table_val = 50 + kCandleTable[rnd & 0xf];
-            // Use sizeof to determine type at compile time
-            // (optimizes to same code as if constexpr)
-            if (sizeof(Brightness) == 1) {
-                last_ = table_val;
-            } else {
-                // For 16-bit: scale 8-bit value to 16-bit
-                last_ = static_cast<Brightness>(
-                    (static_cast<uint32_t>(table_val) * 65535) / 255);
-            }
-        }
-        return last_;
+    Brightness Eval(uint32_t t) const {
+        return candle_func<Brightness>(t + offset_, speed_, jitter_);
     }
 };
 
@@ -385,11 +358,21 @@ class TJLed {
         return Reset();
     }
 
-    // Set effect to Candle light simulation
+    // Set effect to Candle light simulation.
+    // When offset is omitted, the address of this JLed instance is used as a
+    // random offset so multiple LEDs with default parameters automatically
+    // flicker independently. Pass an explicit offset (in ms) to control the
+    // phase precisely.
     Derived& Candle(uint8_t speed = 6, uint8_t jitter = 15,
-                    uint16_t period = 0xffff) {
+                    uint16_t period = 0xffff,
+                    uint16_t offset = kCandleOffsetAuto) {
         eval_storage_.type = EvalType::CANDLE;
-        eval_storage_.data.candle = CandleBrightnessEvaluator<Brightness>(speed, jitter, period);
+        const uint16_t actual_offset =
+            (offset == kCandleOffsetAuto)
+                ? static_cast<uint16_t>(reinterpret_cast<uintptr_t>(this))
+                : offset;
+        eval_storage_.data.candle =
+            CandleBrightnessEvaluator<Brightness>(speed, jitter, period, actual_offset);
         return Reset();
     }
 
@@ -563,6 +546,7 @@ class TJLed {
     Brightness maxBrightness_;
 
     static constexpr uint16_t kRepeatForever = 65535;
+    static constexpr uint16_t kCandleOffsetAuto = 0xffff;
     uint16_t num_repetitions_ = 1;
 
     // We store the timestamp the effect was last updated to avoid multiple

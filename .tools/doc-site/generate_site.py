@@ -141,7 +141,7 @@ def extract_readme_structure(readme_path: str, version: str = None) -> tuple[str
 
     # Remove "This is the development version..." notice
     content = re.sub(
-        r'^This is the documentation for the development version.*?\n\n',
+        r'^This is the documentation for the development version.*?\n(\n|$)',
         '',
         content,
         flags=re.MULTILINE | re.DOTALL

@@ -21,7 +21,7 @@ jobs:
         with:
           python-version: '3.13'
       - name: install cpplint
-        run: pip install cpplint==2.0.0
+        run: pip install cpplint==2.0.2
       - name: linter
         run: make lint
   test:
