@@ -1,0 +1,7 @@
+-std=c++14
+-xc++
+-I../src
+-I../test
+-Wall
+-Wextra
+-DARDUINO=100
