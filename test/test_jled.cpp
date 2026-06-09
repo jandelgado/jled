@@ -265,7 +265,7 @@ TEST_CASE("UserFunc() allows to use a custom brightness evaluator", "[jled]") {
         using TestJLed::TestJLed;
         static void test() {
             TestableJLed jled(1);
-            auto cust = MockBrightnessEvaluator(ByteVec{});
+            auto cust = MockBrightnessEvaluator(std::vector<uint8_t>{});
             jled.UserFunc(&cust);
             REQUIRE(jled.eval_storage_.type == jled::EvalType::USER);
         }
@@ -410,7 +410,7 @@ TEST_CASE("Forever flag is set by call to Forever()", "[jled]") {
 }
 
 TEST_CASE("dont evaluate twice during one time tick", "[jled]") {
-    auto eval = MockBrightnessEvaluator(ByteVec{0, 1, 2});
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{0, 1, 2});
     TestJLed jled = TestJLed(1).UserFunc(&eval);
 
     jled.Update(0, nullptr);
@@ -443,7 +443,7 @@ TEST_CASE("Handles millis overflow during effect", "[jled]") {
 }
 
 TEST_CASE("Update returns last written value if requested", "[jled]") {
-    auto eval = MockBrightnessEvaluator(ByteVec{0, 10});
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{0, 10});
     int16_t lastVal = -1;
     TestJLed jled = TestJLed(1).UserFunc(&eval);
 
@@ -455,7 +455,7 @@ TEST_CASE("Update returns last written value if requested", "[jled]") {
 }
 
 TEST_CASE("Update doesn't change last value ptr if not updated", "[jled]") {
-    auto eval = MockBrightnessEvaluator(ByteVec{0, 10});
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{0, 10});
     int16_t lastVal = -1;
     TestJLed jled = TestJLed(1).UserFunc(&eval).DelayBefore(1);
 
@@ -471,7 +471,7 @@ TEST_CASE("Update doesn't change last value ptr if not updated", "[jled]") {
 }
 
 TEST_CASE("Stop() stops the effect", "[jled]") {
-    auto eval = MockBrightnessEvaluator(ByteVec{255, 255, 255, 0});
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{255, 255, 255, 0});
     TestJLed jled = TestJLed(10).UserFunc(&eval);
 
     REQUIRE(jled.IsRunning());
@@ -482,7 +482,7 @@ TEST_CASE("Stop() stops the effect", "[jled]") {
 }
 
 TEST_CASE("default Stop() sets the brightness to minBrightness", "[jled]") {
-    auto eval = MockBrightnessEvaluator(ByteVec{100, 0});
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{100, 0});
     TestJLed jled = TestJLed(10).UserFunc(&eval).MinBrightness(50);
 
     jled.Update();
@@ -494,7 +494,7 @@ TEST_CASE("default Stop() sets the brightness to minBrightness", "[jled]") {
 }
 
 TEST_CASE("Stop(FULL_OFF) sets the brightness to 0", "[jled]") {
-    auto eval = MockBrightnessEvaluator(ByteVec{100, 0});
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{100, 0});
     TestJLed jled = TestJLed(10).UserFunc(&eval).MinBrightness(50);
 
     jled.Update();
@@ -506,7 +506,7 @@ TEST_CASE("Stop(FULL_OFF) sets the brightness to 0", "[jled]") {
 }
 
 TEST_CASE("Stop(KEEP_CURRENT) keeps the last brightness level", "[jled]") {
-    auto eval = MockBrightnessEvaluator(ByteVec{100, 101});
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{100, 101});
     TestJLed jled = TestJLed(10).UserFunc(&eval).MinBrightness(50);
 
     jled.Update();
@@ -518,7 +518,7 @@ TEST_CASE("Stop(KEEP_CURRENT) keeps the last brightness level", "[jled]") {
 }
 
 TEST_CASE("LowActive() inverts signal", "[jled]") {
-    auto eval = MockBrightnessEvaluator(ByteVec{0, 255});
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{0, 255});
     TestJLed jled = TestJLed(1).UserFunc(&eval).LowActive();
 
     CHECK(jled.IsLowActive());
@@ -531,7 +531,7 @@ TEST_CASE("LowActive() inverts signal", "[jled]") {
 }
 
 TEST_CASE("effect with repeat 2 repeats sequence once", "[jled]") {
-    auto eval = MockBrightnessEvaluator(ByteVec{10, 20});
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{10, 20});
     TestJLed jled = TestJLed(10).UserFunc(&eval).Repeat(2);
 
     typedef UpdateResult u;
@@ -542,7 +542,7 @@ TEST_CASE("effect with repeat 2 repeats sequence once", "[jled]") {
 }
 
 TEST_CASE("effect with delay after delays start of next iteration", "[jled]") {
-    auto eval = MockBrightnessEvaluator(ByteVec{10, 20});
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{10, 20});
     TestJLed jled = TestJLed(10).UserFunc(&eval).Repeat(2).DelayAfter(2);
 
     typedef UpdateResult u;
@@ -554,7 +554,7 @@ TEST_CASE("effect with delay after delays start of next iteration", "[jled]") {
 }
 
 TEST_CASE("effect with delay before has delayed start ", "[jled]") {
-    auto eval = MockBrightnessEvaluator(ByteVec{10, 20});
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{10, 20});
     TestJLed jled = TestJLed(10).UserFunc(&eval).DelayBefore(2);
 
     typedef UpdateResult u;
@@ -566,7 +566,7 @@ TEST_CASE("effect with delay before has delayed start ", "[jled]") {
 
 TEST_CASE("After calling Forever() the effect is repeated over and over again ",
           "[jled]") {
-    auto eval = MockBrightnessEvaluator(ByteVec{10, 20});
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{10, 20});
     TestJLed jled = TestJLed(10).UserFunc(&eval).Forever();
 
     typedef UpdateResult u;
@@ -578,14 +578,14 @@ TEST_CASE("After calling Forever() the effect is repeated over and over again ",
 
 TEST_CASE("The Hal object provided in the ctor is used during update",
           "[jled]") {
-    auto eval = MockBrightnessEvaluator(ByteVec{10, 20});
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{10, 20});
     TestJLed jled = TestJLed(HalMock(123)).UserFunc(&eval);
 
     CHECK(jled.GetHal().Pin() == 123);
 }
 
 TEST_CASE("Update returns true while updating, else false", "[jled]") {
-    auto eval = MockBrightnessEvaluator(ByteVec{10, 20});
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{10, 20});
     TestJLed jled = TestJLed(10).UserFunc(&eval);
 
     // Update returns FALSE on last step and beyond, else TRUE
@@ -597,7 +597,7 @@ TEST_CASE("Update returns true while updating, else false", "[jled]") {
 }
 
 TEST_CASE("After Reset() the effect can be restarted", "[jled]") {
-    auto eval = MockBrightnessEvaluator(ByteVec{10, 20});
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{10, 20});
     TestJLed jled = TestJLed(10).UserFunc(&eval);
 
     typedef UpdateResult u;
@@ -614,7 +614,7 @@ TEST_CASE("After Reset() the effect can be restarted", "[jled]") {
 }
 
 TEST_CASE("Changing the effect resets object and starts over", "[jled]") {
-    auto eval = MockBrightnessEvaluator(ByteVec{10, 20});
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{10, 20});
     TestJLed jled = TestJLed(10).UserFunc(&eval);
 
     typedef UpdateResult u;
@@ -658,7 +658,7 @@ TEST_CASE(
         using TestJLed::TestJLed;
         static void test() {
             TestableJLed jled(1);
-            auto eval = MockBrightnessEvaluator(ByteVec{0, 128, 255});
+            auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{0, 128, 255});
             jled.UserFunc(&eval).MinBrightness(100).MaxBrightness(200);
 
             jled.Update(0, nullptr);
@@ -693,7 +693,7 @@ TEST_CASE("EvalStorage dispatches IsSet/Period/Eval to the active evaluator",
     using jled::EvalType;
 
     // the user evaluator must outlive the storage that points to it
-    auto userEval = MockBrightnessEvaluator(ByteVec{99});
+    auto userEval = MockBrightnessEvaluator(std::vector<uint8_t>{99});
 
     struct TestCase {
         const char *name;

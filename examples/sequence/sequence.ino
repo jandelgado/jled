@@ -5,7 +5,7 @@
 
 constexpr auto LED_PIN = 3;
 
-JLedAny leds[] = {
+JLedAny leds[] = {  // JLedGroup requires JLedAny, not JLed[]
     JLed(LED_PIN).Breathe(2000).Repeat(3),
     JLed(LED_PIN).Blink(750, 250).Repeat(3),
     JLed(LED_PIN).FadeOff(1000).Repeat(3),
@@ -20,5 +20,4 @@ void setup() { }
 
 void loop() {
     sequence.Update();
-    delay(1);
 }

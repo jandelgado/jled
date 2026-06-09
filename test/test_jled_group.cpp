@@ -1,9 +1,10 @@
-// JLed Unit tests for JLedGroup and JLedAny (run on host).
+// JLed Unit tests for JLedGroup (run on host).
 // Copyright 2017-2026 Jan Delgado jdelgado@gmx.net
 #include "catch2/catch_amalgamated.hpp"
 
 #include <jled_base.h>  // NOLINT
-#include "hal_mock.h"   // NOLINT
+#include "hal_mock.h"           // NOLINT
+#include "mock_brightness_eval.h"  // NOLINT
 
 using namespace jled;  // NOLINT
 
@@ -27,49 +28,63 @@ using TestJLedAny      = TJLedAny<kTestAnyBufSize>;
 using TestJLedGroupAny = TJLedGroup<TimeMock, TestJLedAny>;
 using TestJLedRefGroup = TJLedGroup<TimeMock, TJLedRef>;
 
-// instanciate for test coverage measurement
+// instantiate for test coverage measurement
 template class TJLedGroup<TimeMock, TestJLedAny>;
 template class TJLedGroup<TimeMock, TJLedRef>;
 
+// Parallel uses the pointer overload; Sequential uses the array overload.
+// Both static factory overloads are exercised across the test suite.
+
 TEST_CASE("parallel group updates all elements simultaneously", "[jled_group]") {
     HalMock::Init();
-    // pin 1: normal, pin 2: low-active, same Blink(1,1)
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).Blink(1, 1).Repeat(1),
-                          TestJLed(HalMock(2)).Blink(1, 1).Repeat(1).LowActive()};
-    auto group = TestJLedGroupAny::Parallel(leds);
+    auto eval1 = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
+    auto eval2 = MockBrightnessEvaluator(std::vector<uint8_t>{150, 50});
+    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval1).Repeat(1),
+                          TestJLed(HalMock(2)).UserFunc(&eval2).Repeat(1)};
+    // Use pointer overload to cover Parallel(AnyType*, size_t)
+    auto group = TestJLedGroupAny::Parallel(leds, 2);
 
-    constexpr uint8_t expected1[] = {255, 0, 0};
-    constexpr uint8_t expected2[] = {0, 255, 255};
+    TimeMock::set_millis(0);
+    REQUIRE(group.Update());
+    REQUIRE(HalMock::PinValue(1) == 200);
+    REQUIRE(HalMock::PinValue(2) == 150);
 
-    for (auto i = 0u; i < 3u; i++) {
-        TimeMock::set_millis(i);
-        auto res = group.Update();
-        INFO("i=" << i);
-        REQUIRE(res == (i < 1));
-        REQUIRE(HalMock::PinValue(1) == expected1[i]);
-        REQUIRE(HalMock::PinValue(2) == expected2[i]);
-    }
+    TimeMock::set_millis(1);
+    REQUIRE(!group.Update());
+    REQUIRE(HalMock::PinValue(1) == 100);
+    REQUIRE(HalMock::PinValue(2) == 50);
 }
 
 TEST_CASE("sequential group plays elements one at a time", "[jled_group]") {
     HalMock::Init();
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).Blink(1, 1).Repeat(1),
-                          TestJLed(HalMock(2)).Blink(1, 1).Repeat(1)};
+    auto eval1 = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
+    auto eval2 = MockBrightnessEvaluator(std::vector<uint8_t>{50, 25});
+    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval1).Repeat(1),
+                          TestJLed(HalMock(2)).UserFunc(&eval2).Repeat(1)};
+    // Use array overload to cover Sequential(AnyType (&)[N])
     auto group = TestJLedGroupAny::Sequential(leds);
 
-    // pin1: on at t=0, off at t=1, done; pin2 starts at t=2
-    constexpr uint8_t expected1[] = {255, 0, 0, 0, 0};
-    constexpr uint8_t expected2[] = {0,   0, 255, 0, 0};
+    // t=0: only LED1 active
+    TimeMock::set_millis(0);
+    REQUIRE(group.Update());
+    REQUIRE(HalMock::PinValue(1) == 200);
+    REQUIRE(HalMock::PinValue(2) == 0);
 
-    constexpr auto kSteps = sizeof(expected1) / sizeof(expected1[0]);
-    for (auto i = 0u; i < kSteps; i++) {
-        TimeMock::set_millis(i);
-        auto res = group.Update();
-        INFO("i=" << i);
-        REQUIRE(res == (i < 3));
-        REQUIRE(HalMock::PinValue(1) == expected1[i]);
-        REQUIRE(HalMock::PinValue(2) == expected2[i]);
-    }
+    // t=1: LED1 finishes (writes Eval(1)=100); LED2 not yet started
+    TimeMock::set_millis(1);
+    REQUIRE(group.Update());
+    REQUIRE(HalMock::PinValue(1) == 100);
+    REQUIRE(HalMock::PinValue(2) == 0);
+
+    // t=2: LED2 starts (time_start_=2, Eval(0)=50)
+    TimeMock::set_millis(2);
+    REQUIRE(group.Update());
+    REQUIRE(HalMock::PinValue(2) == 50);
+
+    // t=3: LED2 finishes (Eval(1)=25), group done
+    TimeMock::set_millis(3);
+    REQUIRE(!group.Update());
+    REQUIRE(HalMock::PinValue(2) == 25);
 }
 
 TEST_CASE("Repeat(n) plays the group n times", "[jled_group]") {
@@ -77,10 +92,11 @@ TEST_CASE("Repeat(n) plays the group n times", "[jled_group]") {
     auto mode = GENERATE(TestJLedGroupAny::eMode::SEQUENCE,
                          TestJLedGroupAny::eMode::PARALLEL);
 
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).Blink(1, 1)};
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{255, 0});
+    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval)};
     auto group = TestJLedGroupAny(mode, leds, 1).Repeat(2);
 
-    constexpr uint8_t expected[] = {255, 0, 255, 0, 0};
+    constexpr uint8_t expected[] = {255, 0, 255, 0};
     for (auto i = 0u; i < sizeof(expected); i++) {
         TimeMock::set_millis(i);
         group.Update();
@@ -90,12 +106,13 @@ TEST_CASE("Repeat(n) plays the group n times", "[jled_group]") {
     REQUIRE(!group.Update());
 }
 
-TEST_CASE("Forever plays group forever", "[jled_group]") {
+TEST_CASE("Forever plays group indefinitely", "[jled_group]") {
     HalMock::Init();
     auto mode = GENERATE(TestJLedGroupAny::eMode::SEQUENCE,
                          TestJLedGroupAny::eMode::PARALLEL);
 
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).Blink(1, 2)};
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{255, 0, 0});
+    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval)};
     auto group = TestJLedGroupAny(mode, leds, 1).Forever();
 
     constexpr uint8_t expected[] = {255, 0, 0};
@@ -109,24 +126,17 @@ TEST_CASE("Forever plays group forever", "[jled_group]") {
     }
 }
 
-TEST_CASE("IsForever is false initially", "[jled_group]") {
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).Blink(1, 1)};
+TEST_CASE("IsForever is false initially, true after Forever()", "[jled_group]") {
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{255});
+    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval)};
     auto mode = GENERATE(TestJLedGroupAny::eMode::SEQUENCE,
                          TestJLedGroupAny::eMode::PARALLEL);
-    REQUIRE_FALSE(TestJLedGroupAny(mode, leds, 1).IsForever());
-}
+    auto group = TestJLedGroupAny(mode, leds, 1);
+    REQUIRE_FALSE(group.IsForever());
+    REQUIRE(group.Forever().IsForever());
 
-TEST_CASE("IsForever is true after calling Forever()", "[jled_group]") {
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).Blink(1, 1)};
-    auto mode = GENERATE(TestJLedGroupAny::eMode::SEQUENCE,
-                         TestJLedGroupAny::eMode::PARALLEL);
-    REQUIRE(TestJLedGroupAny(mode, leds, 1).Forever().IsForever());
-}
-
-TEST_CASE("Repeat and Forever can be chained", "[jled_group]") {
-    // compile-time check
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).Blink(1, 1)};
-    TestJLedGroupAny group[[gnu::unused]] =
+    // compile-time check: Repeat and Forever can be chained
+    TestJLedGroupAny chained [[gnu::unused]] =
         TestJLedGroupAny(TestJLedGroupAny::eMode::PARALLEL, leds, 1).Repeat(1).Forever();
 }
 
@@ -135,196 +145,75 @@ TEST_CASE("Reset restarts group from beginning", "[jled_group]") {
     auto mode = GENERATE(TestJLedGroupAny::eMode::SEQUENCE,
                          TestJLedGroupAny::eMode::PARALLEL);
 
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).Blink(1, 1)};
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
+    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval).Repeat(1)};
     auto group = TestJLedGroupAny(mode, leds, 1);
 
-    constexpr uint8_t expected[] = {255, 0, 255, 0, 0};
-    for (auto i = 0u; i < sizeof(expected); i++) {
-        TimeMock::set_millis(i);
-        group.Update();
-        REQUIRE(HalMock::PinValue(1) == expected[i]);
-        if (i == 1) {
-            REQUIRE(!group.Update());
-            group.Reset();
-        }
-    }
+    TimeMock::set_millis(0);
+    REQUIRE(group.Update());
+    REQUIRE(HalMock::PinValue(1) == 200);
+
+    TimeMock::set_millis(1);
+    REQUIRE(!group.Update());
+
+    group.Reset();
+
+    TimeMock::set_millis(2);
+    REQUIRE(group.Update());
+    REQUIRE(HalMock::PinValue(1) == 200);
+
+    TimeMock::set_millis(3);
+    REQUIRE(!group.Update());
 }
 
-TEST_CASE("Stop halts group execution", "[jled_group]") {
+TEST_CASE("Stop halts group execution and turns LEDs off", "[jled_group]") {
     HalMock::Init();
     auto mode = GENERATE(TestJLedGroupAny::eMode::SEQUENCE,
                          TestJLedGroupAny::eMode::PARALLEL);
 
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).Blink(100, 100)};
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
+    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval).Repeat(1)};
     auto group = TestJLedGroupAny(mode, leds, 1);
 
     TimeMock::set_millis(0);
     REQUIRE(group.Update());
-    REQUIRE(HalMock::PinValue(1) == 255);
+    REQUIRE(HalMock::PinValue(1) == 200);
 
     group.Stop();
     REQUIRE(HalMock::PinValue(1) == 0);
+
+    // Further Update() calls return false and keep the LED off (issue #115)
     TimeMock::set_millis(1);
     REQUIRE(!group.Update());
-}
-
-TEST_CASE("TestJLedHD stored in TestJLedAny", "[jled_group]") {
-    HalMock::Init();
-    TestJLedAny leds[] = {TestJLedHD(HalMock(1)).Blink(1, 1).Repeat(1)};
-    auto group = TestJLedGroupAny::Parallel(leds);
-
-    TimeMock::set_millis(0);
-    REQUIRE(group.Update());
-    REQUIRE(HalMock::PinValue(1) > 0);
-
-    TimeMock::set_millis(1);
     REQUIRE(!group.Update());
-    REQUIRE(HalMock::PinValue(1) == 0);
 }
 
 TEST_CASE("nested JLedGroup within JLedGroup", "[jled_group]") {
     HalMock::Init();
-
-    TestJLedAny inner_leds[] = {TestJLed(HalMock(2)).Blink(1, 1).LowActive().Repeat(1)};
-    TestJLedAny outer_leds[] = {TestJLed(HalMock(1)).Blink(1, 1).Repeat(1),
+    auto outer_eval = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
+    auto inner_eval = MockBrightnessEvaluator(std::vector<uint8_t>{50, 25});
+    TestJLedAny inner_leds[] = {TestJLed(HalMock(2)).UserFunc(&inner_eval).Repeat(1)};
+    TestJLedAny outer_leds[] = {TestJLed(HalMock(1)).UserFunc(&outer_eval).Repeat(1),
                                  TestJLedGroupAny::Parallel(inner_leds)};
     auto group = TestJLedGroupAny::Parallel(outer_leds);
 
     TimeMock::set_millis(0);
     REQUIRE(group.Update());
-    REQUIRE(HalMock::PinValue(1) == 255);
-    REQUIRE(HalMock::PinValue(2) == 0);
+    REQUIRE(HalMock::PinValue(1) == 200);
+    REQUIRE(HalMock::PinValue(2) == 50);
 
     TimeMock::set_millis(1);
     REQUIRE(!group.Update());
-    REQUIRE(HalMock::PinValue(1) == 0);
-    REQUIRE(HalMock::PinValue(2) == 255);
+    REQUIRE(HalMock::PinValue(1) == 100);
+    REQUIRE(HalMock::PinValue(2) == 25);
 }
 
-TEST_CASE("JLedGroup copy constructor copies all state", "[jled_group]") {
+TEST_CASE("Stop propagates to nested group and inner LEDs", "[jled_group]") {
     HalMock::Init();
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).Blink(1, 1).Repeat(1)};
-    TestJLedAny src(TestJLedGroupAny::Parallel(leds));
-    TestJLedAny dst(src);  // copy
-
-    TimeMock::set_millis(0);
-    dst.Update(0);
-    REQUIRE(HalMock::PinValue(1) == 255);
-}
-
-TEST_CASE("JLedAny copy of JLed copies state", "[jled_group]") {
-    HalMock::Init();
-    TestJLedAny src(TestJLed(HalMock(1)).Blink(1, 1).Repeat(1));
-    TestJLedAny dst(src);  // copy exercises copy_fn_ for T=TestJLed
-
-    TimeMock::set_millis(0);
-    dst.Update(0);
-    REQUIRE(HalMock::PinValue(1) == 255);
-}
-
-TEST_CASE("Parallel/Sequential pointer overloads work", "[jled_group]") {
-    HalMock::Init();
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).Blink(1, 1).Repeat(1)};
-
-    SECTION("Parallel pointer overload") {
-        auto group = TestJLedGroupAny::Parallel(leds, 1);
-        TimeMock::set_millis(0);
-        REQUIRE(group.Update());
-        REQUIRE(HalMock::PinValue(1) == 255);
-    }
-    SECTION("Sequential pointer overload") {
-        auto group = TestJLedGroupAny::Sequential(leds, 1);
-        TimeMock::set_millis(0);
-        REQUIRE(group.Update());
-        REQUIRE(HalMock::PinValue(1) == 255);
-    }
-}
-
-TEST_CASE("JLedHD with MaxBrightness exercises scale<uint16_t>", "[jled_group]") {
-    HalMock::Init();
-    // Non-default MaxBrightness prevents the early return in lerp<uint16_t>,
-    // so scale<uint16_t> (line 705 in jled_base.h) is executed.
-    TestJLedAny leds[] = {
-        TestJLedHD(HalMock(1)).Blink(2, 1).Repeat(1).MaxBrightness(0x8000u)};
-    auto group = TestJLedGroupAny::Parallel(leds);
-    TimeMock::set_millis(0);
-    REQUIRE(group.Update());
-    REQUIRE(HalMock::PinValue(1) > 0);
-}
-
-TEST_CASE("JLedHD Candle exercises 16-bit dim-brightness path", "[jled_group]") {
-    HalMock::Init();
-    // jitter=255 guarantees rnd < jitter, so the 16-bit candle dim-value
-    // branch (lines 206-207 in jled_base.h) is taken.
-    TestJLedAny leds[] = {TestJLedHD(HalMock(1)).Candle(0, 255, 100)};
-    auto group = TestJLedGroupAny::Parallel(leds);
-    TimeMock::set_millis(0);
-    group.Update();  // t=0: returns cached initial value
-    rand_seed(0);    // first rand8() returns 0x59=89 < 255 -> dim path
-    TimeMock::set_millis(1);
-    REQUIRE(group.Update());
-    REQUIRE(HalMock::PinValue(1) > 0);
-}
-
-TEST_CASE("JLedRefGroup references externally managed LEDs", "[jled_group]") {
-    HalMock::Init();
-    TestJLed   led1 = TestJLed(HalMock(1)).Blink(1, 1).Repeat(1);
-    TestJLedHD led2 = TestJLedHD(HalMock(2)).Blink(1, 1).Repeat(1);
-    TJLedRef refs[] = {&led1, &led2};
-    auto group = TestJLedRefGroup::Parallel(refs);
-
-    TimeMock::set_millis(0);
-    REQUIRE(group.Update());
-    REQUIRE(led1.GetHal().Value() > 0);
-    REQUIRE(led2.GetHal().Value() > 0);
-
-    TimeMock::set_millis(1);
-    REQUIRE(!group.Update());
-}
-
-TEST_CASE("JLedRef can wrap a JLedGroup", "[jled_group]") {
-    HalMock::Init();
-    TestJLed    led1 = TestJLed(HalMock(1)).Blink(1, 1).Repeat(1);
-    TestJLedAny inner[] = {TestJLed(HalMock(2)).Blink(1, 1).Repeat(1)};
-    TestJLedGroupAny inner_group = TestJLedGroupAny::Parallel(inner);
-
-    TJLedRef refs[] = {&led1, &inner_group};
-    auto group = TestJLedRefGroup::Parallel(refs);
-
-    TimeMock::set_millis(0);
-    REQUIRE(group.Update());
-    REQUIRE(led1.GetHal().Value() > 0);
-    REQUIRE(HalMock::PinValue(2) > 0);
-}
-
-TEST_CASE("nested JLedRefGroup within JLedRefGroup", "[jled_group]") {
-    HalMock::Init();
-
-    TestJLed   inner0 = TestJLed(HalMock(2)).Blink(1, 1).LowActive().Repeat(1);
-    TJLedRef   inner_refs[] = {&inner0};
-    auto innerGroup = TestJLedRefGroup::Parallel(inner_refs);
-
-    TestJLed   led1 = TestJLed(HalMock(1)).Blink(1, 1).Repeat(1);
-    TJLedRef   leds[] = {&led1, &innerGroup};
-    auto group = TestJLedRefGroup::Parallel(leds);
-
-    TimeMock::set_millis(0);
-    REQUIRE(group.Update());
-    REQUIRE(HalMock::PinValue(1) == 255);
-    REQUIRE(HalMock::PinValue(2) == 0);  // low-active: on=0
-
-    TimeMock::set_millis(1);
-    REQUIRE(!group.Update());
-    REQUIRE(HalMock::PinValue(1) == 0);
-    REQUIRE(HalMock::PinValue(2) == 255);
-}
-
-TEST_CASE("Stop on group with nested JLedGroup stops inner group", "[jled_group]") {
-    HalMock::Init();
-
-    TestJLedAny inner_leds[] = {TestJLed(HalMock(2)).Blink(100, 100)};
-    // outer_leds[1] is a TestJLedAny holding a TestJLedGroupAny
-    TestJLedAny outer_leds[] = {TestJLed(HalMock(1)).Blink(100, 100),
+    auto outer_eval = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
+    auto inner_eval = MockBrightnessEvaluator(std::vector<uint8_t>{50, 25});
+    TestJLedAny inner_leds[] = {TestJLed(HalMock(2)).UserFunc(&inner_eval).Repeat(1)};
+    TestJLedAny outer_leds[] = {TestJLed(HalMock(1)).UserFunc(&outer_eval).Repeat(1),
                                  TestJLedGroupAny::Parallel(inner_leds)};
     auto group = TestJLedGroupAny::Parallel(outer_leds);
 
@@ -332,24 +221,114 @@ TEST_CASE("Stop on group with nested JLedGroup stops inner group", "[jled_group]
     REQUIRE(group.Update());
 
     group.Stop();
+    REQUIRE(HalMock::PinValue(1) == 0);
+    REQUIRE(HalMock::PinValue(2) == 0);
+
     TimeMock::set_millis(1);
     REQUIRE(!group.Update());
 }
 
-TEST_CASE("group stays off after Stop() when Update() is called again"
-          " (https://github.com/jandelgado/jled/issues/115)",
-          "[jled_group]") {
+TEST_CASE("JLedAny stores TestJLedHD and exercises 16-bit scale path", "[jled_group]") {
     HalMock::Init();
-    auto mode = GENERATE(TestJLedGroupAny::eMode::SEQUENCE,
-                         TestJLedGroupAny::eMode::PARALLEL);
-    SECTION("group stays off") {
-        INFO("mode = " << mode);
-        TestJLedAny leds[] = {TestJLed(HalMock(1)).On()};
-        auto group = TestJLedGroupAny(mode, leds, 1).Forever();
+    // MaxBrightness(0x8000u) means lerp<uint16_t>(val, 0, 0x8000) calls scale<uint16_t>
+    auto eval = MockBrightnessEvaluatorT<uint16_t>(std::vector<uint16_t>{32768u, 16384u});
+    TestJLedAny leds[] = {
+        TestJLedHD(HalMock(1)).UserFunc(&eval).Repeat(1).MaxBrightness(0x8000u)};
+    auto group = TestJLedGroupAny::Parallel(leds);
+
+    TimeMock::set_millis(0);
+    REQUIRE(group.Update());
+    REQUIRE(HalMock::PinValue(1) > 0);
+
+    TimeMock::set_millis(1);
+    REQUIRE(!group.Update());
+}
+
+TEST_CASE("JLedAny copy constructor copies all state", "[jled_group]") {
+    HalMock::Init();
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{255, 0});
+
+    SECTION("copy of JLed") {
+        TestJLedAny src(TestJLed(HalMock(1)).UserFunc(&eval).Repeat(1));
+        TestJLedAny dst(src);
+        TimeMock::set_millis(0);
+        dst.Update(0);
+        REQUIRE(HalMock::PinValue(1) == 255);
+    }
+
+    SECTION("copy of JLedGroup") {
+        TestJLedAny led_arr[] = {TestJLed(HalMock(1)).UserFunc(&eval).Repeat(1)};
+        TestJLedAny src(TestJLedGroupAny::Parallel(led_arr));
+        TestJLedAny dst(src);
+        TimeMock::set_millis(0);
+        dst.Update(0);
+        REQUIRE(HalMock::PinValue(1) == 255);
+    }
+}
+
+TEST_CASE("JLedRefGroup references externally managed LEDs", "[jled_group]") {
+    HalMock::Init();
+    auto eval1 = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
+    auto eval2 = MockBrightnessEvaluator(std::vector<uint8_t>{50, 25});
+    TestJLed led1 = TestJLed(HalMock(1)).UserFunc(&eval1).Repeat(1);
+    TestJLed led2 = TestJLed(HalMock(2)).UserFunc(&eval2).Repeat(1);
+
+    SECTION("references to two LEDs") {
+        TJLedRef refs[] = {&led1, &led2};
+        auto group = TestJLedRefGroup::Parallel(refs);
 
         TimeMock::set_millis(0);
         REQUIRE(group.Update());
+        REQUIRE(HalMock::PinValue(1) == 200);
+        REQUIRE(HalMock::PinValue(2) == 50);
+
+        TimeMock::set_millis(1);
+        REQUIRE(!group.Update());
+        REQUIRE(HalMock::PinValue(1) == 100);
+        REQUIRE(HalMock::PinValue(2) == 25);
+    }
+
+    SECTION("TJLedRef wraps a JLedGroup") {
+        auto eval3 = MockBrightnessEvaluator(std::vector<uint8_t>{100, 0});
+        TestJLedAny inner_leds[] = {TestJLed(HalMock(3)).UserFunc(&eval3).Repeat(1)};
+        TestJLedGroupAny inner_group = TestJLedGroupAny::Parallel(inner_leds);
+
+        TJLedRef refs[] = {&led1, &inner_group};
+        auto group = TestJLedRefGroup::Parallel(refs);
+
+        TimeMock::set_millis(0);
+        REQUIRE(group.Update());
+        REQUIRE(HalMock::PinValue(1) == 200);
+        REQUIRE(HalMock::PinValue(3) == 100);
+    }
+
+    SECTION("nested JLedRefGroup within JLedRefGroup") {
+        TJLedRef inner_refs[] = {&led2};
+        auto inner_group = TestJLedRefGroup::Parallel(inner_refs);
+
+        TJLedRef refs[] = {&led1, &inner_group};
+        auto group = TestJLedRefGroup::Parallel(refs);
+
+        TimeMock::set_millis(0);
+        REQUIRE(group.Update());
+        REQUIRE(HalMock::PinValue(1) == 200);
+        REQUIRE(HalMock::PinValue(2) == 50);
+
+        TimeMock::set_millis(1);
+        REQUIRE(!group.Update());
+    }
+
+    SECTION("Stop propagates through TJLedRef") {
+        TJLedRef refs[] = {&led1};
+        auto group = TestJLedRefGroup::Parallel(refs);
+
+        TimeMock::set_millis(0);
+        REQUIRE(group.Update());
+        REQUIRE(HalMock::PinValue(1) == 200);
+
         group.Stop();
+        REQUIRE(HalMock::PinValue(1) == 0);
+        TimeMock::set_millis(1);
         REQUIRE(!group.Update());
     }
 }

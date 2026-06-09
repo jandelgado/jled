@@ -261,6 +261,8 @@ class TJLed : public JLedBase {
     }
 
  public:
+    using brightness_t = Brightness;
+
     TJLed() = delete;
     explicit TJLed(const Hal& hal)
         : hal_{hal},
@@ -649,13 +651,13 @@ class TJLedGroup {
 
     // Update() reads the clock once and delegates to Update(t).
     bool Update();
-    // Update(t) is used when this group is nested inside another group via TJLedAny.
     bool Update(uint32_t t);
     void Reset();
     void Stop();
 
     TJLedGroup(eMode mode, AnyType* leds, size_t n)
-        : mode_(mode), leds_(leds), n_(static_cast<uint8_t>(n)) {}
+        : mode_(mode), leds_(leds), n_(static_cast<uint8_t>(n > 255 ? 255 : n)) {
+    }
 
  private:
     bool UpdateParallel(uint32_t t);
@@ -672,11 +674,14 @@ class TJLedGroup {
     bool is_running_ = true;
 };
 
-// TJLedAny is a type-erased LED container. It stores any TJLed subclass or
+// JLed intentionally uses no virtual methods. But holding a heterogeneous mix
+// of JLed and JLedGroup objects in one array requires a uniform interface.
+// TJLedAny provides this via type erasure: it stores any TJLed subclass or
 // TJLedGroup by value in a fixed-size aligned buffer using a manual vtable.
 // No heap allocation is required.
-// sizeof(TJLedAny<N>) == N + sizeof(void*) (one vtable pointer, shared across
-// all instances of the same type).
+// sizeof(TJLedAny<N>) == N + sizeof(void*) (each instance holds one vtable
+// pointer; the pointed-to Vtable struct is shared across all instances of the
+// same concrete type).
 template <size_t BufSize>
 struct TJLedAny {
  private:

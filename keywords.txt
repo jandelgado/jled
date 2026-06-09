@@ -12,6 +12,8 @@ JLed	KEYWORD1
 JLedHD	KEYWORD1
 JLedGroup	KEYWORD1
 JLedAny	KEYWORD1
+JLedRef	KEYWORD1
+JLedRefGroup	KEYWORD1
 BlinkBrightnessEvaluator	KEYWORD1
 BrightnessEvaluator	KEYWORD1
 BreatheBrightnessEvaluator	KEYWORD1

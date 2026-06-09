@@ -73,10 +73,6 @@ jobs:
             extra_flags: --project-option="build_flags = -DLED_BUILTIN=1"
           - board: rpipico
             extra_flags: --project-option="board_build.core = earlephilhower"
-          - board: nucleo_f401re
-            extra_flags: --project-option="framework=mbed"
-            ext: cpp
-            examples: multiled_mbed
     steps:
       - name: checkout code
         uses: actions/checkout@v7

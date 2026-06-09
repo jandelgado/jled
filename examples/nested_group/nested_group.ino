@@ -19,5 +19,4 @@ void setup() { }
 
 void loop() {
     group.Update();
-    delay(1);
 }

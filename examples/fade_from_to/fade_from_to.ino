@@ -9,14 +9,14 @@ auto led = JLed(5).On(1);  // start with LED turned on
 void setup() {}
 
 void loop() {
-    static uint8_t last_to = 255;
+    static JLed::brightness_t last_to = 255;  // uint8_t for JLed, uint16_t for JLedHD
 
     if (!led.Update()) {
         // when effect is done (Update() returns false),
         // reconfigure fade effect using random values
         auto new_from = last_to;
-        auto new_to = jled::rand8();
-        auto duration = 250 + jled::rand8() * 4;
+        auto new_to = random(256);
+        auto duration = 250 + random(256) * 4;
         last_to = new_to;
         led.Fade(new_from, new_to, duration).Repeat(1);
     }
