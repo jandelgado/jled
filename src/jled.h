@@ -33,6 +33,7 @@
 //   }
 
 #include "jled_base.h"  // NOLINT
+#include "jled_std.h"   // NOLINT
 
 // Raspberry Pi Pico
 //
@@ -122,20 +123,37 @@ class JLedHD : public TJLed<JLedHalHD, JLedClockType, uint16_t, JLedHD> {
     using TJLed<JLedHalHD, JLedClockType, uint16_t, JLedHD>::TJLed;
 };
 
-// a group of JLed objects which can be controlled simultanously
-class JLedSequence : public TJLedSequence<JLed, JLedClockType, JLedSequence> {
-    using TJLedSequence<JLed, JLedClockType, JLedSequence>::TJLedSequence;
-};
+// Buffer size for JLedAny: large enough to hold JLed, JLedHD, or JLedGroup.
+// Users with a custom LED type that is larger should define their own alias:
+//   using MyLedAny   = TJLedAny<sizeof(MyBigLed)>;
+//   using MyLedGroup = TJLedGroup<JLedClockType, MyLedAny>;
+namespace detail {
+constexpr size_t kLedBufSize =
+    sizeof(JLed) > sizeof(JLedHD) ? sizeof(JLed) : sizeof(JLedHD);  // NOLINT
+// TJLedGroup<Clock, T> stores only T* so its sizeof is the same for any T.
+// Use char as a placeholder to compute the group size without a circular dependency.
+constexpr size_t kGroupBufSize = sizeof(TJLedGroup<JLedClockType, char>);
+constexpr size_t kJLedAnyBufSize =
+    kLedBufSize > kGroupBufSize ? kLedBufSize : kGroupBufSize;  // NOLINT
+}  // namespace detail
 
-// a group of JLedHD objects which can be controlled simultanously
-class JLedSequenceHD : public TJLedSequence<JLedHD, JLedClockType, JLedSequenceHD> {
-    using TJLedSequence<JLedHD, JLedClockType, JLedSequenceHD>::TJLedSequence;
-};
+// JLedAny is a type-erased LED container holding JLed, JLedHD, or JLedGroup.
+using JLedAny = TJLedAny<detail::kJLedAnyBufSize>;
+
+// a group of JLedAny objects which can be controlled simultanously
+using JLedGroup = TJLedGroup<JLedClockType, JLedAny>;
+
+// JLedRef: non-owning reference to an externally-managed JLed, JLedHD, or JLedGroup.
+// Use JLedRefGroup when LED objects already exist as named variables to save memory.
+// The LED objects must outlive the JLedRef / JLedRefGroup that references them.
+using JLedRef      = TJLedRef;
+using JLedRefGroup = TJLedGroup<JLedClockType, JLedRef>;
 
 };  // namespace jled
 
 using JLed = jled::JLed;
 using JLedHD = jled::JLedHD;
-using JLedSequence = jled::JLedSequence;
-using JLedSequenceHD = jled::JLedSequenceHD;
-
+using JLedGroup    = jled::JLedGroup;
+using JLedAny      = jled::JLedAny;
+using JLedRef      = jled::JLedRef;
+using JLedRefGroup = jled::JLedRefGroup;
