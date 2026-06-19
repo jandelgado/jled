@@ -33,7 +33,7 @@ jobs:
             ext: cpp
     steps:
       - name: checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - uses: ./.github/actions/setup-pio-board
         id: setup
         with:
