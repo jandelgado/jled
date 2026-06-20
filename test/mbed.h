@@ -20,12 +20,14 @@ class PwmOut {
 
  public:
     explicit PwmOut(PinName pin) : pin_(pin) {}
+    ~PwmOut();
     void write(float val);
 };
 
 void mbedMockInit();
 void mbedMockSetUsTicks(uint32_t ticks);
 float mbedMockGetPinState(uint8_t pin);
+uint16_t mbedMockGetDtorCalled(uint8_t pin);
 
 namespace Kernel {
 struct Clock {

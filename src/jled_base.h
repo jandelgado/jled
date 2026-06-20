@@ -150,12 +150,6 @@ struct BreatheBrightnessEvaluator {
             val = fadeon_func<Brightness>(Period() - t, duration_fade_off_);
         return lerp<Brightness>(val, from_, to_);
     }
-
-    uint16_t DurationFadeOn() const { return duration_fade_on_; }
-    uint16_t DurationFadeOff() const { return duration_fade_off_; }
-    uint16_t DurationOn() const { return duration_on_; }
-    Brightness From() const { return from_; }
-    Brightness To() const { return to_; }
 };
 
 template<typename Brightness>

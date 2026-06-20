@@ -112,6 +112,7 @@ bin:
 
 clean: phony
 	rm -f {./,esp-idf,esp-idf/driver,catch2}/{*.gcov,*.gcda,*.gcno,*.o} .depend
+	rm -f ../src/{*.o,*.gcno,*.gcda}
 
 clobber: clean
 	rm -f bin/*

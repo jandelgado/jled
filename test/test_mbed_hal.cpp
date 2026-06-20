@@ -58,6 +58,21 @@ TEST_CASE("mbed_hal outputs 16-bit values correctly (16-bit)",
                  Catch::Matchers::WithinAbs(32768 / 65535., 0.0001));
 }
 
+TEST_CASE("mbed_hal assignment operator uninitializes PwmOut", "[mbed_hal]") {
+    mbedMockInit();
+    constexpr auto kPin1 = 5;
+    constexpr auto kPin2 = 6;
+    auto hal1 = MbedHal<>(kPin1);
+    auto hal2 = MbedHal<>(kPin2);
+    hal1.analogWrite<uint16_t>(65535);  // force lazy initilalization of internal PwmOut
+                                        //
+    REQUIRE(mbedMockGetDtorCalled(kPin1) == 0);
+    REQUIRE(mbedMockGetDtorCalled(kPin2) == 0);
+    hal1 = hal2;
+    REQUIRE(mbedMockGetDtorCalled(kPin1) == 1);
+    REQUIRE(mbedMockGetDtorCalled(kPin2) == 0);
+}
+
 TEST_CASE("mbed_hal copy constructor writes to correct pin", "[mbed_hal]") {
     mbedMockInit();
     constexpr auto kPin = 5;
