@@ -89,7 +89,9 @@ using JLedHal = ArduinoHal<8>;
 //   - Platforms where frequency and resolution are independent (Teensy): 16-bit
 //   - Platforms where they are coupled (SAMD21, Arduino Due, STM32, nRF5): 12-bit (~4-12 kHz)
 //   - RP2040 (Earle Philhower arduino-pico SDK): 16-bit
-//   - ESP8266 Core v1/v2: 10-bit (Core v3+ reverted to 8-bit for compatibility)
+//   - ESP8266 (all core versions): 10-bit. Core v1/v2 are natively 10-bit; on
+//     Core v3+ (which defaults to 8-bit) the 10-bit range is restored via
+//     analogWriteResolution(), so JLedHD keeps full 10-bit resolution there.
 //   - All other Arduino-compatible platforms: 8-bit
 #if defined(ARDUINO_ARCH_RP2040)    // only hit if also JLED_FORCE_ARDUINO_HAL is set
 using JLedHalHD = ArduinoHal<16>;
@@ -101,9 +103,8 @@ using JLedHalHD = ArduinoHal<12>;  // 12-bit -> ~11.7 kHz on 48 MHz GCLK (SAMD21
 using JLedHalHD = ArduinoHal<12>;  // 12-bit avoids timer prescaler issues in STM32duino
 #elif defined(ARDUINO_ARCH_NRF5)
 using JLedHalHD = ArduinoHal<12>;  // 16-bit -> ~244 Hz on nRF52; 12-bit -> ~3.9 kHz
-#elif defined(ESP8266) && \
-    !(defined(HAS_ESP8266_VERSION_NUMERIC) && ARDUINO_ESP8266_VERSION_MAJOR >= 3)
-using JLedHalHD = ArduinoHal<10>;
+#elif defined(ESP8266)
+using JLedHalHD = ArduinoHal<10>;  // 10-bit on all core versions (see note above)
 #else
 using JLedHalHD = ArduinoHal<8>;
 #endif

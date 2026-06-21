@@ -652,6 +652,7 @@ each supported platform:
 | nRF5 (Nordic)                                           | `ArduinoHal<8>` (8-bit)   | `ArduinoHal<12>` (12-bit) |
 | RP2040 arduino-pico SDK (with `JLED_FORCE_ARDUINO_HAL`) | `ArduinoHal<8>` (8-bit)   | `ArduinoHal<16>` (16-bit) |
 | ESP8266 Arduino core v1/v2                              | `ArduinoHal<10>` (10-bit) | `ArduinoHal<10>` (10-bit) |
+| ESP8266 Arduino core v3+                                | `ArduinoHal<8>` (8-bit)   | `ArduinoHal<10>` (10-bit) |
 | All other Arduino-compatible platforms                  | `ArduinoHal<8>` (8-bit)   | `ArduinoHal<8>` (8-bit)   |
 
 Internally, `JLed` performs all effect calculations in 8-bit arithmetic (`uint8_t`). The result
@@ -670,9 +671,10 @@ a **global, sketch-wide setting** that applies to every PWM pin at once. As a co
 you **cannot mix** `JLed` (8-bit) and `JLedHD` objects in the same sketch when both resolve
 to `ArduinoHal` with different bit widths. The last `analogWriteResolution()` call wins and
 silently misconfigures the other instances. This affects all platforms where `JLedHD` maps
-to a higher resolution than 8-bit: Teensy (16-bit), SAMD21 / Arduino Due / STM32 / nRF5 (12-bit),
-ESP8266 core v1/v2 (10-bit), and RP2040 via arduino-pico (16-bit). On all remaining
-Arduino-compatible platforms both types share the same 8-bit resolution, so mixing is safe.
+to a higher resolution than `JLed`: Teensy (16-bit), SAMD21 / Arduino Due / STM32 / nRF5 (12-bit),
+ESP8266 core v3+ (`JLedHD` 10-bit vs `JLed` 8-bit), and RP2040 via arduino-pico (16-bit). On
+ESP8266 core v1/v2 both types are 10-bit, and on all remaining Arduino-compatible platforms both
+share the same 8-bit resolution, so mixing is safe there.
 
 #### `JLED_FORCE_ARDUINO_HAL`
 
@@ -693,11 +695,16 @@ the global `analogWriteResolution` constraint described above.
 
 ### ESP8266
 
-The ESP8266 PWM peripheral supports up to 10-bit resolution. Both `JLed` and `JLedHD` on
-Arduino core v1/v2 operate at native 10-bit resolution (`ArduinoHal<10>`), with brightness
-values scaled from 8-bit or 16-bit internal precision accordingly. Note that ESP8266 Arduino
-core v3+ reverted PWM to 8 bits for compatibility, so `JLedHD` maps to `ArduinoHal<8>`
-there and offers no additional resolution over `JLed`.
+The ESP8266 PWM peripheral supports up to 10-bit resolution. On Arduino core v1/v2 both `JLed`
+and `JLedHD` operate at native 10-bit resolution (`ArduinoHal<10>`), with brightness values
+scaled from 8-bit or 16-bit internal precision accordingly. ESP8266 Arduino core v3+ reverted
+the `analogWrite()` default to 8 bits for compatibility, so `JLed` maps to `ArduinoHal<8>`
+there. `JLedHD`, however, stays at `ArduinoHal<10>`: the HAL calls `analogWriteResolution(10)`
+(available since core v3) to restore full 10-bit output, so `JLedHD` keeps its extra resolution
+on every ESP8266 core version. Because `JLed` and `JLedHD` then differ in width, they cannot be
+mixed in the same sketch on core v3+ (see the [`ArduinoHal`
+note](#arduinohal-and-the-global-analogwriteresolution-limit) above); on core v1/v2 both are
+10-bit and can be mixed freely.
 
 ### ESP32
 
