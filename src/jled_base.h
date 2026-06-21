@@ -112,14 +112,28 @@ struct ConstantBrightnessEvaluator {
     Brightness Eval(uint32_t) const { return val_; }
 };
 
-// BlinkBrightnessEvaluator does one on-off cycle in the specified period
+// BlinkBrightnessEvaluator does n on-off cycles in the specified period
 template<typename Brightness>
 struct BlinkBrightnessEvaluator {
-    uint16_t duration_on_, duration_off_;
+    uint16_t duration_on_;
+    uint16_t sub_period_;
+    uint8_t n_ = 1;
 
-    uint16_t Period() const { return duration_on_ + duration_off_; }
+    BlinkBrightnessEvaluator(uint16_t duration_on, uint16_t duration_off, uint8_t n)
+     : duration_on_(duration_on), sub_period_(duration_on+duration_off), n_(n) {}
+
+    uint16_t Period() const { return sub_period_*n_; }
     Brightness Eval(uint32_t t) const {
-        return (t < duration_on_) ? BrightnessTraits<Brightness>::kFullBrightness
+        // Eval is only ever called with t < Period(), and the contract requires
+        // Period() to fit in uint16_t, so t fits in uint16_t too. For the common
+        // single-cycle case (n_ == 1) t < sub_period_, so the modulo is a no-op
+        // and skipped. Narrowing to 16-bit avoids the costly 32-bit
+        // division/modulo routine on MCUs without a hardware divider (e.g. AVR).
+        const uint16_t slot_start_t =
+            (n_ == 1) ? static_cast<uint16_t>(t)
+                      : static_cast<uint16_t>(t) % sub_period_;
+
+        return (slot_start_t < duration_on_) ? BrightnessTraits<Brightness>::kFullBrightness
                                   : BrightnessTraits<Brightness>::kZeroBrightness;
     }
 };
@@ -346,9 +360,9 @@ class TJLed {
     }
 
     // Set effect to Blink, with the given on- and off- duration values.
-    Derived& Blink(uint16_t duration_on, uint16_t duration_off) {
+    Derived& Blink(uint16_t duration_on, uint16_t duration_off, uint8_t n = 1) {
         eval_storage_.type = EvalType::BLINK;
-        eval_storage_.data.blink = {duration_on, duration_off};
+        eval_storage_.data.blink = {duration_on, duration_off, n};
         return Reset();
     }
 

@@ -114,12 +114,12 @@ TEST_CASE("using Blink() configures BlinkBrightnessEvaluator", "[jled]") {
         using TestJLed::TestJLed;
         static void test() {
             TestableJLed jled(1);
-            jled.Blink(1, 2);
+            jled.Blink(1, 2, 3);
             REQUIRE(jled.eval_storage_.type == jled::EvalType::BLINK);
             const auto& eval = jled.eval_storage_.data.blink;
-            CHECK(1+2 == eval.Period());
+            CHECK((1+2)*3 == eval.Period());
             CHECK(1 == eval.duration_on_);
-            CHECK(2 == eval.duration_off_);
+            CHECK(1+2 == eval.sub_period_);
         }
     };
     TestableJLed::test();
@@ -290,12 +290,31 @@ TEST_CASE(
     "BlinkBrightnessEvaluator calculates switches between on and off in given "
     "time frames",
     "[jled]") {
-    auto eval = BlinkBrightnessEvaluator{10, 5};
-    CHECK(10 + 5 == eval.Period());
-    CHECK(255 == eval.Eval(0));
-    CHECK(255 == eval.Eval(9));
-    CHECK(0 == eval.Eval(10));
-    CHECK(0 == eval.Eval(14));
+    SECTION("single cycle (n == 1) does one on-off cycle") {
+        auto eval = BlinkBrightnessEvaluator{10, 5, 1};
+        CHECK(10 + 5 == eval.Period());
+        CHECK(255 == eval.Eval(0));
+        CHECK(255 == eval.Eval(9));
+        CHECK(0 == eval.Eval(10));
+        CHECK(0 == eval.Eval(14));
+    }
+
+    SECTION("multiple cycles (n > 1) repeat the on-off cycle") {
+        auto eval = BlinkBrightnessEvaluator{1, 2, 3};
+        CHECK((1+2)*3 == eval.Period());
+        // each of the 3 sub-cycles: on at slot 0, off at slots 1 and 2
+        CHECK(255 == eval.Eval(0));
+        CHECK(0 == eval.Eval(1));
+        CHECK(0 == eval.Eval(2));
+
+        CHECK(255 == eval.Eval(3));
+        CHECK(0 == eval.Eval(4));
+        CHECK(0 == eval.Eval(5));
+
+        CHECK(255 == eval.Eval(6));
+        CHECK(0 == eval.Eval(7));
+        CHECK(0 == eval.Eval(8));
+    }
 }
 
 TEST_CASE("CandleBrightnessEvaluator simulates candle flickering", "[jled]") {
@@ -698,7 +717,7 @@ TEST_CASE("EvalStorage dispatches IsSet/Period/Eval to the active evaluator",
         {"BLINK dispatches to BlinkBrightnessEvaluator",
          [](EvalStorage<uint8_t> &s) {
              s.type = EvalType::BLINK;
-             s.data.blink = BlinkBrightnessEvaluator{5, 7};
+             s.data.blink = BlinkBrightnessEvaluator{5, 7, 1};
          },
          true, 12, 255},
         {"BREATHE dispatches to BreatheBrightnessEvaluator",

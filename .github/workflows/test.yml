@@ -76,6 +76,7 @@ jobs:
           - multiled
           - user_func
           - hello
+          - blink
           - breathe
           - simple_on
           - fade_on

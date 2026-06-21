@@ -44,73 +44,73 @@ void loop() {
 }
 ```
 
-## Contents
+<!-- TOC -->
 
-<!-- vim-markdown-toc GFM -->
+## Table of Contents
 
-* [Features](#features)
-* [Cheat Sheet](#cheat-sheet)
-* [Installation](#installation)
-  * [Arduino IDE](#arduino-ide)
-  * [PlatformIO](#platformio)
-* [Usage](#usage)
-  * [JLed vs JLedHD](#jled-vs-jledhd)
-  * [Output pipeline](#output-pipeline)
-  * [Effects](#effects)
-    * [Static on and off](#static-on-and-off)
-      * [Static on example](#static-on-example)
-    * [Blinking](#blinking)
-      * [Blinking example](#blinking-example)
-    * [Breathing](#breathing)
-      * [Breathing example](#breathing-example)
-    * [Candle](#candle)
-      * [Candle example](#candle-example)
-    * [FadeOn](#fadeon)
-      * [FadeOn example](#fadeon-example)
-    * [FadeOff](#fadeoff)
-    * [Fade](#fade)
-      * [Fade example](#fade-example)
-    * [User provided brightness function](#user-provided-brightness-function)
-      * [User provided brightness function example](#user-provided-brightness-function-example)
-  * [Delays and repetitions](#delays-and-repetitions)
-    * [Initial delay before effect starts](#initial-delay-before-effect-starts)
-    * [Delay after effect finished](#delay-after-effect-finished)
-    * [Repetitions](#repetitions)
-  * [State functions](#state-functions)
-    * [Update](#update)
-    * [IsRunning](#isrunning)
-    * [Reset](#reset)
-    * [Immediate Stop](#immediate-stop)
-  * [Misc functions](#misc-functions)
-    * [Low active for inverted output](#low-active-for-inverted-output)
-    * [Minimum- and Maximum brightness level](#minimum--and-maximum-brightness-level)
-  * [Controlling a group of LEDs](#controlling-a-group-of-leds)
-* [Framework notes](#framework-notes)
-* [Platform notes](#platform-notes)
-  * [Resolution and the `Brightness` type](#resolution-and-the-brightness-type)
-    * [`ArduinoHal` and the global `analogWriteResolution` limit](#arduinohal-and-the-global-analogwriteresolution-limit)
-    * [`JLED_FORCE_ARDUINO_HAL`](#jled_force_arduino_hal)
-  * [ESP8266](#esp8266)
-  * [ESP32](#esp32)
-    * [Using ESP-IDF](#using-esp-idf)
-  * [STM32](#stm32)
-    * [Arduino framework](#arduino-framework)
-  * [Raspberry Pi Pico](#raspberry-pi-pico)
-* [Example sketches](#example-sketches)
-  * [Building examples with PlatformIO](#building-examples-with-platformio)
-  * [Building examples with the Arduino IDE](#building-examples-with-the-arduino-ide)
-* [Extending](#extending)
-  * [Support new hardware](#support-new-hardware)
-* [Unit tests](#unit-tests)
-* [Contributing](#contributing)
-* [FAQ](#faq)
-  * [How do I check if a JLed object is still being updated?](#how-do-i-check-if-a-jled-object-is-still-being-updated)
-  * [How do I restart an effect?](#how-do-i-restart-an-effect)
-  * [How do I change a running effect?](#how-do-i-change-a-running-effect)
-* [Author and Copyright](#author-and-copyright)
-* [License](#license)
+- [Features](#features)
+- [Cheat Sheet](#cheat-sheet)
+- [Installation](#installation)
+  - [Arduino IDE](#arduino-ide)
+  - [PlatformIO](#platformio)
+- [Usage](#usage)
+  - [JLed vs JLedHD](#jled-vs-jledhd)
+  - [Output pipeline](#output-pipeline)
+  - [Effects](#effects)
+    - [Static on and off](#static-on-and-off)
+      - [Static on example](#static-on-example)
+    - [Blinking](#blinking)
+      - [Blinking example](#blinking-example)
+    - [Breathing](#breathing)
+      - [Breathing example](#breathing-example)
+    - [Candle](#candle)
+      - [Candle example](#candle-example)
+    - [FadeOn](#fadeon)
+      - [FadeOn example](#fadeon-example)
+    - [FadeOff](#fadeoff)
+    - [Fade](#fade)
+      - [Fade example](#fade-example)
+    - [User provided brightness function](#user-provided-brightness-function)
+      - [User provided brightness function example](#user-provided-brightness-function-example)
+  - [Delays and repetitions](#delays-and-repetitions)
+    - [Initial delay before effect starts](#initial-delay-before-effect-starts)
+    - [Delay after effect finished](#delay-after-effect-finished)
+    - [Repetitions](#repetitions)
+  - [State functions](#state-functions)
+    - [Update](#update)
+    - [IsRunning](#isrunning)
+    - [Reset](#reset)
+    - [Immediate Stop](#immediate-stop)
+  - [Misc functions](#misc-functions)
+    - [Low active for inverted output](#low-active-for-inverted-output)
+    - [Minimum- and Maximum brightness level](#minimum--and-maximum-brightness-level)
+  - [Controlling a group of LEDs](#controlling-a-group-of-leds)
+- [Framework notes](#framework-notes)
+- [Platform notes](#platform-notes)
+  - [Resolution and the `Brightness` type](#resolution-and-the-brightness-type)
+    - [`ArduinoHal` and the global `analogWriteResolution` limit](#arduinohal-and-the-global-analogwriteresolution-limit)
+    - [`JLED_FORCE_ARDUINO_HAL`](#jled_force_arduino_hal)
+  - [ESP8266](#esp8266)
+  - [ESP32](#esp32)
+    - [Using ESP-IDF](#using-esp-idf)
+  - [STM32](#stm32)
+    - [Arduino framework](#arduino-framework)
+  - [Raspberry Pi Pico](#raspberry-pi-pico)
+- [Example sketches](#example-sketches)
+  - [Building examples with PlatformIO](#building-examples-with-platformio)
+  - [Building examples with the Arduino IDE](#building-examples-with-the-arduino-ide)
+- [Extending](#extending)
+  - [Support new hardware](#support-new-hardware)
+- [Unit tests](#unit-tests)
+- [Contributing](#contributing)
+- [FAQ](#faq)
+  - [How do I check if a JLed object is still being updated?](#how-do-i-check-if-a-jled-object-is-still-being-updated)
+  - [How do I restart an effect?](#how-do-i-restart-an-effect)
+  - [How do I change a running effect?](#how-do-i-change-a-running-effect)
+- [Author and Copyright](#author-and-copyright)
+- [License](#license)
 
-<!-- vim-markdown-toc -->
+<!-- /TOC -->
 
 ## Features
 
@@ -264,16 +264,18 @@ void loop() {
 #### Blinking
 
 In blinking mode, the LED cycles through a given number of on-off cycles, on-
-and off-cycle durations are specified independently. The `Blink()` method takes
-the duration for the on- and off cycle as arguments.
+and off-cycle durations are specified independently. The `Blink()` method has three
+parameters `duration_on`, `duration_off` and `n`, the number of on-off cycles, which
+defaults to 1. For the effect to work correctly, the following must hold true:
+`0 < (duration_on+duration_off)*n <= 65535`.
 
 ##### Blinking example
 
 ```c++
 #include <jled.h>
 
-// blink internal LED every second; 1 second on, 0.5 second off.
-auto led = JLed(LED_BUILTIN).Blink(1000, 500).Forever();
+// blink internal LED 3 times, 250ms on, 500ms off. Then wait 1000ms. Repeat forever.
+auto led = JLed(LED_BUILTIN).Blink(250, 500, 3).DelayAfter(1000).Forever();
 
 void setup() { }
 
@@ -810,6 +812,7 @@ details (look for `env:raspberrypi_pico_w`, which targets the Raspberry Pi Pico 
 Example sketches are provided in the [examples](examples/) directory.
 
 - [Hello, world](examples/hello)
+- [Blink effect](examples/blink)
 - [High resolution effects with JLedHD](examples/hires)
 - [Turn LED on after a delay](examples/simple_on)
 - [Breathe effect](examples/breathe)
@@ -842,6 +845,7 @@ project file, e.g.:
 [platformio]
 ; uncomment example to build
 src_dir = examples/hello
+;src_dir = examples/blink
 ;src_dir = examples/breathe
 ```
 
