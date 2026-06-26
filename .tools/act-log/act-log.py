@@ -2,8 +2,8 @@
 """Analyse act NDJSON logs stored in .act-logs/.
 
 Usage:
-    act-log.py report                   # summary table for the last run
-    act-log.py report <board> <example> # full log for one board/example job
+    act-log.py report           # summary table for the last run
+    act-log.py report <board>   # full log for one board job
 """
 
 import argparse
@@ -13,6 +13,9 @@ from pathlib import Path
 
 LOGS_DIR = Path(__file__).resolve().parents[2] / ".act-logs"
 MAIN_LOG = LOGS_DIR / "act.ndjson"
+
+# Groups emitted by setup steps — not example names
+_SKIP_GROUPS = {"Installed versions"}
 
 
 def iter_ndjson(path: Path):
@@ -28,48 +31,63 @@ def iter_ndjson(path: Path):
 
 
 def split_per_job(entries: list[dict]) -> None:
-    """Write per-job NDJSON files from the full act log."""
-    per_job: dict[str, list[dict]] = {}
+    """Write per-board NDJSON files from the full act log."""
+    per_board: dict[str, list[dict]] = {}
     for entry in entries:
-        matrix = entry.get("matrix") or {}
-        board = matrix.get("board")
-        example = matrix.get("example")
-        if board and example:
-            per_job.setdefault(f"{board}_{example}", []).append(entry)
-    for key, job_entries in per_job.items():
-        out = LOGS_DIR / f"{key}.ndjson"
+        board = (entry.get("matrix") or {}).get("board")
+        if board:
+            per_board.setdefault(board, []).append(entry)
+    for board, job_entries in per_board.items():
+        out = LOGS_DIR / f"{board}.ndjson"
         with out.open("w") as f:
             for e in job_entries:
                 f.write(json.dumps(e) + "\n")
 
 
 def build_summary(entries: list[dict]) -> dict[tuple[str, str], str]:
-    build_results: dict[tuple[str, str], str] = {}
-    job_seen: set[tuple[str, str]] = set()
+    """Return {(board, example): 'OK'|'FAIL'|'INFRA'}.
+
+    Examples are discovered from ::group:: workflow commands emitted by the
+    build loop inside the 'build examples' step.  Boards whose job never
+    reached that step are reported as INFRA.
+    """
+    # per-board tracking while scanning the interleaved parallel log
+    current: dict[str, str] = {}   # board -> active example name
+    failed:  dict[str, bool] = {}  # board -> whether current example errored
+    results: dict[tuple[str, str], str] = {}
+    job_seen: set[str] = set()
 
     for entry in entries:
         if entry.get("jobID") != "examples":
             continue
-        matrix = entry.get("matrix") or {}
-        board = matrix.get("board")
-        example = matrix.get("example")
-        if not board or not example:
+        board = (entry.get("matrix") or {}).get("board")
+        if not board:
             continue
-        key = (board, example)
-
-        if entry.get("step") == "build examples" and entry.get("stepResult"):
-            build_results[key] = entry["stepResult"]
 
         if entry.get("jobResult") is not None:
-            job_seen.add(key)
+            job_seen.add(board)
 
-    summary: dict[tuple[str, str], str] = {}
-    for key in job_seen:
-        if key in build_results:
-            summary[key] = "OK" if build_results[key] == "success" else "FAIL"
-        else:
-            summary[key] = "INFRA"
-    return summary
+        if entry.get("step") != "build examples":
+            continue
+
+        cmd = entry.get("command")
+        arg = entry.get("arg", "")
+
+        if cmd == "group" and arg and arg not in _SKIP_GROUPS:
+            current[board] = arg
+            failed[board] = False
+        elif cmd == "error" and board in current:
+            failed[board] = True
+        elif cmd == "endgroup" and current.get(board):
+            example = current.pop(board)
+            results[(board, example)] = "FAIL" if failed.pop(board, False) else "OK"
+
+    # boards whose job ran but produced no example results → INFRA
+    for board in job_seen:
+        if not any(b == board for b, _ in results):
+            results[(board, "")] = "INFRA"
+
+    return results
 
 
 def print_summary(summary: dict[tuple[str, str], str]) -> bool:
@@ -79,29 +97,30 @@ def print_summary(summary: dict[tuple[str, str], str]) -> bool:
         return True
 
     board_w = max(len(b) for b, _ in summary) + 2
-    example_w = max(len(e) for _, e in summary) + 2
+    example_w = max((len(e) for _, e in summary if e), default=0) + 2
     has_failures = False
 
     for (board, example), status in sorted(summary.items()):
-        print(f"{status:<6} {board:<{board_w}} {example}")
-        if status == "FAIL":
+        label = example if example else "(infra)"
+        print(f"{status:<6} {board:<{board_w}} {label}")
+        if status in ("FAIL", "INFRA"):
             has_failures = True
 
     return has_failures
 
 
-def cmd_report(board: str | None, example: str | None) -> None:
+def cmd_report(board: str | None) -> None:
     if not MAIN_LOG.exists():
         sys.exit(f"No act log at {MAIN_LOG} — run 'make ci-act' first.")
 
     entries = list(iter_ndjson(MAIN_LOG))
 
-    if board and example:
-        job_log = LOGS_DIR / f"{board}_{example}.ndjson"
+    if board:
+        job_log = LOGS_DIR / f"{board}.ndjson"
         if not job_log.exists():
             split_per_job(entries)
         if not job_log.exists():
-            sys.exit(f"No log for {board}/{example}.")
+            sys.exit(f"No log for board '{board}'.")
         for entry in iter_ndjson(job_log):
             msg = entry.get("msg", "")
             if msg:
@@ -119,15 +138,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="command")
-    report = sub.add_parser("report", help="Print summary or per-job log")
+    report = sub.add_parser("report", help="Print summary or per-board log")
     report.add_argument("board", nargs="?", help="Board name (e.g. uno)")
-    report.add_argument("example", nargs="?", help="Example name (e.g. hello)")
 
     args = parser.parse_args()
     if args.command == "report":
-        if bool(args.board) != bool(args.example):
-            parser.error("Provide both <board> and <example>, or neither.")
-        cmd_report(args.board, args.example)
+        cmd_report(args.board)
     else:
         parser.print_help()
         sys.exit(1)

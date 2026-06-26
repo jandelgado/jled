@@ -101,8 +101,8 @@ GitHub Actions on push/PR to `master`: lint → unit tests + coverage (Coveralls
 Analyse results with
 
 ```sh
-.tools/act-log/act-log.py report                    # summary table; exits 1 on failures
-.tools/act-log/act-log.py report <board> <example>  # full log, e.g.: report uno hello
+.tools/act-log/act-log.py report           # summary table; exits 1 on failures
+.tools/act-log/act-log.py report <board>   # full log for one board, e.g.: report uno
 ```
 
 Status: `OK` = build succeeded · `FAIL` = build failed (code bug) · `INFRA` = job never reached build step (act issue, not a code bug). Ignore `jobResult` in the NDJSON — it's buggy for parallel jobs; the analyser uses `stepResult` instead.

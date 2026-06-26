@@ -41,30 +41,17 @@ lint: phony ## run the C++ linter
 test: phony ## run unit tests with coverage
 	$(RUN) $(MAKE) -C test coverage
 
-# act-only: parallel matrix jobs race on git-cloning actions simultaneously
-# (https://github.com/nektos/act/issues/1943, closed won't-fix). ci-warmup
-# runs the warmup job from act-warmup.yml sequentially (max-parallel:1), then
-# ci-act runs the examples job from test.yml with the cache already warm.
 ACT_CACHE_DIR      = $(HOME)/.cache/act/jled-cache
 ACT_CACHE          = --cache-server-path $(ACT_CACHE_DIR)
 ACT_CONTAINER_OPTS = --user $(shell id -u):$(shell id -g)
 
-ci-act-warmup: phony
-	$(RUN) act --job warmup \
-	    -W "$(CURDIR)/.github/workflows/act-warmup.yml" \
-	    $(ACT_CACHE) \
-	    --container-options "$(ACT_CONTAINER_OPTS)" \
-	    || true
-
 ci-act: phony ## run full build matrix locally via act (runs ~10min)
 	@rm -rf "$(CURDIR)/.act-logs" && mkdir -p "$(CURDIR)/.act-logs"
-	$(MAKE) ci-act-warmup
 	$(RUN) act --job examples --json --action-offline-mode \
 	    -W "$(CURDIR)/.github/workflows/test.yml" \
 	    $(ACT_CACHE) \
 	    --container-options "$(ACT_CONTAINER_OPTS)" \
 	    2>&1 | tee "$(CURDIR)/.act-logs/act.ndjson" \
-	    | jq -Rr 'try (fromjson | select(.raw_output != true and (.msg | test("(✅|❌)"))) | "[" + (.matrix.board // "?") + "/" + (.matrix.example // "?") + "] " + (.msg | ltrimstr("  "))) catch empty' \
 	    || true
 	$(RUN) .tools/act-log/act-log.py report
 

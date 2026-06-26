@@ -9,8 +9,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  warmup:
-    uses: ./.github/workflows/act-warmup.yml
   lint:
     runs-on: ubuntu-24.04
     steps:
@@ -63,36 +61,22 @@ jobs:
           name: coverage-report
           path: test/report/
   examples:
-    needs: [warmup]
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
-        board: [uno, esp01, nano33ble, esp32dev, rpipico]
-        example:
-          - custom_hal
-          - morse
-          - candle
-          - multiled
-          - user_func
-          - hello
-          - blink
-          - breathe
-          - simple_on
-          - fade_on
-          - sequence
-          - hires
         include:
+          - board: uno
+          - board: esp01
+          - board: nano33ble
           - board: esp32dev
             extra_flags: --project-option="build_flags = -DLED_BUILTIN=1"
           - board: rpipico
             extra_flags: --project-option="board_build.core = earlephilhower"
-          - example: morse
-            extra_libs: --lib="examples/morse"
           - board: nucleo_f401re
-            example: multiled_mbed
             extra_flags: --project-option="framework=mbed"
             ext: cpp
+            examples: multiled_mbed
     steps:
       - name: checkout code
         uses: actions/checkout@v7
@@ -100,10 +84,30 @@ jobs:
         with:
           board: ${{ matrix.board }}
       - name: build examples
+        shell: bash
         run: |-
-          # the mbed examples explicitely sets the extension to cpp, default is ino
-          EXT=${{matrix.ext || 'ino'}}
-          pio ci --board="${{matrix.board}}" \
-              --lib="src" ${{matrix.extra_libs}} \
-              ${{matrix.extra_flags}} \
-              "examples/${{matrix.example}}/${{matrix.example}}.${EXT}"
+          # to speed things up we don't use (platform x example) matrix, but iterate
+          # over the examples of the current platform ourselfes.
+          passed=(); failed=()
+          for example in ${{ matrix.examples || 'blink breathe candle custom_hal fade_on hello hires morse multiled sequence simple_on user_func' }}; do
+            extra_opts=()
+            [[ "$example" == "morse" ]] && extra_opts+=(--lib=examples/morse)
+            echo "::group::$example"
+            if pio ci --board="${{ matrix.board }}" --lib="src" \
+                "${extra_opts[@]}" ${{ matrix.extra_flags }} \
+                "examples/${example}/${example}.${{ matrix.ext || 'ino' }}"; then
+              passed+=("$example")
+            else
+              echo "::error title=${{ matrix.board }}/$example::build failed"
+              failed+=("$example")
+            fi
+            echo "::endgroup::"
+          done
+          {
+            echo "### \`${{ matrix.board }}\`"
+            echo "| example | status |"
+            echo "|---------|--------|"
+            for e in "${passed[@]}"; do echo "| \`$e\` | ✅ |"; done
+            for e in "${failed[@]}"; do echo "| \`$e\` | ❌ |"; done
+          } >> "$GITHUB_STEP_SUMMARY"
+          [[ ${#failed[@]} -eq 0 ]] || { echo "${#failed[@]} failed: ${failed[*]}"; exit 1; }
