@@ -680,7 +680,9 @@ class TJLedGroup {
     void Reset();
     void Stop();
     void Pause(uint32_t t);
+    void Pause();
     void Resume(uint32_t t);
+    void Resume();
 
     TJLedGroup(eMode mode, AnyType* leds, size_t n)
         : mode_(mode), leds_(leds), n_(static_cast<uint8_t>(n > 255 ? 255 : n)) {
@@ -899,15 +901,24 @@ void TJLedGroup<Clock, AnyType>::Stop() {
     }
 }
 
-// Pause and Resume are stubbed here; Task 3 will implement the fan-out logic.
 template <typename Clock, typename AnyType>
 void TJLedGroup<Clock, AnyType>::Pause(uint32_t t) {
-    (void)t;
+    for (auto i = 0u; i < n_; i++) leds_[i].Pause(t);
+}
+
+template <typename Clock, typename AnyType>
+void TJLedGroup<Clock, AnyType>::Pause() {
+    Pause(Clock::millis());
 }
 
 template <typename Clock, typename AnyType>
 void TJLedGroup<Clock, AnyType>::Resume(uint32_t t) {
-    (void)t;
+    for (auto i = 0u; i < n_; i++) leds_[i].Resume(t);
+}
+
+template <typename Clock, typename AnyType>
+void TJLedGroup<Clock, AnyType>::Resume() {
+    Resume(Clock::millis());
 }
 
 };  // namespace jled

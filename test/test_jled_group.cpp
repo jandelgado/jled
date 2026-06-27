@@ -332,3 +332,88 @@ TEST_CASE("JLedRefGroup references externally managed LEDs", "[jled_group]") {
         REQUIRE(!group.Update());
     }
 }
+
+TEST_CASE("Pause() propagates to all children in parallel group", "[jled_group]") {
+    HalMock::Init();
+    auto eval1 = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100, 50});
+    auto eval2 = MockBrightnessEvaluator(std::vector<uint8_t>{150, 75, 25});
+    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval1).Repeat(1),
+                          TestJLed(HalMock(2)).UserFunc(&eval2).Repeat(1)};
+    auto group = TestJLedGroupAny::Parallel(leds, 2);
+
+    TimeMock::set_millis(0);
+    REQUIRE(group.Update());  // t=0: brightness 200, 150
+
+    group.Pause(1);
+
+    // Updates while paused must return true and not change brightness
+    TimeMock::set_millis(1);
+    REQUIRE(group.Update());
+    REQUIRE(HalMock::PinValue(1) == 200);
+    REQUIRE(HalMock::PinValue(2) == 150);
+
+    TimeMock::set_millis(2);
+    REQUIRE(group.Update());
+    REQUIRE(HalMock::PinValue(1) == 200);
+    REQUIRE(HalMock::PinValue(2) == 150);
+}
+
+TEST_CASE("Resume() continues parallel group from freeze point", "[jled_group]") {
+    HalMock::Init();
+    auto eval1 = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
+    auto eval2 = MockBrightnessEvaluator(std::vector<uint8_t>{150, 50});
+    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval1).Repeat(1),
+                          TestJLed(HalMock(2)).UserFunc(&eval2).Repeat(1)};
+    auto group = TestJLedGroupAny::Parallel(leds, 2);
+
+    // Advance to t=0 (elapsed=0, first values output)
+    TimeMock::set_millis(0);
+    REQUIRE(group.Update());
+
+    // Pause at t=0, resume at t=50 — children should see elapsed=1 at t=51
+    group.Pause(0);
+    group.Resume(50);
+
+    TimeMock::set_millis(51);
+    REQUIRE(!group.Update());  // elapsed=1, final tick, group done
+    REQUIRE(HalMock::PinValue(1) == 100);
+    REQUIRE(HalMock::PinValue(2) == 50);
+}
+
+TEST_CASE("Pause() freezes sequential group on current LED", "[jled_group]") {
+    HalMock::Init();
+    auto eval1 = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
+    auto eval2 = MockBrightnessEvaluator(std::vector<uint8_t>{50, 25});
+    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval1).Repeat(1),
+                          TestJLed(HalMock(2)).UserFunc(&eval2).Repeat(1)};
+    auto group = TestJLedGroupAny::Sequential(leds);
+
+    TimeMock::set_millis(0);
+    REQUIRE(group.Update());  // LED1 at t_cycle=0 -> 200
+
+    group.Pause(1);
+
+    // Updates while paused: group returns true, LED1 stays at 200, LED2 not started
+    TimeMock::set_millis(1);
+    REQUIRE(group.Update());
+    REQUIRE(HalMock::PinValue(1) == 200);
+    REQUIRE(HalMock::PinValue(2) == 0);
+
+    TimeMock::set_millis(5);
+    REQUIRE(group.Update());
+    REQUIRE(HalMock::PinValue(1) == 200);
+
+    // Resume: LED1 continues from t_cycle=0 -- next tick it finishes (t_cycle=1 -> 100)
+    group.Resume(10);
+    TimeMock::set_millis(11);
+    REQUIRE(group.Update());   // LED1 finishes, LED2 starts
+    REQUIRE(HalMock::PinValue(1) == 100);
+
+    TimeMock::set_millis(12);
+    REQUIRE(group.Update());   // LED2 running
+    REQUIRE(HalMock::PinValue(2) == 50);
+
+    TimeMock::set_millis(13);
+    REQUIRE(!group.Update());  // LED2 finishes, group done
+    REQUIRE(HalMock::PinValue(2) == 25);
+}
