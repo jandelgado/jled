@@ -86,7 +86,7 @@ jobs:
           for example in $(find examples -maxdepth 2 -name '*.ino' -printf '%P\n' | cut -d/ -f1 | sort -u); do
             extra_opts=()
             [[ "$example" == "morse" ]] && extra_opts+=(--lib=examples/morse)
-            [[ "$example" == "last_brightness" ]] && extra_opts+=(--project-option 'lib_deps = arduinogetstarted/ezButton@1.0.6')
+            [[ "$example" == "last_brightness" || "$example" == "pause_resume" ]] && extra_opts+=(--project-option 'lib_deps = arduinogetstarted/ezButton@1.0.6')
             echo "::group::$example"
             if pio ci --board="${{ matrix.board }}" --lib="src" \
                 "${extra_opts[@]}" ${{ matrix.extra_flags }} \

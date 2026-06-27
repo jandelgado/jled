@@ -81,6 +81,7 @@ void loop() {
     - [IsRunning](#isrunning)
     - [Reset](#reset)
     - [Immediate Stop](#immediate-stop)
+    - [Pause and Resume](#pause-and-resume)
   - [Misc functions](#misc-functions)
     - [Low active for inverted output](#low-active-for-inverted-output)
     - [Minimum- and Maximum brightness level](#minimum--and-maximum-brightness-level)
@@ -519,6 +520,34 @@ brightness level to `MinBrightness`.
 led.Stop(JLed::eStopMode::FULL_OFF);
 ```
 
+### Pause and Resume
+
+Call `Pause()` to freeze the current effect at its current brightness. While paused,
+`Update()` returns `true` but does not advance the effect or change the brightness output.
+Call `Resume()` to continue the effect from the exact point where it was paused. `IsPaused()`
+returns `true` while the effect is frozen.
+
+Pausing before an effect has started is valid: the effect will not start until
+`Resume()` is called.
+
+```c++
+auto led = JLed(9).Breathe(2000).Forever();
+
+void loop() {
+  if (buttonPressed()) {
+    if (led.IsPaused()) {
+      led.Resume();
+    } else {
+      led.Pause();
+    }
+  }
+  led.Update();
+}
+```
+
+`JLedGroup` also supports `Pause()` and `Resume()`, which propagate to all member LEDs so
+the entire group freezes and resumes in sync.
+
 ### Misc functions
 
 #### Low active for inverted output
@@ -889,6 +918,7 @@ Example sketches are provided in the [examples](examples/) directory.
 - [Simple User provided effect](examples/user_func)
 - [Morsecode example](examples/morse)
 - [Last brightness value example](examples/last_brightness)
+- [Pause and resume effect with a button](examples/pause_resume)
 - [Custom HAL example](examples/custom_hal)
 - [Custom PCA9685 HAL](https://github.com/jandelgado/jled-pca9685-hal)
 - [Dynamically switch sequences](https://github.com/jandelgado/jled-example-switch-sequence)
