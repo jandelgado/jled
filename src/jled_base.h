@@ -268,6 +268,7 @@ class TJLed : public JLedBase {
         : hal_{hal},
           state_{ST_INIT},
           bLowActive_{false},
+          bPaused_{false},
           minBrightness_{BrightnessTraits<Brightness>::kZeroBrightness},
           maxBrightness_{BrightnessTraits<Brightness>::kFullBrightness} {}
 
@@ -275,6 +276,7 @@ class TJLed : public JLedBase {
         : hal_{pin},
           state_{ST_INIT},
           bLowActive_{false},
+          bPaused_{false},
           minBrightness_{BrightnessTraits<Brightness>::kZeroBrightness},
           maxBrightness_{BrightnessTraits<Brightness>::kFullBrightness} {}
 
@@ -283,6 +285,7 @@ class TJLed : public JLedBase {
     Derived& operator=(const TJLed<Hal, Clock, Brightness, Derived>& rLed) {
         state_ = rLed.state_;
         bLowActive_ = rLed.bLowActive_;
+        bPaused_ = rLed.bPaused_;
         minBrightness_ = rLed.minBrightness_;
         maxBrightness_ = rLed.maxBrightness_;
         num_repetitions_ = rLed.num_repetitions_;
@@ -437,6 +440,26 @@ class TJLed : public JLedBase {
 
     bool IsRunning() const { return state_ != ST_STOPPED; }
 
+    void Pause(uint32_t t) {
+        if (bPaused_ || state_ == ST_STOPPED) return;
+        bPaused_ = true;
+        if (state_ != ST_INIT)
+            time_start_ = t - time_start_;  // encode elapsed_so_far in place
+        // ST_INIT: time_start_ is 0 and not yet meaningful; Update() resets it on resume
+    }
+    void Pause() { Pause(Clock::millis()); }
+
+    void Resume(uint32_t t) {
+        if (!bPaused_) return;
+        bPaused_ = false;
+        if (state_ != ST_INIT)
+            time_start_ = t - time_start_;  // restore epoch: t - elapsed_so_far
+        // ST_INIT: Update() will set time_start_ fresh on next call
+    }
+    void Resume() { Resume(Clock::millis()); }
+
+    bool IsPaused() const { return bPaused_; }
+
     // Reset to inital state
     Derived& Reset() {
         time_start_ = 0;
@@ -483,6 +506,7 @@ class TJLed : public JLedBase {
     }
 
     bool Update(uint32_t t, int16_t* pLast = nullptr) {
+        if (bPaused_) return true;
         if (state_ == ST_STOPPED || !eval_storage_.IsSet()) return false;
 
         if (state_ == ST_INIT) {
@@ -558,6 +582,7 @@ class TJLed : public JLedBase {
 
     uint8_t state_ : 2;  // stored as uint8_t to avoid GCC warning about enum bit-field signedness
     uint8_t bLowActive_ : 1;
+    uint8_t bPaused_ : 1;
     Brightness minBrightness_;
     Brightness maxBrightness_;
 

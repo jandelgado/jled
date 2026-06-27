@@ -782,3 +782,119 @@ TEST_CASE("lerp8by8 interpolates a byte into the given interval",
     CHECK(200 == (int)(jled::lerp8by8(255, 100, 200)));
 }
 
+TEST_CASE("Pause() during ST_RUNNING freezes brightness", "[jled]") {
+    TestJLed jled(HalMock(1));
+    jled.Blink(4, 4);  // on for t_cycle=0..3, off for t_cycle=4..7, done at t=8
+
+    // Run to t=2 (mid-blink, brightness=255)
+    jled.Update(0, nullptr);
+    jled.Update(2);
+    const auto brightness_at_pause = jled.GetHal().Value();  // 255
+
+    jled.Pause(2);
+    CHECK(jled.IsPaused());
+
+    // Further updates must not change brightness and must return true
+    CHECK(jled.Update(3));
+    CHECK(jled.GetHal().Value() == brightness_at_pause);
+    CHECK(jled.Update(100));
+    CHECK(jled.GetHal().Value() == brightness_at_pause);
+}
+
+TEST_CASE("Resume() continues effect from freeze point", "[jled]") {
+    TestJLed jled(HalMock(1));
+    jled.Blink(4, 4);  // on=[0..3], off=[4..7], period=8
+
+    // Advance to t=2 (elapsed=2, on-phase)
+    jled.Update(0, nullptr);
+    jled.Update(2);
+
+    // Pause at t=2 (elapsed_so_far=2), resume at t=50
+    // After resume: effective epoch = 50-2 = 48
+    jled.Pause(2);
+    jled.Resume(50);
+    CHECK_FALSE(jled.IsPaused());
+
+    // At t=51: elapsed = 51-48 = 3 → t_cycle=3, on-phase → 255
+    CHECK(jled.Update(51));
+    CHECK(jled.GetHal().Value() == 255);
+
+    // At t=52: elapsed = 52-48 = 4 → t_cycle=4, off-phase → 0
+    CHECK(jled.Update(52));
+    CHECK(jled.GetHal().Value() == 0);
+}
+
+TEST_CASE("Pause() in ST_STOPPED is a no-op", "[jled]") {
+    TestJLed jled(HalMock(1));
+    jled.Blink(2, 2);
+    jled.Update(0, nullptr);
+    jled.Stop();
+    jled.Pause(5);
+    CHECK_FALSE(jled.IsPaused());
+    CHECK_FALSE(jled.Update(6));
+}
+
+TEST_CASE("Pause() in ST_INIT delays effect start until Resume()", "[jled]") {
+    TestJLed jled(HalMock(1));
+    jled.Blink(2, 2);  // on=[0,1], off=[2,3], period=4
+
+    jled.Pause(0);
+    CHECK(jled.IsPaused());
+
+    // Updates must not start the effect
+    CHECK(jled.Update(0, nullptr));
+    CHECK(jled.GetHal().Value() == 0);  // nothing written yet
+    CHECK(jled.Update(5));
+    CHECK(jled.GetHal().Value() == 0);
+
+    // After Resume the effect starts normally on next Update
+    jled.Resume(10);
+    CHECK_FALSE(jled.IsPaused());
+    CHECK(jled.Update(10));
+    CHECK(jled.GetHal().Value() == 255);  // t_cycle=0, on-phase
+}
+
+TEST_CASE("Pause() is idempotent", "[jled]") {
+    TestJLed jled(HalMock(1));
+    jled.Blink(4, 4);
+    jled.Update(0, nullptr);  // time_start_=0
+
+    jled.Pause(1);   // time_start_ = 1-0 = 1 (elapsed=1 encoded)
+    jled.Pause(99);  // second call — must be no-op, not re-encode
+    jled.Resume(50);  // time_start_ = 50-1 = 49 (epoch restored)
+
+    // At t=51: elapsed = 51-49 = 2 → on-phase → 255
+    CHECK(jled.Update(51));
+    CHECK(jled.GetHal().Value() == 255);
+}
+
+TEST_CASE("Resume() is idempotent", "[jled]") {
+    TestJLed jled(HalMock(1));
+    jled.Blink(4, 4);
+    jled.Update(0, nullptr);
+    jled.Pause(1);
+    jled.Resume(10);  // time_start_ = 10-1 = 9 (epoch)
+    jled.Resume(99);  // second call — must be no-op
+    CHECK_FALSE(jled.IsPaused());
+
+    // At t=11: elapsed = 11-9 = 2 → on-phase → 255
+    CHECK(jled.Update(11));
+    CHECK(jled.GetHal().Value() == 255);
+}
+
+TEST_CASE("copy of paused JLed preserves pause state", "[jled]") {
+    TestJLed jled(HalMock(1));
+    jled.Blink(4, 4);
+    jled.Update(0, nullptr);
+    jled.Update(2);
+    jled.Pause(2);  // time_start_ = 2-0 = 2 (elapsed=2 encoded)
+
+    TestJLed copy = jled;
+    CHECK(copy.IsPaused());
+
+    // Copy resumes correctly: time_start_ = 50-2 = 48 (epoch)
+    copy.Resume(50);
+    // At t=51: elapsed = 51-48 = 3 → on-phase → 255
+    CHECK(copy.Update(51));
+    CHECK(copy.GetHal().Value() == 255);
+}
