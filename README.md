@@ -662,6 +662,19 @@ applies the implicit conversion per element.
 > **Lifetime:** LED objects must outlive the `JLedRef` / `JLedRefGroup` that
 > references them. Do not create `JLedRef` from temporaries.
 
+#### `eStopMode` renamed to `eIdleMode`
+
+`eStopMode` has been renamed to `eIdleMode` and moved to the `jled` namespace.
+The same enum is now shared by `Stop()` and `Pause()`:
+
+```cpp
+// before
+led.Stop(JLed::eStopMode::KEEP_CURRENT);
+
+// after
+led.Stop(jled::eIdleMode::KEEP_CURRENT);
+```
+
 #### JLedSequence to JLedGroup migration
 
 `JLedSequence` is removed. Replace `JLed leds[]` with `JLedAny leds[]` and use the

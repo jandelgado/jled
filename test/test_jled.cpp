@@ -501,7 +501,7 @@ TEST_CASE("Stop(FULL_OFF) sets the brightness to 0", "[jled]") {
     REQUIRE(130 ==
             static_cast<int>(jled.GetHal().Value()));  // 100 scaled to [50,255]
 
-    jled.Stop(TestJLed::eStopMode::FULL_OFF);
+    jled.Stop(jled::eIdleMode::FULL_OFF);
     CHECK(0 == static_cast<int>(jled.GetHal().Value()));
 }
 
@@ -513,7 +513,7 @@ TEST_CASE("Stop(KEEP_CURRENT) keeps the last brightness level", "[jled]") {
     REQUIRE(130 ==
             static_cast<int>(jled.GetHal().Value()));  // 100 scaled to [50,255]
 
-    jled.Stop(TestJLed::eStopMode::KEEP_CURRENT);
+    jled.Stop(jled::eIdleMode::KEEP_CURRENT);
     CHECK(130 == static_cast<int>(jled.GetHal().Value()));
 }
 
@@ -791,7 +791,8 @@ TEST_CASE("Pause() during ST_RUNNING freezes brightness", "[jled]") {
     jled.Update(2);
     const auto brightness_at_pause = jled.GetHal().Value();  // 255
 
-    jled.Pause(2);
+    TimeMock::set_millis(2);
+    jled.Pause();
     CHECK(jled.IsPaused());
 
     // Further updates must not change brightness and must return true
@@ -811,8 +812,10 @@ TEST_CASE("Resume() continues effect from freeze point", "[jled]") {
 
     // Pause at t=2 (elapsed_so_far=2), resume at t=50
     // After resume: effective epoch = 50-2 = 48
-    jled.Pause(2);
-    jled.Resume(50);
+    TimeMock::set_millis(2);
+    jled.Pause();
+    TimeMock::set_millis(50);
+    jled.Resume();
     CHECK_FALSE(jled.IsPaused());
 
     // At t=51: elapsed = 51-48 = 3 → t_cycle=3, on-phase → 255
@@ -829,7 +832,8 @@ TEST_CASE("Pause() in ST_STOPPED is a no-op", "[jled]") {
     jled.Blink(2, 2);
     jled.Update(0, nullptr);
     jled.Stop();
-    jled.Pause(5);
+    TimeMock::set_millis(5);
+    jled.Pause();
     CHECK_FALSE(jled.IsPaused());
     CHECK_FALSE(jled.Update(6));
 }
@@ -838,7 +842,8 @@ TEST_CASE("Pause() in ST_INIT delays effect start until Resume()", "[jled]") {
     TestJLed jled(HalMock(1));
     jled.Blink(2, 2);  // on=[0,1], off=[2,3], period=4
 
-    jled.Pause(0);
+    TimeMock::set_millis(0);
+    jled.Pause();
     CHECK(jled.IsPaused());
 
     // Updates must not start the effect
@@ -848,7 +853,8 @@ TEST_CASE("Pause() in ST_INIT delays effect start until Resume()", "[jled]") {
     CHECK(jled.GetHal().Value() == 0);
 
     // After Resume the effect starts normally on next Update
-    jled.Resume(10);
+    TimeMock::set_millis(10);
+    jled.Resume();
     CHECK_FALSE(jled.IsPaused());
     CHECK(jled.Update(10));
     CHECK(jled.GetHal().Value() == 255);  // t_cycle=0, on-phase
@@ -859,9 +865,12 @@ TEST_CASE("Pause() is idempotent", "[jled]") {
     jled.Blink(4, 4);
     jled.Update(0, nullptr);  // time_start_=0
 
-    jled.Pause(1);   // time_start_ = 1-0 = 1 (elapsed=1 encoded)
-    jled.Pause(99);  // second call — must be no-op, not re-encode
-    jled.Resume(50);  // time_start_ = 50-1 = 49 (epoch restored)
+    TimeMock::set_millis(1);
+    jled.Pause();    // time_start_ = 1-0 = 1 (elapsed=1 encoded)
+    TimeMock::set_millis(99);
+    jled.Pause();    // second call — must be no-op, not re-encode
+    TimeMock::set_millis(50);
+    jled.Resume();   // time_start_ = 50-1 = 49 (epoch restored)
 
     // At t=51: elapsed = 51-49 = 2 → on-phase → 255
     CHECK(jled.Update(51));
@@ -872,9 +881,12 @@ TEST_CASE("Resume() is idempotent", "[jled]") {
     TestJLed jled(HalMock(1));
     jled.Blink(4, 4);
     jled.Update(0, nullptr);
-    jled.Pause(1);
-    jled.Resume(10);  // time_start_ = 10-1 = 9 (epoch)
-    jled.Resume(99);  // second call — must be no-op
+    TimeMock::set_millis(1);
+    jled.Pause();
+    TimeMock::set_millis(10);
+    jled.Resume();   // time_start_ = 10-1 = 9 (epoch)
+    TimeMock::set_millis(99);
+    jled.Resume();   // second call — must be no-op
     CHECK_FALSE(jled.IsPaused());
 
     // At t=11: elapsed = 11-9 = 2 → on-phase → 255
@@ -887,13 +899,15 @@ TEST_CASE("copy of paused JLed preserves pause state", "[jled]") {
     jled.Blink(4, 4);
     jled.Update(0, nullptr);
     jled.Update(2);
-    jled.Pause(2);  // time_start_ = 2-0 = 2 (elapsed=2 encoded)
+    TimeMock::set_millis(2);
+    jled.Pause();   // time_start_ = 2-0 = 2 (elapsed=2 encoded)
 
     TestJLed copy = jled;
     CHECK(copy.IsPaused());
 
     // Copy resumes correctly: time_start_ = 50-2 = 48 (epoch)
-    copy.Resume(50);
+    TimeMock::set_millis(50);
+    copy.Resume();
     // At t=51: elapsed = 51-48 = 3 → on-phase → 255
     CHECK(copy.Update(51));
     CHECK(copy.GetHal().Value() == 255);
@@ -903,7 +917,8 @@ TEST_CASE("Reset() clears pause state", "[jled]") {
     TestJLed jled(HalMock(1));
     jled.Blink(4, 4);
     jled.Update(0, nullptr);
-    jled.Pause(1);
+    TimeMock::set_millis(1);
+    jled.Pause();
     CHECK(jled.IsPaused());
 
     jled.Reset();

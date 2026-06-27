@@ -30,7 +30,7 @@ void loop() {
     if (button.isPressed()) {
         // when the button is pressed, stop the effect on led, but keep the LED
         // on with it's current brightness ...
-        led.Stop(JLed::KEEP_CURRENT);
+        led.Stop(jled::eIdleMode::KEEP_CURRENT);
     } else if (button.isReleased()) {
         // when the button is released, fade from the last brightness to 0
         led = JLed(LED_PIN).Fade(lastBrightness, 0, 1000);

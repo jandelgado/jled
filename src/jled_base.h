@@ -243,6 +243,8 @@ struct EvalStorage {
 // std::is_base_of without requiring a common virtual interface.
 class JLedBase {};
 
+enum class eIdleMode { TO_MIN_BRIGHTNESS = 0, FULL_OFF, KEEP_CURRENT };
+
 template <typename Hal, typename Clock, typename Brightness, typename Derived>
 class TJLed : public JLedBase {
  protected:
@@ -427,10 +429,9 @@ class TJLed : public JLedBase {
 
     // Stop current effect and turn LED immeadiately off. Further calls to
     // Update() will have no effect.
-    enum eStopMode { TO_MIN_BRIGHTNESS = 0, FULL_OFF, KEEP_CURRENT };
-    Derived& Stop(eStopMode mode = eStopMode::TO_MIN_BRIGHTNESS) {
-        if (mode != eStopMode::KEEP_CURRENT) {
-            Write(mode == eStopMode::FULL_OFF
+    Derived& Stop(eIdleMode mode = eIdleMode::TO_MIN_BRIGHTNESS) {
+        if (mode != eIdleMode::KEEP_CURRENT) {
+            Write(mode == eIdleMode::FULL_OFF
                       ? BrightnessTraits<Brightness>::kZeroBrightness
                       : minBrightness_);
         }
@@ -440,22 +441,7 @@ class TJLed : public JLedBase {
 
     bool IsRunning() const { return state_ != ST_STOPPED; }
 
-    void Pause(uint32_t t) {
-        if (bPaused_ || state_ == ST_STOPPED) return;
-        bPaused_ = true;
-        if (state_ != ST_INIT)
-            time_start_ = t - time_start_;  // encode elapsed_so_far in place
-        // ST_INIT: time_start_ is 0 and not yet meaningful; Update() resets it on resume
-    }
     void Pause() { Pause(Clock::millis()); }
-
-    void Resume(uint32_t t) {
-        if (!bPaused_) return;
-        bPaused_ = false;
-        if (state_ != ST_INIT)
-            time_start_ = t - time_start_;  // restore epoch: t - elapsed_so_far
-        // ST_INIT: Update() will set time_start_ fresh on next call
-    }
     void Resume() { Resume(Clock::millis()); }
 
     bool IsPaused() const { return bPaused_; }
@@ -563,12 +549,31 @@ class TJLed : public JLedBase {
     }
 
  protected:
+    void Pause(uint32_t t) {
+        if (bPaused_ || state_ == ST_STOPPED) return;
+        bPaused_ = true;
+        if (state_ != ST_INIT)
+            time_start_ = t - time_start_;  // encode elapsed_so_far in place
+        // ST_INIT: time_start_ is 0 and not yet meaningful; Update() resets it on resume
+    }
+
+    void Resume(uint32_t t) {
+        if (!bPaused_) return;
+        bPaused_ = false;
+        if (state_ != ST_INIT)
+            time_start_ = t - time_start_;  // restore epoch: t - elapsed_so_far
+        // ST_INIT: Update() will set time_start_ fresh on next call
+    }
+
     // test if time stored in last_update_time_ differs from provided timestamp.
     bool inline timeChangedSinceLastUpdate(uint32_t now) {
         return (now & 255) != last_update_time_;
     }
 
     void trackLastUpdateTime(uint32_t t) { last_update_time_ = (t & 255); }
+
+    template <size_t N> friend struct TJLedAny;
+    friend class TJLedRef;
 
  public:
     // Number of bits used to control brightness with Min/MaxBrightness().
@@ -680,14 +685,19 @@ class TJLedGroup {
     bool Update(uint32_t t);
     void Reset();
     void Stop();
-    void Pause(uint32_t t);
     void Pause();
-    void Resume(uint32_t t);
     void Resume();
 
     TJLedGroup(eMode mode, AnyType* leds, size_t n)
         : mode_(mode), leds_(leds), n_(static_cast<uint8_t>(n > 255 ? 255 : n)) {
     }
+
+ protected:
+    void Pause(uint32_t t);
+    void Resume(uint32_t t);
+
+    template <size_t N> friend struct TJLedAny;
+    friend class TJLedRef;
 
  private:
     bool UpdateParallel(uint32_t t);
@@ -779,11 +789,14 @@ struct TJLedAny {
 
     ~TJLedAny() { vtable_->dtor(buf_); }
 
+ protected:
     bool Update(uint32_t t) { return vtable_->update(buf_, t); }
     void Reset()            { vtable_->reset(buf_); }
     void Stop()             { vtable_->stop(buf_); }
     void Pause(uint32_t t)  { vtable_->pause(buf_, t); }
     void Resume(uint32_t t) { vtable_->resume(buf_, t); }
+
+    template <typename Clock, typename AnyType> friend class TJLedGroup;
 };
 
 // TJLedRef is a non-owning type-erased reference to any LED or group.
@@ -825,11 +838,14 @@ class TJLedRef {
     TJLedRef(TJLedGroup<Clock, AnyType>* ptr)  // NOLINT
         : obj_(ptr), vtable_(VtableFor<TJLedGroup<Clock, AnyType>>()) {}
 
+ protected:
     bool Update(uint32_t t) { return vtable_->update(obj_, t); }
     void Reset()            { vtable_->reset(obj_); }
     void Stop()             { vtable_->stop(obj_); }
     void Pause(uint32_t t)  { vtable_->pause(obj_, t); }
     void Resume(uint32_t t) { vtable_->resume(obj_, t); }
+
+    template <typename Clock, typename AnyType> friend class TJLedGroup;
 };
 
 // TJLedGroup method bodies, defined after TJLedAny is complete.

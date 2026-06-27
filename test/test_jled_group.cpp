@@ -250,18 +250,18 @@ TEST_CASE("JLedAny copy constructor copies all state", "[jled_group]") {
 
     SECTION("copy of JLed") {
         TestJLedAny src(TestJLed(HalMock(1)).UserFunc(&eval).Repeat(1));
-        TestJLedAny dst(src);
+        TestJLedAny arr[] = {src};
         TimeMock::set_millis(0);
-        dst.Update(0);
+        TestJLedGroupAny::Parallel(arr).Update(0);
         REQUIRE(HalMock::PinValue(1) == 255);
     }
 
     SECTION("copy of JLedGroup") {
         TestJLedAny led_arr[] = {TestJLed(HalMock(1)).UserFunc(&eval).Repeat(1)};
         TestJLedAny src(TestJLedGroupAny::Parallel(led_arr));
-        TestJLedAny dst(src);
+        TestJLedAny arr[] = {src};
         TimeMock::set_millis(0);
-        dst.Update(0);
+        TestJLedGroupAny::Parallel(arr).Update(0);
         REQUIRE(HalMock::PinValue(1) == 255);
     }
 }
@@ -344,7 +344,8 @@ TEST_CASE("Pause() propagates to all children in parallel group", "[jled_group]"
     TimeMock::set_millis(0);
     REQUIRE(group.Update());  // t=0: brightness 200, 150
 
-    group.Pause(1);
+    TimeMock::set_millis(1);
+    group.Pause();
 
     // Updates while paused must return true and not change brightness
     TimeMock::set_millis(1);
@@ -371,8 +372,10 @@ TEST_CASE("Resume() continues parallel group from freeze point", "[jled_group]")
     REQUIRE(group.Update());
 
     // Pause at t=0, resume at t=50 — children should see elapsed=1 at t=51
-    group.Pause(0);
-    group.Resume(50);
+    TimeMock::set_millis(0);
+    group.Pause();
+    TimeMock::set_millis(50);
+    group.Resume();
 
     TimeMock::set_millis(51);
     REQUIRE(!group.Update());  // elapsed=1, final tick, group done
@@ -391,7 +394,8 @@ TEST_CASE("Pause() freezes sequential group on current LED", "[jled_group]") {
     TimeMock::set_millis(0);
     REQUIRE(group.Update());  // LED1 at t_cycle=0 -> 200
 
-    group.Pause(1);
+    TimeMock::set_millis(1);
+    group.Pause();
 
     // Updates while paused: group returns true, LED1 stays at 200, LED2 not started
     TimeMock::set_millis(1);
@@ -404,7 +408,8 @@ TEST_CASE("Pause() freezes sequential group on current LED", "[jled_group]") {
     REQUIRE(HalMock::PinValue(1) == 200);
 
     // Resume: LED1 continues from t_cycle=0 -- next tick it finishes (t_cycle=1 -> 100)
-    group.Resume(10);
+    TimeMock::set_millis(10);
+    group.Resume();
     TimeMock::set_millis(11);
     REQUIRE(group.Update());   // LED1 finishes, LED2 starts
     REQUIRE(HalMock::PinValue(1) == 100);
