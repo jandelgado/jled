@@ -679,6 +679,8 @@ class TJLedGroup {
     bool Update(uint32_t t);
     void Reset();
     void Stop();
+    void Pause(uint32_t t);
+    void Resume(uint32_t t);
 
     TJLedGroup(eMode mode, AnyType* leds, size_t n)
         : mode_(mode), leds_(leds), n_(static_cast<uint8_t>(n > 255 ? 255 : n)) {
@@ -714,6 +716,8 @@ struct TJLedAny {
         bool (*update)(void*, uint32_t);
         void (*reset)(void*);
         void (*stop)(void*);
+        void (*pause)(void*, uint32_t);
+        void (*resume)(void*, uint32_t);
         void (*copy)(void* dst, const void* src);
         void (*dtor)(void*);
     };
@@ -727,6 +731,8 @@ struct TJLedAny {
             [](void* p, uint32_t t) -> bool { return static_cast<T*>(p)->Update(t); },
             [](void* p) { static_cast<T*>(p)->Reset(); },
             [](void* p) { static_cast<T*>(p)->Stop(); },
+            [](void* p, uint32_t t) { static_cast<T*>(p)->Pause(t); },
+            [](void* p, uint32_t t) { static_cast<T*>(p)->Resume(t); },
             [](void* dst, const void* src) {
                 new (dst) T(*static_cast<const T*>(src));
             },
@@ -773,6 +779,8 @@ struct TJLedAny {
     bool Update(uint32_t t) { return vtable_->update(buf_, t); }
     void Reset()            { vtable_->reset(buf_); }
     void Stop()             { vtable_->stop(buf_); }
+    void Pause(uint32_t t)  { vtable_->pause(buf_, t); }
+    void Resume(uint32_t t) { vtable_->resume(buf_, t); }
 };
 
 // TJLedRef is a non-owning type-erased reference to any LED or group.
@@ -784,6 +792,8 @@ class TJLedRef {
         bool (*update)(void*, uint32_t);
         void (*reset)(void*);
         void (*stop)(void*);
+        void (*pause)(void*, uint32_t);
+        void (*resume)(void*, uint32_t);
     };
     void*          obj_;
     const Vtable*  vtable_;
@@ -793,7 +803,9 @@ class TJLedRef {
         static const Vtable kVt = {
             [](void* p, uint32_t t) -> bool { return static_cast<T*>(p)->Update(t); },
             [](void* p) { static_cast<T*>(p)->Reset(); },
-            [](void* p) { static_cast<T*>(p)->Stop(); }
+            [](void* p) { static_cast<T*>(p)->Stop(); },
+            [](void* p, uint32_t t) { static_cast<T*>(p)->Pause(t); },
+            [](void* p, uint32_t t) { static_cast<T*>(p)->Resume(t); }
         };
         return &kVt;
     }
@@ -813,6 +825,8 @@ class TJLedRef {
     bool Update(uint32_t t) { return vtable_->update(obj_, t); }
     void Reset()            { vtable_->reset(obj_); }
     void Stop()             { vtable_->stop(obj_); }
+    void Pause(uint32_t t)  { vtable_->pause(obj_, t); }
+    void Resume(uint32_t t) { vtable_->resume(obj_, t); }
 };
 
 // TJLedGroup method bodies, defined after TJLedAny is complete.
@@ -883,6 +897,17 @@ void TJLedGroup<Clock, AnyType>::Stop() {
     for (auto i = 0u; i < n_; i++) {
         leds_[i].Stop();
     }
+}
+
+// Pause and Resume are stubbed here; Task 3 will implement the fan-out logic.
+template <typename Clock, typename AnyType>
+void TJLedGroup<Clock, AnyType>::Pause(uint32_t t) {
+    (void)t;
+}
+
+template <typename Clock, typename AnyType>
+void TJLedGroup<Clock, AnyType>::Resume(uint32_t t) {
+    (void)t;
 }
 
 };  // namespace jled
