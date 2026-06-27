@@ -898,3 +898,18 @@ TEST_CASE("copy of paused JLed preserves pause state", "[jled]") {
     CHECK(copy.Update(51));
     CHECK(copy.GetHal().Value() == 255);
 }
+
+TEST_CASE("Reset() clears pause state", "[jled]") {
+    TestJLed jled(HalMock(1));
+    jled.Blink(4, 4);
+    jled.Update(0, nullptr);
+    jled.Pause(1);
+    CHECK(jled.IsPaused());
+
+    jled.Reset();
+    CHECK_FALSE(jled.IsPaused());
+
+    // After Reset, Update should start the effect normally
+    CHECK(jled.Update(10, nullptr));
+    CHECK(jled.GetHal().Value() == 255);  // t_cycle=0, on-phase
+}

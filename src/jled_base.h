@@ -464,6 +464,7 @@ class TJLed : public JLedBase {
     Derived& Reset() {
         time_start_ = 0;
         last_update_time_ = 0;
+        bPaused_ = false;
         state_ = ST_INIT;
         return static_cast<Derived&>(*this);
     }
