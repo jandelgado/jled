@@ -398,15 +398,13 @@ TEST_CASE(
     }
 }
 
-TEST_CASE("Forever flag is initially set to false", "[jled]") {
-    TestJLed jled(1);
-    CHECK_FALSE(jled.IsForever());
-}
-
-TEST_CASE("Forever flag is set by call to Forever()", "[jled]") {
-    TestJLed jled(1);
-    jled.Forever();
-    CHECK(jled.IsForever());
+TEST_CASE("Forever flag", "[jled]") {
+    SECTION("is initially false") {
+        CHECK_FALSE(TestJLed(1).IsForever());
+    }
+    SECTION("is set by Forever()") {
+        CHECK(TestJLed(1).Forever().IsForever());
+    }
 }
 
 TEST_CASE("dont evaluate twice during one time tick", "[jled]") {
@@ -481,89 +479,49 @@ TEST_CASE("Stop() stops the effect", "[jled]") {
     CHECK(!jled.IsRunning());
 }
 
-TEST_CASE("default Stop() sets the brightness to minBrightness", "[jled]") {
+TEST_CASE("Stop() idle modes", "[jled]") {
+    using P = std::pair<jled::eIdleMode, int>;
+    auto tc = GENERATE(values<P>({
+        {jled::eIdleMode::TO_MIN_BRIGHTNESS, 50},
+        {jled::eIdleMode::FULL_OFF,          0},
+        {jled::eIdleMode::KEEP_CURRENT,      130},
+    }));
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{100, 0});
     TestJLed jled = TestJLed(10).UserFunc(&eval).MinBrightness(50);
-
     jled.Update();
-    REQUIRE(130 ==
-            static_cast<int>(jled.GetHal().Value()));  // 100 scaled to [50,255]
+    REQUIRE(130 == static_cast<int>(jled.GetHal().Value()));  // 100 scaled to [50,255]
+    jled.Stop(tc.first);
+    CHECK(tc.second == static_cast<int>(jled.GetHal().Value()));
+}
 
+TEST_CASE("Stop() default mode is TO_MIN_BRIGHTNESS", "[jled]") {
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{100, 0});
+    TestJLed jled = TestJLed(10).UserFunc(&eval).MinBrightness(50);
+    jled.Update();
     jled.Stop();
     CHECK(50 == static_cast<int>(jled.GetHal().Value()));
 }
 
-TEST_CASE("Stop(FULL_OFF) sets the brightness to 0", "[jled]") {
+TEST_CASE("Pause() idle modes", "[jled]") {
+    using P = std::pair<jled::eIdleMode, int>;
+    auto tc = GENERATE(values<P>({
+        {jled::eIdleMode::TO_MIN_BRIGHTNESS, 50},
+        {jled::eIdleMode::FULL_OFF,          0},
+        {jled::eIdleMode::KEEP_CURRENT,      130},
+    }));
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{100, 0});
     TestJLed jled = TestJLed(10).UserFunc(&eval).MinBrightness(50);
-
     jled.Update();
-    REQUIRE(130 ==
-            static_cast<int>(jled.GetHal().Value()));  // 100 scaled to [50,255]
-
-    jled.Stop(jled::eIdleMode::FULL_OFF);
-    CHECK(0 == static_cast<int>(jled.GetHal().Value()));
-}
-
-TEST_CASE("Stop(KEEP_CURRENT) keeps the last brightness level", "[jled]") {
-    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{100, 101});
-    TestJLed jled = TestJLed(10).UserFunc(&eval).MinBrightness(50);
-
-    jled.Update();
-    REQUIRE(130 ==
-            static_cast<int>(jled.GetHal().Value()));  // 100 scaled to [50,255]
-
-    jled.Stop(jled::eIdleMode::KEEP_CURRENT);
-    CHECK(130 == static_cast<int>(jled.GetHal().Value()));
-}
-
-TEST_CASE("Pause(FULL_OFF) sets brightness to 0", "[jled]") {
-    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{100, 0});
-    TestJLed jled = TestJLed(10).UserFunc(&eval).MinBrightness(50);
-
-    jled.Update();
-    REQUIRE(130 ==
-            static_cast<int>(jled.GetHal().Value()));  // 100 scaled to [50,255]
-
+    REQUIRE(130 == static_cast<int>(jled.GetHal().Value()));  // 100 scaled to [50,255]
     TimeMock::set_millis(1);
-    jled.Pause(jled::eIdleMode::FULL_OFF);
-    CHECK(0 == static_cast<int>(jled.GetHal().Value()));
-}
-
-TEST_CASE("Pause(KEEP_CURRENT) keeps the last brightness level", "[jled]") {
-    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{100, 0});
-    TestJLed jled = TestJLed(10).UserFunc(&eval).MinBrightness(50);
-
-    jled.Update();
-    REQUIRE(130 ==
-            static_cast<int>(jled.GetHal().Value()));  // 100 scaled to [50,255]
-
-    TimeMock::set_millis(1);
-    jled.Pause(jled::eIdleMode::KEEP_CURRENT);
-    CHECK(130 == static_cast<int>(jled.GetHal().Value()));
-}
-
-TEST_CASE("Pause(TO_MIN_BRIGHTNESS) sets brightness to minimum", "[jled]") {
-    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{100, 0});
-    TestJLed jled = TestJLed(10).UserFunc(&eval).MinBrightness(50);
-
-    jled.Update();
-    REQUIRE(130 ==
-            static_cast<int>(jled.GetHal().Value()));  // 100 scaled to [50,255]
-
-    TimeMock::set_millis(1);
-    jled.Pause(jled::eIdleMode::TO_MIN_BRIGHTNESS);
-    CHECK(50 == static_cast<int>(jled.GetHal().Value()));
+    jled.Pause(tc.first);
+    CHECK(tc.second == static_cast<int>(jled.GetHal().Value()));
 }
 
 TEST_CASE("Pause() default mode is TO_MIN_BRIGHTNESS", "[jled]") {
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{100, 0});
     TestJLed jled = TestJLed(10).UserFunc(&eval).MinBrightness(50);
-
     jled.Update();
-    REQUIRE(130 ==
-            static_cast<int>(jled.GetHal().Value()));  // 100 scaled to [50,255]
-
     TimeMock::set_millis(1);
     jled.Pause();
     CHECK(50 == static_cast<int>(jled.GetHal().Value()));
@@ -679,27 +637,19 @@ TEST_CASE("Changing the effect resets object and starts over", "[jled]") {
     check_led(&jled, expected);
 }
 
-TEST_CASE("Max brightness level is initialized to 255", "[jled]") {
-    TestJLed jled(10);
-    CHECK(255 == jled.MaxBrightness());
-}
-
-TEST_CASE("Previously max brightness level can be read back", "[jled]") {
-    TestJLed jled(10);
-    jled.MaxBrightness(100);
-    CHECK(100 == jled.MaxBrightness());
-}
-
-TEST_CASE("Min brightness level is initialized to 0", "[jled]") {
-    TestJLed jled(10);
-    CHECK(0 == jled.MinBrightness());
-}
-
-TEST_CASE("Previously set min brightness level can be read back", "[jled]") {
-    TestJLed jled(10);
-
-    jled.MinBrightness(100);
-    CHECK(100 == jled.MinBrightness());
+TEST_CASE("brightness level accessors", "[jled]") {
+    SECTION("MaxBrightness is initialized to 255") {
+        CHECK(255 == TestJLed(10).MaxBrightness());
+    }
+    SECTION("MaxBrightness can be set and read back") {
+        CHECK(100 == TestJLed(10).MaxBrightness(100).MaxBrightness());
+    }
+    SECTION("MinBrightness is initialized to 0") {
+        CHECK(0 == TestJLed(10).MinBrightness());
+    }
+    SECTION("MinBrightness can be set and read back") {
+        CHECK(100 == TestJLed(10).MinBrightness(100).MinBrightness());
+    }
 }
 
 TEST_CASE(
@@ -803,22 +753,19 @@ TEST_CASE("EvalStorage dispatches IsSet/Period/Eval to the active evaluator",
     }
 }
 
-TEST_CASE("scaling a value with factor 0 scales it to 0", "[scale8]") {
-    CHECK(0 == jled::scale8(0, 0));
-    CHECK(0 == jled::scale8(255, 0));
-}
-
-TEST_CASE("scaling a value with factor 127 halfes the value", "[scale8]") {
-    CHECK(0 == jled::scale8(0, 128));
-    CHECK(50 == jled::scale8(100, 128));
-    CHECK(128 == jled::scale8(255, 128));
-}
-
-TEST_CASE("scaling a value with factor 255 returns original value",
-          "[scale8]") {
-    CHECK(0 == jled::scale8(0, 255));
-    CHECK(127 == jled::scale8(127, 255));
-    CHECK(255 == jled::scale8(255, 255));
+TEST_CASE("scale8", "[scale8]") {
+    struct Case { uint8_t val; uint8_t factor; uint8_t expected; };
+    auto tc = GENERATE(values<Case>({
+        {0,   0,   0},
+        {255, 0,   0},
+        {0,   128, 0},
+        {100, 128, 50},
+        {255, 128, 128},
+        {0,   255, 0},
+        {127, 255, 127},
+        {255, 255, 255},
+    }));
+    CHECK(tc.expected == jled::scale8(tc.val, tc.factor));
 }
 
 TEST_CASE("lerp8by8 interpolates a byte into the given interval",
@@ -841,7 +788,7 @@ TEST_CASE("Pause() during ST_RUNNING sets LED to minBrightness", "[jled]") {
     // Run to t=2 (mid-blink, brightness=255)
     jled.Update(0, nullptr);
     jled.Update(2);
-    const auto brightness_at_pause = jled.GetHal().Value();  // 255
+    CHECK(255 == jled.GetHal().Value());  // mid-blink = on = 255
 
     TimeMock::set_millis(2);
     jled.Pause();
