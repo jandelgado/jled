@@ -592,6 +592,13 @@ class TJLed : public JLedBase {
                            ST_RUNNING = 2,
                            ST_IN_DELAY_AFTER_PHASE = 3 };
 
+    // state_ and bPaused_ model two orthogonal dimensions. state_ tracks the
+    // progression through the effect (init -> running <-> delay-after ->
+    // stopped), while bPaused_ records whether that progression is currently
+    // frozen. Keeping pause as a separate flag preserves the underlying state_
+    // across a pause/resume cycle (needed to continue where we left off) and
+    // avoids the combinatorial blow-up of state_ x paused that a dedicated
+    // ST_PAUSED state would require (ST_INIT_PAUSED, ST_RUNNING_PAUSED, ...).
     uint8_t state_ : 2;  // stored as uint8_t to avoid GCC warning about enum bit-field signedness
     uint8_t bLowActive_ : 1;
     uint8_t bPaused_ : 1;
