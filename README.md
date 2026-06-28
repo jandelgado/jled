@@ -619,8 +619,9 @@ automatically. A runtime-size overload is also available:
   running, `false` when it has finished.
 - `Repeat(n)` - plays the group `n` times. Default is 1.
 - `Forever()` - plays the group indefinitely.
-- `Stop()` - stops all elements immediately. Further calls to `Update()`
-  have no effect.
+- `Stop(mode = jled::eIdleMode::TO_MIN_BRIGHTNESS)` - stops all elements
+  immediately. `mode` controls the final brightness of each LED, identical to
+  [`JLed::Stop(mode)`](#immediate-stop). Further calls to `Update()` have no effect.
 - `Reset()` - resets all elements and restarts the group from the beginning.
 
 `JLedAny` has a fixed-size internal buffer sized to hold `JLed`, `JLedHD`,

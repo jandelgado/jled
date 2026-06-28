@@ -208,6 +208,49 @@ TEST_CASE("nested JLedGroup within JLedGroup", "[jled_group]") {
     REQUIRE(HalMock::PinValue(2) == 25);
 }
 
+TEST_CASE("Stop(FULL_OFF) sets group LEDs to 0 regardless of MinBrightness",
+          "[jled_group]") {
+    HalMock::Init();
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
+    TestJLedAny leds[] = {
+        TestJLed(HalMock(1)).UserFunc(&eval).Repeat(1).MinBrightness(50)};
+    auto group = TestJLedGroupAny::Parallel(leds);
+
+    TimeMock::set_millis(0);
+    REQUIRE(group.Update());
+
+    group.Stop(jled::eIdleMode::FULL_OFF);
+    REQUIRE(HalMock::PinValue(1) == 0);
+}
+
+TEST_CASE("Stop(TO_MIN_BRIGHTNESS) sets group LEDs to minBrightness", "[jled_group]") {
+    HalMock::Init();
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
+    TestJLedAny leds[] = {
+        TestJLed(HalMock(1)).UserFunc(&eval).Repeat(1).MinBrightness(50)};
+    auto group = TestJLedGroupAny::Parallel(leds);
+
+    TimeMock::set_millis(0);
+    REQUIRE(group.Update());
+
+    group.Stop(jled::eIdleMode::TO_MIN_BRIGHTNESS);
+    REQUIRE(HalMock::PinValue(1) == 50);
+}
+
+TEST_CASE("Stop(KEEP_CURRENT) leaves group LEDs at current brightness", "[jled_group]") {
+    HalMock::Init();
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
+    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval).Repeat(1)};
+    auto group = TestJLedGroupAny::Parallel(leds);
+
+    TimeMock::set_millis(0);
+    REQUIRE(group.Update());
+    REQUIRE(HalMock::PinValue(1) == 200);
+
+    group.Stop(jled::eIdleMode::KEEP_CURRENT);
+    REQUIRE(HalMock::PinValue(1) == 200);
+}
+
 TEST_CASE("Stop propagates to nested group and inner LEDs", "[jled_group]") {
     HalMock::Init();
     auto outer_eval = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
