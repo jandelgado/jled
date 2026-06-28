@@ -436,6 +436,7 @@ class TJLed : public JLedBase {
                       : minBrightness_);
         }
         state_ = ST_STOPPED;
+        bPaused_ = false;
         return static_cast<Derived&>(*this);
     }
 

@@ -954,3 +954,18 @@ TEST_CASE("Reset() clears pause state", "[jled]") {
     CHECK(jled.Update(10, nullptr));
     CHECK(jled.GetHal().Value() == 255);  // t_cycle=0, on-phase
 }
+
+TEST_CASE("Stop() clears pause state", "[jled]") {
+    TestJLed jled(HalMock(1));
+    jled.Blink(4, 4);
+    jled.Update(0, nullptr);
+    TimeMock::set_millis(1);
+    jled.Pause();
+    REQUIRE(jled.IsPaused());
+
+    jled.Stop();
+    // Stopping a paused LED must leave it stopped, not paused.
+    CHECK_FALSE(jled.IsPaused());
+    // Stopped LED reports not-running, even though it was paused before.
+    CHECK_FALSE(jled.Update(6));
+}
