@@ -2,14 +2,12 @@
 // Copyright (c) 2017-2022 Jan Delgado <jdelgado[at]gmx.net>
 //
 #include "esp_timer.h"  // NOLINT
+#include <cassert>
+#include "../esp32_mock.h"  // NOLINT
 
-int64_t esp32_mock_time_;
+extern Esp32State* gState_;
 
 int64_t esp_timer_get_time() {
-    return esp32_mock_time_;
+    assert(gState_);
+    return gState_->timer_us;
 }
-
-void esp32_mock_set_esp_timer(int64_t t) {
-    esp32_mock_time_ = t;
-}
-

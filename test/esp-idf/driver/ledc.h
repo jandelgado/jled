@@ -96,27 +96,16 @@ typedef struct {
 /* mocked versions of APIs used by JLed */
 
 esp_err_t ledc_channel_config(const ledc_channel_config_t* ledc_conf);
-// returns last values passed to ledc_timer_config
-ledc_channel_config_t esp32_mock_get_ledc_channel_config_args();
 
 esp_err_t ledc_timer_config(const ledc_timer_config_t* timer_conf);
-// returns last values passed to ledc_timer_config
-ledc_timer_config_t esp32_mock_get_ledc_timer_config_args();
 
 esp_err_t ledc_update_duty(ledc_mode_t speed_mode, ledc_channel_t channel);
 typedef struct {
     ledc_mode_t speed_mode;
 } esp32_mock_ledc_update_duty_args;
-// returns last values passed to ledc_set_duty
-esp32_mock_ledc_update_duty_args esp32_mock_get_ledc_update_duty_args(ledc_channel_t channel);
 
 esp_err_t ledc_set_duty(ledc_mode_t speed_mode, ledc_channel_t channel, uint32_t duty);
 typedef struct {
     ledc_mode_t speed_mode;
     uint32_t duty;
 } esp32_mock_ledc_set_duty_args;
-// returns last values passed to ledc_set_duty
-esp32_mock_ledc_set_duty_args esp32_mock_get_ledc_set_duty_args(ledc_channel_t channel);
-
-void esp32_mock_init();
-

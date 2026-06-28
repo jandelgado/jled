@@ -5,6 +5,3 @@
 #include <stdint.h>
 
 int64_t esp_timer_get_time();
-
-void esp32_mock_set_esp_timer(int64_t t);
-

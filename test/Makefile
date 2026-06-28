@@ -21,6 +21,7 @@ TEST_JLED_SRC=Arduino.cpp test_jled.cpp test_main.cpp ../src/jled_base.cpp ${CAT
 TEST_JLED_OBJECTS=$(TEST_JLED_SRC:.cpp=.o)
 
 TEST_ESP32_SRC=esp-idf/esp_timer.cpp esp-idf/driver/ledc.cpp \
+			   esp32_mock.cpp \
 			   test_esp32_hal.cpp test_main.cpp ${CATCH}
 TEST_ESP32_OBJECTS=$(TEST_ESP32_SRC:.cpp=.o)
 
