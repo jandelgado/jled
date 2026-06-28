@@ -108,6 +108,8 @@ void loop() {
 - [JLed 5.0 migration guide](#jled-50-migration-guide)
   - [`eStopMode` renamed to `eIdleMode`](#estopmode-renamed-to-eidlemode)
   - [JLedSequence to JLedGroup migration](#jledsequence-to-jledgroup-migration)
+  - [Custom brightness evaluators: `BrightnessEvaluator` is now a template](#custom-brightness-evaluators-brightnessevaluator-is-now-a-template)
+  - [Custom HALs and `TJLed` subclasses: Clock and Brightness are now explicit](#custom-hals-and-tjled-subclasses-clock-and-brightness-are-now-explicit)
 - [FAQ](#faq)
   - [How do I check if a JLed object is still being updated?](#how-do-i-check-if-a-jled-object-is-still-being-updated)
   - [How do I restart an effect?](#how-do-i-restart-an-effect)
@@ -999,6 +1001,50 @@ auto seq = JLedGroup::Sequential(leds);  // sequential
 ```
 
 Reason: `JLedGroup` is a more capable replacement that supports mixing different LED types, nesting groups inside other groups, and applying repeat and pause/resume control to the whole group at once. The parallel and sequential modes are now explicit at the point of creation.
+
+#### Custom brightness evaluators: `BrightnessEvaluator` is now a template
+
+`BrightnessEvaluator` and the return type of `Eval()` are now parameterised by the brightness type:
+
+```cpp
+// before
+class MyEffect : public jled::BrightnessEvaluator {
+    uint8_t Eval(uint32_t t) const override { ... }
+};
+
+// after
+template<typename Brightness>
+class MyEffect : public jled::BrightnessEvaluator<Brightness> {
+    Brightness Eval(uint32_t t) const override { ... }
+};
+```
+
+See the [user_func](examples/user_func) and [morse](examples/morse) examples for complete implementations.
+
+Reason: high-resolution effects (`JLedHD`) are a zero-cost abstraction built on a brightness type template parameter. Parameterising `BrightnessEvaluator` lets the same custom effect work at any resolution without runtime overhead or virtual dispatch.
+
+#### Custom HALs and `TJLed` subclasses: Clock and Brightness are now explicit
+
+The HAL interface no longer includes a `millis()` method. Time is now provided by a separate clock class with a single `static uint32_t millis()` method. `TJLed` gained two new explicit template parameters — `Clock` and `Brightness` — so the full signature changed from `TJLed<Hal, Derived>` to `TJLed<Hal, Clock, Brightness, Derived>`:
+
+```cpp
+// before
+class CustomHal {
+    void analogWrite(uint8_t val) const;
+    uint32_t millis() const;  // remove this
+};
+class CustomJLed : public jled::TJLed<CustomHal, CustomJLed> { ... };
+
+// after
+class CustomHal {
+    void analogWrite(uint8_t val) const;  // millis() gone
+};
+class CustomJLed : public jled::TJLed<CustomHal, jled::JLedClockType, uint8_t, CustomJLed> { ... };
+```
+
+See the [custom_hal](examples/custom_hal) example for a complete implementation.
+
+Reason: a platform may have multiple PWM HALs (for example the built-in one plus an external PCA9685 driver) but only a single clock. Separating them avoids duplicating time logic across HALs. Making the brightness type explicit enables zero-cost high-resolution variants without any runtime overhead.
 
 ## FAQ
 
