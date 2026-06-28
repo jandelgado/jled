@@ -12,6 +12,19 @@ using PinName = uint8_t;
 
 constexpr auto kUninitializedPin = 255;
 constexpr auto kUninitialized = -1.;
+constexpr auto MBED_PINS = 32;
+
+struct MbedState {
+    uint32_t us_ticks               = 0;
+    float    pin_state[MBED_PINS];          // initialized to kUninitialized by mbedMockSetInstance
+    uint16_t dtor_called[MBED_PINS] = {};
+
+    void     setUsTicks(uint32_t t)           { us_ticks = t; }
+    float    getPinState(uint8_t p)   const   { return pin_state[p]; }
+    uint16_t getDtorCalled(uint8_t p) const   { return dtor_called[p]; }
+};
+
+void mbedMockSetInstance(MbedState* state);
 
 uint32_t us_ticker_read();
 
@@ -23,11 +36,6 @@ class PwmOut {
     ~PwmOut();
     void write(float val);
 };
-
-void mbedMockInit();
-void mbedMockSetUsTicks(uint32_t ticks);
-float mbedMockGetPinState(uint8_t pin);
-uint16_t mbedMockGetDtorCalled(uint8_t pin);
 
 namespace Kernel {
 struct Clock {

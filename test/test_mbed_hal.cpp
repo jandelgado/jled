@@ -7,92 +7,86 @@
 
 using jled::MbedHal;
 
-TEST_CASE("mbed_hal outputs 0 as 0 to the given pin using PwmOut (8-bit)",
-          "[mbed_hal]") {
-    mbedMockInit();
+struct MbedMockFixture {
+    MbedState mock{};
+    MbedMockFixture()  { mbedMockSetInstance(&mock); }
+    ~MbedMockFixture() { mbedMockSetInstance(nullptr); }
+};
+
+TEST_CASE_METHOD(MbedMockFixture, "MbedHal<> analogWrite 8-bit", "[mbed_hal]") {
     constexpr auto kPin = 5;
     auto hal = MbedHal<>(kPin);
 
-    hal.analogWrite<uint8_t>(0);
+    SECTION("0 outputs 0") {
+        hal.analogWrite<uint8_t>(0);
+        REQUIRE(mock.getPinState(kPin) == 0.);
+    }
 
-    REQUIRE(mbedMockGetPinState(kPin) == 0.);
+    SECTION("255 outputs 1.0") {
+        hal.analogWrite<uint8_t>(255);
+        REQUIRE(mock.getPinState(kPin) == 1.);
+    }
+
+    SECTION("127 outputs scaled value") {
+        hal.analogWrite<uint8_t>(127);
+        REQUIRE_THAT(mock.getPinState(kPin),
+                     Catch::Matchers::WithinAbs(127 / 255., 0.0001));
+    }
 }
 
-TEST_CASE("mbed_hal outputs 255 as 1.0 to the given pin using PwmOut (8-bit)",
-          "[mbed_hal]") {
-    mbedMockInit();
-    constexpr auto kPin = 5;
-    auto hal = MbedHal<>(kPin);
-
-    hal.analogWrite<uint8_t>(255);
-
-    REQUIRE(mbedMockGetPinState(kPin) == 1.);
-}
-
-TEST_CASE("mbed_hal writes scaled value to the given pin using PwmOut (8-bit)",
-          "[mbed_hal]") {
-    mbedMockInit();
-    constexpr auto kPin = 5;
-    auto hal = MbedHal<>(kPin);
-
-    hal.analogWrite<uint8_t>(127);
-
-    REQUIRE_THAT(mbedMockGetPinState(kPin),
-                 Catch::Matchers::WithinAbs(127 / 255., 0.0001));
-}
-
-TEST_CASE("mbed_hal outputs 16-bit values correctly (16-bit)",
-          "[mbed_hal]") {
-    mbedMockInit();
+TEST_CASE_METHOD(MbedMockFixture, "MbedHal<16> analogWrite 16-bit", "[mbed_hal]") {
     constexpr auto kPin = 5;
     auto hal = MbedHal<16>(kPin);
 
-    hal.analogWrite<uint16_t>(0);
-    REQUIRE(mbedMockGetPinState(kPin) == 0.);
+    SECTION("0 outputs 0") {
+        hal.analogWrite<uint16_t>(0);
+        REQUIRE(mock.getPinState(kPin) == 0.);
+    }
 
-    hal.analogWrite<uint16_t>(65535);
-    REQUIRE(mbedMockGetPinState(kPin) == 1.);
+    SECTION("max outputs 1.0") {
+        hal.analogWrite<uint16_t>(65535);
+        REQUIRE(mock.getPinState(kPin) == 1.);
+    }
 
-    hal.analogWrite<uint16_t>(32768);
-    REQUIRE_THAT(mbedMockGetPinState(kPin),
-                 Catch::Matchers::WithinAbs(32768 / 65535., 0.0001));
+    SECTION("mid outputs scaled value") {
+        hal.analogWrite<uint16_t>(32768);
+        REQUIRE_THAT(mock.getPinState(kPin),
+                     Catch::Matchers::WithinAbs(32768 / 65535., 0.0001));
+    }
 }
 
-TEST_CASE("mbed_hal assignment operator uninitializes PwmOut", "[mbed_hal]") {
-    mbedMockInit();
+TEST_CASE_METHOD(MbedMockFixture, "MbedHal<> copy and assignment", "[mbed_hal]") {
     constexpr auto kPin1 = 5;
     constexpr auto kPin2 = 6;
-    auto hal1 = MbedHal<>(kPin1);
-    auto hal2 = MbedHal<>(kPin2);
-    hal1.analogWrite<uint16_t>(65535);  // force lazy initilalization of internal PwmOut
-                                        //
-    REQUIRE(mbedMockGetDtorCalled(kPin1) == 0);
-    REQUIRE(mbedMockGetDtorCalled(kPin2) == 0);
-    hal1 = hal2;
-    REQUIRE(mbedMockGetDtorCalled(kPin1) == 1);
-    REQUIRE(mbedMockGetDtorCalled(kPin2) == 0);
-}
 
-TEST_CASE("mbed_hal copy constructor writes to correct pin", "[mbed_hal]") {
-    mbedMockInit();
-    constexpr auto kPin = 5;
-    auto hal = MbedHal<>(kPin);
-    auto copy = hal;
-    copy.analogWrite<uint8_t>(255);
-    REQUIRE(mbedMockGetPinState(kPin) == 1.);
-}
+    SECTION("assignment uninitializes old PwmOut") {
+        auto hal1 = MbedHal<>(kPin1);
+        auto hal2 = MbedHal<>(kPin2);
+        hal1.analogWrite<uint16_t>(65535);  // force lazy initialization of internal PwmOut
 
-TEST_CASE("mbed_hal copy assignment writes to correct pin", "[mbed_hal]") {
-    mbedMockInit();
-    constexpr auto kPin = 5;
-    MbedHal<> hal(kPin);
-    MbedHal<> other(0);
-    other = hal;
-    other.analogWrite<uint8_t>(255);
-    REQUIRE(mbedMockGetPinState(kPin) == 1.);
-}
+        REQUIRE(mock.getDtorCalled(kPin1) == 0);
+        REQUIRE(mock.getDtorCalled(kPin2) == 0);
+        hal1 = hal2;
+        REQUIRE(mock.getDtorCalled(kPin1) == 1);
+        REQUIRE(mock.getDtorCalled(kPin2) == 0);
+    }
 
-TEST_CASE("mbed_hal destructs without crash when uninitialised", "[mbed_hal]") {
-    mbedMockInit();
-    { MbedHal<> hal(5); }  // pwmout_ is null, must not crash
+    SECTION("copy ctor writes to correct pin") {
+        auto hal = MbedHal<>(kPin1);
+        auto copy = hal;
+        copy.analogWrite<uint8_t>(255);
+        REQUIRE(mock.getPinState(kPin1) == 1.);
+    }
+
+    SECTION("copy assignment writes to correct pin") {
+        MbedHal<> hal(kPin1);
+        MbedHal<> other(0);
+        other = hal;
+        other.analogWrite<uint8_t>(255);
+        REQUIRE(mock.getPinState(kPin1) == 1.);
+    }
+
+    SECTION("destructs without crash when uninitialized") {
+        { MbedHal<> hal(5); }  // pwmout_ is null, must not crash
+    }
 }

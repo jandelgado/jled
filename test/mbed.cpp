@@ -2,40 +2,37 @@
 // Copyright 2020 Jan Delgado jdelgado@gmx.net
 //
 #include "mbed.h"  // NOLINT
+#include <cassert>
 
-constexpr auto MBED_PINS = 32;
+static MbedState* gState_ = nullptr;
 
-struct MbedState {
-    uint32_t us_ticks;
-    float pin_state[MBED_PINS];
-    uint16_t dtor_called[MBED_PINS];
-} MbedState_;
-
-void mbedMockInit() {
-    for (auto i = 0; i < MBED_PINS; i++) {
-        MbedState_.pin_state[i] = kUninitialized;
-        MbedState_.dtor_called[i] = 0;
+void mbedMockSetInstance(MbedState* s) {
+    gState_ = s;
+    if (s != nullptr) {
+        *s = MbedState{};
+        for (auto i = 0; i < MBED_PINS; i++) {
+            s->pin_state[i] = kUninitialized;
+        }
     }
-    MbedState_.us_ticks = 0;
 }
 
-void mbedMockWrite(PinName pin, float value) {
-    MbedState_.pin_state[pin] = value;
+uint32_t us_ticker_read() {
+    assert(gState_);
+    return gState_->us_ticks;
 }
 
-float mbedMockGetPinState(uint8_t pin) { return MbedState_.pin_state[pin]; }
+void PwmOut::write(float val) {
+    assert(gState_);
+    gState_->pin_state[pin_] = val;
+}
 
-uint16_t mbedMockGetDtorCalled(uint8_t pin) {return MbedState_.dtor_called[pin];}
-
-void mbedMockSetUsTicks(uint32_t ticks) { MbedState_.us_ticks = ticks; }
-
-uint32_t us_ticker_read() { return MbedState_.us_ticks; }
-
-void PwmOut::write(float val) { mbedMockWrite(pin_, val); }
-
-PwmOut::~PwmOut() { MbedState_.dtor_called[pin_]++; }
+PwmOut::~PwmOut() {
+    assert(gState_);
+    gState_->dtor_called[pin_]++;
+}
 
 Kernel::Clock::time_point Kernel::Clock::now() {
+    assert(gState_);
     return Kernel::Clock::time_point(
-        std::chrono::microseconds(MbedState_.us_ticks));
+        std::chrono::microseconds(gState_->us_ticks));
 }
