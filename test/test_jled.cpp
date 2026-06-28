@@ -517,6 +517,32 @@ TEST_CASE("Stop(KEEP_CURRENT) keeps the last brightness level", "[jled]") {
     CHECK(130 == static_cast<int>(jled.GetHal().Value()));
 }
 
+TEST_CASE("Pause(FULL_OFF) sets brightness to 0", "[jled]") {
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{100, 0});
+    TestJLed jled = TestJLed(10).UserFunc(&eval).MinBrightness(50);
+
+    jled.Update();
+    REQUIRE(130 ==
+            static_cast<int>(jled.GetHal().Value()));  // 100 scaled to [50,255]
+
+    TimeMock::set_millis(1);
+    jled.Pause(jled::eIdleMode::FULL_OFF);
+    CHECK(0 == static_cast<int>(jled.GetHal().Value()));
+}
+
+TEST_CASE("Pause(KEEP_CURRENT) keeps the last brightness level", "[jled]") {
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{100, 0});
+    TestJLed jled = TestJLed(10).UserFunc(&eval).MinBrightness(50);
+
+    jled.Update();
+    REQUIRE(130 ==
+            static_cast<int>(jled.GetHal().Value()));  // 100 scaled to [50,255]
+
+    TimeMock::set_millis(1);
+    jled.Pause(jled::eIdleMode::KEEP_CURRENT);
+    CHECK(130 == static_cast<int>(jled.GetHal().Value()));
+}
+
 TEST_CASE("LowActive() inverts signal", "[jled]") {
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{0, 255});
     TestJLed jled = TestJLed(1).UserFunc(&eval).LowActive();
@@ -782,7 +808,7 @@ TEST_CASE("lerp8by8 interpolates a byte into the given interval",
     CHECK(200 == (int)(jled::lerp8by8(255, 100, 200)));
 }
 
-TEST_CASE("Pause() during ST_RUNNING freezes brightness", "[jled]") {
+TEST_CASE("Pause() during ST_RUNNING turns LED off (FULL_OFF default)", "[jled]") {
     TestJLed jled(HalMock(1));
     jled.Blink(4, 4);  // on for t_cycle=0..3, off for t_cycle=4..7, done at t=8
 
@@ -797,9 +823,9 @@ TEST_CASE("Pause() during ST_RUNNING freezes brightness", "[jled]") {
 
     // Further updates must not change brightness and must return true
     CHECK(jled.Update(3));
-    CHECK(jled.GetHal().Value() == brightness_at_pause);
+    CHECK(jled.GetHal().Value() == 0);
     CHECK(jled.Update(100));
-    CHECK(jled.GetHal().Value() == brightness_at_pause);
+    CHECK(jled.GetHal().Value() == 0);
 }
 
 TEST_CASE("Resume() continues effect from freeze point", "[jled]") {

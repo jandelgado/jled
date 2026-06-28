@@ -441,7 +441,7 @@ class TJLed : public JLedBase {
 
     bool IsRunning() const { return state_ != ST_STOPPED; }
 
-    void Pause() { Pause(Clock::millis()); }
+    void Pause(eIdleMode mode = eIdleMode::FULL_OFF) { Pause(Clock::millis(), mode); }
     void Resume() { Resume(Clock::millis()); }
 
     bool IsPaused() const { return bPaused_; }
@@ -549,9 +549,14 @@ class TJLed : public JLedBase {
     }
 
  protected:
-    void Pause(uint32_t t) {
+    void Pause(uint32_t t, eIdleMode mode = eIdleMode::FULL_OFF) {
         if (bPaused_ || state_ == ST_STOPPED) return;
         bPaused_ = true;
+        if (mode != eIdleMode::KEEP_CURRENT) {
+            Write(mode == eIdleMode::FULL_OFF
+                      ? BrightnessTraits<Brightness>::kZeroBrightness
+                      : minBrightness_);
+        }
         if (state_ != ST_INIT)
             time_start_ = t - time_start_;  // encode elapsed_so_far in place
         // ST_INIT: time_start_ is 0 and not yet meaningful; Update() resets it on resume
@@ -685,7 +690,7 @@ class TJLedGroup {
     bool Update(uint32_t t);
     void Reset();
     void Stop();
-    void Pause();
+    void Pause(eIdleMode mode = eIdleMode::FULL_OFF);
     void Resume();
 
     TJLedGroup(eMode mode, AnyType* leds, size_t n)
@@ -693,7 +698,7 @@ class TJLedGroup {
     }
 
  protected:
-    void Pause(uint32_t t);
+    void Pause(uint32_t t, eIdleMode mode = eIdleMode::FULL_OFF);
     void Resume(uint32_t t);
 
     template <size_t N> friend struct TJLedAny;
@@ -729,7 +734,7 @@ struct TJLedAny {
         bool (*update)(void*, uint32_t);
         void (*reset)(void*);
         void (*stop)(void*);
-        void (*pause)(void*, uint32_t);
+        void (*pause)(void*, uint32_t, eIdleMode);
         void (*resume)(void*, uint32_t);
         void (*copy)(void* dst, const void* src);
         void (*dtor)(void*);
@@ -744,7 +749,7 @@ struct TJLedAny {
             [](void* p, uint32_t t) -> bool { return static_cast<T*>(p)->Update(t); },
             [](void* p) { static_cast<T*>(p)->Reset(); },
             [](void* p) { static_cast<T*>(p)->Stop(); },
-            [](void* p, uint32_t t) { static_cast<T*>(p)->Pause(t); },
+            [](void* p, uint32_t t, eIdleMode m) { static_cast<T*>(p)->Pause(t, m); },
             [](void* p, uint32_t t) { static_cast<T*>(p)->Resume(t); },
             [](void* dst, const void* src) {
                 new (dst) T(*static_cast<const T*>(src));
@@ -793,7 +798,9 @@ struct TJLedAny {
     bool Update(uint32_t t) { return vtable_->update(buf_, t); }
     void Reset()            { vtable_->reset(buf_); }
     void Stop()             { vtable_->stop(buf_); }
-    void Pause(uint32_t t)  { vtable_->pause(buf_, t); }
+    void Pause(uint32_t t, eIdleMode mode = eIdleMode::FULL_OFF) {
+        vtable_->pause(buf_, t, mode);
+    }
     void Resume(uint32_t t) { vtable_->resume(buf_, t); }
 
     template <typename Clock, typename AnyType> friend class TJLedGroup;
@@ -808,7 +815,7 @@ class TJLedRef {
         bool (*update)(void*, uint32_t);
         void (*reset)(void*);
         void (*stop)(void*);
-        void (*pause)(void*, uint32_t);
+        void (*pause)(void*, uint32_t, eIdleMode);
         void (*resume)(void*, uint32_t);
     };
     void*          obj_;
@@ -820,7 +827,7 @@ class TJLedRef {
             [](void* p, uint32_t t) -> bool { return static_cast<T*>(p)->Update(t); },
             [](void* p) { static_cast<T*>(p)->Reset(); },
             [](void* p) { static_cast<T*>(p)->Stop(); },
-            [](void* p, uint32_t t) { static_cast<T*>(p)->Pause(t); },
+            [](void* p, uint32_t t, eIdleMode m) { static_cast<T*>(p)->Pause(t, m); },
             [](void* p, uint32_t t) { static_cast<T*>(p)->Resume(t); }
         };
         return &kVt;
@@ -842,7 +849,9 @@ class TJLedRef {
     bool Update(uint32_t t) { return vtable_->update(obj_, t); }
     void Reset()            { vtable_->reset(obj_); }
     void Stop()             { vtable_->stop(obj_); }
-    void Pause(uint32_t t)  { vtable_->pause(obj_, t); }
+    void Pause(uint32_t t, eIdleMode mode = eIdleMode::FULL_OFF) {
+        vtable_->pause(obj_, t, mode);
+    }
     void Resume(uint32_t t) { vtable_->resume(obj_, t); }
 
     template <typename Clock, typename AnyType> friend class TJLedGroup;
@@ -919,13 +928,13 @@ void TJLedGroup<Clock, AnyType>::Stop() {
 }
 
 template <typename Clock, typename AnyType>
-void TJLedGroup<Clock, AnyType>::Pause(uint32_t t) {
-    for (auto i = 0u; i < n_; i++) leds_[i].Pause(t);
+void TJLedGroup<Clock, AnyType>::Pause(uint32_t t, eIdleMode mode) {
+    for (auto i = 0u; i < n_; i++) leds_[i].Pause(t, mode);
 }
 
 template <typename Clock, typename AnyType>
-void TJLedGroup<Clock, AnyType>::Pause() {
-    Pause(Clock::millis());
+void TJLedGroup<Clock, AnyType>::Pause(eIdleMode mode) {
+    Pause(Clock::millis(), mode);
 }
 
 template <typename Clock, typename AnyType>

@@ -81,13 +81,12 @@ void loop() {
     - [IsRunning](#isrunning)
     - [Reset](#reset)
     - [Immediate Stop](#immediate-stop)
-    - [Pause and Resume](#pause-and-resume)
+  - [Pause and Resume](#pause-and-resume)
   - [Misc functions](#misc-functions)
     - [Low active for inverted output](#low-active-for-inverted-output)
     - [Minimum- and Maximum brightness level](#minimum--and-maximum-brightness-level)
   - [Controlling a group of LEDs](#controlling-a-group-of-leds)
     - [JLedRefGroup, pointer-based groups for named LED objects](#jledrefgroup-pointer-based-groups-for-named-led-objects)
-    - [JLedSequence to JLedGroup migration](#jledsequence-to-jledgroup-migration)
 - [Framework notes](#framework-notes)
 - [Platform notes](#platform-notes)
   - [Resolution and the `Brightness` type](#resolution-and-the-brightness-type)
@@ -106,6 +105,9 @@ void loop() {
   - [Support new hardware](#support-new-hardware)
 - [Unit tests](#unit-tests)
 - [Contributing](#contributing)
+- [JLed 5.0 migration guide](#jled-50-migration-guide)
+  - [`eStopMode` renamed to `eIdleMode`](#estopmode-renamed-to-eidlemode)
+  - [JLedSequence to JLedGroup migration](#jledsequence-to-jledgroup-migration)
 - [FAQ](#faq)
   - [How do I check if a JLed object is still being updated?](#how-do-i-check-if-a-jled-object-is-still-being-updated)
   - [How do I restart an effect?](#how-do-i-restart-an-effect)
@@ -662,36 +664,6 @@ applies the implicit conversion per element.
 > **Lifetime:** LED objects must outlive the `JLedRef` / `JLedRefGroup` that
 > references them. Do not create `JLedRef` from temporaries.
 
-#### `eStopMode` renamed to `eIdleMode`
-
-`eStopMode` has been renamed to `eIdleMode` and moved to the `jled` namespace.
-The same enum is now shared by `Stop()` and `Pause()`:
-
-```cpp
-// before
-led.Stop(JLed::eStopMode::KEEP_CURRENT);
-
-// after
-led.Stop(jled::eIdleMode::KEEP_CURRENT);
-```
-
-#### JLedSequence to JLedGroup migration
-
-`JLedSequence` is removed. Replace `JLed leds[]` with `JLedAny leds[]` and use the
-`JLedGroup` factory methods:
-
-```cpp
-// before
-JLed leds[] = {JLed(4).Blink(500, 500), JLed(5).Breathe(1000)};
-JLedSequence seq(JLedSequence::eMode::PARALLEL, leds);   // parallel
-JLedSequence seq(JLedSequence::eMode::SEQUENCE, leds);   // sequential
-
-// after
-JLedAny leds[] = {JLed(4).Blink(500, 500), JLed(5).Breathe(1000)};
-auto seq = JLedGroup::Parallel(leds);    // parallel
-auto seq = JLedGroup::Sequential(leds);  // sequential
-```
-
 ## Framework notes
 
 JLed supports the Arduino and [mbed](https://www.mbed.org) frameworks. When
@@ -987,6 +959,46 @@ the host-based provided unit tests [is provided here](test/README.md).
   provided [settings](.clang-format)
 - commit changes
 - submit a PR
+
+## JLed 5.0 migration guide
+
+JLed 5.0 introduced some breaking changes in the public APIs. Here is how to update
+your code to keep on running with JLed 5.0.
+
+#### `eStopMode` renamed to `eIdleMode`
+
+`JLed::eStopMode` has been renamed to `eIdleMode` and moved to the `jled` namespace.
+The same enum is shared by `Stop()` and the new `Pause()` functionality:
+
+```cpp
+// before
+led.Stop(JLed::eStopMode::KEEP_CURRENT);
+
+// after
+led.Stop(jled::eIdleMode::KEEP_CURRENT);
+```
+
+Reason: otherwise we would have separate `eStopMode` enums for `JLed`, `JLedHD` etc.
+classes, bloating the code.
+
+#### JLedSequence to JLedGroup migration
+
+In JLed 5.0 `JLedSequence` is replaced by `JLedGroup`. In your old code, replace `JLed leds[]` with
+`JLedAny leds[]` and use the `JLedGroup` factory methods:
+
+```cpp
+// before
+JLed leds[] = {JLed(4).Blink(500, 500), JLed(5).Breathe(1000)};
+JLedSequence seq(JLedSequence::eMode::PARALLEL, leds);   // parallel
+JLedSequence seq(JLedSequence::eMode::SEQUENCE, leds);   // sequential
+
+// after
+JLedAny leds[] = {JLed(4).Blink(500, 500), JLed(5).Breathe(1000)};
+auto seq = JLedGroup::Parallel(leds);    // parallel
+auto seq = JLedGroup::Sequential(leds);  // sequential
+```
+
+Reason: `JLedGroup` is a more capable replacement that supports mixing different LED types, nesting groups inside other groups, and applying repeat and pause/resume control to the whole group at once. The parallel and sequential modes are now explicit at the point of creation.
 
 ## FAQ
 
