@@ -1,4 +1,5 @@
 .envrc
+.devbox/
 __pycache__/
 .venv/
 .pio/

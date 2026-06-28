@@ -2,44 +2,33 @@
 // Copyright 2017 Jan Delgado jdelgado@gmx.net
 //
 #include "Arduino.h"  // NOLINT
-#include <time.h>     // NOLINT
-#include <cstring>    // NOLINT
+#include <cassert>    // NOLINT
 
+static ArduinoState* gState_ = nullptr;
 
-struct ArduinoState {
-    time_t millis;  // current time
-
-    int pin_state[ARDUINO_PINS];
-    uint8_t pin_modes[ARDUINO_PINS];
-    int analog_write_resolution;  // last value passed to analogWriteResolution()
-} ArduinoState_;
-
-void arduinoMockInit() {
-    // TODO(jd) introduce UNDEFINED state to mock instead of initalizing with 0
-    bzero(&ArduinoState_, sizeof(ArduinoState_));
+void arduinoMockSetInstance(ArduinoState* s) {
+    gState_ = s;
+    if (s) {
+        *s = ArduinoState{};
+    }
 }
 
-void pinMode(uint8_t pin, uint8_t mode) { ArduinoState_.pin_modes[pin] = mode; }
-
-uint8_t arduinoMockGetPinMode(uint8_t pin) {
-    return ArduinoState_.pin_modes[pin];
+void pinMode(uint8_t pin, uint8_t mode) {
+    assert(gState_);
+    gState_->pin_modes[pin] = mode;
 }
 
 void analogWrite(uint8_t pin, int value) {
-    ArduinoState_.pin_state[pin] = value;
+    assert(gState_);
+    gState_->pin_state[pin] = value;
 }
 
-int arduinoMockGetPinState(uint8_t pin) { return ArduinoState_.pin_state[pin]; }
-
-uint32_t millis(void) { return ArduinoState_.millis; }
-
-void arduinoMockSetMillis(uint32_t value) { ArduinoState_.millis = value; }
+uint32_t millis(void) {
+    assert(gState_);
+    return gState_->millis;
+}
 
 extern "C" void analogWriteResolution(int bits) {
-    ArduinoState_.analog_write_resolution = bits;
+    assert(gState_);
+    gState_->analog_write_resolution = bits;
 }
-
-int arduinoMockGetAnalogWriteResolution() {
-    return ArduinoState_.analog_write_resolution;
-}
-

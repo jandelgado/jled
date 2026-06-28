@@ -9,19 +9,26 @@
 
 constexpr auto ARDUINO_PINS = 32;
 
-void arduinoMockInit();
+struct ArduinoState {
+    uint32_t millis = 0;
+    int pin_state[ARDUINO_PINS] = {};
+    uint8_t pin_modes[ARDUINO_PINS] = {};
+    int analog_write_resolution = 0;
+
+    void setMillis(uint32_t v) { millis = v; }
+    uint32_t getMillis() const { return millis; }
+
+    int getPinState(uint8_t pin) const { return pin_state[pin]; }
+    uint8_t getPinMode(uint8_t pin) const { return pin_modes[pin]; }
+    int getAnalogWriteResolution() const { return analog_write_resolution; }
+};
+
+void arduinoMockSetInstance(ArduinoState* s);
 
 void pinMode(uint8_t pin, uint8_t mode);
-uint8_t arduinoMockGetPinMode(uint8_t pin);
-
-void analogWrite(uint8_t pint, int value);
-int arduinoMockGetPinState(uint8_t pin);
-
+void analogWrite(uint8_t pin, int value);
 extern "C" void analogWriteResolution(int bits);
-int arduinoMockGetAnalogWriteResolution();
-
 uint32_t millis(void);
-void arduinoMockSetMillis(uint32_t value);
 
 #define OUTPUT 0x1
 
