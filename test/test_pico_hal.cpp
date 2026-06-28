@@ -12,112 +12,97 @@ static constexpr auto kPin   = 10u;
 static constexpr auto kSlice = kPin / 2;  // 5
 static constexpr auto kChan  = kPin % 2;  // 0
 
-TEST_CASE("constructor sets GPIO function to PWM", "[pico_hal]") {
-    picoMockInit();
+struct PicoMockFixture {
+    PicoState mock{};
+    PicoMockFixture()  { picoMockSetInstance(&mock); }
+    ~PicoMockFixture() { picoMockSetInstance(nullptr); }
+};
+
+TEST_CASE_METHOD(PicoMockFixture, "PicoHal<> constructor", "[pico_hal]") {
     PicoHal<> hal(kPin);
-    REQUIRE(picoMockGetGpioFunction(kPin) == GPIO_FUNC_PWM);
+    SECTION("sets GPIO function to PWM") {
+        REQUIRE(mock.getGpioFunction(kPin) == GPIO_FUNC_PWM);
+    }
+    SECTION("configures PWM wrap to 2^kResBits_-1") {
+        REQUIRE(mock.getPwmWrap(kSlice) == 255);  // 2^8 - 1
+    }
+    SECTION("sets clock divider to 1.0") {
+        REQUIRE(mock.getPwmDivInt(kSlice)  == 1);
+        REQUIRE(mock.getPwmDivFrac(kSlice) == 0);
+    }
+    SECTION("enables PWM slice") {
+        REQUIRE(mock.getPwmEnabled(kSlice) == true);
+    }
 }
 
-TEST_CASE("constructor configures PWM wrap to 2^kResBits_-1", "[pico_hal]") {
-    picoMockInit();
-    PicoHal<> hal(kPin);
-    REQUIRE(picoMockGetPwmWrap(kSlice) == 255);  // 2^8 - 1
-}
-
-TEST_CASE("PicoHal<10>: constructor sets wrap to 1023", "[pico_hal]") {
-    picoMockInit();
+TEST_CASE_METHOD(PicoMockFixture, "PicoHal<10> constructor", "[pico_hal]") {
     PicoHal<10> hal(kPin);
-    REQUIRE(picoMockGetPwmWrap(kSlice) == 1023);  // 2^10 - 1
+    SECTION("sets wrap to 1023") {
+        REQUIRE(mock.getPwmWrap(kSlice) == 1023);  // 2^10 - 1
+    }
 }
 
-TEST_CASE("constructor sets clock divider to 1.0", "[pico_hal]") {
-    picoMockInit();
+TEST_CASE_METHOD(PicoMockFixture, "PicoHal<> analogWrite", "[pico_hal]") {
     PicoHal<> hal(kPin);
-    REQUIRE(picoMockGetPwmDivInt(kSlice)  == 1);
-    REQUIRE(picoMockGetPwmDivFrac(kSlice) == 0);
+    SECTION("8-bit: zero and mid-range pass through unchanged") {
+        hal.analogWrite<uint8_t>(0);
+        REQUIRE(mock.getPwmChanLevel(kSlice, kChan) == 0);
+
+        hal.analogWrite<uint8_t>(128);
+        REQUIRE(mock.getPwmChanLevel(kSlice, kChan) == 128);
+    }
+    SECTION("8-bit: max brightness gets full-on fix (255->256)") {
+        hal.analogWrite<uint8_t>(255);
+        REQUIRE(mock.getPwmChanLevel(kSlice, kChan) == 256);
+    }
+    SECTION("16-bit: max brightness gets full-on fix") {
+        // scaleToNative<8>(65535) = 65535>>8 = 255 = kWrap; fix applies: 255+1 = 256
+        hal.analogWrite<uint16_t>(65535);
+        REQUIRE(mock.getPwmChanLevel(kSlice, kChan) == 256);
+    }
 }
 
-TEST_CASE("constructor enables PWM slice", "[pico_hal]") {
-    picoMockInit();
-    PicoHal<> hal(kPin);
-    REQUIRE(picoMockGetPwmEnabled(kSlice) == true);
-}
-
-TEST_CASE("analogWrite() 8-bit: zero and mid-range pass through unchanged", "[pico_hal]") {
-    picoMockInit();
-    PicoHal<> hal(kPin);
-
-    hal.analogWrite<uint8_t>(0);
-    REQUIRE(picoMockGetPwmChanLevel(kSlice, kChan) == 0);
-
-    hal.analogWrite<uint8_t>(128);
-    REQUIRE(picoMockGetPwmChanLevel(kSlice, kChan) == 128);
-}
-
-TEST_CASE("analogWrite() 8-bit: max brightness gets full-on fix (255->256)", "[pico_hal]") {
-    picoMockInit();
-    PicoHal<> hal(kPin);
-    hal.analogWrite<uint8_t>(255);
-    REQUIRE(picoMockGetPwmChanLevel(kSlice, kChan) == 256);
-}
-
-TEST_CASE("analogWrite() 16-bit input at max brightness gets full-on fix", "[pico_hal]") {
-    picoMockInit();
-    PicoHal<> hal(kPin);
-    // scaleToNative<8>(65535) = 65535>>8 = 255 = kWrap; fix applies: 255+1 = 256
-    hal.analogWrite<uint16_t>(65535);
-    REQUIRE(picoMockGetPwmChanLevel(kSlice, kChan) == 256);
-}
-
-TEST_CASE("PicoHal<10>: 8-bit input upscaled to 10-bit", "[pico_hal]") {
-    picoMockInit();
+TEST_CASE_METHOD(PicoMockFixture, "PicoHal<10> analogWrite", "[pico_hal]") {
     PicoHal<10> hal(kPin);
+    SECTION("8-bit input upscaled to 10-bit") {
+        hal.analogWrite<uint8_t>(0);
+        REQUIRE(mock.getPwmChanLevel(kSlice, kChan) == 0);
 
-    hal.analogWrite<uint8_t>(0);
-    REQUIRE(picoMockGetPwmChanLevel(kSlice, kChan) == 0);
+        // scaleToNative<10>(255u8) = (255<<2)|(255>>6) = 1020|3 = 1023 = kWrap; fix: 1023+1=1024
+        hal.analogWrite<uint8_t>(255);
+        REQUIRE(mock.getPwmChanLevel(kSlice, kChan) == 1024);
+    }
+    SECTION("16-bit input downscaled to 10-bit") {
+        hal.analogWrite<uint16_t>(0);
+        REQUIRE(mock.getPwmChanLevel(kSlice, kChan) == 0);
 
-    hal.analogWrite<uint8_t>(255);
-    // scaleToNative<10>(255u8) = (255<<2)|(255>>6) = 1020|3 = 1023 = kWrap; fix: 1023+1=1024
-    REQUIRE(picoMockGetPwmChanLevel(kSlice, kChan) == 1024);
+        // scaleToNative<10>(65535u16) = 65535>>6 = 1023 = kWrap; fix: 1023+1=1024
+        hal.analogWrite<uint16_t>(65535);
+        REQUIRE(mock.getPwmChanLevel(kSlice, kChan) == 1024);
+    }
+    SECTION("max 8-bit input gets full-on fix (1023->1024)") {
+        // scaleToNative<10>(255) = (255<<2)|(255>>6) = 1020|3 = 1023 = kWrap; fix: 1023+1 = 1024
+        hal.analogWrite<uint8_t>(255);
+        REQUIRE(mock.getPwmChanLevel(kSlice, kChan) == 1024);
+    }
 }
 
-TEST_CASE("PicoHal<10>: 16-bit input downscaled to 10-bit", "[pico_hal]") {
-    picoMockInit();
-    PicoHal<10> hal(kPin);
-
-    hal.analogWrite<uint16_t>(0);
-    REQUIRE(picoMockGetPwmChanLevel(kSlice, kChan) == 0);
-
-    hal.analogWrite<uint16_t>(65535);
-    // scaleToNative<10>(65535u16) = 65535>>6 = 1023 = kWrap; fix: 1023+1=1024
-    REQUIRE(picoMockGetPwmChanLevel(kSlice, kChan) == 1024);
-}
-
-TEST_CASE("PicoHal<10>: max 8-bit input gets full-on fix (1023->1024)", "[pico_hal]") {
-    picoMockInit();
-    PicoHal<10> hal(kPin);
-    // scaleToNative<10>(255) = (255<<2)|(255>>6) = 1020|3 = 1023 = kWrap; fix: 1023+1 = 1024
-    hal.analogWrite<uint8_t>(255);
-    REQUIRE(picoMockGetPwmChanLevel(kSlice, kChan) == 1024);
-}
-
-TEST_CASE("PicoHal<16>: max brightness does not apply full-on fix", "[pico_hal]") {
-    picoMockInit();
+TEST_CASE_METHOD(PicoMockFixture, "PicoHal<16> analogWrite", "[pico_hal]") {
     PicoHal<16> hal(kPin);
-    // kWrap+1 = 65536 overflows uint16_t; fix is intentionally skipped
-    hal.analogWrite<uint16_t>(65535);
-    REQUIRE(picoMockGetPwmChanLevel(kSlice, kChan) == 65535);
+    SECTION("max brightness does not apply full-on fix") {
+        // kWrap+1 = 65536 overflows uint16_t; fix is intentionally skipped
+        hal.analogWrite<uint16_t>(65535);
+        REQUIRE(mock.getPwmChanLevel(kSlice, kChan) == 65535);
+    }
 }
 
-TEST_CASE("PicoClock::millis() returns 0 at boot", "[pico_hal]") {
-    picoMockInit();
-    picoMockSetBootTimeUs(0);
-    REQUIRE(jled::PicoClock::millis() == 0);
-}
-
-TEST_CASE("PicoClock::millis() converts microseconds to milliseconds",
-          "[pico_hal]") {
-    picoMockInit();
-    picoMockSetBootTimeUs(99000);
-    REQUIRE(jled::PicoClock::millis() == 99);
+TEST_CASE_METHOD(PicoMockFixture, "PicoClock::millis()", "[pico_hal]") {
+    SECTION("returns 0 at boot") {
+        mock.setBootTimeUs(0);
+        REQUIRE(jled::PicoClock::millis() == 0);
+    }
+    SECTION("converts microseconds to milliseconds") {
+        mock.setBootTimeUs(99000);
+        REQUIRE(jled::PicoClock::millis() == 99);
+    }
 }
