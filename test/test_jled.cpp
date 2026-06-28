@@ -543,6 +543,19 @@ TEST_CASE("Pause(KEEP_CURRENT) keeps the last brightness level", "[jled]") {
     CHECK(130 == static_cast<int>(jled.GetHal().Value()));
 }
 
+TEST_CASE("Pause(TO_MIN_BRIGHTNESS) sets brightness to minimum", "[jled]") {
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{100, 0});
+    TestJLed jled = TestJLed(10).UserFunc(&eval).MinBrightness(50);
+
+    jled.Update();
+    REQUIRE(130 ==
+            static_cast<int>(jled.GetHal().Value()));  // 100 scaled to [50,255]
+
+    TimeMock::set_millis(1);
+    jled.Pause(jled::eIdleMode::TO_MIN_BRIGHTNESS);
+    CHECK(50 == static_cast<int>(jled.GetHal().Value()));
+}
+
 TEST_CASE("LowActive() inverts signal", "[jled]") {
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{0, 255});
     TestJLed jled = TestJLed(1).UserFunc(&eval).LowActive();
