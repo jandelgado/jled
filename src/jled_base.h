@@ -442,7 +442,7 @@ class TJLed : public JLedBase {
 
     bool IsRunning() const { return state_ != ST_STOPPED; }
 
-    void Pause(eIdleMode mode = eIdleMode::FULL_OFF) { Pause(Clock::millis(), mode); }
+    void Pause(eIdleMode mode = eIdleMode::TO_MIN_BRIGHTNESS) { Pause(Clock::millis(), mode); }
     void Resume() { Resume(Clock::millis()); }
 
     bool IsPaused() const { return bPaused_; }
@@ -550,7 +550,7 @@ class TJLed : public JLedBase {
     }
 
  protected:
-    void Pause(uint32_t t, eIdleMode mode = eIdleMode::FULL_OFF) {
+    void Pause(uint32_t t, eIdleMode mode = eIdleMode::TO_MIN_BRIGHTNESS) {
         if (bPaused_ || state_ == ST_STOPPED) return;
         bPaused_ = true;
         if (mode != eIdleMode::KEEP_CURRENT) {
@@ -698,7 +698,7 @@ class TJLedGroup {
     bool Update(uint32_t t);
     void Reset();
     void Stop(eIdleMode mode = eIdleMode::TO_MIN_BRIGHTNESS);
-    void Pause(eIdleMode mode = eIdleMode::FULL_OFF);
+    void Pause(eIdleMode mode = eIdleMode::TO_MIN_BRIGHTNESS);
     void Resume();
 
     TJLedGroup(eMode mode, AnyType* leds, size_t n)
@@ -706,7 +706,7 @@ class TJLedGroup {
     }
 
  protected:
-    void Pause(uint32_t t, eIdleMode mode = eIdleMode::FULL_OFF);
+    void Pause(uint32_t t, eIdleMode mode = eIdleMode::TO_MIN_BRIGHTNESS);
     void Resume(uint32_t t);
 
     template <size_t N> friend struct TJLedAny;
@@ -806,7 +806,7 @@ struct TJLedAny {
     bool Update(uint32_t t) { return vtable_->update(buf_, t); }
     void Reset()            { vtable_->reset(buf_); }
     void Stop(eIdleMode mode = eIdleMode::TO_MIN_BRIGHTNESS) { vtable_->stop(buf_, mode); }
-    void Pause(uint32_t t, eIdleMode mode = eIdleMode::FULL_OFF) {
+    void Pause(uint32_t t, eIdleMode mode = eIdleMode::TO_MIN_BRIGHTNESS) {
         vtable_->pause(buf_, t, mode);
     }
     void Resume(uint32_t t) { vtable_->resume(buf_, t); }
@@ -857,7 +857,7 @@ class TJLedRef {
     bool Update(uint32_t t) { return vtable_->update(obj_, t); }
     void Reset()            { vtable_->reset(obj_); }
     void Stop(eIdleMode mode = eIdleMode::TO_MIN_BRIGHTNESS) { vtable_->stop(obj_, mode); }
-    void Pause(uint32_t t, eIdleMode mode = eIdleMode::FULL_OFF) {
+    void Pause(uint32_t t, eIdleMode mode = eIdleMode::TO_MIN_BRIGHTNESS) {
         vtable_->pause(obj_, t, mode);
     }
     void Resume(uint32_t t) { vtable_->resume(obj_, t); }

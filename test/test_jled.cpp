@@ -556,6 +556,19 @@ TEST_CASE("Pause(TO_MIN_BRIGHTNESS) sets brightness to minimum", "[jled]") {
     CHECK(50 == static_cast<int>(jled.GetHal().Value()));
 }
 
+TEST_CASE("Pause() default mode is TO_MIN_BRIGHTNESS", "[jled]") {
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{100, 0});
+    TestJLed jled = TestJLed(10).UserFunc(&eval).MinBrightness(50);
+
+    jled.Update();
+    REQUIRE(130 ==
+            static_cast<int>(jled.GetHal().Value()));  // 100 scaled to [50,255]
+
+    TimeMock::set_millis(1);
+    jled.Pause();
+    CHECK(50 == static_cast<int>(jled.GetHal().Value()));
+}
+
 TEST_CASE("LowActive() inverts signal", "[jled]") {
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{0, 255});
     TestJLed jled = TestJLed(1).UserFunc(&eval).LowActive();
@@ -821,7 +834,7 @@ TEST_CASE("lerp8by8 interpolates a byte into the given interval",
     CHECK(200 == (int)(jled::lerp8by8(255, 100, 200)));
 }
 
-TEST_CASE("Pause() during ST_RUNNING turns LED off (FULL_OFF default)", "[jled]") {
+TEST_CASE("Pause() during ST_RUNNING sets LED to minBrightness", "[jled]") {
     TestJLed jled(HalMock(1));
     jled.Blink(4, 4);  // on for t_cycle=0..3, off for t_cycle=4..7, done at t=8
 

@@ -526,10 +526,15 @@ led.Stop(JLed::eStopMode::FULL_OFF);
 
 ### Pause and Resume
 
-Call `Pause()` to freeze the current effect at its current brightness. While paused,
-`Update()` returns `true` but does not advance the effect or change the brightness output.
-Call `Resume()` to continue the effect from the exact point where it was paused. `IsPaused()`
-returns `true` while the effect is frozen.
+Call `Pause()` to freeze the current effect. While paused, `Update()` returns `true` but
+does not advance the effect. Call `Resume()` to continue from the exact point where it was
+paused. `IsPaused()` returns `true` while the effect is frozen.
+
+`Pause()` accepts an optional `mode` argument of type `jled::eIdleMode` (same values as
+`Stop()`) that controls the LED's brightness during the pause. The default is
+`jled::eIdleMode::TO_MIN_BRIGHTNESS`, which sets the LED to its configured minimum
+brightness. Use `jled::eIdleMode::KEEP_CURRENT` to hold the last rendered value, or
+`jled::eIdleMode::FULL_OFF` to force the LED off regardless of `MinBrightness`.
 
 Pausing before an effect has started is valid: the effect will not start until
 `Resume()` is called.

@@ -376,6 +376,21 @@ TEST_CASE("JLedRefGroup references externally managed LEDs", "[jled_group]") {
     }
 }
 
+TEST_CASE("Pause() default mode is TO_MIN_BRIGHTNESS", "[jled_group]") {
+    HalMock::Init();
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
+    TestJLedAny leds[] = {
+        TestJLed(HalMock(1)).UserFunc(&eval).Repeat(1).MinBrightness(50)};
+    auto group = TestJLedGroupAny::Parallel(leds);
+
+    TimeMock::set_millis(0);
+    REQUIRE(group.Update());
+
+    TimeMock::set_millis(1);
+    group.Pause();
+    REQUIRE(HalMock::PinValue(1) == 50);
+}
+
 TEST_CASE("Pause() propagates to all children in parallel group", "[jled_group]") {
     HalMock::Init();
     auto eval1 = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100, 50});
