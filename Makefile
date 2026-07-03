@@ -38,6 +38,23 @@ lint: phony ## run the C++ linter
 		    --extensions=cpp,h,ino $(shell find . -maxdepth 3 \( ! -regex '.*/\..*' \) \
 		       -type f -a \( -name "*\.cpp" -o -name "*\.h" -o -name "*\.ino" \) )
 
+format: phony ## auto-format src/test/examples in-place with clang-format
+	$(RUN) find src -maxdepth 1 -type f \( -name "*.cpp" -o -name "*.h" \) -exec clang-format -i {} +
+	$(RUN) find test -type f \( -name "*.cpp" -o -name "*.h" \) \
+		    ! -path "test/catch2/*" ! -path "test/bin/*" ! -path "test/report/*" \
+		    -exec clang-format -i {} +
+	$(RUN) find examples -maxdepth 2 -type f \( -name "*.cpp" -o -name "*.h" -o -name "*.ino" \) -exec clang-format -i {} +
+
+format-check: phony ## check formatting without modifying files (clang-format --dry-run)
+	$(RUN) find src -maxdepth 1 -type f \( -name "*.cpp" -o -name "*.h" \) -exec clang-format --dry-run --Werror {} +
+	$(RUN) find test -type f \( -name "*.cpp" -o -name "*.h" \) \
+		    ! -path "test/catch2/*" ! -path "test/bin/*" ! -path "test/report/*" \
+		    -exec clang-format --dry-run --Werror {} +
+	$(RUN) find examples -maxdepth 2 -type f \( -name "*.cpp" -o -name "*.h" -o -name "*.ino" \) -exec clang-format --dry-run --Werror {} +
+
+lint-tidy: phony ## run clang-tidy static analysis on src/test (modern, complements 'lint')
+	$(RUN) find src test -maxdepth 1 -type f \( -name "*.cpp" -o -name "*.h" \) -exec clang-tidy {} \;
+
 test: phony ## run unit tests with coverage
 	$(RUN) $(MAKE) -C test coverage
 
