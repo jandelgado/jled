@@ -24,18 +24,27 @@
 namespace jled {
 
 // C++14-compatible conditional type selector (substitute for std::conditional)
-template <bool, typename T, typename F> struct Conditional { using type = F; };
-template <typename T, typename F>
-struct Conditional<true, T, F> { using type = T; };
+template<bool, typename T, typename F>
+struct Conditional {
+    using type = F;
+};
+template<typename T, typename F>
+struct Conditional<true, T, F> {
+    using type = T;
+};
 
 // C++14-compatible enable_if (substitute for std::enable_if)
-template <bool B, typename T = void> struct EnableIf {};
-template <typename T> struct EnableIf<true, T> { using type = T; };
+template<bool B, typename T = void>
+struct EnableIf {};
+template<typename T>
+struct EnableIf<true, T> {
+    using type = T;
+};
 
 // C++14-compatible is_base_of (substitute for std::is_base_of).
 // Uses the pointer-conversion trick: if Derived* is implicitly convertible to
 // Base*, then Base is a public base of Derived.
-template <typename Base, typename Derived>
+template<typename Base, typename Derived>
 struct IsBaseOf {
  private:
     static char check(const Base*);

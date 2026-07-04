@@ -4,14 +4,15 @@
 #define TEST_MOCK_BRIGHTNESS_EVAL_H_
 
 #include <jled_base.h>  // NOLINT
-#include <cstdint>
+
 #include <cassert>
+#include <cstdint>
 #include <vector>
 
 // A brightness evaluator used for tests. Returns predefined values f(t)=y
 // for each point in time t. Templated on brightness type to support both
 // 8-bit (JLed) and 16-bit (JLedHD) LEDs.
-template <typename B>
+template<typename B>
 class MockBrightnessEvaluatorT : public jled::BrightnessEvaluator<B> {
     std::vector<B> values_;
     mutable uint16_t count_ = 0;

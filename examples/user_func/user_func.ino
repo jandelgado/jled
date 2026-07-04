@@ -8,7 +8,7 @@ class UserEffect : public jled::BrightnessEvaluator<Brightness> {
  public:
     Brightness Eval(uint32_t t) const override {
         // this function changes between OFF and ON  every 250 ms.
-        return jled::BrightnessTraits<Brightness>::kFullBrightness*((t/250)%2);
+        return jled::BrightnessTraits<Brightness>::kFullBrightness * ((t / 250) % 2);
     }
     // duration of effect: 5 seconds.
     uint16_t Period() const override { return 5000; }

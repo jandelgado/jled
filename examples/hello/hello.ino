@@ -6,9 +6,8 @@
 // blink builtin LED for 5 times
 auto led = JLed(LED_BUILTIN).Blink(1000, 1000).Repeat(5);
 
-void setup() {
-}
+void setup() {}
 
 void loop() {
-  led.Update();
+    led.Update();
 }

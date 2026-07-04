@@ -1,9 +1,9 @@
 // JLed Unit tests  (run on host).
 // Tests for the morse code example.
 // Copyright 2018 Jan Delgado jdelgado@gmx.net
-#include "catch2/catch_amalgamated.hpp"
-
 #include <morse.h>  // NOLINT
+
+#include "catch2/catch_amalgamated.hpp"
 
 TEST_CASE("calc len of bit array", "[morse_example_bitset]") {
     class TestBitset : public Bitset {
@@ -51,15 +51,13 @@ TEST_CASE("treepos returns correct position in tree", "[morse_example]") {
     TestMorse().test();
 }
 
-TEST_CASE("binary code of character is determined correctly",
-          "[morse_example]") {
+TEST_CASE("binary code of character is determined correctly", "[morse_example]") {
     class TestMorse : public Morse {
      public:
         void test() {
             uint16_t code = pos_to_morse_code(treepos('F'));  // F = ..-. = 1000
-            REQUIRE(4 == (code >> 8));  // hi: length in bits
-            REQUIRE(0b0100 ==
-                    (code & 0xff));  // lo: morse code as bits, reversed
+            REQUIRE(4 == (code >> 8));                        // hi: length in bits
+            REQUIRE(0b0100 == (code & 0xff));                 // lo: morse code as bits, reversed
         }
     };
     TestMorse().test();

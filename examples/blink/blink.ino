@@ -6,9 +6,8 @@
 // blink builtin LED 3 times (250ms on, 500ms off), wait 1000ms, repeat forever
 auto led = JLed(LED_BUILTIN).Blink(250, 500, 3).DelayAfter(1000).Forever();
 
-void setup() {
-}
+void setup() {}
 
 void loop() {
-  led.Update();
+    led.Update();
 }

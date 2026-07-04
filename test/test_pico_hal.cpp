@@ -1,20 +1,20 @@
 // JLed Unit tests for the pico_hal class (run on host).
 // Copyright 2024-2025 Jan Delgado jdelgado@gmx.net
-#include "catch2/catch_amalgamated.hpp"
+#include <pico_hal.h>  // NOLINT
 
-#include <pico_hal.h>   // NOLINT
+#include "catch2/catch_amalgamated.hpp"
 #include "pico_mock.h"  // NOLINT
 
 using jled::PicoHal;
 
 // pin=10 → slice=5, channel=0 (PWM_CHAN_A)
-static constexpr auto kPin   = 10u;
+static constexpr auto kPin = 10u;
 static constexpr auto kSlice = kPin / 2;  // 5
-static constexpr auto kChan  = kPin % 2;  // 0
+static constexpr auto kChan = kPin % 2;   // 0
 
 struct PicoMockFixture {
     PicoState mock{};
-    PicoMockFixture()  { picoMockSetInstance(&mock); }
+    PicoMockFixture() { picoMockSetInstance(&mock); }
     ~PicoMockFixture() { picoMockSetInstance(nullptr); }
 };
 
@@ -27,7 +27,7 @@ TEST_CASE_METHOD(PicoMockFixture, "PicoHal<> constructor", "[pico_hal]") {
         REQUIRE(mock.getPwmWrap(kSlice) == 255);  // 2^8 - 1
     }
     SECTION("sets clock divider to 1.0") {
-        REQUIRE(mock.getPwmDivInt(kSlice)  == 1);
+        REQUIRE(mock.getPwmDivInt(kSlice) == 1);
         REQUIRE(mock.getPwmDivFrac(kSlice) == 0);
     }
     SECTION("enables PWM slice") {

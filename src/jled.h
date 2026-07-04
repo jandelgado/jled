@@ -43,7 +43,7 @@
 // Define JLED_FORCE_ARDUINO_HAL (e.g. via platformio.ini build_flags) to bypass
 // the native Pico/ESP32 HALs and use the standard ArduinoHal on those platforms.
 #if defined(PICO_SDK_VERSION_MAJOR) && !defined(JLED_FORCE_ARDUINO_HAL)
-#include "pico_hal.h"   // NOLINT
+#include "pico_hal.h"  // NOLINT
 namespace jled {
 using JLedHal = PicoHal<8>;
 using JLedHalHD = PicoHal<16>;
@@ -94,7 +94,7 @@ using JLedHal = ArduinoHal<8>;
 //     Core v3+ (which defaults to 8-bit) the 10-bit range is restored via
 //     analogWriteResolution(), so JLedHD keeps full 10-bit resolution there.
 //   - All other Arduino-compatible platforms: 8-bit
-#if defined(ARDUINO_ARCH_RP2040)    // only hit if also JLED_FORCE_ARDUINO_HAL is set
+#if defined(ARDUINO_ARCH_RP2040)  // only hit if also JLED_FORCE_ARDUINO_HAL is set
 using JLedHalHD = ArduinoHal<16>;
 #elif defined(__IMXRT1062__) || defined(KINETISK) || defined(KINETISL)  // Teensy 4.x/3.x/LC
 using JLedHalHD = ArduinoHal<16>;  // frequency/resolution are independent on Teensy
@@ -129,8 +129,8 @@ class JLedHD : public TJLed<JLedHalHD, JLedClockType, uint16_t, JLedHD> {
 //   using MyLedAny   = TJLedAny<sizeof(MyBigLed)>;
 //   using MyLedGroup = TJLedGroup<JLedClockType, MyLedAny>;
 namespace detail {
-constexpr size_t kLedBufSize =
-    sizeof(JLed) > sizeof(JLedHD) ? sizeof(JLed) : sizeof(JLedHD);  // NOLINT
+constexpr size_t kLedBufSize = sizeof(JLed) > sizeof(JLedHD) ? sizeof(JLed)
+                                                             : sizeof(JLedHD);  // NOLINT
 // TJLedGroup<Clock, T> stores only T* so its sizeof is the same for any T.
 // Use char as a placeholder to compute the group size without a circular dependency.
 constexpr size_t kGroupBufSize = sizeof(TJLedGroup<JLedClockType, char>);
@@ -147,14 +147,14 @@ using JLedGroup = TJLedGroup<JLedClockType, JLedAny>;
 // JLedRef: non-owning reference to an externally-managed JLed, JLedHD, or JLedGroup.
 // Use JLedRefGroup when LED objects already exist as named variables to save memory.
 // The LED objects must outlive the JLedRef / JLedRefGroup that references them.
-using JLedRef      = TJLedRef;
+using JLedRef = TJLedRef;
 using JLedRefGroup = TJLedGroup<JLedClockType, JLedRef>;
 
 };  // namespace jled
 
 using JLed = jled::JLed;
 using JLedHD = jled::JLedHD;
-using JLedGroup    = jled::JLedGroup;
-using JLedAny      = jled::JLedAny;
-using JLedRef      = jled::JLedRef;
+using JLedGroup = jled::JLedGroup;
+using JLedAny = jled::JLedAny;
+using JLedRef = jled::JLedRef;
 using JLedRefGroup = jled::JLedRefGroup;

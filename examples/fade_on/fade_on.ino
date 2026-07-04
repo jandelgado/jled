@@ -6,9 +6,8 @@
 // LED is connected to pin 9 (PWM capable) gpio
 auto led = JLed(9).FadeOn(1000).DelayBefore(2000);
 
-void setup() {
-}
+void setup() {}
 
 void loop() {
-  led.Update();
+    led.Update();
 }

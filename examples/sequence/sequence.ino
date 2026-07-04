@@ -11,12 +11,11 @@ JLedAny leds[] = {  // JLedGroup requires JLedAny, not JLed[]
     JLed(LED_PIN).FadeOff(1000).Repeat(3),
     JLed(LED_PIN).Blink(500, 500).Repeat(3),
     JLed(LED_PIN).FadeOn(1000).Repeat(3),
-    JLed(LED_PIN).Off()
-};
+    JLed(LED_PIN).Off()};
 
 auto sequence = JLedGroup::Sequential(leds);
 
-void setup() { }
+void setup() {}
 
 void loop() {
     sequence.Update();

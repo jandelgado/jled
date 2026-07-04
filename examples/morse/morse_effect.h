@@ -4,6 +4,7 @@
 #define EXAMPLES_MORSE_MORSE_EFFECT_H_
 
 #include <jled.h>
+
 #include "morse.h"  // NOLINT
 
 // MorseEffect uses 8-bit brightness (0-255)

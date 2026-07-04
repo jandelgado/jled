@@ -2,6 +2,7 @@
 // Copyright 2017-2025 Jan Delgado jdelgado@gmx.net
 #define ESP_IDF_VERSION_MAJOR 5
 #include <esp32_hal.h>  // NOLINT
+
 #include "catch2/catch_amalgamated.hpp"
 #include "esp32_mock.h"  // NOLINT
 
@@ -10,7 +11,7 @@ using jled::Esp32Hal;
 
 struct Esp32MockFixture {
     Esp32State mock{};
-    Esp32MockFixture()  { esp32MockSetInstance(&mock); }
+    Esp32MockFixture() { esp32MockSetInstance(&mock); }
     ~Esp32MockFixture() { esp32MockSetInstance(nullptr); }
 };
 
@@ -48,7 +49,7 @@ TEST_CASE("Esp32ChanMapper", "[esp32_hal]") {
 TEST_CASE_METHOD(Esp32MockFixture, "Esp32Hal<8> constructor", "[esp32_hal]") {
     constexpr auto kChan = 5;
     constexpr auto kPin = 10;
-    auto hal[[gnu::unused]] = Esp32Hal<8>(kPin, kChan);
+    auto hal [[gnu::unused]] = Esp32Hal<8>(kPin, kChan);
 
     SECTION("timer config correct") {
         auto timer_config = mock.getLedcTimerConfig();

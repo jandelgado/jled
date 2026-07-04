@@ -2,7 +2,9 @@
 // Copyright (c) 2017-2022 Jan Delgado <jdelgado[at]gmx.net>
 //
 #include "esp_timer.h"  // NOLINT
+
 #include <cassert>
+
 #include "../esp32_mock.h"  // NOLINT
 
 extern Esp32State* gState_;

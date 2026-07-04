@@ -4,8 +4,8 @@
 // Copyright 2021 by Jan Delgado. All rights reserved.
 // https://github.com/jandelgado/jled
 //
-#include "pico/stdlib.h"    // NOLINT
-#include "jled.h"           // NOLINT
+#include "jled.h"         // NOLINT
+#include "pico/stdlib.h"  // NOLINT
 
 int main() {
     auto led1 = JLed(25).FadeOff(2000).DelayAfter(1000).Forever();

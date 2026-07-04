@@ -16,4 +16,3 @@ TEST_CASE("esp32 mock correctly initialized", "[mock]") {
         REQUIRE(arduinoMockGetLedcSetup(i).bit_num == 0);
     }
 }
-

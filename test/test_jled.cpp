@@ -1,15 +1,17 @@
 // JLed Unit tests (runs on host)
 // Copyright 2017-2025 Jan Delgado jdelgado@gmx.net
 #include <jled_base.h>  // NOLINT
+
 #include <functional>
 #include <iostream>
 #include <limits>
 #include <map>
 #include <utility>
 #include <vector>
+
 #include "brightness.h"
 #include "catch2/catch_amalgamated.hpp"
-#include "hal_mock.h"  // NOLINT
+#include "hal_mock.h"              // NOLINT
 #include "mock_brightness_eval.h"  // NOLINT
 
 using jled::TJLed;
@@ -35,18 +37,16 @@ using UpdateResults = std::vector<UpdateResult>;
 
 // helper to check if a led evaluates to given sequence. TODO use a catch
 // matcher
-template <class T>
-void check_led(T *led, const UpdateResults &expected) {
+template<class T>
+void check_led(T* led, const UpdateResults& expected) {
     uint32_t time = 0;
-    for (const auto &current : expected) {
+    for (const auto& current : expected) {
         TimeMock::set_millis(time);
         const auto updated = led->Update();
         const auto val = led->GetHal().Value();
-        UNSCOPED_INFO("t=" << time << ", actual=("
-                           << (updated ? "true" : "false") << ", " << (int)val
-                           << "), expected=("
-                           << (current.first ? "true" : "false") << ", "
-                           << (int)current.second << ")");
+        UNSCOPED_INFO("t=" << time << ", actual=(" << (updated ? "true" : "false") << ", "
+                           << (int)val << "), expected=(" << (current.first ? "true" : "false")
+                           << ", " << (int)current.second << ")");
         CHECK(current.first == updated);
         CHECK(current.second == val);
         time++;
@@ -117,9 +117,9 @@ TEST_CASE("using Blink() configures BlinkBrightnessEvaluator", "[jled]") {
             jled.Blink(1, 2, 3);
             REQUIRE(jled.eval_storage_.type == jled::EvalType::BLINK);
             const auto& eval = jled.eval_storage_.data.blink;
-            CHECK((1+2)*3 == eval.Period());
+            CHECK((1 + 2) * 3 == eval.Period());
             CHECK(1 == eval.duration_on_);
-            CHECK(1+2 == eval.sub_period_);
+            CHECK(1 + 2 == eval.sub_period_);
         }
     };
     TestableJLed::test();
@@ -142,8 +142,7 @@ TEST_CASE("using Breathe() configures BreatheBrightnessEvaluator", "[jled]") {
     TestableJLed::test();
 }
 
-TEST_CASE("Breathe(period) splits period evenly into fade-on and fade-off",
-          "[jled]") {
+TEST_CASE("Breathe(period) splits period evenly into fade-on and fade-off", "[jled]") {
     class TestableJLed : public TestJLed {
      public:
         using TestJLed::TestJLed;
@@ -199,8 +198,7 @@ TEST_CASE("using default Candle() configures CandleBrightnessEvaluator with semi
     TestableJLed::test();
 }
 
-TEST_CASE("using Fadeon(), FadeOff() configures Fade-BrightnessEvaluators",
-          "[jled]") {
+TEST_CASE("using Fadeon(), FadeOff() configures Fade-BrightnessEvaluators", "[jled]") {
     class TestableJLed : public TestJLed {
      public:
         using TestJLed::TestJLed;
@@ -273,8 +271,7 @@ TEST_CASE("UserFunc() allows to use a custom brightness evaluator", "[jled]") {
     TestableJLed::test();
 }
 
-TEST_CASE("ConstantBrightnessEvaluator returns constant provided value",
-          "[jled]") {
+TEST_CASE("ConstantBrightnessEvaluator returns constant provided value", "[jled]") {
     auto cbZero = ConstantBrightnessEvaluator{0, 1};
     CHECK(1 == cbZero.Period());
     CHECK(0 == cbZero.Eval(0));
@@ -301,7 +298,7 @@ TEST_CASE(
 
     SECTION("multiple cycles (n > 1) repeat the on-off cycle") {
         auto eval = BlinkBrightnessEvaluator{1, 2, 3};
-        CHECK((1+2)*3 == eval.Period());
+        CHECK((1 + 2) * 3 == eval.Period());
         // each of the 3 sub-cycles: on at slot 0, off at slots 1 and 2
         CHECK(255 == eval.Eval(0));
         CHECK(0 == eval.Eval(1));
@@ -327,8 +324,7 @@ TEST_CASE("CandleBrightnessEvaluator simulates candle flickering", "[jled]") {
     CHECK(eval.Eval(128) == eval.Eval(128));
 }
 
-TEST_CASE("CandleBrightnessEvaluator jitter=0 always returns full brightness",
-          "[jled]") {
+TEST_CASE("CandleBrightnessEvaluator jitter=0 always returns full brightness", "[jled]") {
     auto eval = CandleBrightnessEvaluator(0, 0, 1000);
     // rnd >= 0 is always true
     CHECK(255 == eval.Eval(0));
@@ -371,8 +367,7 @@ TEST_CASE("CandleBrightnessEvaluator speed groups same slot", "[jled]") {
     CHECK(eval.Eval(2) == eval.Eval(3));
 }
 
-TEST_CASE("CandleBrightnessEvaluator 16-bit scales table values correctly",
-          "[jled]") {
+TEST_CASE("CandleBrightnessEvaluator 16-bit scales table values correctly", "[jled]") {
     auto eval = jled::CandleBrightnessEvaluator<uint16_t>(0, 255, 1000);
     // gate: hash8(0)=243 < 255 -> table; index: hash8(~0)&0xf=2 -> kCandleTable[2]=21
     const uint16_t expected = static_cast<uint16_t>((21u << 8) | 21u);
@@ -382,17 +377,22 @@ TEST_CASE("CandleBrightnessEvaluator 16-bit scales table values correctly",
     CHECK(0xffffu == eval_full.Eval(0));
 }
 
-TEST_CASE(
-    "BreatheEvaluator evaluates to bell curve distributed brightness curve",
-    "[jled]") {
+TEST_CASE("BreatheEvaluator evaluates to bell curve distributed brightness curve", "[jled]") {
     auto eval = BreatheBrightnessEvaluator{100, 200, 300, 0, 255};
     CHECK(100 + 200 + 300 == eval.Period());
 
-    const std::map<uint32_t, uint8_t> test_values = {
-        {0, 0},     {50, 68},   {80, 200},  {99, 255}, {100, 255},
-        {299, 255}, {300, 255}, {399, 138}, {499, 26}, {599, 0}};
+    const std::map<uint32_t, uint8_t> test_values = {{0, 0},
+                                                     {50, 68},
+                                                     {80, 200},
+                                                     {99, 255},
+                                                     {100, 255},
+                                                     {299, 255},
+                                                     {300, 255},
+                                                     {399, 138},
+                                                     {499, 26},
+                                                     {599, 0}};
 
-    for (const auto &x : test_values) {
+    for (const auto& x : test_values) {
         INFO("t=" << x.first);
         CHECK((int)x.second == (int)eval.Eval(x.first));
     }
@@ -483,8 +483,8 @@ TEST_CASE("Stop() idle modes", "[jled]") {
     using P = std::pair<jled::eIdleMode, int>;
     auto tc = GENERATE(values<P>({
         {jled::eIdleMode::TO_MIN_BRIGHTNESS, 50},
-        {jled::eIdleMode::FULL_OFF,          0},
-        {jled::eIdleMode::KEEP_CURRENT,      130},
+        {jled::eIdleMode::FULL_OFF, 0},
+        {jled::eIdleMode::KEEP_CURRENT, 130},
     }));
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{100, 0});
     TestJLed jled = TestJLed(10).UserFunc(&eval).MinBrightness(50);
@@ -506,8 +506,8 @@ TEST_CASE("Pause() idle modes", "[jled]") {
     using P = std::pair<jled::eIdleMode, int>;
     auto tc = GENERATE(values<P>({
         {jled::eIdleMode::TO_MIN_BRIGHTNESS, 50},
-        {jled::eIdleMode::FULL_OFF,          0},
-        {jled::eIdleMode::KEEP_CURRENT,      130},
+        {jled::eIdleMode::FULL_OFF, 0},
+        {jled::eIdleMode::KEEP_CURRENT, 130},
     }));
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{100, 0});
     TestJLed jled = TestJLed(10).UserFunc(&eval).MinBrightness(50);
@@ -545,8 +545,8 @@ TEST_CASE("effect with repeat 2 repeats sequence once", "[jled]") {
     TestJLed jled = TestJLed(10).UserFunc(&eval).Repeat(2);
 
     typedef UpdateResult u;
-    const UpdateResults expected = {u{true, 10},  u{true, 20},  u{true, 10},
-                                    u{false, 20}, u{false, 20}, u{false, 20}};
+    const UpdateResults expected = {
+        u{true, 10}, u{true, 20}, u{true, 10}, u{false, 20}, u{false, 20}, u{false, 20}};
 
     check_led(&jled, expected);
 }
@@ -556,9 +556,16 @@ TEST_CASE("effect with delay after delays start of next iteration", "[jled]") {
     TestJLed jled = TestJLed(10).UserFunc(&eval).Repeat(2).DelayAfter(2);
 
     typedef UpdateResult u;
-    const UpdateResults expected = {
-        u{true, 10}, u{true, 20}, u{true, 20},  u{true, 20},  u{true, 10},
-        u{true, 20}, u{true, 20}, u{false, 20}, u{false, 20}, u{false, 20}};
+    const UpdateResults expected = {u{true, 10},
+                                    u{true, 20},
+                                    u{true, 20},
+                                    u{true, 20},
+                                    u{true, 10},
+                                    u{true, 20},
+                                    u{true, 20},
+                                    u{false, 20},
+                                    u{false, 20},
+                                    u{false, 20}};
 
     check_led(&jled, expected);
 }
@@ -568,26 +575,24 @@ TEST_CASE("effect with delay before has delayed start ", "[jled]") {
     TestJLed jled = TestJLed(10).UserFunc(&eval).DelayBefore(2);
 
     typedef UpdateResult u;
-    const UpdateResults expected = {u{true, 0},   u{true, 0},   u{true, 10},
-                                    u{false, 20}, u{false, 20}, u{false, 20}};
+    const UpdateResults expected = {
+        u{true, 0}, u{true, 0}, u{true, 10}, u{false, 20}, u{false, 20}, u{false, 20}};
 
     check_led(&jled, expected);
 }
 
-TEST_CASE("After calling Forever() the effect is repeated over and over again ",
-          "[jled]") {
+TEST_CASE("After calling Forever() the effect is repeated over and over again ", "[jled]") {
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{10, 20});
     TestJLed jled = TestJLed(10).UserFunc(&eval).Forever();
 
     typedef UpdateResult u;
-    const UpdateResults expected = {u{true, 10}, u{true, 20}, u{true, 10},
-                                    u{true, 20}, u{true, 10}, u{true, 20}};
+    const UpdateResults expected = {
+        u{true, 10}, u{true, 20}, u{true, 10}, u{true, 20}, u{true, 10}, u{true, 20}};
 
     check_led(&jled, expected);
 }
 
-TEST_CASE("The Hal object provided in the ctor is used during update",
-          "[jled]") {
+TEST_CASE("The Hal object provided in the ctor is used during update", "[jled]") {
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{10, 20});
     TestJLed jled = TestJLed(HalMock(123)).UserFunc(&eval);
 
@@ -612,8 +617,7 @@ TEST_CASE("After Reset() the effect can be restarted", "[jled]") {
 
     typedef UpdateResult u;
 
-    const UpdateResults expected = {u{true, 10}, u{false, 20}, u{false, 20},
-                                    u{false, 20}};
+    const UpdateResults expected = {u{true, 10}, u{false, 20}, u{false, 20}, u{false, 20}};
 
     check_led(&jled, expected);
 
@@ -652,9 +656,7 @@ TEST_CASE("brightness level accessors", "[jled]") {
     }
 }
 
-TEST_CASE(
-    "Setting min and max brightness levels scales evaluated effect values",
-    "[jled]") {
+TEST_CASE("Setting min and max brightness levels scales evaluated effect values", "[jled]") {
     class TestableJLed : public TestJLed {
      public:
         using TestJLed::TestJLed;
@@ -688,9 +690,7 @@ TEST_CASE("timeChangeSinceLastUpdate detects time changes", "[jled]") {
     TestableJLed::test();
 }
 
-
-TEST_CASE("EvalStorage dispatches IsSet/Period/Eval to the active evaluator",
-          "[jled]") {
+TEST_CASE("EvalStorage dispatches IsSet/Period/Eval to the active evaluator", "[jled]") {
     using jled::EvalStorage;
     using jled::EvalType;
 
@@ -698,8 +698,8 @@ TEST_CASE("EvalStorage dispatches IsSet/Period/Eval to the active evaluator",
     auto userEval = MockBrightnessEvaluator(std::vector<uint8_t>{99});
 
     struct TestCase {
-        const char *name;
-        std::function<void(EvalStorage<uint8_t> &)> setup;
+        const char* name;
+        std::function<void(EvalStorage<uint8_t>&)> setup;
         bool expected_is_set;
         uint16_t expected_period;
         uint8_t expected_eval0;
@@ -709,40 +709,53 @@ TEST_CASE("EvalStorage dispatches IsSet/Period/Eval to the active evaluator",
     // member with values that make the dispatched Period()/Eval() unambiguous.
     const std::vector<TestCase> cases = {
         {"NONE is not set and evaluates to zero",
-         [](EvalStorage<uint8_t> &s) { s.type = EvalType::NONE; }, false, 0, 0},
+         [](EvalStorage<uint8_t>& s) { s.type = EvalType::NONE; },
+         false,
+         0,
+         0},
         {"CONSTANT dispatches to ConstantBrightnessEvaluator",
-         [](EvalStorage<uint8_t> &s) {
+         [](EvalStorage<uint8_t>& s) {
              s.type = EvalType::CONSTANT;
              s.data.constant = ConstantBrightnessEvaluator{42, 11};
          },
-         true, 11, 42},
+         true,
+         11,
+         42},
         {"BLINK dispatches to BlinkBrightnessEvaluator",
-         [](EvalStorage<uint8_t> &s) {
+         [](EvalStorage<uint8_t>& s) {
              s.type = EvalType::BLINK;
              s.data.blink = BlinkBrightnessEvaluator{5, 7, 1};
          },
-         true, 12, 255},
+         true,
+         12,
+         255},
         {"BREATHE dispatches to BreatheBrightnessEvaluator",
-         [](EvalStorage<uint8_t> &s) {
+         [](EvalStorage<uint8_t>& s) {
              s.type = EvalType::BREATHE;
              s.data.breathe = BreatheBrightnessEvaluator{10, 20, 30, 0, 255};
          },
-         true, 60, 0},
+         true,
+         60,
+         0},
         {"CANDLE dispatches to CandleBrightnessEvaluator",
-         [](EvalStorage<uint8_t> &s) {
+         [](EvalStorage<uint8_t>& s) {
              s.type = EvalType::CANDLE;
              s.data.candle = CandleBrightnessEvaluator(0, 0, 1000);
          },
-         true, 1000, 255},
+         true,
+         1000,
+         255},
         {"USER dispatches through the user pointer",
-         [&userEval](EvalStorage<uint8_t> &s) {
+         [&userEval](EvalStorage<uint8_t>& s) {
              s.type = EvalType::USER;
              s.data.user = &userEval;
          },
-         true, 1, 99},
+         true,
+         1,
+         99},
     };
 
-    for (const auto &tc : cases) {
+    for (const auto& tc : cases) {
         DYNAMIC_SECTION(tc.name) {
             EvalStorage<uint8_t> storage;
             tc.setup(storage);
@@ -754,22 +767,25 @@ TEST_CASE("EvalStorage dispatches IsSet/Period/Eval to the active evaluator",
 }
 
 TEST_CASE("scale8", "[scale8]") {
-    struct Case { uint8_t val; uint8_t factor; uint8_t expected; };
+    struct Case {
+        uint8_t val;
+        uint8_t factor;
+        uint8_t expected;
+    };
     auto tc = GENERATE(values<Case>({
-        {0,   0,   0},
-        {255, 0,   0},
-        {0,   128, 0},
+        {0, 0, 0},
+        {255, 0, 0},
+        {0, 128, 0},
         {100, 128, 50},
         {255, 128, 128},
-        {0,   255, 0},
+        {0, 255, 0},
         {127, 255, 127},
         {255, 255, 255},
     }));
     CHECK(tc.expected == jled::scale8(tc.val, tc.factor));
 }
 
-TEST_CASE("lerp8by8 interpolates a byte into the given interval",
-          "[lerp8by8]") {
+TEST_CASE("lerp8by8 interpolates a byte into the given interval", "[lerp8by8]") {
     CHECK(0 == (int)(jled::lerp8by8(0, 0, 255)));
     CHECK(0 == (int)(jled::lerp8by8(255, 0, 0)));
     CHECK(255 == (int)(jled::lerp8by8(255, 0, 255)));
@@ -865,11 +881,11 @@ TEST_CASE("Pause() is idempotent", "[jled]") {
     jled.Update(0, nullptr);  // time_start_=0
 
     TimeMock::set_millis(1);
-    jled.Pause();    // time_start_ = 1-0 = 1 (elapsed=1 encoded)
+    jled.Pause();  // time_start_ = 1-0 = 1 (elapsed=1 encoded)
     TimeMock::set_millis(99);
-    jled.Pause();    // second call — must be no-op, not re-encode
+    jled.Pause();  // second call — must be no-op, not re-encode
     TimeMock::set_millis(50);
-    jled.Resume();   // time_start_ = 50-1 = 49 (epoch restored)
+    jled.Resume();  // time_start_ = 50-1 = 49 (epoch restored)
 
     // At t=51: elapsed = 51-49 = 2 → on-phase → 255
     CHECK(jled.Update(51));
@@ -883,9 +899,9 @@ TEST_CASE("Resume() is idempotent", "[jled]") {
     TimeMock::set_millis(1);
     jled.Pause();
     TimeMock::set_millis(10);
-    jled.Resume();   // time_start_ = 10-1 = 9 (epoch)
+    jled.Resume();  // time_start_ = 10-1 = 9 (epoch)
     TimeMock::set_millis(99);
-    jled.Resume();   // second call — must be no-op
+    jled.Resume();  // second call — must be no-op
     CHECK_FALSE(jled.IsPaused());
 
     // At t=11: elapsed = 11-9 = 2 → on-phase → 255
@@ -899,7 +915,7 @@ TEST_CASE("copy of paused JLed preserves pause state", "[jled]") {
     jled.Update(0, nullptr);
     jled.Update(2);
     TimeMock::set_millis(2);
-    jled.Pause();   // time_start_ = 2-0 = 2 (elapsed=2 encoded)
+    jled.Pause();  // time_start_ = 2-0 = 2 (elapsed=2 encoded)
 
     TestJLed copy = jled;
     CHECK(copy.IsPaused());

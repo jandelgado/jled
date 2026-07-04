@@ -9,4 +9,6 @@ auto led = JLed(5).Breathe(2000).MinBrightness(20).Forever().DelayAfter(500);
 
 void setup() {}
 
-void loop() { led.Update(); }
+void loop() {
+    led.Update();
+}
