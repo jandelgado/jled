@@ -1,7 +1,7 @@
 // JLed Unit tests for the fadeon_func (runs on host).
 // Copyright 2024-2025 Jan Delgado jdelgado@gmx.net
 #include "catch2/catch_amalgamated.hpp"
-#include "jled_base.h"
+#include "jled_effects.h"
 
 using jled::fadeon_func;
 using jled::lut_lerp;

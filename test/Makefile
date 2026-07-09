@@ -17,7 +17,7 @@ CATCH=catch2/catch_amalgamated.cpp
 TEST_ARDUINO_MOCK_SRC=Arduino.cpp test_arduino_mock.cpp test_main.cpp ${CATCH}
 TEST_ARDUINO_MOCK_OBJECTS=$(TEST_ARDUINO_MOCK_SRC:.cpp=.o)
 
-TEST_JLED_SRC=Arduino.cpp test_jled.cpp test_main.cpp ../src/jled_base.cpp ${CATCH}
+TEST_JLED_SRC=Arduino.cpp test_jled.cpp test_main.cpp ../src/jled_effects.cpp ${CATCH}
 TEST_JLED_OBJECTS=$(TEST_JLED_SRC:.cpp=.o)
 
 TEST_ESP32_SRC=esp-idf/esp_timer.cpp esp-idf/driver/ledc.cpp \
@@ -37,7 +37,7 @@ TEST_MORSE_OBJECTS=$(TEST_MORSE_SRC:.cpp=.o)
 TEST_BRIGHTNESS_SRC=test_brightness.cpp test_main.cpp ${CATCH}
 TEST_BRIGHTNESS_OBJECTS=$(TEST_BRIGHTNESS_SRC:.cpp=.o)
 
-TEST_FADEON_SRC=test_fadeon_func.cpp test_main.cpp ../src/jled_base.cpp ${CATCH}
+TEST_FADEON_SRC=test_fadeon_func.cpp test_main.cpp ../src/jled_effects.cpp ${CATCH}
 TEST_FADEON_OBJECTS=$(TEST_FADEON_SRC:.cpp=.o)
 
 TEST_PICO_SRC=pico_mock.cpp test_pico_hal.cpp test_main.cpp ${CATCH}
@@ -46,7 +46,7 @@ TEST_PICO_OBJECTS=$(TEST_PICO_SRC:.cpp=.o)
 TEST_ESP8266_HAL_SRC=test_jled_esp8266_hal.cpp test_main.cpp ${CATCH}
 TEST_ESP8266_HAL_OBJECTS=$(TEST_ESP8266_HAL_SRC:.cpp=.o)
 
-TEST_JLED_GROUP_SRC=test_jled_group.cpp test_main.cpp ../src/jled_base.cpp ${CATCH}
+TEST_JLED_GROUP_SRC=test_jled_group.cpp test_main.cpp ../src/jled_effects.cpp ${CATCH}
 TEST_JLED_GROUP_OBJECTS=$(TEST_JLED_GROUP_SRC:.cpp=.o)
 
 all: bin bin/test_arduino_mock  \

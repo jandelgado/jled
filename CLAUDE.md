@@ -36,7 +36,9 @@ JLed is an embedded C++ library for non-blocking, time-driven LED control (blink
 
 **Core files:**
 
-- `src/jled_base.h` — platform-agnostic: `TJLed<Hal, Clock, B>`, `BrightnessEvaluator`, all effects, `TJLedGroup`
+- `src/jled_effects.h`/`.cpp` — `BrightnessEvaluator` and all effects (`Blink`/`Breathe`/`Candle`/etc.), `scale`/`lerp`/`fadeon_func`
+- `src/jled_base.h` — platform-agnostic: `TJLed<Hal, Clock, B>` state machine
+- `src/jled_group_base.h` — `TJLedGroup`, `TJLedAny`, `TJLedRef` (grouping and type erasure)
 - `src/jled.h` — platform detection (preprocessor macros), exposes `JLed`, `JLedHD`, `JLedGroup`, `JLedAny`
 - `src/*_hal.h` — HAL per platform (Arduino, ESP32, ESP8266, mbed, Pico)
 
@@ -71,7 +73,7 @@ JLed led = JLed(21).DelayBefore(1500).Breathe(500).Repeat(5).MaxBrightness(150);
 
 ## Common Tasks
 
-**New effect** (`src/jled_base.h`):
+**New effect** (`src/jled_effects.h` for the evaluator, `src/jled_base.h` for the fluent method):
 
 1. use `BlinkBrightnessEvaluator` and `TJLed::Blink` etc. as reference
 2. Add tests in `test/test_jled.cpp`, example in `examples/`, update `README.md`
