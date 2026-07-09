@@ -1,6 +1,7 @@
 // JLed Unit tests for JLedGroup (run on host).
 // Copyright 2017-2026 Jan Delgado jdelgado@gmx.net
-#include <jled_base.h>  // NOLINT
+#include <jled_base.h>        // NOLINT
+#include <jled_group_base.h>  // NOLINT
 
 #include "catch2/catch_amalgamated.hpp"
 #include "hal_mock.h"              // NOLINT

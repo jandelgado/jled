@@ -1,9 +1,8 @@
 // Copyright 2017-2026 Jan Delgado jdelgado@gmx.net
 //
-#ifndef TEST_MOCK_BRIGHTNESS_EVAL_H_
-#define TEST_MOCK_BRIGHTNESS_EVAL_H_
+#pragma once
 
-#include <jled_base.h>  // NOLINT
+#include <jled_effects.h>  // NOLINT
 
 #include <cassert>
 #include <cstdint>
@@ -29,5 +28,3 @@ class MockBrightnessEvaluatorT : public jled::BrightnessEvaluator<B> {
 };
 
 using MockBrightnessEvaluator = MockBrightnessEvaluatorT<uint8_t>;
-
-#endif  // TEST_MOCK_BRIGHTNESS_EVAL_H_

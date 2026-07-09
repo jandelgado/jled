@@ -32,8 +32,9 @@
 //     led.Update();
 //   }
 
-#include "jled_base.h"  // NOLINT
-#include "jled_std.h"   // NOLINT
+#include "jled_base.h"        // NOLINT
+#include "jled_group_base.h"  // NOLINT
+#include "jled_std.h"         // NOLINT
 
 // Raspberry Pi Pico
 //
