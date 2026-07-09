@@ -11,15 +11,16 @@
 #define HAS_ESP8266_VERSION_NUMERIC 1
 #define ARDUINO_ESP8266_VERSION_MAJOR 3
 
-#include <type_traits>
 #include <jled.h>  // NOLINT
+
+#include <type_traits>
+
 #include "catch2/catch_amalgamated.hpp"
 
 // On ESP8266 core v3+ JLed keeps 8-bit resolution (backwards compatible with the
 // 8-bit analogWrite default), while JLedHD restores full 10-bit resolution via
 // analogWriteResolution(). Before the fix, JLedHD wrongly fell back to 8-bit here.
-TEST_CASE("ESP8266 core v3+: JLed maps to 8-bit, JLedHD to 10-bit HAL",
-          "[jled][esp8266]") {
+TEST_CASE("ESP8266 core v3+: JLed maps to 8-bit, JLedHD to 10-bit HAL", "[jled][esp8266]") {
     // Compile-time: a wrong HAL selection fails the build, not just the run.
     static_assert(std::is_same<jled::JLedHal, jled::ArduinoHal<8>>::value,
                   "JLed must use ArduinoHal<8> on ESP8266 core v3+");

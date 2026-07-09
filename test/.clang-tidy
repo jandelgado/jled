@@ -1,0 +1,17 @@
+---
+# Catch2's TEST_CASE/SECTION/REQUIRE macros expand into nested lambdas;
+# clang-tidy attributes their combined complexity to a synthetic
+# "dummyFunctionN" and prints the whole macro-expansion backtrace through
+# test/catch2/catch_amalgamated.hpp as context. That's noise, not a real
+# finding, and only happens in test files -- so disable it here, not in the
+# root .clang-tidy which still applies to src/.
+#
+# SECTION() also expands to an `if` with an initializer, a C++17 feature
+# clang accepts under -std=c++14 as a harmless extension (the real test
+# build compiles it fine, see test/Makefile). clang-diagnostic-c++17-extensions
+# fires on every SECTION/REQUIRE call site otherwise, purely from the
+# project's C++14 baseline, not a real issue -- disable it here too.
+InheritParentConfig: true
+Checks: >
+  -readability-function-cognitive-complexity,
+  -clang-diagnostic-c++17-extensions

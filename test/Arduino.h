@@ -5,6 +5,7 @@
 
 #include <math.h>
 #include <stdint.h>
+
 #include <cstring>
 
 constexpr auto ARDUINO_PINS = 32;

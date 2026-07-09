@@ -21,8 +21,8 @@ TEST_CASE("fadeon_func 8-bit edge cases and common values", "[fadeon]") {
     SECTION("LUT segment boundaries return exact LUT values") {
         // At tnorm = i*16 the interpolation fraction is 0, so result == lut8[i]
         // lut8 = {0,0,3,7,13,22,33,49,68,91,118,148,179,208,232,248,255}
-        REQUIRE(fadeon_func<uint8_t>(32,  period) == 3);    // lut8[2]
-        REQUIRE(fadeon_func<uint8_t>(48,  period) == 7);    // lut8[3]
+        REQUIRE(fadeon_func<uint8_t>(32, period) == 3);     // lut8[2]
+        REQUIRE(fadeon_func<uint8_t>(48, period) == 7);     // lut8[3]
         REQUIRE(fadeon_func<uint8_t>(128, period) == 68);   // lut8[8]
         REQUIRE(fadeon_func<uint8_t>(192, period) == 179);  // lut8[12]
         REQUIRE(fadeon_func<uint8_t>(240, period) == 248);  // lut8[15]
@@ -51,7 +51,9 @@ TEST_CASE("lut_lerp with synthetic LUT", "[fadeon]") {
     static constexpr uint8_t lut[] = {0, 64, 128, 192, 255};
     const uint16_t period = 256;
 
-    SECTION("t=0 returns lut[0]") { REQUIRE(lut_lerp(0, period, lut) == 0); }
+    SECTION("t=0 returns lut[0]") {
+        REQUIRE(lut_lerp(0, period, lut) == 0);
+    }
 
     SECTION("t=period-1 returns lut[4]") {
         REQUIRE(lut_lerp(period - 1, period, lut) == 255);
@@ -92,8 +94,8 @@ TEST_CASE("fadeon_func 16-bit edge cases and common values", "[fadeon]") {
         // With period=32768, tnorm = t*2. Segments are 2048 wide.
         // At t=1024: tnorm=2048, i=1, y0=49, result=49
         // lut16 = {0,49,198,448,807,...,65535}
-        REQUIRE(fadeon_func<uint16_t>(1024,  period) == 49);    // lut16[1]
-        REQUIRE(fadeon_func<uint16_t>(2048,  period) == 198);   // lut16[2]
+        REQUIRE(fadeon_func<uint16_t>(1024, period) == 49);      // lut16[1]
+        REQUIRE(fadeon_func<uint16_t>(2048, period) == 198);     // lut16[2]
         REQUIRE(fadeon_func<uint16_t>(16384, period) == 17545);  // lut16[16]
         REQUIRE(fadeon_func<uint16_t>(24576, period) == 46081);  // lut16[24]
     }

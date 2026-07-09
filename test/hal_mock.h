@@ -19,7 +19,7 @@ class HalMock {
         pin_values()[pin_] = val_;
     }
 
-    uint8_t  Pin()   const { return pin_; }
+    uint8_t Pin() const { return pin_; }
     uint16_t Value() const { return val_; }
 
     // Global pin-state table: allows reading back brightness from LEDs stored
@@ -33,7 +33,7 @@ class HalMock {
 
  private:
     uint16_t val_ = 0;
-    PinType  pin_ = 0;
+    PinType pin_ = 0;
 
     static uint16_t* pin_values() {
         static uint16_t values[256] = {};

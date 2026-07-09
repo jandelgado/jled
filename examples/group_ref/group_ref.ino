@@ -16,7 +16,7 @@ JLedRef leds[] = {&led0, &led1, &innerGroup};
 
 auto group = JLedRefGroup::Sequential(leds);
 
-void setup() { }
+void setup() {}
 
 void loop() {
     group.Update();

@@ -1,15 +1,15 @@
 // JLed Unit tests for the mbed_hal class (run on host).
 // Copyright 2020 Jan Delgado jdelgado@gmx.net
-#include "catch2/catch_amalgamated.hpp"
-
 #include <mbed_hal.h>  // NOLINT
-#include "mbed.h"      // NOLINT
+
+#include "catch2/catch_amalgamated.hpp"
+#include "mbed.h"  // NOLINT
 
 using jled::MbedHal;
 
 struct MbedMockFixture {
     MbedState mock{};
-    MbedMockFixture()  { mbedMockSetInstance(&mock); }
+    MbedMockFixture() { mbedMockSetInstance(&mock); }
     ~MbedMockFixture() { mbedMockSetInstance(nullptr); }
 };
 
@@ -29,8 +29,7 @@ TEST_CASE_METHOD(MbedMockFixture, "MbedHal<> analogWrite 8-bit", "[mbed_hal]") {
 
     SECTION("127 outputs scaled value") {
         hal.analogWrite<uint8_t>(127);
-        REQUIRE_THAT(mock.getPinState(kPin),
-                     Catch::Matchers::WithinAbs(127 / 255., 0.0001));
+        REQUIRE_THAT(mock.getPinState(kPin), Catch::Matchers::WithinAbs(127 / 255., 0.0001));
     }
 }
 
@@ -50,8 +49,7 @@ TEST_CASE_METHOD(MbedMockFixture, "MbedHal<16> analogWrite 16-bit", "[mbed_hal]"
 
     SECTION("mid outputs scaled value") {
         hal.analogWrite<uint16_t>(32768);
-        REQUIRE_THAT(mock.getPinState(kPin),
-                     Catch::Matchers::WithinAbs(32768 / 65535., 0.0001));
+        REQUIRE_THAT(mock.getPinState(kPin), Catch::Matchers::WithinAbs(32768 / 65535., 0.0001));
     }
 }
 
@@ -87,6 +85,8 @@ TEST_CASE_METHOD(MbedMockFixture, "MbedHal<> copy and assignment", "[mbed_hal]")
     }
 
     SECTION("destructs without crash when uninitialized") {
-        { MbedHal<> hal(5); }  // pwmout_ is null, must not crash
+        {
+            MbedHal<> hal(5);
+        }  // pwmout_ is null, must not crash
     }
 }

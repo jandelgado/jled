@@ -24,8 +24,9 @@
 #ifdef __MBED__
 
 #include <mbed.h>
-#include "jled_std.h"
+
 #include "brightness.h"
+#include "jled_std.h"
 
 namespace jled {
 
@@ -67,21 +68,19 @@ class MbedHal {
  private:
     static constexpr uint16_t kMaxBrightness = (1u << kResBits_) - 1;
 
-    PwmOut* pwmout() const {
-        return reinterpret_cast<PwmOut*>(pwmout_buf_.data);
-    }
+    PwmOut* pwmout() const { return reinterpret_cast<PwmOut*>(pwmout_buf_.data); }
 
     PinType pin_;
     mutable bool initialized_ = false;
-    struct alignas(PwmOut) PwmOutBuf { uint8_t data[sizeof(PwmOut)]; };
+    struct alignas(PwmOut) PwmOutBuf {
+        uint8_t data[sizeof(PwmOut)];
+    };
     mutable PwmOutBuf pwmout_buf_;
 };
 
 class MbedClock {
  public:
-    static uint32_t millis() {
-        return Kernel::Clock::now().time_since_epoch().count();
-    }
+    static uint32_t millis() { return Kernel::Clock::now().time_since_epoch().count(); }
 };
 
 }  // namespace jled

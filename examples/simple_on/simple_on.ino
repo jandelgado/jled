@@ -5,9 +5,8 @@
 
 JLed led = JLed(LED_BUILTIN).On().DelayBefore(2000);
 
-void setup() {
-}
+void setup() {}
 
 void loop() {
-  led.Update();
+    led.Update();
 }

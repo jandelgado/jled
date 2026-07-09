@@ -58,19 +58,18 @@ class Percentage {
     constexpr explicit Percentage(uint8_t pct) : pct_(pct) {}
 
     constexpr operator uint8_t() const {
-        return static_cast<uint8_t>(
-            static_cast<uint16_t>(pct_) * BrightnessTraits<uint8_t>::kFullBrightness / 100);
+        return static_cast<uint8_t>(static_cast<uint16_t>(pct_) *
+                                    BrightnessTraits<uint8_t>::kFullBrightness / 100);
     }
     constexpr operator uint16_t() const {
-        return static_cast<uint16_t>(
-            static_cast<uint32_t>(pct_) * BrightnessTraits<uint16_t>::kFullBrightness / 100);
+        return static_cast<uint16_t>(static_cast<uint32_t>(pct_) *
+                                     BrightnessTraits<uint16_t>::kFullBrightness / 100);
     }
 };
 
 constexpr Percentage operator""_pct(unsigned long long pct) {  // NOLINT(runtime/int)
     return Percentage(static_cast<uint8_t>(pct));
 }
-
 
 // Scale Brightness value to target PWM resolution.
 //
@@ -82,14 +81,13 @@ constexpr Percentage operator""_pct(unsigned long long pct) {  // NOLINT(runtime
 // - scaleToNative<ResBits,Brightness>(0) = 0
 // - scaleToNative(kMaxBrightness) = 2^ResBits-1 (e.g. 255 or 65535)
 //
-template <uint8_t ResBits, typename Brightness>
+template<uint8_t ResBits, typename Brightness>
 uint16_t scaleToNative(Brightness val) {
-    static_assert(ResBits >= 1 && ResBits <= 16,
-                  "PWM resolution must be between 1 and 16 bits");
+    static_assert(ResBits >= 1 && ResBits <= 16, "PWM resolution must be between 1 and 16 bits");
     static_assert(sizeof(Brightness) == 1 || sizeof(Brightness) == 2,
                   "Brightness must be uint8_t or uint16_t");
 
-    constexpr uint8_t  kSrcBits   = sizeof(Brightness) * 8;  // 8 or 16
+    constexpr uint8_t kSrcBits = sizeof(Brightness) * 8;  // 8 or 16
 
     if /*constexpr*/ (ResBits == kSrcBits) {
         return static_cast<uint16_t>(val);
@@ -108,4 +106,3 @@ uint16_t scaleToNative(Brightness val) {
 }
 
 }  // namespace jled
-

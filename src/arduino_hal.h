@@ -21,6 +21,7 @@
 //
 #pragma once
 #include <Arduino.h>
+
 #include "brightness.h"
 
 // Some platforms support PWM resolutions higher than 8 bits (e.g. SAMD/Due
@@ -39,14 +40,14 @@ namespace jled {
 //   ESP8266 v1/v2 (10-bit) or SAMD/Due (up to 12-bit).  The platform SDK's
 //   analogWriteResolution() is called automatically on first use when
 //   kResBits_ != 8.  Platform selection is handled in jled.h.
-template <uint8_t kResBits_ = 8>
+template<uint8_t kResBits_ = 8>
 class ArduinoHal {
  public:
     using PinType = uint8_t;
 
     explicit ArduinoHal(PinType pin) noexcept : pin_(pin) {}
 
-    template <typename Brightness>
+    template<typename Brightness>
     void analogWrite(Brightness val) const {
         // some platforms, e.g. STM need lazy initialization
         if (!setup_) {
@@ -67,9 +68,7 @@ class ArduinoHal {
 
 class ArduinoClock {
  public:
-    static uint32_t millis() {
-        return ::millis();
-    }
+    static uint32_t millis() { return ::millis(); }
 };
 
 }  // namespace jled

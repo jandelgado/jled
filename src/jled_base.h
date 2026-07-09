@@ -23,7 +23,9 @@
 
 #include <inttypes.h>  // types, e.g. uint8_t
 #include <stddef.h>    // size_t
-#include <new>     // placement new
+
+#include <new>  // placement new
+
 #include "brightness.h"  // brightness type traits and utilities
 #include "jled_std.h"    // EnableIf, IsBaseOf
 
@@ -60,15 +62,14 @@ constexpr uint8_t log2_floor(size_t n) {
 // segment as a power-of-two, computed from N and kNormShift at compile time.
 //
 // Requires: N >= 2 and (N-1) is a power of two (checked by static_assert).
-template <typename T, size_t N>
+template<typename T, size_t N>
 T lut_lerp(uint32_t t, uint16_t period, const T (&lut)[N]) {
-    static_assert(N >= 2 && ((N - 1) & (N - 2)) == 0,
-                  "lut_lerp: N-1 must be a power of 2");
+    static_assert(N >= 2 && ((N - 1) & (N - 2)) == 0, "lut_lerp: N-1 must be a power of 2");
     constexpr uint8_t kNormShift = 16 - sizeof(T) * 8;
     constexpr uint8_t kSegShift = (16 - kNormShift) - log2_floor(N - 1);
     if (t + 1 >= period) return lut[N - 1];
-    const uint16_t tnorm = static_cast<uint16_t>(
-        (t << (16 - kNormShift)) / static_cast<uint16_t>(period));
+    const uint16_t tnorm =
+        static_cast<uint16_t>((t << (16 - kNormShift)) / static_cast<uint16_t>(period));
     const uint16_t i = tnorm >> kSegShift;
     const auto y0 = lut[i];
     const auto y1 = lut[i + 1];
@@ -90,8 +91,12 @@ template<typename Brightness>
 Brightness lerp(Brightness val, Brightness a, Brightness b);
 
 // Legacy 8-bit function names (inline wrappers for backwards compatibility)
-inline uint8_t scale8(uint8_t val, uint8_t f) { return scale<uint8_t>(val, f); }
-inline uint8_t lerp8by8(uint8_t val, uint8_t a, uint8_t b) { return lerp<uint8_t>(val, a, b); }
+inline uint8_t scale8(uint8_t val, uint8_t f) {
+    return scale<uint8_t>(val, f);
+}
+inline uint8_t lerp8by8(uint8_t val, uint8_t a, uint8_t b) {
+    return lerp<uint8_t>(val, a, b);
+}
 
 // a function f(t,period,param) that calculates the LEDs brightness for a given
 // point in time and the given period. param is an optionally user provided
@@ -122,9 +127,9 @@ struct BlinkBrightnessEvaluator {
     uint8_t n_ = 1;
 
     BlinkBrightnessEvaluator(uint16_t duration_on, uint16_t duration_off, uint8_t n)
-     : duration_on_(duration_on), sub_period_(duration_on+duration_off), n_(n) {}
+        : duration_on_(duration_on), sub_period_(duration_on + duration_off), n_(n) {}
 
-    uint16_t Period() const { return sub_period_*n_; }
+    uint16_t Period() const { return sub_period_ * n_; }
     Brightness Eval(uint32_t t) const {
         // Eval is only ever called with t < Period(), and the contract requires
         // Period() to fit in uint16_t, so t fits in uint16_t too. For the common
@@ -132,11 +137,10 @@ struct BlinkBrightnessEvaluator {
         // and skipped. Narrowing to 16-bit avoids the costly 32-bit
         // division/modulo routine on MCUs without a hardware divider (e.g. AVR).
         const uint16_t slot_start_t =
-            (n_ == 1) ? static_cast<uint16_t>(t)
-                      : static_cast<uint16_t>(t) % sub_period_;
+            (n_ == 1) ? static_cast<uint16_t>(t) : static_cast<uint16_t>(t) % sub_period_;
 
         return (slot_start_t < duration_on_) ? BrightnessTraits<Brightness>::kFullBrightness
-                                  : BrightnessTraits<Brightness>::kZeroBrightness;
+                                             : BrightnessTraits<Brightness>::kZeroBrightness;
     }
 };
 
@@ -153,9 +157,7 @@ struct BreatheBrightnessEvaluator {
     uint16_t duration_fade_off_;
     Brightness from_;
     Brightness to_;
-    uint16_t Period() const {
-        return duration_fade_on_ + duration_on_ + duration_fade_off_;
-    }
+    uint16_t Period() const { return duration_fade_on_ + duration_on_ + duration_fade_off_; }
     Brightness Eval(uint32_t t) const {
         Brightness val = BrightnessTraits<Brightness>::kZeroBrightness;
         if (t < duration_fade_on_)
@@ -183,8 +185,7 @@ struct CandleBrightnessEvaluator {
     // period - period of the effect
     // offset - time offset in ms added before speed scaling; use different values
     //          per LED for independent flicker.
-    CandleBrightnessEvaluator(uint8_t speed, uint8_t jitter, uint16_t period,
-                              uint16_t offset = 0)
+    CandleBrightnessEvaluator(uint8_t speed, uint8_t jitter, uint16_t period, uint16_t offset = 0)
         : speed_(speed), jitter_(jitter), period_(period), offset_(offset) {}
 
     uint16_t Period() const { return period_; }
@@ -206,10 +207,10 @@ struct EvalStorage {
 
     union Data {
         ConstantBrightnessEvaluator<Brightness> constant;
-        BlinkBrightnessEvaluator<Brightness>    blink;
-        BreatheBrightnessEvaluator<Brightness>  breathe;
-        CandleBrightnessEvaluator<Brightness>   candle;
-        BrightnessEvaluator<Brightness>*        user;
+        BlinkBrightnessEvaluator<Brightness> blink;
+        BreatheBrightnessEvaluator<Brightness> breathe;
+        CandleBrightnessEvaluator<Brightness> candle;
+        BrightnessEvaluator<Brightness>* user;
         Data() {}
         ~Data() {}
     } data;
@@ -218,23 +219,35 @@ struct EvalStorage {
 
     uint16_t Period() const {
         switch (type) {
-            case EvalType::CONSTANT: return data.constant.Period();
-            case EvalType::BLINK:    return data.blink.Period();
-            case EvalType::BREATHE:  return data.breathe.Period();
-            case EvalType::CANDLE:   return data.candle.Period();
-            case EvalType::USER:     return data.user->Period();
-            default:                 return 0;
+            case EvalType::CONSTANT:
+                return data.constant.Period();
+            case EvalType::BLINK:
+                return data.blink.Period();
+            case EvalType::BREATHE:
+                return data.breathe.Period();
+            case EvalType::CANDLE:
+                return data.candle.Period();
+            case EvalType::USER:
+                return data.user->Period();
+            default:
+                return 0;
         }
     }
 
     Brightness Eval(uint32_t t) const {
         switch (type) {
-            case EvalType::CONSTANT: return data.constant.Eval(t);
-            case EvalType::BLINK:    return data.blink.Eval(t);
-            case EvalType::BREATHE:  return data.breathe.Eval(t);
-            case EvalType::CANDLE:   return data.candle.Eval(t);
-            case EvalType::USER:     return data.user->Eval(t);
-            default:                 return BrightnessTraits<Brightness>::kZeroBrightness;
+            case EvalType::CONSTANT:
+                return data.constant.Eval(t);
+            case EvalType::BLINK:
+                return data.blink.Eval(t);
+            case EvalType::BREATHE:
+                return data.breathe.Eval(t);
+            case EvalType::CANDLE:
+                return data.candle.Eval(t);
+            case EvalType::USER:
+                return data.user->Eval(t);
+            default:
+                return BrightnessTraits<Brightness>::kZeroBrightness;
         }
     }
 };
@@ -245,7 +258,7 @@ class JLedBase {};
 
 enum class eIdleMode { TO_MIN_BRIGHTNESS = 0, FULL_OFF, KEEP_CURRENT };
 
-template <typename Hal, typename Clock, typename Brightness, typename Derived>
+template<typename Hal, typename Clock, typename Brightness, typename Derived>
 class TJLed : public JLedBase {
  protected:
     // Active brightness evaluator (discriminated union).
@@ -363,12 +376,13 @@ class TJLed : public JLedBase {
 
     // Set effect to Breathe, with the given fade on-, on- and fade off-
     // duration values.
-    Derived& Breathe(uint16_t duration_fade_on, uint16_t duration_on,
-                     uint16_t duration_fade_off) {
+    Derived& Breathe(uint16_t duration_fade_on, uint16_t duration_on, uint16_t duration_fade_off) {
         eval_storage_.type = EvalType::BREATHE;
-        eval_storage_.data.breathe = {duration_fade_on, duration_on, duration_fade_off,
-            BrightnessTraits<Brightness>::kZeroBrightness,
-            BrightnessTraits<Brightness>::kFullBrightness};
+        eval_storage_.data.breathe = {duration_fade_on,
+                                      duration_on,
+                                      duration_fade_off,
+                                      BrightnessTraits<Brightness>::kZeroBrightness,
+                                      BrightnessTraits<Brightness>::kFullBrightness};
         return Reset();
     }
 
@@ -384,14 +398,12 @@ class TJLed : public JLedBase {
     // random offset so multiple LEDs with default parameters automatically
     // flicker independently. Pass an explicit offset (in ms) to control the
     // phase precisely.
-    Derived& Candle(uint8_t speed = 6, uint8_t jitter = 15,
-                    uint16_t period = 0xffff,
+    Derived& Candle(uint8_t speed = 6, uint8_t jitter = 15, uint16_t period = 0xffff,
                     uint16_t offset = kCandleOffsetAuto) {
         eval_storage_.type = EvalType::CANDLE;
         const uint16_t actual_offset =
-            (offset == kCandleOffsetAuto)
-                ? static_cast<uint16_t>(reinterpret_cast<uintptr_t>(this))
-                : offset;
+            (offset == kCandleOffsetAuto) ? static_cast<uint16_t>(reinterpret_cast<uintptr_t>(this))
+                                          : offset;
         eval_storage_.data.candle =
             CandleBrightnessEvaluator<Brightness>(speed, jitter, period, actual_offset);
         return Reset();
@@ -431,9 +443,8 @@ class TJLed : public JLedBase {
     // Update() will have no effect.
     Derived& Stop(eIdleMode mode = eIdleMode::TO_MIN_BRIGHTNESS) {
         if (mode != eIdleMode::KEEP_CURRENT) {
-            Write(mode == eIdleMode::FULL_OFF
-                      ? BrightnessTraits<Brightness>::kZeroBrightness
-                      : minBrightness_);
+            Write(mode == eIdleMode::FULL_OFF ? BrightnessTraits<Brightness>::kZeroBrightness
+                                              : minBrightness_);
         }
         state_ = ST_STOPPED;
         bPaused_ = false;
@@ -489,9 +500,7 @@ class TJLed : public JLedBase {
     //        |<-delay before->|<--period-->|<-delay after-> (time)
     //                         | func(t)    |
     //                         |<- num_repetitions times  ->
-    bool Update(int16_t* pLast = nullptr) {
-        return Update(Clock::millis(), pLast);
-    }
+    bool Update(int16_t* pLast = nullptr) { return Update(Clock::millis(), pLast); }
 
     bool Update(uint32_t t, int16_t* pLast = nullptr) {
         if (bPaused_) return true;
@@ -521,8 +530,7 @@ class TJLed : public JLedBase {
         const auto cycle_period = period + delay_after_;
 
         if (!IsForever()) {
-            const auto time_end = time_start_ +
-                                  cycle_period * num_repetitions_ - 1;
+            const auto time_end = time_start_ + cycle_period * num_repetitions_ - 1;
 
             if (static_cast<int32_t>(t - time_end) >= 0) {
                 // make sure final value of t = (period-1) is set
@@ -554,20 +562,17 @@ class TJLed : public JLedBase {
         if (bPaused_ || state_ == ST_STOPPED) return;
         bPaused_ = true;
         if (mode != eIdleMode::KEEP_CURRENT) {
-            Write(mode == eIdleMode::FULL_OFF
-                      ? BrightnessTraits<Brightness>::kZeroBrightness
-                      : minBrightness_);
+            Write(mode == eIdleMode::FULL_OFF ? BrightnessTraits<Brightness>::kZeroBrightness
+                                              : minBrightness_);
         }
-        if (state_ != ST_INIT)
-            time_start_ = t - time_start_;  // encode elapsed_so_far in place
+        if (state_ != ST_INIT) time_start_ = t - time_start_;  // encode elapsed_so_far in place
         // ST_INIT: time_start_ is 0 and not yet meaningful; Update() resets it on resume
     }
 
     void Resume(uint32_t t) {
         if (!bPaused_) return;
         bPaused_ = false;
-        if (state_ != ST_INIT)
-            time_start_ = t - time_start_;  // restore epoch: t - elapsed_so_far
+        if (state_ != ST_INIT) time_start_ = t - time_start_;  // restore epoch: t - elapsed_so_far
         // ST_INIT: Update() will set time_start_ fresh on next call
     }
 
@@ -578,7 +583,8 @@ class TJLed : public JLedBase {
 
     void trackLastUpdateTime(uint32_t t) { last_update_time_ = (t & 255); }
 
-    template <size_t N> friend struct TJLedAny;
+    template<size_t N>
+    friend struct TJLedAny;
     friend class TJLedRef;
 
  public:
@@ -587,10 +593,12 @@ class TJLed : public JLedBase {
     static constexpr Brightness kBrightnessStep = 1;
 
  private:
-    enum State : uint8_t { ST_STOPPED = 0,
-                           ST_INIT = 1,
-                           ST_RUNNING = 2,
-                           ST_IN_DELAY_AFTER_PHASE = 3 };
+    enum State : uint8_t {
+        ST_STOPPED = 0,
+        ST_INIT = 1,
+        ST_RUNNING = 2,
+        ST_IN_DELAY_AFTER_PHASE = 3
+    };
 
     // state_ and bPaused_ model two orthogonal dimensions. state_ tracks the
     // progression through the effect (init -> running <-> delay-after ->
@@ -633,9 +641,9 @@ template<typename Brightness>
 Brightness scale(Brightness val, Brightness factor) {
     // Use sizeof to determine type at compile time (optimizes to same code as if constexpr)
     if (sizeof(Brightness) == 1) {
-        return (static_cast<uint16_t>(val) * static_cast<uint16_t>(1+factor)) >> 8;
+        return (static_cast<uint16_t>(val) * static_cast<uint16_t>(1 + factor)) >> 8;
     } else {
-        return (static_cast<uint32_t>(val) * static_cast<uint32_t>(1+factor)) >> 16;
+        return (static_cast<uint32_t>(val) * static_cast<uint32_t>(1 + factor)) >> 16;
     }
 }
 
@@ -660,31 +668,27 @@ template<>
 uint16_t fadeon_func<uint16_t>(uint32_t t, uint16_t period);
 
 // Forward declaration, TJLedAny is defined below.
-template <size_t BufSize>
+template<size_t BufSize>
 struct TJLedAny;
 
 // TJLedGroup groups TJLedAny elements and plays them in parallel or sequentially.
-template <typename Clock, typename AnyType>
+template<typename Clock, typename AnyType>
 class TJLedGroup {
  public:
     enum eMode { SEQUENCE, PARALLEL };
 
-    template <size_t N>
+    template<size_t N>
     static TJLedGroup Parallel(AnyType (&leds)[N]) {
         static_assert(N <= 255, "TJLedGroup supports at most 255 elements");
         return TJLedGroup(PARALLEL, leds, N);
     }
-    static TJLedGroup Parallel(AnyType* leds, size_t n) {
-        return TJLedGroup(PARALLEL, leds, n);
-    }
-    template <size_t N>
+    static TJLedGroup Parallel(AnyType* leds, size_t n) { return TJLedGroup(PARALLEL, leds, n); }
+    template<size_t N>
     static TJLedGroup Sequential(AnyType (&leds)[N]) {
         static_assert(N <= 255, "TJLedGroup supports at most 255 elements");
         return TJLedGroup(SEQUENCE, leds, N);
     }
-    static TJLedGroup Sequential(AnyType* leds, size_t n) {
-        return TJLedGroup(SEQUENCE, leds, n);
-    }
+    static TJLedGroup Sequential(AnyType* leds, size_t n) { return TJLedGroup(SEQUENCE, leds, n); }
 
     TJLedGroup& Repeat(uint16_t num_repetitions) {
         num_repetitions_ = num_repetitions;
@@ -702,14 +706,14 @@ class TJLedGroup {
     void Resume();
 
     TJLedGroup(eMode mode, AnyType* leds, size_t n)
-        : mode_(mode), leds_(leds), n_(static_cast<uint8_t>(n > 255 ? 255 : n)) {
-    }
+        : mode_(mode), leds_(leds), n_(static_cast<uint8_t>(n > 255 ? 255 : n)) {}
 
  protected:
     void Pause(uint32_t t, eIdleMode mode = eIdleMode::TO_MIN_BRIGHTNESS);
     void Resume(uint32_t t);
 
-    template <size_t N> friend struct TJLedAny;
+    template<size_t N>
+    friend struct TJLedAny;
     friend class TJLedRef;
 
  private:
@@ -735,7 +739,7 @@ class TJLedGroup {
 // sizeof(TJLedAny<N>) == N + sizeof(void*) (each instance holds one vtable
 // pointer; the pointed-to Vtable struct is shared across all instances of the
 // same concrete type).
-template <size_t BufSize>
+template<size_t BufSize>
 struct TJLedAny {
  private:
     struct Vtable {
@@ -751,7 +755,7 @@ struct TJLedAny {
     alignas(alignof(max_align_t)) char buf_[BufSize];
     const Vtable* vtable_;
 
-    template <typename T>
+    template<typename T>
     static const Vtable* VtableFor() {
         static const Vtable kVt = {
             [](void* p, uint32_t t) -> bool { return static_cast<T*>(p)->Update(t); },
@@ -759,15 +763,12 @@ struct TJLedAny {
             [](void* p, eIdleMode m) { static_cast<T*>(p)->Stop(m); },
             [](void* p, uint32_t t, eIdleMode m) { static_cast<T*>(p)->Pause(t, m); },
             [](void* p, uint32_t t) { static_cast<T*>(p)->Resume(t); },
-            [](void* dst, const void* src) {
-                new (dst) T(*static_cast<const T*>(src));
-            },
-            [](void* p) { static_cast<T*>(p)->~T(); }
-        };
+            [](void* dst, const void* src) { new (dst) T(*static_cast<const T*>(src)); },
+            [](void* p) { static_cast<T*>(p)->~T(); }};
         return &kVt;
     }
 
-    template <typename T>
+    template<typename T>
     void Init(const T& obj) {
         new (buf_) T(obj);
         vtable_ = VtableFor<T>();
@@ -775,9 +776,7 @@ struct TJLedAny {
 
  public:
     // Accepts any TJLed subclass (JLed, JLedHD, and user-defined types).
-    template <typename T,
-              typename = typename EnableIf<
-                  IsBaseOf<JLedBase, T>::value>::type>
+    template<typename T, typename = typename EnableIf<IsBaseOf<JLedBase, T>::value>::type>
     TJLedAny(T t) {  // NOLINT
         static_assert(sizeof(T) <= BufSize,
                       "LED type exceeds TJLedAny buffer size. "
@@ -786,7 +785,7 @@ struct TJLedAny {
     }
 
     // Accepts any TJLedGroup<Clock, AnyType> (covers JLedGroup and clock variants used in tests).
-    template <typename Clock, typename AnyType>
+    template<typename Clock, typename AnyType>
     TJLedAny(TJLedGroup<Clock, AnyType> g) {  // NOLINT
         static_assert(sizeof(TJLedGroup<Clock, AnyType>) <= BufSize,
                       "TJLedGroup exceeds TJLedAny buffer size. "
@@ -804,14 +803,15 @@ struct TJLedAny {
 
  protected:
     bool Update(uint32_t t) { return vtable_->update(buf_, t); }
-    void Reset()            { vtable_->reset(buf_); }
+    void Reset() { vtable_->reset(buf_); }
     void Stop(eIdleMode mode = eIdleMode::TO_MIN_BRIGHTNESS) { vtable_->stop(buf_, mode); }
     void Pause(uint32_t t, eIdleMode mode = eIdleMode::TO_MIN_BRIGHTNESS) {
         vtable_->pause(buf_, t, mode);
     }
     void Resume(uint32_t t) { vtable_->resume(buf_, t); }
 
-    template <typename Clock, typename AnyType> friend class TJLedGroup;
+    template<typename Clock, typename AnyType>
+    friend class TJLedGroup;
 };
 
 // TJLedRef is a non-owning type-erased reference to any LED or group.
@@ -826,48 +826,47 @@ class TJLedRef {
         void (*pause)(void*, uint32_t, eIdleMode);
         void (*resume)(void*, uint32_t);
     };
-    void*          obj_;
-    const Vtable*  vtable_;
+    void* obj_;
+    const Vtable* vtable_;
 
-    template <typename T>
+    template<typename T>
     static const Vtable* VtableFor() {
         static const Vtable kVt = {
             [](void* p, uint32_t t) -> bool { return static_cast<T*>(p)->Update(t); },
             [](void* p) { static_cast<T*>(p)->Reset(); },
             [](void* p, eIdleMode m) { static_cast<T*>(p)->Stop(m); },
             [](void* p, uint32_t t, eIdleMode m) { static_cast<T*>(p)->Pause(t, m); },
-            [](void* p, uint32_t t) { static_cast<T*>(p)->Resume(t); }
-        };
+            [](void* p, uint32_t t) { static_cast<T*>(p)->Resume(t); }};
         return &kVt;
     }
 
  public:
     // Accepts a pointer to any TJLed subclass (JLed, JLedHD, user-defined).
     // Not explicit so that JLedRef refs[] = { &led1, &led2 } compiles directly.
-    template <typename T,
-              typename = typename EnableIf<IsBaseOf<JLedBase, T>::value>::type>
+    template<typename T, typename = typename EnableIf<IsBaseOf<JLedBase, T>::value>::type>
     TJLedRef(T* ptr) : obj_(ptr), vtable_(VtableFor<T>()) {}  // NOLINT
 
     // Accepts a pointer to any TJLedGroup (enables nested groups via JLedRef).
-    template <typename Clock, typename AnyType>
+    template<typename Clock, typename AnyType>
     TJLedRef(TJLedGroup<Clock, AnyType>* ptr)  // NOLINT
         : obj_(ptr), vtable_(VtableFor<TJLedGroup<Clock, AnyType>>()) {}
 
  protected:
     bool Update(uint32_t t) { return vtable_->update(obj_, t); }
-    void Reset()            { vtable_->reset(obj_); }
+    void Reset() { vtable_->reset(obj_); }
     void Stop(eIdleMode mode = eIdleMode::TO_MIN_BRIGHTNESS) { vtable_->stop(obj_, mode); }
     void Pause(uint32_t t, eIdleMode mode = eIdleMode::TO_MIN_BRIGHTNESS) {
         vtable_->pause(obj_, t, mode);
     }
     void Resume(uint32_t t) { vtable_->resume(obj_, t); }
 
-    template <typename Clock, typename AnyType> friend class TJLedGroup;
+    template<typename Clock, typename AnyType>
+    friend class TJLedGroup;
 };
 
 // TJLedGroup method bodies, defined after TJLedAny is complete.
 
-template <typename Clock, typename AnyType>
+template<typename Clock, typename AnyType>
 bool TJLedGroup<Clock, AnyType>::UpdateParallel(uint32_t t) {
     auto result = false;
     for (auto i = 0u; i < n_; i++) {
@@ -876,7 +875,7 @@ bool TJLedGroup<Clock, AnyType>::UpdateParallel(uint32_t t) {
     return result;
 }
 
-template <typename Clock, typename AnyType>
+template<typename Clock, typename AnyType>
 bool TJLedGroup<Clock, AnyType>::UpdateSequentially(uint32_t t) {
     if (!leds_[cur_].Update(t)) {
         return ++cur_ < n_;
@@ -884,27 +883,25 @@ bool TJLedGroup<Clock, AnyType>::UpdateSequentially(uint32_t t) {
     return true;
 }
 
-template <typename Clock, typename AnyType>
+template<typename Clock, typename AnyType>
 void TJLedGroup<Clock, AnyType>::ResetLeds() {
     for (auto i = 0u; i < n_; i++) {
         leds_[i].Reset();
     }
 }
 
-template <typename Clock, typename AnyType>
+template<typename Clock, typename AnyType>
 bool TJLedGroup<Clock, AnyType>::Update() {
     return Update(Clock::millis());
 }
 
-template <typename Clock, typename AnyType>
+template<typename Clock, typename AnyType>
 bool TJLedGroup<Clock, AnyType>::Update(uint32_t t) {
     if (!is_running_ || n_ < 1) {
         return false;
     }
 
-    const auto led_running = (mode_ == eMode::PARALLEL)
-                                 ? UpdateParallel(t)
-                                 : UpdateSequentially(t);
+    const auto led_running = (mode_ == eMode::PARALLEL) ? UpdateParallel(t) : UpdateSequentially(t);
 
     if (led_running) {
         return true;
@@ -913,13 +910,12 @@ bool TJLedGroup<Clock, AnyType>::Update(uint32_t t) {
     cur_ = 0;
     ResetLeds();
 
-    is_running_ = ++iteration_ < num_repetitions_ ||
-                  num_repetitions_ == kRepeatForever;
+    is_running_ = ++iteration_ < num_repetitions_ || num_repetitions_ == kRepeatForever;
 
     return is_running_;
 }
 
-template <typename Clock, typename AnyType>
+template<typename Clock, typename AnyType>
 void TJLedGroup<Clock, AnyType>::Reset() {
     ResetLeds();
     cur_ = 0;
@@ -927,7 +923,7 @@ void TJLedGroup<Clock, AnyType>::Reset() {
     is_running_ = true;
 }
 
-template <typename Clock, typename AnyType>
+template<typename Clock, typename AnyType>
 void TJLedGroup<Clock, AnyType>::Stop(eIdleMode mode) {
     is_running_ = false;
     for (auto i = 0u; i < n_; i++) {
@@ -935,22 +931,22 @@ void TJLedGroup<Clock, AnyType>::Stop(eIdleMode mode) {
     }
 }
 
-template <typename Clock, typename AnyType>
+template<typename Clock, typename AnyType>
 void TJLedGroup<Clock, AnyType>::Pause(uint32_t t, eIdleMode mode) {
     for (auto i = 0u; i < n_; i++) leds_[i].Pause(t, mode);
 }
 
-template <typename Clock, typename AnyType>
+template<typename Clock, typename AnyType>
 void TJLedGroup<Clock, AnyType>::Pause(eIdleMode mode) {
     Pause(Clock::millis(), mode);
 }
 
-template <typename Clock, typename AnyType>
+template<typename Clock, typename AnyType>
 void TJLedGroup<Clock, AnyType>::Resume(uint32_t t) {
     for (auto i = 0u; i < n_; i++) leds_[i].Resume(t);
 }
 
-template <typename Clock, typename AnyType>
+template<typename Clock, typename AnyType>
 void TJLedGroup<Clock, AnyType>::Resume() {
     Resume(Clock::millis());
 }

@@ -7,10 +7,10 @@
 auto led = JLed(9);
 
 void setup() {
-  led.On().Update();
-  led.FadeOff(2000).DelayBefore(5000);
+    led.On().Update();
+    led.FadeOff(2000).DelayBefore(5000);
 }
 
 void loop() {
-  led.Update();
+    led.Update();
 }

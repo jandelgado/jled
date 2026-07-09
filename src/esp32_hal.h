@@ -34,6 +34,7 @@
 #include <driver/ledc.h>
 #include <esp_timer.h>
 #include <stdint.h>
+
 #include "brightness.h"
 #include "jled_std.h"
 
@@ -101,9 +102,8 @@ class Esp32Hal : public Esp32HalBase {
     // freq  LEDC base frequency in Hz (default: 5000).
     // The PWM resolution (kResBits_) and timer (kTimer_) are template parameters.
     explicit Esp32Hal(PinType pin, int chan = kAutoSelectChan, uint16_t freq = 5000) noexcept {
-        chan_ = (chan == kAutoSelectChan)
-                    ? Esp32Hal::chanMapper().chanForPin(pin)
-                    : (ledc_channel_t)chan;
+        chan_ = (chan == kAutoSelectChan) ? Esp32Hal::chanMapper().chanForPin(pin)
+                                          : (ledc_channel_t)chan;
 
         ledc_timer_config_t ledc_timer{};
         ledc_timer.speed_mode = kLedcSpeedMode;
@@ -134,7 +134,8 @@ class Esp32Hal : public Esp32HalBase {
         // Scale brightness to actual resolution
         const uint16_t duty = jled::scaleToNative<kResBits_>(val);
 
-        // from: https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/peripherals/ledc.html
+        // from:
+        // https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/peripherals/ledc.html
         // The range of the duty cycle values passed to functions depends on selected
         // duty_resolution and should be from 0 to (2 ** duty_resolution). For example, if the
         // selected duty resolution is 10, then the duty cycle values can range from 0 to 1024. This
@@ -157,9 +158,7 @@ class Esp32Hal : public Esp32HalBase {
 
 class Esp32Clock {
  public:
-    static uint32_t millis() {
-        return static_cast<uint32_t>(esp_timer_get_time() / 1000ULL);
-    }
+    static uint32_t millis() { return static_cast<uint32_t>(esp_timer_get_time() / 1000ULL); }
 };
 
 }  // namespace jled

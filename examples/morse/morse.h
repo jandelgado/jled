@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <inttypes.h>
 #include <stddef.h>
+
 #include "bitset.h"  // NOLINT
 
 #ifndef EXAMPLES_MORSE_MORSE_H_
@@ -14,8 +15,7 @@ class Morse {
     // pre-ordered tree of morse codes. Bit 1 = 'dah',  0 = 'dit'.
     // Position in string corresponds to position in binary tree starting w/ 1
     // see https://www.pocketmagic.net/morse-encoder/ for info on encoding
-    static constexpr auto LATIN =
-        "*ETIANMSURWDKGOHVF*L*PJBXCYZQ**54*3***2*******16*******7***8*90";
+    static constexpr auto LATIN = "*ETIANMSURWDKGOHVF*L*PJBXCYZQ**54*3***2*******16*******7***8*90";
 
     static constexpr auto DURATION_DIT = 1;
     static constexpr auto DURATION_DAH = 3 * DURATION_DIT;
@@ -49,7 +49,7 @@ class Morse {
         return res | (size << 8);
     }
 
-    template <typename F>
+    template<typename F>
     uint16_t iterate_sequence(const char* p, F f) const {
         // call f(count,val) num times, incrementing count each time
         // and returning num afterwards.
@@ -70,8 +70,7 @@ class Morse {
             auto code = morse_code & 0xff;  // dits (0) and dahs (1)
             auto size = morse_code >> 8;    // number of dits and dahs in code
             while (size--) {
-                bitcount += set((code & 1) ? DURATION_DAH : DURATION_DIT,
-                                bitcount, true, f);
+                bitcount += set((code & 1) ? DURATION_DAH : DURATION_DIT, bitcount, true, f);
 
                 // pause between symbols := 1 dit
                 if (size) {
@@ -106,8 +105,8 @@ class Morse {
     ~Morse() { delete bits_; }
 
     // make sure that the following, currently not needed, methods are not used
-    Morse(const Morse&m) {*this = m;}
-    Morse& operator=(const Morse&m) {
+    Morse(const Morse& m) { *this = m; }
+    Morse& operator=(const Morse& m) {
         delete bits_;
         bits_ = new Bitset(*m.bits_);
         return *this;

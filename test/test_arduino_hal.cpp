@@ -1,13 +1,14 @@
 // JLed Unit tests  (run on host).
 // Copyright 2017 Jan Delgado jdelgado@gmx.net
 #include <arduino_hal.h>  // NOLINT
+
 #include "catch2/catch_amalgamated.hpp"
 
 using jled::ArduinoHal;
 
 struct ArduinoMockFixture {
     ArduinoState mock{};
-    ArduinoMockFixture()  { arduinoMockSetInstance(&mock); }
+    ArduinoMockFixture() { arduinoMockSetInstance(&mock); }
     ~ArduinoMockFixture() { arduinoMockSetInstance(nullptr); }
 };
 

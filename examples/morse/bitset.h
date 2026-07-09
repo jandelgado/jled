@@ -12,9 +12,7 @@ class Bitset {
 
  protected:
     // returns num bytes needed to store n bits.
-    static constexpr size_t num_bytes(size_t n) {
-        return n > 0 ? ((n - 1) >> 3) + 1 : 0;
-    }
+    static constexpr size_t num_bytes(size_t n) { return n > 0 ? ((n - 1) >> 3) + 1 : 0; }
 
  public:
     Bitset() : Bitset(0) {}

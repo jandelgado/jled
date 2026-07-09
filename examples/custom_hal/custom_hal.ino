@@ -52,4 +52,6 @@ auto led = CustomJLed(LED_BUILTIN).Blink(1000, 1000).Repeat(5);
 
 void setup() {}
 
-void loop() { led.Update(); }
+void loop() {
+    led.Update();
+}

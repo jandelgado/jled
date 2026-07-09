@@ -3,6 +3,7 @@
     "python@3.13",
     "python3Packages.pip",
     "cpplint@2.0.2",
+    "clang-tools@latest",
     "act@0.2.88"
   ],
   "shell": {

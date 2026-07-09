@@ -2,7 +2,8 @@
 // Copyright 2017 Jan Delgado jdelgado@gmx.net
 //
 #include "Arduino.h"  // NOLINT
-#include <cassert>    // NOLINT
+
+#include <cassert>  // NOLINT
 
 static ArduinoState* gState_ = nullptr;
 

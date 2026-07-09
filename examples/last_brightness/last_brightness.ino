@@ -16,8 +16,7 @@ constexpr auto BUTTON_PIN = 18;
 auto button = ezButton(BUTTON_PIN);
 
 // start with a pulse effect
-auto led =
-    JLed(LED_PIN).DelayBefore(1000).Breathe(2000).Forever().MinBrightness(25);
+auto led = JLed(LED_PIN).DelayBefore(1000).Breathe(2000).Forever().MinBrightness(25);
 
 void setup() {}
 

@@ -14,10 +14,9 @@ auto led1 = JLed(16).Breathe(25000).Forever();
 // PWM resolution results in a smooth effect.
 auto led2 = JLedHD(18).Breathe(25000).Forever();
 
-void setup() {
-}
+void setup() {}
 
 void loop() {
-  led1.Update();
-  led2.Update();
+    led1.Update();
+    led2.Update();
 }

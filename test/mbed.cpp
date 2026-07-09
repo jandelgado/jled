@@ -2,6 +2,7 @@
 // Copyright 2020 Jan Delgado jdelgado@gmx.net
 //
 #include "mbed.h"  // NOLINT
+
 #include <cassert>
 
 static MbedState* gState_ = nullptr;
@@ -33,6 +34,5 @@ PwmOut::~PwmOut() {
 
 Kernel::Clock::time_point Kernel::Clock::now() {
     assert(gState_);
-    return Kernel::Clock::time_point(
-        std::chrono::microseconds(gState_->us_ticks));
+    return Kernel::Clock::time_point(std::chrono::microseconds(gState_->us_ticks));
 }

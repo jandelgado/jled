@@ -1,0 +1,50 @@
+---
+# clang-tidy configuration for JLed.
+#
+# Complements `make lint` (cpplint, legacy) with type-aware static analysis.
+# NOTE: clang-tidy has no check that enforces line length/column limit --
+# that is exclusively the job of `.clang-format` (ColumnLimit: 100) via
+# `make format` / `make format-check`.
+Checks: >
+  clang-diagnostic-*,
+  clang-analyzer-*,
+  bugprone-*,
+  performance-*,
+  readability-*,
+  modernize-*,
+  -modernize-use-trailing-return-type,
+  -modernize-use-auto,
+  -modernize-avoid-c-arrays,
+  -readability-magic-numbers,
+  -readability-identifier-length,
+  -readability-braces-around-statements,
+  -bugprone-easily-swappable-parameters,
+  -readability-identifier-naming
+
+# readability-braces-around-statements is disabled: it contradicts
+# .clang-format's AllowShortIfStatementsOnASingleLine/AllowShortLoopsOnASingleLine,
+# which explicitly allow brace-less one-liners.
+#
+# readability-identifier-naming is disabled for this first phase. The
+# project's naming rules map to real CheckOptions, but this check family is
+# finicky around templates/macros/HAL layers; a first run over the whole
+# codebase risks noise that drowns out other findings. Starting point if
+# enabled later:
+#   readability-identifier-naming.ClassCase: CamelCase
+#   readability-identifier-naming.MethodCase: CamelCase
+#   readability-identifier-naming.PrivateMemberCase: lower_case
+#   readability-identifier-naming.PrivateMemberSuffix: '_'
+#   readability-identifier-naming.ConstantCase: CamelCase
+#   readability-identifier-naming.ConstantPrefix: 'k'
+#   readability-identifier-naming.TypeAliasCase: lower_case
+#   readability-identifier-naming.TypeAliasSuffix: '_t'
+#
+# cppcoreguidelines-* is intentionally not enabled yet -- large, opinionated
+# group needing per-project tuning; revisit with individual checks later.
+
+WarningsAsErrors: ''
+# Only surface diagnostics from headers directly under src/ or test/, not
+# from subdirectories -- this excludes the vendored test/catch2/ amalgamation
+# (and test/esp-idf/, test/pico-sdk/ mocks) from lint-tidy's output.
+HeaderFilterRegex: '^(src|test)/[^/]+$'
+FormatStyle: file

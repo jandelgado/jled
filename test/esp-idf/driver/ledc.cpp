@@ -2,8 +2,10 @@
 // Copyright 2022 Jan Delgado jdelgado@gmx.net
 //
 #include "ledc.h"
-#include "../../esp32_mock.h"  // NOLINT
+
 #include <cassert>
+
+#include "../../esp32_mock.h"  // NOLINT
 
 extern Esp32State* gState_;
 

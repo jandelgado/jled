@@ -24,7 +24,8 @@ JLed is an embedded C++ library for non-blocking, time-driven LED control (blink
 
 ## Code Style
 
-- **Formatting**: `.clang-format` (Google style); run `make lint`
+- **Formatting**: `.clang-format` (Google style); run `make format` / `make format-check`, or legacy `make lint`
+- **Static analysis**: `make lint-tidy` (clang-tidy); see `doc/LINTING_GUIDE.md`
 - **Naming**: `PascalCase` classes/methods, `snake_case_` private members, `kPascalCase` constants, `lowercase_t` type aliases
 - Prefer `constexpr` over `#define`; no `constexpr` on functions with `if` (C++14 limit)
 - Use `= delete`, `override`; no float in core logic; templates over virtual functions
