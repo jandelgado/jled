@@ -78,6 +78,7 @@ void loop() {
     - [Repetitions](#repetitions)
   - [State functions](#state-functions)
     - [Update](#update)
+    - [Lifecycle events](#lifecycle-events)
     - [IsRunning](#isrunning)
     - [Reset](#reset)
     - [Immediate Stop](#immediate-stop)
@@ -85,6 +86,7 @@ void loop() {
   - [Misc functions](#misc-functions)
     - [Low active for inverted output](#low-active-for-inverted-output)
     - [Minimum- and Maximum brightness level](#minimum--and-maximum-brightness-level)
+    - [WriteRaw](#writeraw)
   - [Controlling a group of LEDs](#controlling-a-group-of-leds)
     - [JLedRefGroup, pointer-based groups for named LED objects](#jledrefgroup-pointer-based-groups-for-named-led-objects)
 - [Framework notes](#framework-notes)
@@ -108,6 +110,7 @@ void loop() {
 - [JLed 5.0 migration guide](#jled-50-migration-guide)
   - [`eStopMode` renamed to `eIdleMode`](#estopmode-renamed-to-eidlemode)
   - [JLedSequence to JLedGroup migration](#jledsequence-to-jledgroup-migration)
+  - [`Update(int16_t* pLast)` removed, use `UpdateResult`](#updateint16_t-plast-removed--use-updateresult)
   - [Custom brightness evaluators: `BrightnessEvaluator` is now a template](#custom-brightness-evaluators-brightnessevaluator-is-now-a-template)
   - [Custom HALs and `TJLed` subclasses: Clock and Brightness are now explicit](#custom-hals-and-tjled-subclasses-clock-and-brightness-are-now-explicit)
 - [FAQ](#faq)
@@ -165,7 +168,8 @@ lib_deps=jled
 First, the LED object is constructed and configured, then the state is updated
 with subsequent calls to the `Update()` method, typically from the `loop()`
 function. While the effect is active, `Update` returns `true`, otherwise
-`false`.
+`false`. The return value is actually a richer `UpdateResult` that is also
+usable as a `bool`; see [Lifecycle events](#lifecycle-events) for the full API.
 
 The constructor takes the pin, to which the LED is connected to as
 the only argument. Further configuration of the LED object is done using a fluent
@@ -174,8 +178,8 @@ See the examples section below for further details.
 
 ### JLed vs JLedHD
 
-`JLed` uses 8-bit brightness internally (`uint8_t`, 0–255), while `JLedHD` ("high-definition")
-uses 16-bit (`uint16_t`, 0–65535). Both share the same API and effects, the extra resolution is
+`JLed` uses 8-bit brightness internally (`uint8_t`, 0-255), while `JLedHD` ("high-definition")
+uses 16-bit (`uint16_t`, 0-65535). Both share the same API and effects, the extra resolution is
 a zero-cost abstraction: the brightness type is a template parameter, so no virtual dispatch or
 runtime branching is involved.
 
@@ -197,8 +201,8 @@ Arduino boards), so `JLedHD` has no practical benefit there.
 ### Output pipeline
 
 First the configured effect (e.g. `Fade`) is evaluated for the current time
-`t`. JLed internally uses either 8-bit (`JLed`, `uint8_t`, 0–255) or 16-bit
-(`JLedHD`, `uint16_t`, 0–65535) values to represent brightness. Next, the value
+`t`. JLed internally uses either 8-bit (`JLed`, `uint8_t`, 0-255) or 16-bit
+(`JLedHD`, `uint16_t`, 0-65535) values to represent brightness. Next, the value
 is scaled to the limits set by `MinBrightness` and `MaxBrightness` (optionally).
 When the effect is configured for a low-active LED using `LowActive`, the
 brightness value will be inverted. Finally the value is passed to the hardware
@@ -207,12 +211,12 @@ abstraction, which scales it to the native PWM resolution of the platform (e.g.
 then written out to the configured GPIO.
 
 ```text
-┌───────────┐    ┌────────────┐    ┌─────────┐    ┌────────┐    ┌─────────┐    ┌────────┐
-│ Evaluate  │    │  Scale to  │    │  Low    │YES │ Invert │    │Scale for│    │Write to│
-│ effect(t) ├───►│ [min, max] ├───►│ active? ├───►│ signal ├───►│Hardware ├───►│  GPIO  │
-└───────────┘    └────────────┘    └────┬────┘    └────────┘    └───▲─────┘    └────────┘
-                                        │ NO                        │
-                                        └───────────────────────────┘
++---------+    +---------+    +-------+    +-------+    +---------+    +-------+
+|Evaluate |    |Scale to |    |  Low  |YES |Invert |    |Scale for|    |Write  |
+|effect(t)|--->|[min,max]|--->|active?|--->| signal|--->|Hardware |--->|to GPIO|
++---------+    +---------+    +---+---+    +-------+    +---+-----+    +-------+
+                                  |                         ^
+                                  +-------------NO----------+
 ```
 
 ### Effects
@@ -228,7 +232,7 @@ brightness to 0.
 
 Use the `Set(Brightness brightness, uint16_t period=1)` method to set the
 brightness to a specific value. The type of `brightness` depends on the
-instantiation: `uint8_t` (0–255) for `JLed`, and `uint16_t` (0–65535) for
+instantiation: `uint8_t` (0-255) for `JLed`, and `uint16_t` (0-65535) for
 `JLedHD`. For example, `Set(255)` is equivalent to calling `On()` and `Set(0)`
 is equivalent to calling `Off()` when using `JLed`; with `JLedHD` the full
 range is `Set(65535)` for full brightness.
@@ -281,7 +285,7 @@ defaults to 1. For the effect to work correctly, the following must hold true:
 ```c++
 #include <jled.h>
 
-// blink internal LED 3 times, 250ms on, 500ms off. Then wait 1000ms. Repeat forever.
+// blink internal LED 3 times: 250ms on, 500ms off. Then wait 1000ms. Repeat forever.
 auto led = JLed(LED_BUILTIN).Blink(250, 500, 3).DelayAfter(1000).Forever();
 
 void setup() { }
@@ -471,29 +475,84 @@ effect is set to repeat forever.
 
 #### Update
 
-Call `Update(int16_t *pLast=nullptr)` or `Update(uint32_t t, int16_t *pLast=nullptr)`
-to periodically update the state of the LED.
+Call `Update()` or `Update(uint32_t t)` to periodically update the state of
+the LED. `Update()` is a shortcut to call `Update(uint32_t t)` with the
+current time in milliseconds.
 
-`Update` returns `true`, if the effect is active, or `false` when it finished.
-`Update()` is a shortcut to call `Update(uint32_t t)` with the current time in
-milliseconds.
+`Update()` returns an `UpdateResult`, which is usable directly as a `bool`:
+`true` while the effect is active, `false` once it finished.
 
-To obtain the value of the last written brightness value (after applying min-
-and max-brightness transformations), pass an additional optional pointer
-`*pLast` , where this value will be stored, when it was written. Example:
+`UpdateResult` also carries the brightness value written to the LED this
+tick:
 
 ```c++
-int16_t lastVal = -1;
-led.Update(&lastVal);
-if (lastVal != -1) {
-    // the LED was updated with the brightness value now stored in lastVal
+auto r = led.Update();
+if (r.HasBrightness()) {
+    // the LED was updated with the brightness value now stored in r.Brightness()
+    auto lastVal = r.Brightness();
     ...
 }
 ```
 
-Most of the time just calling `Update()` without any parameters is what you want.
-
 See [last_brightness](examples/last_brightness) example for a working example.
+
+Beyond brightness, `UpdateResult` exposes lifecycle events, see
+[Lifecycle events](#lifecycle-events) below.
+
+#### Lifecycle events
+
+`UpdateResult` also reports which phase transitions happened on this
+`Update()` call, so you can react inline instead of polling the return value
+and tracking state yourself:
+
+| Query                    | Fires when                                                                |
+| ------------------------ | ------------------------------------------------------------------------- |
+| `IsStarted()`            | once per run, on the first `Update()` call (or the first after `Reset()`) |
+| `IsActive()`             | once per run, on the first actual output tick                             |
+| `IsRepeatStarted()`      | once per repetition, including the first                                  |
+| `IsEnteringDelayAfter()` | once per repetition that has a `DelayAfter()`, on entry to that phase     |
+| `IsDone()`               | once, when the effect stops                                               |
+
+More than one of these can be true on the same `Update()` call. E.g., an
+effect with the default `duration = 1` (as used by `On()`, `Off()` and
+`Set()`) starts and finishes on its one and only call, so `IsStarted()`,
+`IsActive()`, `IsRepeatStarted()` and `IsDone()` are all `true` together.
+
+Each event also has a matching fluent callback, so you can react at the call
+site without an `if`:
+
+```c++
+led.Update()
+    .OnStart([](JLed* l) { Serial.println("started"); })
+    .OnActive([](JLed* l) { Serial.println("first output"); })
+    .OnRepeatStart([](JLed* l) { Serial.println("iteration"); })
+    .OnEnterDelayAfter([](JLed* l) { l->MaxBrightness(64); })
+    .OnDone([](JLed* l) { l->Reset(); });
+```
+
+Callbacks are template parameters ([lambdas](https://en.cppreference.com/cpp/language/lambda) or
+function pointers) and they run synchronously inline, in the order chained. A `led.Update()` call
+without any of these incurs no extra cost beyond the small `UpdateResult` value returned itself.
+
+Common patterns:
+
+```c++
+// turn led off when effect is done, regardless of last state
+void loop() {
+    led.Update().OnDone([](JLed* l) { l->WriteRaw(0); });
+}
+
+// turn led off when in the delay-after phase
+void loop() {
+    led.Update().OnEnterDelayAfter([](JLed* l) { l->WriteRaw(0); });
+}
+
+// turn second LED led2 on, if led is in delay-after phase, else it is off
+void loop() {
+    led.Update().OnRepeatStart([](JLed*) { led2.On().Update(); });
+                .OnEnterDelayAfter([](JLed* l) { led2.Off().Update(); });
+}
+```
 
 #### IsRunning
 
@@ -536,7 +595,7 @@ paused. `IsPaused()` returns `true` while the effect is frozen.
 brightness. Use `jled::eIdleMode::KEEP_CURRENT` to hold the last rendered value, or
 `jled::eIdleMode::FULL_OFF` to force the LED off regardless of `MinBrightness`.
 
-Pausing before an effect has started is valid: the effect will not start until
+Pausing before an effect has started is valid, the effect will not start until
 `Resume()` is called.
 
 ```c++
@@ -585,6 +644,27 @@ or the `_pct` literal (see [Percentage](#percentage) below).
 The `Brightness MaxBrightness() const` method returns the current maximum
 brightness level. `Brightness MinBrightness() const` returns the current
 minimum brightness level.
+
+#### WriteRaw
+
+`WriteRaw(val)` writes a brightness value directly to the hardware, applying
+`LowActive()` inversion the same way effects normally do, but bypassing the
+effect state machine entirely, it does not touch the effect configuration
+or any other JLed state. Use it from a lifecycle callback to force an output
+that the effect itself would not produce, e.g. turning the LED off during
+the `DelayAfter()` phase, which otherwise holds the last computed brightness
+for its whole duration:
+
+```c++
+JLed led = JLed(LED_BUILTIN).FadeOn(500).DelayAfter(1000).Repeat(5);
+
+void loop() {
+    led.Update().OnEnterDelayAfter([](JLed* l) { l->WriteRaw(0); });
+}
+```
+
+Since `WriteRaw()` leaves the effect configuration untouched, the next
+repetition's `FadeOn()` runs unaffected.
 
 ### Controlling a group of LEDs
 
@@ -635,11 +715,10 @@ alias: `using MyLedAny = TJLedAny<sizeof(MyBigLed)>;`
 
 #### JLedRefGroup, pointer-based groups for named LED objects
 
-`JLedRef` and `JLedRefGroup` are a more memory-efficient alternative to
-`JLedAny` and `JLedGroup`. Each `JLedRef` slot stores only a pointer and a
-shared vtable pointer (4 bytes on 32-bit, 2 bytes on 8-bit AVR), rather than
-a full copy of the LED state. The tradeoff is ergonomics: LED objects must be
-declared as named variables, anonymous inline construction is not possible.
+`JLedRef` and `JLedRefGroup` are a more memory-efficient alternative to `JLedAny` and `JLedGroup`.
+Each `JLedRef` slot stores only a pointer and a shared vtable pointer (4 bytes on 32-bit, 2 bytes on
+8-bit AVR), rather than a full copy of the LED state. The tradeoff is ergonomics: LED objects must
+be declared as named variables, anonymous inline construction is not possible.
 
 ```c++
 auto led1 = JLed(4).Blink(750, 250).Repeat(2);
@@ -1006,11 +1085,31 @@ auto seq = JLedGroup::Parallel(leds);    // parallel
 auto seq = JLedGroup::Sequential(leds);  // sequential
 ```
 
-Reason: `JLedGroup` is a more capable replacement that supports mixing different LED types, nesting groups inside other groups, and applying repeat and pause/resume control to the whole group at once. The parallel and sequential modes are now explicit at the point of creation.
+Reason: `JLedGroup` is a more capable replacement that supports mixing different LED types, nesting
+groups inside other groups, and applying repeat and pause/resume control to the whole group at once.
+The parallel and sequential modes are now explicit at the point of creation.
+
+#### `Update(int16_t* pLast)` removed, use `UpdateResult` now
+
+The optional out parameter in `Update()` was removed, the last written brightness value
+can now be obtained using the `UpdateResult` object returned by `Update()`:
+
+```cpp
+// before
+int16_t lastVal = -1;
+led.Update(&lastVal);
+
+// after
+auto r = led.Update();
+if (r.HasBrightness()) {
+    auto lastVal = r.Brightness();
+}
+```
 
 #### Custom brightness evaluators: `BrightnessEvaluator` is now a template
 
-`BrightnessEvaluator` and the return type of `Eval()` are now parameterised by the brightness type:
+`BrightnessEvaluator` and the return type of `Eval()` are now parameterised by the brightness type,
+to support both 8-bit and high resolution 16-bit effects.
 
 ```cpp
 // before
@@ -1027,11 +1126,12 @@ class MyEffect : public jled::BrightnessEvaluator<Brightness> {
 
 See the [user_func](examples/user_func) and [morse](examples/morse) examples for complete implementations.
 
-Reason: high-resolution effects (`JLedHD`) are a zero-cost abstraction built on a brightness type template parameter. Parameterising `BrightnessEvaluator` lets the same custom effect work at any resolution without runtime overhead or virtual dispatch.
-
 #### Custom HALs and `TJLed` subclasses: Clock and Brightness are now explicit
 
-The HAL interface no longer includes a `millis()` method. Time is now provided by a separate clock class with a single `static uint32_t millis()` method. `TJLed` gained two new explicit template parameters — `Clock` and `Brightness` — so the full signature changed from `TJLed<Hal, Derived>` to `TJLed<Hal, Clock, Brightness, Derived>`:
+The HAL interface no longer includes a `millis()` method. Time is now provided by a separate clock
+class with a single `static uint32_t millis()` method. `TJLed` gained two new explicit template
+parameters: `Clock` and `Brightness`, so the full signature changed from `TJLed<Hal, Derived>` to
+`TJLed<Hal, Clock, Brightness, Derived>`:
 
 ```cpp
 // before
@@ -1050,15 +1150,19 @@ class CustomJLed : public jled::TJLed<CustomHal, jled::JLedClockType, uint8_t, C
 
 See the [custom_hal](examples/custom_hal) example for a complete implementation.
 
-Reason: a platform may have multiple PWM HALs (for example the built-in one plus an external PCA9685 driver) but only a single clock. Separating them avoids duplicating time logic across HALs. Making the brightness type explicit enables zero-cost high-resolution variants without any runtime overhead.
+Reason: a platform may have multiple PWM HALs (for example the built-in one plus an external PCA9685
+driver) but only a single clock. Separating them avoids duplicating time logic across HALs. Making
+the brightness type explicit enables zero-cost high-resolution variants without any runtime
+overhead.
 
 ## FAQ
 
 ### How do I check if a JLed object is still being updated?
 
-- Check the return value of the `JLed::Update` method: the method returns `true` if
-  the effect is still running, otherwise `false`.
-- The `JLed::IsRunning` method returns `true` if an effect is running, else `false`.
+- Check the return value of the `JLed::Update` method: it is usable as a `bool`,
+  `true` if the effect is still running, otherwise `false`. Or call `.IsRunning()`
+  on it, or `.IsDone()` / `.OnDone(...)` to react to the exact tick it finishes (
+  see [Lifecycle events](#lifecycle-events)).
 
 ### How do I restart an effect?
 

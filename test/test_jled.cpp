@@ -32,22 +32,23 @@ using ConstantBrightnessEvaluator = jled::ConstantBrightnessEvaluator<uint8_t>;
 
 // expected result when a JLed object is updated: return value
 // of Update() and the current brightness
-using UpdateResult = std::pair<bool, uint8_t>;
-using UpdateResults = std::vector<UpdateResult>;
+using ExpectedUpdate = std::pair<bool, uint8_t>;
+using ExpectedUpdates = std::vector<ExpectedUpdate>;
 
 // helper to check if a led evaluates to given sequence. TODO use a catch
 // matcher
 template<class T>
-void check_led(T* led, const UpdateResults& expected) {
+void check_led(T* led, const ExpectedUpdates& expected) {
     uint32_t time = 0;
     for (const auto& current : expected) {
         TimeMock::set_millis(time);
         const auto updated = led->Update();
         const auto val = led->GetHal().Value();
-        UNSCOPED_INFO("t=" << time << ", actual=(" << (updated ? "true" : "false") << ", "
-                           << (int)val << "), expected=(" << (current.first ? "true" : "false")
-                           << ", " << (int)current.second << ")");
-        CHECK(current.first == updated);
+        UNSCOPED_INFO("t=" << time << ", actual=(" << (updated.IsRunning() ? "true" : "false")
+                           << ", " << static_cast<int>(val) << "), expected=("
+                           << (current.first ? "true" : "false") << ", "
+                           << static_cast<int>(current.second) << ")");
+        CHECK(current.first == updated.IsRunning());
         CHECK(current.second == val);
         time++;
     }
@@ -411,9 +412,9 @@ TEST_CASE("dont evaluate twice during one time tick", "[jled]") {
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{0, 1, 2});
     TestJLed jled = TestJLed(1).UserFunc(&eval);
 
-    jled.Update(0, nullptr);
+    jled.Update(0);
     CHECK(eval.TimesEvalWasCalled() == 1);
-    jled.Update(0, nullptr);
+    jled.Update(0);
     CHECK(eval.TimesEvalWasCalled() == 1);
     jled.Update(1);
 
@@ -440,32 +441,230 @@ TEST_CASE("Handles millis overflow during effect", "[jled]") {
     CHECK(0 == jled.GetHal().Value());
 }
 
-TEST_CASE("Update returns last written value if requested", "[jled]") {
+TEST_CASE("UpdateResult::Brightness() reports the value written to the HAL", "[jled]") {
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{0, 10});
-    int16_t lastVal = -1;
     TestJLed jled = TestJLed(1).UserFunc(&eval);
 
-    jled.Update(0, &lastVal);
-    CHECK(lastVal == 0);
+    auto r0 = jled.Update(0);
+    REQUIRE(r0.HasBrightness());
+    CHECK(r0.Brightness() == 0);
 
-    jled.Update(1, &lastVal);
-    CHECK(lastVal == 10);
+    auto r1 = jled.Update(1);
+    REQUIRE(r1.HasBrightness());
+    CHECK(r1.Brightness() == 10);
 }
 
-TEST_CASE("Update doesn't change last value ptr if not updated", "[jled]") {
+TEST_CASE("UpdateResult::HasBrightness() is false when nothing was written this tick", "[jled]") {
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{0, 10});
-    int16_t lastVal = -1;
     TestJLed jled = TestJLed(1).UserFunc(&eval).DelayBefore(1);
 
-    jled.Update(0, &lastVal);
-    CHECK(lastVal == -1);
+    auto r0 = jled.Update(0);
+    CHECK_FALSE(r0.HasBrightness());  // still within delay_before_
 
-    jled.Update(5, &lastVal);
-    CHECK(lastVal == 10);
+    auto r1 = jled.Update(5);
+    REQUIRE(r1.HasBrightness());
+    CHECK(r1.Brightness() == 10);
 
-    lastVal = -1;
-    jled.Update(5, &lastVal);
-    CHECK(lastVal == -1);
+    auto r2 = jled.Update(5);  // effect already stopped by t=5
+    CHECK_FALSE(r2.HasBrightness());
+}
+
+// --- Lifecycle events (UpdateResult) ---
+
+TEST_CASE("kStart fires once, on the first call, even with delay_before_", "[jled]") {
+    TestJLed jled = TestJLed(1).Blink(2, 2).DelayBefore(3);
+
+    auto r0 = jled.Update(0);
+    CHECK(r0.IsStarted());
+    CHECK(r0.IsRunning());
+    CHECK_FALSE(r0.IsActive());
+
+    auto r1 = jled.Update(1);
+    CHECK_FALSE(r1.IsStarted());
+
+    auto r3 = jled.Update(3);
+    CHECK_FALSE(r3.IsStarted());
+    CHECK(r3.IsActive());
+    CHECK(r3.IsRepeatStarted());
+}
+
+TEST_CASE("kStart re-arms after Reset()", "[jled]") {
+    TestJLed jled = TestJLed(1).On();
+    auto r0 = jled.Update(0);
+    CHECK(r0.IsStarted());
+    CHECK(r0.IsDone());
+
+    jled.Reset();
+    auto r1 = jled.Update(1);
+    CHECK(r1.IsStarted());
+}
+
+TEST_CASE("kRepeatStart fires on every repetition, including across a DelayAfter gap", "[jled]") {
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{10, 20});
+    TestJLed jled = TestJLed(10).UserFunc(&eval).Repeat(2).DelayAfter(2);
+
+    auto r0 = jled.Update(0);
+    CHECK(r0.IsRepeatStarted());
+    CHECK(r0.IsActive());
+
+    auto r1 = jled.Update(1);
+    CHECK_FALSE(r1.IsRepeatStarted());
+
+    auto r2 = jled.Update(2);
+    CHECK(r2.IsEnteringDelayAfter());
+    CHECK_FALSE(r2.IsRepeatStarted());
+
+    auto r3 = jled.Update(3);
+    CHECK_FALSE(r3.IsRepeatStarted());
+    CHECK_FALSE(r3.IsEnteringDelayAfter());
+
+    // second repetition's kRepeatStart, even though the tick before it left
+    // the LED in ST_IN_DELAY_AFTER_PHASE, not ST_RUNNING.
+    auto r4 = jled.Update(4);
+    CHECK(r4.IsRepeatStarted());
+    CHECK_FALSE(r4.IsActive());  // second repetition, not the first
+
+    auto r6 = jled.Update(6);
+    CHECK(r6.IsEnteringDelayAfter());
+
+    auto r7 = jled.Update(7);
+    CHECK(r7.IsDone());
+    CHECK_FALSE(r7.IsRunning());
+}
+
+TEST_CASE("kEnterDelayAfter never fires when delay_after_ is zero", "[jled]") {
+    TestJLed jled = TestJLed(1).Blink(2, 2).Repeat(3);
+
+    for (uint32_t t = 0; t < 20; t++) {
+        auto r = jled.Update(t);
+        CHECK_FALSE(r.IsEnteringDelayAfter());
+        if (!r.IsRunning()) break;
+    }
+}
+
+TEST_CASE("kEnterDelayAfter fires exactly once per repetition, including the final one", "[jled]") {
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{10, 20});
+    TestJLed jled = TestJLed(10).UserFunc(&eval).Repeat(3).DelayAfter(2);
+
+    int count = 0;
+    for (uint32_t t = 0; t < 20; t++) {
+        auto r = jled.Update(t);
+        if (r.IsEnteringDelayAfter()) count++;
+        if (!r.IsRunning()) break;
+    }
+    CHECK(count == 3);
+}
+
+TEST_CASE("kDone fires exactly once, on the terminal tick", "[jled]") {
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{10, 20});
+    TestJLed jled = TestJLed(10).UserFunc(&eval);
+
+    int doneCount = 0;
+    bool sawNotRunning = false;
+    for (uint32_t t = 0; t < 6; t++) {
+        auto r = jled.Update(t);
+        if (r.IsDone()) doneCount++;
+        if (!r.IsRunning()) sawNotRunning = true;
+    }
+    CHECK(doneCount == 1);
+    CHECK(sawNotRunning);
+}
+
+TEST_CASE("single-tick effect fires kStart|kActive|kRepeatStart|kDone on its one call", "[jled]") {
+    TestJLed jled(1);
+    jled.On();
+    auto r = jled.Update(0);
+    CHECK_FALSE(r.IsRunning());
+    CHECK(r.IsStarted());
+    CHECK(r.IsActive());
+    CHECK(r.IsRepeatStarted());
+    CHECK(r.IsDone());
+    REQUIRE(r.HasBrightness());
+    CHECK(r.Brightness() == 255);
+}
+
+TEST_CASE("repeated single-tick effect: final kRepeatStart lands on the terminal tick", "[jled]") {
+    TestJLed jled = TestJLed(1).Set(100, 1).Repeat(3);
+
+    auto r0 = jled.Update(0);
+    CHECK(r0.IsRepeatStarted());
+    CHECK(r0.IsActive());
+    CHECK_FALSE(r0.IsDone());
+
+    auto r1 = jled.Update(1);
+    CHECK(r1.IsRepeatStarted());
+    CHECK_FALSE(r1.IsActive());
+    CHECK_FALSE(r1.IsDone());
+
+    auto r2 = jled.Update(2);
+    CHECK(r2.IsRepeatStarted());
+    CHECK_FALSE(r2.IsActive());
+    CHECK(r2.IsDone());
+}
+
+TEST_CASE("delay_after_ == 1 on the final repetition: kEnterDelayAfter and kDone fire together",
+          "[jled]") {
+    TestJLed jled = TestJLed(1).Set(100, 1).Repeat(2).DelayAfter(1);
+
+    auto r0 = jled.Update(0);
+    CHECK(r0.IsRepeatStarted());
+    CHECK_FALSE(r0.IsDone());
+
+    auto r1 = jled.Update(1);
+    CHECK(r1.IsEnteringDelayAfter());
+    CHECK_FALSE(r1.IsDone());
+
+    auto r2 = jled.Update(2);
+    CHECK(r2.IsRepeatStarted());
+
+    auto r3 = jled.Update(3);
+    CHECK(r3.IsEnteringDelayAfter());
+    CHECK(r3.IsDone());
+}
+
+TEST_CASE("On* callback chain invokes matching hooks on a coincident tick", "[jled]") {
+    TestJLed jled(1);
+    jled.On();
+
+    int startCount = 0, activeCount = 0, repeatCount = 0, enterDelayCount = 0, doneCount = 0;
+    jled.Update(0)
+        .OnStart([&](TestJLed*) { startCount++; })
+        .OnActive([&](TestJLed*) { activeCount++; })
+        .OnRepeatStart([&](TestJLed*) { repeatCount++; })
+        .OnEnterDelayAfter([&](TestJLed*) { enterDelayCount++; })
+        .OnDone([&](TestJLed*) { doneCount++; });
+
+    CHECK(startCount == 1);
+    CHECK(activeCount == 1);
+    CHECK(repeatCount == 1);
+    CHECK(enterDelayCount == 0);  // delay_after_ == 0 for On()
+    CHECK(doneCount == 1);
+}
+
+TEST_CASE("OnEnterDelayAfter never fires across a full run when delay_after_ == 0", "[jled]") {
+    TestJLed jled = TestJLed(1).Blink(2, 2).Repeat(3);
+
+    int enterDelayCount = 0;
+    for (uint32_t t = 0; t < 20; t++) {
+        auto r = jled.Update(t);
+        r.OnEnterDelayAfter([&](TestJLed*) { enterDelayCount++; });
+        if (!r.IsRunning()) break;
+    }
+    CHECK(enterDelayCount == 0);
+}
+
+TEST_CASE("UpdateResult stays usable as a plain bool (backwards compatibility)", "[jled]") {
+    TestJLed jled = TestJLed(1).On();
+
+    bool x = jled.Update(0);
+    CHECK_FALSE(x);  // On() with duration=1 completes on the first tick
+
+    TestJLed jled2 = TestJLed(1).Blink(2, 2);
+    if (jled2.Update(0)) {
+        SUCCEED("effect is still running after first tick");
+    } else {
+        FAIL("expected effect to still be running");
+    }
 }
 
 TEST_CASE("Stop() stops the effect", "[jled]") {
@@ -533,10 +732,32 @@ TEST_CASE("LowActive() inverts signal", "[jled]") {
 
     CHECK(jled.IsLowActive());
 
-    jled.Update(0, nullptr);
+    jled.Update(0);
     CHECK(255 == jled.GetHal().Value());
 
     jled.Update(1);
+    CHECK(0 == jled.GetHal().Value());
+}
+
+TEST_CASE("WriteRaw() writes directly to the HAL, bypassing the effect", "[jled]") {
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{100});
+    TestJLed jled = TestJLed(1).UserFunc(&eval);
+
+    jled.WriteRaw(42);
+    CHECK(42 == jled.GetHal().Value());
+
+    // effect state is untouched: the next Update() still evaluates normally
+    jled.Update(0);
+    CHECK(100 == jled.GetHal().Value());
+}
+
+TEST_CASE("WriteRaw() applies LowActive() inversion", "[jled]") {
+    TestJLed jled = TestJLed(1).LowActive();
+
+    jled.WriteRaw(0);
+    CHECK(255 == jled.GetHal().Value());
+
+    jled.WriteRaw(255);
     CHECK(0 == jled.GetHal().Value());
 }
 
@@ -544,8 +765,8 @@ TEST_CASE("effect with repeat 2 repeats sequence once", "[jled]") {
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{10, 20});
     TestJLed jled = TestJLed(10).UserFunc(&eval).Repeat(2);
 
-    typedef UpdateResult u;
-    const UpdateResults expected = {
+    typedef ExpectedUpdate u;
+    const ExpectedUpdates expected = {
         u{true, 10}, u{true, 20}, u{true, 10}, u{false, 20}, u{false, 20}, u{false, 20}};
 
     check_led(&jled, expected);
@@ -555,17 +776,17 @@ TEST_CASE("effect with delay after delays start of next iteration", "[jled]") {
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{10, 20});
     TestJLed jled = TestJLed(10).UserFunc(&eval).Repeat(2).DelayAfter(2);
 
-    typedef UpdateResult u;
-    const UpdateResults expected = {u{true, 10},
-                                    u{true, 20},
-                                    u{true, 20},
-                                    u{true, 20},
-                                    u{true, 10},
-                                    u{true, 20},
-                                    u{true, 20},
-                                    u{false, 20},
-                                    u{false, 20},
-                                    u{false, 20}};
+    typedef ExpectedUpdate u;
+    const ExpectedUpdates expected = {u{true, 10},
+                                      u{true, 20},
+                                      u{true, 20},
+                                      u{true, 20},
+                                      u{true, 10},
+                                      u{true, 20},
+                                      u{true, 20},
+                                      u{false, 20},
+                                      u{false, 20},
+                                      u{false, 20}};
 
     check_led(&jled, expected);
 }
@@ -574,8 +795,8 @@ TEST_CASE("effect with delay before has delayed start ", "[jled]") {
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{10, 20});
     TestJLed jled = TestJLed(10).UserFunc(&eval).DelayBefore(2);
 
-    typedef UpdateResult u;
-    const UpdateResults expected = {
+    typedef ExpectedUpdate u;
+    const ExpectedUpdates expected = {
         u{true, 0}, u{true, 0}, u{true, 10}, u{false, 20}, u{false, 20}, u{false, 20}};
 
     check_led(&jled, expected);
@@ -585,8 +806,8 @@ TEST_CASE("After calling Forever() the effect is repeated over and over again ",
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{10, 20});
     TestJLed jled = TestJLed(10).UserFunc(&eval).Forever();
 
-    typedef UpdateResult u;
-    const UpdateResults expected = {
+    typedef ExpectedUpdate u;
+    const ExpectedUpdates expected = {
         u{true, 10}, u{true, 20}, u{true, 10}, u{true, 20}, u{true, 10}, u{true, 20}};
 
     check_led(&jled, expected);
@@ -604,7 +825,7 @@ TEST_CASE("Update returns true while updating, else false", "[jled]") {
     TestJLed jled = TestJLed(10).UserFunc(&eval);
 
     // Update returns FALSE on last step and beyond, else TRUE
-    CHECK(jled.Update(0, nullptr));
+    CHECK(jled.Update(0));
 
     // when effect is done, we expect still false to be returned
     CHECK_FALSE(jled.Update(1));
@@ -615,9 +836,9 @@ TEST_CASE("After Reset() the effect can be restarted", "[jled]") {
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{10, 20});
     TestJLed jled = TestJLed(10).UserFunc(&eval);
 
-    typedef UpdateResult u;
+    typedef ExpectedUpdate u;
 
-    const UpdateResults expected = {u{true, 10}, u{false, 20}, u{false, 20}, u{false, 20}};
+    const ExpectedUpdates expected = {u{true, 10}, u{false, 20}, u{false, 20}, u{false, 20}};
 
     check_led(&jled, expected);
 
@@ -631,8 +852,8 @@ TEST_CASE("Changing the effect resets object and starts over", "[jled]") {
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{10, 20});
     TestJLed jled = TestJLed(10).UserFunc(&eval);
 
-    typedef UpdateResult u;
-    const UpdateResults expected = {u{true, 10}, u{false, 20}, u{false, 20}};
+    typedef ExpectedUpdate u;
+    const ExpectedUpdates expected = {u{true, 10}, u{false, 20}, u{false, 20}};
 
     check_led(&jled, expected);
 
@@ -665,30 +886,15 @@ TEST_CASE("Setting min and max brightness levels scales evaluated effect values"
             auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{0, 128, 255});
             jled.UserFunc(&eval).MinBrightness(100).MaxBrightness(200);
 
-            jled.Update(0, nullptr);
+            jled.Update(0);
             CHECK(100 == jled.GetHal().Value());
 
-            jled.Update(2, nullptr);
+            jled.Update(2);
             CHECK(200 == jled.GetHal().Value());
         }
     };
     TestableJLed::test();
 };
-
-TEST_CASE("timeChangeSinceLastUpdate detects time changes", "[jled]") {
-    class TestableJLed : public TestJLed {
-     public:
-        using TestJLed::TestJLed;
-        static void test() {
-            TestableJLed jled(1);
-
-            jled.trackLastUpdateTime(1000);
-            CHECK_FALSE(jled.timeChangedSinceLastUpdate(1000));
-            CHECK(jled.timeChangedSinceLastUpdate(1001));
-        }
-    };
-    TestableJLed::test();
-}
 
 TEST_CASE("EvalStorage dispatches IsSet/Period/Eval to the active evaluator", "[jled]") {
     using jled::EvalStorage;
@@ -802,7 +1008,7 @@ TEST_CASE("Pause() during ST_RUNNING sets LED to minBrightness", "[jled]") {
     jled.Blink(4, 4);  // on for t_cycle=0..3, off for t_cycle=4..7, done at t=8
 
     // Run to t=2 (mid-blink, brightness=255)
-    jled.Update(0, nullptr);
+    jled.Update(0);
     jled.Update(2);
     CHECK(255 == jled.GetHal().Value());  // mid-blink = on = 255
 
@@ -822,7 +1028,7 @@ TEST_CASE("Resume() continues effect from freeze point", "[jled]") {
     jled.Blink(4, 4);  // on=[0..3], off=[4..7], period=8
 
     // Advance to t=2 (elapsed=2, on-phase)
-    jled.Update(0, nullptr);
+    jled.Update(0);
     jled.Update(2);
 
     // Pause at t=2 (elapsed_so_far=2), resume at t=50
@@ -845,7 +1051,7 @@ TEST_CASE("Resume() continues effect from freeze point", "[jled]") {
 TEST_CASE("Pause() in ST_STOPPED is a no-op", "[jled]") {
     TestJLed jled(HalMock(1));
     jled.Blink(2, 2);
-    jled.Update(0, nullptr);
+    jled.Update(0);
     jled.Stop();
     TimeMock::set_millis(5);
     jled.Pause();
@@ -862,7 +1068,7 @@ TEST_CASE("Pause() in ST_INIT delays effect start until Resume()", "[jled]") {
     CHECK(jled.IsPaused());
 
     // Updates must not start the effect
-    CHECK(jled.Update(0, nullptr));
+    CHECK(jled.Update(0));
     CHECK(jled.GetHal().Value() == 0);  // nothing written yet
     CHECK(jled.Update(5));
     CHECK(jled.GetHal().Value() == 0);
@@ -878,12 +1084,12 @@ TEST_CASE("Pause() in ST_INIT delays effect start until Resume()", "[jled]") {
 TEST_CASE("Pause() is idempotent", "[jled]") {
     TestJLed jled(HalMock(1));
     jled.Blink(4, 4);
-    jled.Update(0, nullptr);  // time_start_=0
+    jled.Update(0);  // time_start_=0
 
     TimeMock::set_millis(1);
     jled.Pause();  // time_start_ = 1-0 = 1 (elapsed=1 encoded)
     TimeMock::set_millis(99);
-    jled.Pause();  // second call — must be no-op, not re-encode
+    jled.Pause();  // second call - must be no-op, not re-encode
     TimeMock::set_millis(50);
     jled.Resume();  // time_start_ = 50-1 = 49 (epoch restored)
 
@@ -895,13 +1101,13 @@ TEST_CASE("Pause() is idempotent", "[jled]") {
 TEST_CASE("Resume() is idempotent", "[jled]") {
     TestJLed jled(HalMock(1));
     jled.Blink(4, 4);
-    jled.Update(0, nullptr);
+    jled.Update(0);
     TimeMock::set_millis(1);
     jled.Pause();
     TimeMock::set_millis(10);
     jled.Resume();  // time_start_ = 10-1 = 9 (epoch)
     TimeMock::set_millis(99);
-    jled.Resume();  // second call — must be no-op
+    jled.Resume();  // second call - must be no-op
     CHECK_FALSE(jled.IsPaused());
 
     // At t=11: elapsed = 11-9 = 2 → on-phase → 255
@@ -912,7 +1118,7 @@ TEST_CASE("Resume() is idempotent", "[jled]") {
 TEST_CASE("copy of paused JLed preserves pause state", "[jled]") {
     TestJLed jled(HalMock(1));
     jled.Blink(4, 4);
-    jled.Update(0, nullptr);
+    jled.Update(0);
     jled.Update(2);
     TimeMock::set_millis(2);
     jled.Pause();  // time_start_ = 2-0 = 2 (elapsed=2 encoded)
@@ -931,7 +1137,7 @@ TEST_CASE("copy of paused JLed preserves pause state", "[jled]") {
 TEST_CASE("Reset() clears pause state", "[jled]") {
     TestJLed jled(HalMock(1));
     jled.Blink(4, 4);
-    jled.Update(0, nullptr);
+    jled.Update(0);
     TimeMock::set_millis(1);
     jled.Pause();
     CHECK(jled.IsPaused());
@@ -940,14 +1146,14 @@ TEST_CASE("Reset() clears pause state", "[jled]") {
     CHECK_FALSE(jled.IsPaused());
 
     // After Reset, Update should start the effect normally
-    CHECK(jled.Update(10, nullptr));
+    CHECK(jled.Update(10));
     CHECK(jled.GetHal().Value() == 255);  // t_cycle=0, on-phase
 }
 
 TEST_CASE("Stop() clears pause state", "[jled]") {
     TestJLed jled(HalMock(1));
     jled.Blink(4, 4);
-    jled.Update(0, nullptr);
+    jled.Update(0);
     TimeMock::set_millis(1);
     jled.Pause();
     REQUIRE(jled.IsPaused());

@@ -24,7 +24,10 @@ void loop() {
     static int16_t lastBrightness = 0;
 
     button.loop();
-    led.Update(&lastBrightness);
+    const auto r = led.Update();
+    if (r.HasBrightness()) {
+        lastBrightness = r.Brightness();
+    }
 
     if (button.isPressed()) {
         // when the button is pressed, stop the effect on led, but keep the LED
