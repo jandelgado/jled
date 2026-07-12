@@ -24,6 +24,7 @@
 #include <inttypes.h>  // types, e.g. uint8_t
 
 #include "jled_effects.h"  // brightness evaluators and effect helper functions
+#include "jled_events.h"   // Event, EventSet, UpdateResult
 
 // JLed - non-blocking LED abstraction library.
 //
@@ -55,12 +56,6 @@ class TJLed : public JLedBase {
     // Evaluate effect(t), assumes eval_storage_.IsSet().
     Brightness Eval(uint32_t t) const { return eval_storage_.Eval(t); }
 
-    // Write val out to the "hardware", inverting signal when active-low is set.
-    void Write(Brightness val) {
-        constexpr auto kFullBright = BrightnessTraits<Brightness>::kFullBrightness;
-        hal_.template analogWrite<Brightness>(IsLowActive() ? kFullBright - val : val);
-    }
-
  public:
     using brightness_t = Brightness;
 
@@ -70,6 +65,7 @@ class TJLed : public JLedBase {
           state_{ST_INIT},
           bLowActive_{false},
           bPaused_{false},
+          first_cycle_{false},
           minBrightness_{BrightnessTraits<Brightness>::kZeroBrightness},
           maxBrightness_{BrightnessTraits<Brightness>::kFullBrightness} {}
 
@@ -78,6 +74,7 @@ class TJLed : public JLedBase {
           state_{ST_INIT},
           bLowActive_{false},
           bPaused_{false},
+          first_cycle_{false},
           minBrightness_{BrightnessTraits<Brightness>::kZeroBrightness},
           maxBrightness_{BrightnessTraits<Brightness>::kFullBrightness} {}
 
@@ -87,6 +84,7 @@ class TJLed : public JLedBase {
         state_ = rLed.state_;
         bLowActive_ = rLed.bLowActive_;
         bPaused_ = rLed.bPaused_;
+        first_cycle_ = rLed.first_cycle_;
         minBrightness_ = rLed.minBrightness_;
         maxBrightness_ = rLed.maxBrightness_;
         num_repetitions_ = rLed.num_repetitions_;
@@ -229,8 +227,8 @@ class TJLed : public JLedBase {
     // Update() will have no effect.
     Derived& Stop(eIdleMode mode = eIdleMode::TO_MIN_BRIGHTNESS) {
         if (mode != eIdleMode::KEEP_CURRENT) {
-            Write(mode == eIdleMode::FULL_OFF ? BrightnessTraits<Brightness>::kZeroBrightness
-                                              : minBrightness_);
+            WriteRaw(mode == eIdleMode::FULL_OFF ? BrightnessTraits<Brightness>::kZeroBrightness
+                                                 : minBrightness_);
         }
         state_ = ST_STOPPED;
         bPaused_ = false;
@@ -249,6 +247,7 @@ class TJLed : public JLedBase {
         time_start_ = 0;
         last_update_time_ = 0;
         bPaused_ = false;
+        first_cycle_ = false;
         state_ = ST_INIT;
         return static_cast<Derived&>(*this);
     }
@@ -271,12 +270,20 @@ class TJLed : public JLedBase {
     // Returns current maximum brightness level.
     Brightness MaxBrightness() const { return maxBrightness_; }
 
+    // Write val directly out to the hardware, inverting signal when
+    // active-low is set. Bypasses the effect state machine entirely, e.g.
+    // for forcing an output from a lifecycle callback (see UpdateResult).
+    Derived& WriteRaw(Brightness val) {
+        constexpr auto kFullBright = BrightnessTraits<Brightness>::kFullBrightness;
+        hal_.template analogWrite<Brightness>(IsLowActive() ? kFullBright - val : val);
+        return static_cast<Derived&>(*this);
+    }
+
     // update brightness of LED using the given brightness evaluator and the
-    // current time. If the optional pLast pointer is set, then the actual
-    // brightness value (if an update happened), will be returned through
-    // the pointer. The value returned will be the calculated value after
-    // min- and max-brightness scaling was applied, which is the value that
-    // is written to the output.
+    // current time. Returns an UpdateResult carrying whether the effect is
+    // still running, which lifecycle events fired this tick, and the
+    // brightness value (if any) written to the output this tick (the
+    // calculated value after min- and max-brightness scaling was applied).
     //
     //  (brightness)                       ________________
     // on 255 |                         ¸-'
@@ -286,34 +293,79 @@ class TJLed : public JLedBase {
     //        |<-delay before->|<--period-->|<-delay after-> (time)
     //                         | func(t)    |
     //                         |<- num_repetitions times  ->
-    bool Update(int16_t* pLast = nullptr) { return Update(Clock::millis(), pLast); }
+    //
+    // Where the UpdateResult events (see jled_events.h) fire on this
+    // timeline, shown for two repetitions with a configured delay_after:
+    //
+    //                              ____________|        ________________
+    //                        //////            |  //////
+    //        ________________                  |__
+    //        |<--before-->|<-period->|<-after->|<-period->|<--after--->|
+    //        A            B          C         D          C            E
+    //
+    //   A  kStart            fires once, on the very first Update() call
+    //   B  kRepeatStart,      first repetition begins; kActive fires only
+    //      kActive            here, on the first output tick of the run
+    //   C  kEnterDelayAfter   fires once per repetition, entering its
+    //                         delay_after phase (only if delay_after > 0)
+    //   D  kRepeatStart       every following repetition begins (kActive
+    //                         does not fire again)
+    //   E  kDone              fires once, on the very last tick of the run
+    UpdateResult<Derived> Update() { return Update(Clock::millis()); }
 
-    bool Update(uint32_t t, int16_t* pLast = nullptr) {
-        if (bPaused_) return true;
-        if (state_ == ST_STOPPED || !eval_storage_.IsSet()) return false;
+    UpdateResult<Derived> Update(uint32_t t) {
+        auto* self = static_cast<Derived*>(this);
+        auto noResult = [self](bool running, EventSet events) {
+            return UpdateResult<Derived>(running, events, Brightness{}, false, self);
+        };
 
-        if (state_ == ST_INIT) {
+        if (bPaused_) return noResult(true, 0);
+        if (state_ == ST_STOPPED || !eval_storage_.IsSet()) return noResult(false, 0);
+
+        const bool was_init = (state_ == ST_INIT);
+        if (was_init) {
             time_start_ = t + delay_before_;
             state_ = ST_RUNNING;
         } else {
             // no need to process updates twice during one time tick.
-            if (!timeChangedSinceLastUpdate(t)) return true;
+            if ((t & 255) == last_update_time_) return noResult(true, 0);
         }
 
-        trackLastUpdateTime(t);
+        // track the last update time
+        last_update_time_ = (t & 255);
 
-        if (static_cast<int32_t>(t - time_start_) < 0) return true;
+        EventSet events = 0;
+        if (was_init) events |= Event::kStart;
 
-        auto writeCur = [this](uint32_t t, int16_t* p) {
+        if (static_cast<int32_t>(t - time_start_) < 0) return noResult(true, events);
+
+        auto writeCur = [this](uint32_t t) {
             const auto val = lerp<Brightness>(Eval(t), minBrightness_, maxBrightness_);
-            if (p) {
-                *p = static_cast<int16_t>(val);
-            }
-            Write(val);
+            WriteRaw(val);
+            return val;
         };
 
         const auto period = eval_storage_.Period();
         const auto cycle_period = period + delay_after_;
+
+        // Cycle position is computed before the terminal check (and the
+        // resulting event bits accumulated regardless of which path
+        // ultimately returns), because an effect can stop on the very tick
+        // that would otherwise be a repeat-start or delay-after-entry tick.
+        const uint32_t elapsed = t - time_start_;
+        const uint32_t t_cycle = elapsed % cycle_period;
+        const auto state_before_cycle = state_;
+
+        if (t_cycle == 0) {
+            events |= Event::kRepeatStart;
+            if (!first_cycle_) {
+                events |= Event::kActive;
+                first_cycle_ = true;
+            }
+        }
+        if (t_cycle == period && delay_after_ > 0 && state_before_cycle == ST_RUNNING) {
+            events |= Event::kEnterDelayAfter;
+        }
 
         if (!IsForever()) {
             const auto time_end = time_start_ + cycle_period * num_repetitions_ - 1;
@@ -321,26 +373,23 @@ class TJLed : public JLedBase {
             if (static_cast<int32_t>(t - time_end) >= 0) {
                 // make sure final value of t = (period-1) is set
                 state_ = ST_STOPPED;
-                writeCur(period - 1, pLast);
-                return false;
+                events |= Event::kDone;
+                return UpdateResult<Derived>(false, events, writeCur(period - 1), true, self);
             }
         }
-
-        const uint32_t elapsed = t - time_start_;
-        const uint32_t t_cycle = elapsed % cycle_period;
 
         if (t_cycle < period) {
             state_ = ST_RUNNING;
-            writeCur(t_cycle, pLast);
+            return UpdateResult<Derived>(true, events, writeCur(t_cycle), true, self);
         } else {
-            if (state_ == ST_RUNNING) {
-                // when in delay after phase, just call Write()
+            if (state_before_cycle == ST_RUNNING) {
+                // when in delay after phase, just call WriteRaw()
                 // once at the beginning.
                 state_ = ST_IN_DELAY_AFTER_PHASE;
-                writeCur(period - 1, pLast);
+                return UpdateResult<Derived>(true, events, writeCur(period - 1), true, self);
             }
         }
-        return true;
+        return noResult(true, events);
     }
 
  protected:
@@ -348,8 +397,8 @@ class TJLed : public JLedBase {
         if (bPaused_ || state_ == ST_STOPPED) return;
         bPaused_ = true;
         if (mode != eIdleMode::KEEP_CURRENT) {
-            Write(mode == eIdleMode::FULL_OFF ? BrightnessTraits<Brightness>::kZeroBrightness
-                                              : minBrightness_);
+            WriteRaw(mode == eIdleMode::FULL_OFF ? BrightnessTraits<Brightness>::kZeroBrightness
+                                                 : minBrightness_);
         }
         if (state_ != ST_INIT) time_start_ = t - time_start_;  // encode elapsed_so_far in place
         // ST_INIT: time_start_ is 0 and not yet meaningful; Update() resets it on resume
@@ -361,13 +410,6 @@ class TJLed : public JLedBase {
         if (state_ != ST_INIT) time_start_ = t - time_start_;  // restore epoch: t - elapsed_so_far
         // ST_INIT: Update() will set time_start_ fresh on next call
     }
-
-    // test if time stored in last_update_time_ differs from provided timestamp.
-    bool inline timeChangedSinceLastUpdate(uint32_t now) {
-        return (now & 255) != last_update_time_;
-    }
-
-    void trackLastUpdateTime(uint32_t t) { last_update_time_ = (t & 255); }
 
     template<size_t N>
     friend struct TJLedAny;
@@ -396,6 +438,7 @@ class TJLed : public JLedBase {
     uint8_t state_ : 2;  // stored as uint8_t to avoid GCC warning about enum bit-field signedness
     uint8_t bLowActive_ : 1;
     uint8_t bPaused_ : 1;
+    uint8_t first_cycle_ : 1;  // gates kActive to the first repeat-start of a run
     Brightness minBrightness_;
     Brightness maxBrightness_;
 
