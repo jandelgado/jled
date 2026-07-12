@@ -25,8 +25,9 @@
 
 #include <new>  // placement new
 
-#include "jled_base.h"  // JLedBase, eIdleMode, TJLed
-#include "jled_std.h"   // EnableIf, IsBaseOf
+#include "jled_base.h"    // JLedBase, eIdleMode, TJLed
+#include "jled_events.h"  // Event, EventSet, HasEvent, GroupUpdateResult
+#include "jled_std.h"     // EnableIf, IsBaseOf
 
 // TJLedGroup/TJLedAny/TJLedRef: grouping and type-erasure of TJLed subclasses
 // and other TJLedGroup instances, without heap allocation or virtual calls
@@ -65,15 +66,21 @@ class TJLedGroup {
     bool IsForever() const { return num_repetitions_ == kRepeatForever; }
 
     // Update() reads the clock once and delegates to Update(t).
-    bool Update();
-    bool Update(uint32_t t);
+    GroupUpdateResult<TJLedGroup> Update();
+    GroupUpdateResult<TJLedGroup> Update(uint32_t t);
     void Reset();
     void Stop(eIdleMode mode = eIdleMode::TO_MIN_BRIGHTNESS);
     void Pause(eIdleMode mode = eIdleMode::TO_MIN_BRIGHTNESS);
     void Resume();
 
     TJLedGroup(eMode mode, AnyType* leds, size_t n)
-        : mode_(mode), leds_(leds), n_(static_cast<uint8_t>(n > 255 ? 255 : n)) {}
+        : mode_(mode),
+          leds_(leds),
+          n_(static_cast<uint8_t>(n > 255 ? 255 : n)),
+          is_running_(true),
+          started_(false),
+          done_(false),
+          last_update_time_(0) {}
 
  protected:
     void Pause(uint32_t t, eIdleMode mode = eIdleMode::TO_MIN_BRIGHTNESS);
@@ -95,7 +102,10 @@ class TJLedGroup {
     static constexpr uint16_t kRepeatForever = 65535;
     uint16_t num_repetitions_ = 1;
     uint16_t iteration_ = 0;
-    bool is_running_ = true;
+    uint8_t is_running_ : 1;
+    uint8_t started_ : 1;  // gates kStart to the first Update() call of a run
+    uint8_t done_ : 1;     // gates kDone to the tick that observes is_running_ becoming false
+    uint8_t last_update_time_;  // duplicate-tick guard, see Update()
 };
 
 // JLed intentionally uses no virtual methods. But holding a heterogeneous mix
@@ -258,20 +268,58 @@ void TJLedGroup<Clock, AnyType>::ResetLeds() {
 }
 
 template<typename Clock, typename AnyType>
-bool TJLedGroup<Clock, AnyType>::Update() {
+GroupUpdateResult<TJLedGroup<Clock, AnyType>> TJLedGroup<Clock, AnyType>::Update() {
     return Update(Clock::millis());
 }
 
+// kStart fires on the first Update() call of a run; kDone fires on the tick
+// that first observes is_running_ having become false, whether that happened
+// here (repetitions exhausted) or earlier via Stop().
+//
+// kRepeatStart fires once per repetition, including the first (coincident
+// with kStart, mirroring TJLed's own kRepeatStart), and again each time a
+// lap through all elements completes and another repetition follows.
+//
+// kElementChanged fires when the active element in SEQUENCE mode changes,
+// including wrapping back to the first element at a new repetition.
+// It never fires in PARALLEL mode or for a single-element sequence.
+// It does NOT "see" into nested subgroups.
 template<typename Clock, typename AnyType>
-bool TJLedGroup<Clock, AnyType>::Update(uint32_t t) {
-    if (!is_running_ || n_ < 1) {
-        return false;
+GroupUpdateResult<TJLedGroup<Clock, AnyType>> TJLedGroup<Clock, AnyType>::Update(uint32_t t) {
+    EventSet events = 0;
+    const bool was_started = started_;
+    if (!started_) {
+        started_ = true;
+        events |= Event::kStart;
+        events |= Event::kRepeatStart;
     }
 
+    if (!is_running_ || n_ < 1) {
+        if (!done_) {
+            done_ = true;
+            events |= Event::kDone;
+        }
+        return GroupUpdateResult<TJLedGroup>(false, events, this);
+    }
+
+    // Duplicate-tick guard: a repetition boundary's ResetLeds() puts every
+    // element back in ST_INIT, bypassing its own per-tick guard. Without
+    // this check, a second Update() call at the same t would let a
+    // one-tick effect (e.g. a plain On()) finish instantly, silently
+    // advancing an extra lap.
+    if (was_started && static_cast<uint8_t>(t & 255) == last_update_time_) {
+        return GroupUpdateResult<TJLedGroup>(true, events, this);
+    }
+    last_update_time_ = static_cast<uint8_t>(t & 255);
+
+    const auto cur_before = cur_;
     const auto led_running = (mode_ == eMode::PARALLEL) ? UpdateParallel(t) : UpdateSequentially(t);
 
     if (led_running) {
-        return true;
+        if (mode_ == eMode::SEQUENCE && cur_ != cur_before) {
+            events |= Event::kElementChanged;
+        }
+        return GroupUpdateResult<TJLedGroup>(true, events, this);
     }
 
     cur_ = 0;
@@ -279,7 +327,17 @@ bool TJLedGroup<Clock, AnyType>::Update(uint32_t t) {
 
     is_running_ = ++iteration_ < num_repetitions_ || num_repetitions_ == kRepeatForever;
 
-    return is_running_;
+    if (!is_running_ && !done_) {
+        done_ = true;
+        events |= Event::kDone;
+    } else if (is_running_) {
+        events |= Event::kRepeatStart;
+        if (mode_ == eMode::SEQUENCE && cur_ != cur_before) {
+            events |= Event::kElementChanged;
+        }
+    }
+
+    return GroupUpdateResult<TJLedGroup>(is_running_, events, this);
 }
 
 template<typename Clock, typename AnyType>
@@ -288,6 +346,9 @@ void TJLedGroup<Clock, AnyType>::Reset() {
     cur_ = 0;
     iteration_ = 0;
     is_running_ = true;
+    started_ = false;
+    done_ = false;
+    last_update_time_ = 0;
 }
 
 template<typename Clock, typename AnyType>

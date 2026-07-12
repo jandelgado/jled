@@ -29,10 +29,15 @@ namespace jled {
 
 enum class Event : uint8_t {
     kStart = 1 << 0,            // effect started this tick (INIT -> RUNNING)
-    kEnterDelayAfter = 1 << 1,  // effect entered a delay-after phase this tick
+    kEnterDelayAfter = 1 << 1,  // TJLed only: effect entered a delay-after phase this tick
     kDone = 1 << 2,             // effect stopped this tick
     kRepeatStart = 1 << 3,      // a repetition cycle started this tick
-    kActive = 1 << 4,           // first actual output tick (fires with kRepeatStart on iteration 0)
+    kActive =
+        1 << 4,  // TJLed Only: first actual output tick (fires with kRepeatStart on iteration 0;
+    // TJLedGroup only: the active element changed this tick. Only ever set in
+    // SEQUENCE mode, where the group has a single "current" element; PARALLEL
+    // groups have no such notion and never set this bit.
+    kElementChanged = 1 << 5,
 };
 
 // EventSet holds a combination of Event bits.
@@ -130,6 +135,56 @@ class UpdateResult {
     template<typename F>
     UpdateResult& OnDone(F cb) {
         if (IsDone()) cb(obj_);
+        return *this;
+    }
+};
+
+// Result of a single TJLedGroup::Update() call: whether the group is still
+// running and which group-level events (kStart, kDone, kRepeatStart,
+// kElementChanged) fired this tick. Distinct from UpdateResult<T>: a group
+// has no brightness value, no delay-after phase, and no single "active"
+// output tick of its own.
+template<typename Group>
+class GroupUpdateResult {
+    Group* obj_;
+    EventSet event_;
+    uint8_t running_ : 1;
+
+ public:
+    GroupUpdateResult(bool running, EventSet event, Group* obj)
+        : obj_(obj), event_(event), running_(running) {}
+
+    // Implicit bool: preserves all existing if/while/|= usage
+    operator bool() const { return running_; }  // NOLINT(runtime/explicit)
+
+    bool IsRunning() const { return running_; }
+    bool IsStarted() const { return HasEvent(event_, Event::kStart); }
+    bool IsDone() const { return HasEvent(event_, Event::kDone); }
+    bool IsRepeatStarted() const { return HasEvent(event_, Event::kRepeatStart); }
+    bool IsElementChanged() const { return HasEvent(event_, Event::kElementChanged); }
+    EventSet GetEvents() const { return event_; }
+
+    template<typename F>
+    GroupUpdateResult& OnStart(F cb) {
+        if (IsStarted()) cb(obj_);
+        return *this;
+    }
+
+    template<typename F>
+    GroupUpdateResult& OnDone(F cb) {
+        if (IsDone()) cb(obj_);
+        return *this;
+    }
+
+    template<typename F>
+    GroupUpdateResult& OnRepeatStart(F cb) {
+        if (IsRepeatStarted()) cb(obj_);
+        return *this;
+    }
+
+    template<typename F>
+    GroupUpdateResult& OnElementChanged(F cb) {
+        if (IsElementChanged()) cb(obj_);
         return *this;
     }
 };

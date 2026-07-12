@@ -88,6 +88,7 @@ void loop() {
     - [Minimum- and Maximum brightness level](#minimum--and-maximum-brightness-level)
     - [WriteRaw](#writeraw)
   - [Controlling a group of LEDs](#controlling-a-group-of-leds)
+    - [Group lifecycle events](#group-lifecycle-events)
     - [JLedRefGroup, pointer-based groups for named LED objects](#jledrefgroup-pointer-based-groups-for-named-led-objects)
 - [Framework notes](#framework-notes)
 - [Platform notes](#platform-notes)
@@ -700,8 +701,11 @@ automatically. A runtime-size overload is also available:
 
 `JLedGroup` provides the following methods:
 
-- `Update()` - updates all elements. Returns `true` while the group is
-  running, `false` when it has finished.
+- `Update()` - updates all elements. Returns a `GroupUpdateResult`, usable
+  directly as a `bool`: `true` while the group is running, `false` once it
+  has finished. Also exposes `IsStarted()`/`IsDone()` and
+  `OnStart()`/`OnDone()` for group-level lifecycle events, see
+  [Group lifecycle events](#group-lifecycle-events) below.
 - `Repeat(n)` - plays the group `n` times. Default is 1.
 - `Forever()` - plays the group indefinitely.
 - `Stop(mode = jled::eIdleMode::TO_MIN_BRIGHTNESS)` - stops all elements
@@ -712,6 +716,43 @@ automatically. A runtime-size overload is also available:
 `JLedAny` has a fixed-size internal buffer sized to hold `JLed`, `JLedHD`,
 or `JLedGroup`. If you use a custom LED type that is larger, define your own
 alias: `using MyLedAny = TJLedAny<sizeof(MyBigLed)>;`
+
+#### Group lifecycle events
+
+`GroupUpdateResult` reports four group-level events, analogous to `JLed`'s
+[Lifecycle events](#lifecycle-events) but scoped to the group as a whole:
+
+| Query                | Fires when                                                        |
+| --------------------- | ------------------------------------------------------------------ |
+| `IsStarted()`         | once per run, on the first `Update()` call (or the first after `Reset()`) |
+| `IsDone()`            | once, when the group finishes: all repetitions exhausted, or `Stop()` is called (observed on the next `Update()` call) |
+| `IsRepeatStarted()`   | once per repetition, including the first: coincides with `IsStarted()` on the first, and fires again each time a full pass through the group completes and another repetition follows (`Repeat(n>1)`/`Forever()`). Independent of `Parallel`/`Sequential` mode |
+| `IsElementChanged()`  | `Sequential` groups only: the active element changed, either advancing to the next element or wrapping back to the first for a new repetition |
+
+An empty group (no elements) fires `IsStarted()`, `IsRepeatStarted()` and
+`IsDone()` together on its one and only `Update()` call. `IsElementChanged()`
+never fires for `Parallel` groups (there is no single "active" element) or
+for a single-element sequence. Each event has a matching fluent callback:
+
+```c++
+group.Update()
+    .OnStart([](JLedGroup* g) { Serial.println("group started"); })
+    .OnRepeatStart([](JLedGroup* g) { Serial.println("repetition begins"); })
+    .OnElementChanged([](JLedGroup* g) { Serial.println("next LED playing"); })
+    .OnDone([](JLedGroup* g) { Serial.println("group finished"); });
+```
+
+This works identically for `JLedRefGroup`. Per-element events (reacting to
+individual LEDs within a group) are not yet supported.
+
+**Nested groups:** `IsStarted()`/`IsDone()`/`IsRepeatStarted()` compose
+correctly regardless of nesting depth, since they are driven purely by a
+group's own state. `IsElementChanged()` does not: it only reports transitions
+among a group's own direct elements. While a nested group occupies one slot
+of an outer group, the outer's active element does not change for the
+nested group's entire run, so transitions among the nested group's own
+elements are invisible from the outer's `GroupUpdateResult`. Full-depth,
+per-leaf visibility is planned via a future per-element callback.
 
 #### JLedRefGroup, pointer-based groups for named LED objects
 

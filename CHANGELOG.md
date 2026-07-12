@@ -5,6 +5,19 @@
 - new: lifecycle events (`kStart`/`kActive`/`kRepeatStart`/`kEnterDelayAfter`/`kDone`)
   for `TJLed` via `UpdateResult`, with `IsStarted()`/`IsActive()`/... queries
   and matching `OnStart()`/`OnActive()`/... callbacks
+- new: group-level lifecycle events (`kStart`/`kDone`/`kRepeatStart`/
+  `kElementChanged`) for `TJLedGroup` (`JLedGroup`/`JLedRefGroup`) via
+  `GroupUpdateResult`, with `IsStarted()`/`IsDone()`/`IsRepeatStarted()`/
+  `IsElementChanged()` queries and matching `On*()` callbacks.
+  `kRepeatStart` fires once per repetition and composes correctly across
+  nested groups; `kElementChanged` fires for `Sequential` groups when the
+  active element changes, but is scoped to a group's own direct elements
+  (does not see into nested subgroups)
+- fix: `TJLedGroup::Update()` could silently consume an extra repetition if
+  called more than once within the same millisecond at a repetition
+  boundary (each element's own per-tick guard is bypassed by the `Reset()`
+  a repetition boundary triggers). `TJLedGroup` now has its own duplicate-
+  tick guard, mirroring `TJLed`'s existing one
 - breaking: `Update(int16_t* pLast)` removed; use `UpdateResult::Brightness()` /
   `HasBrightness()` instead. See migration guide in README.md
 - new: `Pause()` and `Resume()` to temporarily pause an effect
