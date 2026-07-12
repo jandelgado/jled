@@ -991,6 +991,7 @@ Example sketches are provided in the [examples](examples/) directory.
 - [Morsecode example](examples/morse)
 - [Last brightness value example](examples/last_brightness)
 - [Pause and resume effect with a button](examples/pause_resume)
+- [JLed lifecycle events](examples/jled_lifecycle)
 - [Custom HAL example](examples/custom_hal)
 - [Custom PCA9685 HAL](https://github.com/jandelgado/jled-pca9685-hal)
 - [Dynamically switch sequences](https://github.com/jandelgado/jled-example-switch-sequence)
