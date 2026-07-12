@@ -23,7 +23,7 @@ implementation for CircuitPython and MicroPython.
   <th>Interactive JLed playground</th>
  </tr>
 <tr>
-  <td><a href="examples/group"><img alt="JLed in action" src="doc/jled.gif" width=256></a></td>
+  <td><a href="examples/group_parallel"><img alt="JLed in action" src="doc/jled.gif" width=256></a></td>
   <td><a href="https://jandelgado.github.io/jled-wasm"><img alt="jled running in the browser" src="doc/jled-wasm.png" width=256></a>
   </td>
  </tr>
@@ -111,7 +111,7 @@ void loop() {
 - [JLed 5.0 migration guide](#jled-50-migration-guide)
   - [`eStopMode` renamed to `eIdleMode`](#estopmode-renamed-to-eidlemode)
   - [JLedSequence to JLedGroup migration](#jledsequence-to-jledgroup-migration)
-  - [`Update(int16_t* pLast)` removed, use `UpdateResult`](#updateint16_t-plast-removed--use-updateresult)
+  - [`Update(int16_t* pLast)` removed, use `UpdateResult` now](#updateint16_t-plast-removed-use-updateresult-now)
   - [Custom brightness evaluators: `BrightnessEvaluator` is now a template](#custom-brightness-evaluators-brightnessevaluator-is-now-a-template)
   - [Custom HALs and `TJLed` subclasses: Clock and Brightness are now explicit](#custom-hals-and-tjled-subclasses-clock-and-brightness-are-now-explicit)
 - [FAQ](#faq)
@@ -722,17 +722,17 @@ alias: `using MyLedAny = TJLedAny<sizeof(MyBigLed)>;`
 `GroupUpdateResult` reports four group-level events, analogous to `JLed`'s
 [Lifecycle events](#lifecycle-events) but scoped to the group as a whole:
 
-| Query                | Fires when                                                        |
-| --------------------- | ------------------------------------------------------------------ |
-| `IsStarted()`         | once per run, on the first `Update()` call (or the first after `Reset()`) |
-| `IsDone()`            | once, when the group finishes: all repetitions exhausted, or `Stop()` is called (observed on the next `Update()` call) |
-| `IsRepeatStarted()`   | once per repetition, including the first: coincides with `IsStarted()` on the first, and fires again each time a full pass through the group completes and another repetition follows (`Repeat(n>1)`/`Forever()`). Independent of `Parallel`/`Sequential` mode |
-| `IsElementChanged()`  | `Sequential` groups only: the active element changed, either advancing to the next element or wrapping back to the first for a new repetition |
+| Query                | Fires when                                                                                                                                                                                                                                                     |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `IsStarted()`        | once per run, on the first `Update()` call (or the first after `Reset()`)                                                                                                                                                                                      |
+| `IsDone()`           | once, when the group finishes: all repetitions exhausted, or `Stop()` is called                                                                                                                                                                                |
+| `IsRepeatStarted()`  | once per repetition, including the first: coincides with `IsStarted()` on the first, and fires again each time a full pass through the group completes and another repetition follows (`Repeat(n>1)`/`Forever()`). Independent of `Parallel`/`Sequential` mode |
+| `IsElementChanged()` | `Sequential` groups only: the active element changed, either advancing to the next element or wrapping back to the first for a new repetition                                                                                                                  |
 
-An empty group (no elements) fires `IsStarted()`, `IsRepeatStarted()` and
-`IsDone()` together on its one and only `Update()` call. `IsElementChanged()`
-never fires for `Parallel` groups (there is no single "active" element) or
-for a single-element sequence. Each event has a matching fluent callback:
+An empty group (no elements) fires `IsStarted()`, `IsRepeatStarted()` and `IsDone()` together on its
+one and only `Update()` call. `IsElementChanged()` never fires for `Parallel` groups (there is no
+single "active" element) or for a single-element sequence. Each event has a matching fluent
+callback:
 
 ```c++
 group.Update()
@@ -742,17 +742,15 @@ group.Update()
     .OnDone([](JLedGroup* g) { Serial.println("group finished"); });
 ```
 
-This works identically for `JLedRefGroup`. Per-element events (reacting to
-individual LEDs within a group) are not yet supported.
+This works identically for `JLedRefGroup`. Per-element events (reacting to individual LEDs within a
+group) are not yet supported.
 
-**Nested groups:** `IsStarted()`/`IsDone()`/`IsRepeatStarted()` compose
-correctly regardless of nesting depth, since they are driven purely by a
-group's own state. `IsElementChanged()` does not: it only reports transitions
-among a group's own direct elements. While a nested group occupies one slot
-of an outer group, the outer's active element does not change for the
-nested group's entire run, so transitions among the nested group's own
-elements are invisible from the outer's `GroupUpdateResult`. Full-depth,
-per-leaf visibility is planned via a future per-element callback.
+**Nested groups:** `IsStarted()`/`IsDone()`/`IsRepeatStarted()` compose correctly regardless of
+nesting depth, since they are driven purely by a group's own state. `IsElementChanged()` does not:
+it only reports transitions among a group's own direct elements. While a nested group occupies one
+slot of an outer group, the outer's active element does not change for the nested group's entire
+run, so transitions among the nested group's own elements are invisible from the outer's
+`GroupUpdateResult`. Full-depth, per-leaf visibility is planned via a future per-element callback.
 
 #### JLedRefGroup, pointer-based groups for named LED objects
 
@@ -769,8 +767,7 @@ JLedRef refs[] = {&led1, &led2};
 auto group = JLedRefGroup::Parallel(refs);
 ```
 
-Nested groups work the same way, declare the inner group as a named variable
-and take its address:
+Nested groups work the same way, declare the inner group as a named variable and take its address:
 
 ```c++
 auto inner0 = JLed(5).Blink(250, 250).Repeat(2);
@@ -1024,10 +1021,11 @@ Example sketches are provided in the [examples](examples/) directory.
 - [Fade LED off](examples/fade_off)
 - [Fade from-to effect](examples/fade_from_to)
 - [Pulse effect](examples/pulse)
-- [Controlling a group of LEDs](examples/group)
+- [Controlling a group of LEDs sequentially + Group lifecycle events](examples/group_sequence)
+- [Controlling a group of LEDs in parallel](examples/group_parallel)
 - [Controlling a group of LEDs by reference](examples/group_ref)
+- [Controlling a nested group of LEDs](examples/group_nested)
 - [Controlling a group of LEDs (mbed)](examples/group_mbed)
-- [Controlling a nested group of LEDs](examples/nested_group)
 - [Simple User provided effect](examples/user_func)
 - [Morsecode example](examples/morse)
 - [Last brightness value example](examples/last_brightness)
