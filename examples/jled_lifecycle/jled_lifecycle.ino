@@ -30,7 +30,8 @@ auto led = JLed(LED_BUILTIN).FadeOn(2000).DelayAfter(1000).MaxBrightness(max_br)
 
 void setup() {
     Serial.begin(9600);
-    while (!Serial) {
+    const auto start = millis();
+    while (!Serial && millis() - start < 2000) {
     }
     Serial.println("JLed lifecycle demo");
 }

@@ -1,6 +1,7 @@
-// JLed multi LED demo. control multiple LEDs in-sync.
+// JLed parallel group LED demo.
 // Copyright (c) 2017-2026 by Jan Delgado. All rights reserved.
 // https://github.com/jandelgado/jled
+//
 #include <jled.h>
 
 JLedAny leds[] = {JLed(4).Blink(750, 250).Repeat(2),
@@ -11,7 +12,8 @@ JLedAny leds[] = {JLed(4).Blink(750, 250).Repeat(2),
 
 auto group = JLedGroup::Parallel(leds).Repeat(5);
 
-void setup() {}
+void setup() {
+}
 
 void loop() {
     group.Update();

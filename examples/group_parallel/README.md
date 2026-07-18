@@ -1,4 +1,4 @@
-# Simple LED group example
+# Simple parallel LED group example
 
 This example controls 4+1 LEDs, showing different effects, yet all synchronized:
 
