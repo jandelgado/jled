@@ -90,6 +90,7 @@ void loop() {
   - [Controlling a group of LEDs](#controlling-a-group-of-leds)
     - [Group lifecycle events](#group-lifecycle-events)
     - [JLedRefGroup, pointer-based groups for named LED objects](#jledrefgroup-pointer-based-groups-for-named-led-objects)
+    - [When to use what?](#when-to-use-what)
 - [Framework notes](#framework-notes)
 - [Platform notes](#platform-notes)
   - [Resolution and the `Brightness` type](#resolution-and-the-brightness-type)
@@ -713,9 +714,19 @@ automatically. A runtime-size overload is also available:
   [`JLed::Stop(mode)`](#immediate-stop). Further calls to `Update()` have no effect.
 - `Reset()` - resets all elements and restarts the group from the beginning.
 
-`JLedAny` has a fixed-size internal buffer sized to hold `JLed`, `JLedHD`,
-or `JLedGroup`. If you use a custom LED type that is larger, define your own
-alias: `using MyLedAny = TJLedAny<sizeof(MyBigLed)>;`
+`JLedAny` has a fixed-size internal buffer sized to hold `JLed`, `JLedHD`, or
+`JLedGroup`. A custom LED type that is larger does not fit and fails to compile.
+In that case define your own aliases, both of them, since `JLedGroup` is bound
+to `JLedAny`:
+
+```c++
+using MyLedAny   = TJLedAny<sizeof(MyBigLed)>;
+using MyLedGroup = TJLedGroup<JLedClockType, MyLedAny>;
+```
+
+Note that this widens every slot of the group, also those holding a plain
+`JLed`. [`JLedRefGroup`](#jledrefgroup-pointer-based-groups-for-named-led-objects)
+avoids this, see [When to use what?](#when-to-use-what) below.
 
 #### Group lifecycle events
 
@@ -742,22 +753,46 @@ group.Update()
     .OnDone([](JLedGroup* g) { Serial.println("group finished"); });
 ```
 
-This works identically for `JLedRefGroup`. Per-element events (reacting to individual LEDs within a
-group) are not yet supported.
+This works identically for `JLedRefGroup`. These events describe the group as a whole, per-element
+events are not supported.
+
+With `JLedRefGroup` you can poll an individual LED yourself, since the group updates the very
+object your variable names:
+
+```c++
+auto led1 = JLed(4).Blink(750, 250).Repeat(2);
+auto led2 = JLedHD(3).Breathe(2000);
+JLedRef refs[] = {&led1, &led2};
+auto group = JLedRefGroup::Sequential(refs);
+
+void loop() {
+    const bool was_running = led1.IsRunning();
+    group.Update();
+    if (was_running && !led1.IsRunning()) {
+        Serial.println("led1 finished");
+    }
+}
+```
+
+This does not work with `JLedGroup`, which plays its own copies of the LEDs. Note also that
+`IsRunning()` already returns `true` before an element has started, so it detects the end of an
+effect, not its start, and never fires for an LED set to `Forever()`.
 
 **Nested groups:** `IsStarted()`/`IsDone()`/`IsRepeatStarted()` compose correctly regardless of
 nesting depth, since they are driven purely by a group's own state. `IsElementChanged()` does not:
 it only reports transitions among a group's own direct elements. While a nested group occupies one
 slot of an outer group, the outer's active element does not change for the nested group's entire
 run, so transitions among the nested group's own elements are invisible from the outer's
-`GroupUpdateResult`. Full-depth, per-leaf visibility is planned via a future per-element callback.
+`GroupUpdateResult`. A group's events are reported only by the `Update()` call that produced them,
+and for a nested group that call is made by the outer group, so they cannot be picked up afterwards.
+To follow a nested group's progress, poll the LEDs you care about as shown above.
 
 #### JLedRefGroup, pointer-based groups for named LED objects
 
 `JLedRef` and `JLedRefGroup` are a more memory-efficient alternative to `JLedAny` and `JLedGroup`.
-Each `JLedRef` slot stores only a pointer and a shared vtable pointer (4 bytes on 32-bit, 2 bytes on
-8-bit AVR), rather than a full copy of the LED state. The tradeoff is ergonomics: LED objects must
-be declared as named variables, anonymous inline construction is not possible.
+Each `JLedRef` slot stores only a pointer to the LED and a shared vtable pointer (8 bytes on 32-bit,
+4 bytes on 8-bit AVR), rather than a full copy of the LED state. The tradeoff is ergonomics: LED
+objects must be declared as named variables, anonymous inline construction is not possible.
 
 ```c++
 auto led1 = JLed(4).Blink(750, 250).Repeat(2);
@@ -788,6 +823,28 @@ applies the implicit conversion per element.
 
 > **Lifetime:** LED objects must outlive the `JLedRef` / `JLedRefGroup` that
 > references them. Do not create `JLedRef` from temporaries.
+
+#### When to use what?
+
+Most of the time `JLedGroup` is the right one, so start there. It lets you write the effects
+straight into the array, and knowing when the whole group starts, repeats or finishes is usually
+enough.
+
+Reach for `JLedRefGroup` when:
+
+- you want to keep your LEDs as named variables anyway, because you also want to reach them from
+  elsewhere in your sketch, or because you want to poll them individually
+- you want to build the group from LEDs that are declared in different places
+- you use a user-defined `TJLed` type, e.g. a PCA9685 driver. `JLedRef` takes any of them as is,
+  whatever their size. `JLedGroup` only accepts types that fit its buffer, anything larger needs
+  a `TJLedAny` alias plus a matching `TJLedGroup` type, and widens every slot of the group
+- you want to save RAM: every `JLedAny` slot is padded to hold the largest supported type
+  (`JLed`, `JLedHD` or `JLedGroup`), while a `JLedRef` slot is two pointers regardless. A group of
+  plain `JLed` objects therefore wastes the size difference per element
+
+The price is two extra rules: the LED objects must be named variables, and they must outlive the
+group. If you are unsure, start with `JLedGroup`. Moving to `JLedRefGroup` later is a small change:
+pull the LEDs out into named variables and swap the array type.
 
 ## Framework notes
 
