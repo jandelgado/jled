@@ -33,10 +33,16 @@ void setup() {
 void loop() {
     sequence
         .Update()
-        // act on the groups lifecycle events
+        // demo: act on the groups lifecycle events. Watch the serial console
         .OnStart([](JLedGroup*) { Serial.println("group started"); })
         .OnRepeatStart([](JLedGroup*) { Serial.println("new iteration started"); })
         .OnElementChanged([](JLedGroup*) { Serial.println("next effect playing"); })
+        .OnEnter([](JLedGroup*, uint8_t i) {
+                Serial.print("enter: ");
+                Serial.println(static_cast<int>(i)); })
+        .OnLeave([](JLedGroup*, uint8_t i) {
+                Serial.print("leave: ");
+                Serial.println(static_cast<int>(i)); })
         .OnDone([](JLedGroup* g) {
             Serial.println("group finished -> Reset");
             g->Reset();

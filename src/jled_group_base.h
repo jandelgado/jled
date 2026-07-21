@@ -323,14 +323,18 @@ GroupUpdateResult<TJLedGroup<Clock, AnyType>> TJLedGroup<Clock, AnyType>::Update
     }
 
     cur_ = 0;
-    ResetLeds();
-
     is_running_ = ++iteration_ < num_repetitions_ || num_repetitions_ == kRepeatForever;
 
-    if (!is_running_ && !done_) {
-        done_ = true;
-        events |= Event::kDone;
-    } else if (is_running_) {
+    if (!is_running_) {
+        if (!done_) {
+            done_ = true;
+            events |= Event::kDone;
+        }
+    } else {
+        // Only rearm elements when another repetition is actually coming.
+        // On final completion, each element already reached its own correct
+        // terminal (stopped) state on this tick and must be left there.
+        ResetLeds();
         events |= Event::kRepeatStart;
         if (mode_ == eMode::SEQUENCE && cur_ != cur_before) {
             events |= Event::kElementChanged;

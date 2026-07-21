@@ -367,6 +367,22 @@ TEST_CASE("JLedRefGroup references externally managed LEDs", "[jled_group]") {
         TimeMock::set_millis(1);
         REQUIRE(!group.Update());
     }
+
+    SECTION("referenced LED stays stopped after group's natural completion") {
+        TJLedRef refs[] = {&led1};
+        auto group = TestJLedRefGroup::Parallel(refs);
+
+        TimeMock::set_millis(0);
+        REQUIRE(group.Update());
+        TimeMock::set_millis(1);
+        auto r = group.Update();
+        REQUIRE(!r);
+        REQUIRE(r.IsDone());
+
+        // the group is done for good; the referenced LED must not have been
+        // silently rearmed for a repetition that will never come.
+        REQUIRE_FALSE(led1.IsRunning());
+    }
 }
 
 TEST_CASE("Pause() default mode is TO_MIN_BRIGHTNESS", "[jled_group]") {
