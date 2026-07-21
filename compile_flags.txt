@@ -1,6 +1,10 @@
 -std=c++14
+-xc++
 -Isrc
 -Itest
 -Wall
 -Wextra
 -DARDUINO=100
+-DLED_BUILTIN=1
+-include
+Arduino.h
