@@ -302,6 +302,41 @@ TEST_CASE("JLedAny copy constructor copies all state", "[jled_group]") {
     }
 }
 
+TEST_CASE("As<T>() recovers the concrete stored/referenced type", "[jled_group]") {
+    HalMock::Init();
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
+
+    SECTION("TJLedAny holding a JLed") {
+        TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval).Repeat(1)};
+
+        auto* led = leds[0].As<TestJLed>();
+        REQUIRE(led != nullptr);
+        led->MaxBrightness(123);
+        REQUIRE(led->MaxBrightness() == 123);
+
+        REQUIRE(leds[0].As<TestJLedHD>() == nullptr);
+    }
+
+    SECTION("TJLedAny holding a nested group") {
+        TestJLedAny inner_leds[] = {TestJLed(HalMock(1)).UserFunc(&eval).Repeat(1)};
+        TestJLedAny outer[] = {TestJLedGroupAny::Parallel(inner_leds).Forever()};
+
+        auto* group = outer[0].As<TestJLedGroupAny>();
+        REQUIRE(group != nullptr);
+        REQUIRE(group->IsForever());
+
+        REQUIRE(outer[0].As<TestJLed>() == nullptr);
+    }
+
+    SECTION("TJLedRef referencing a JLed") {
+        TestJLed led1 = TestJLed(HalMock(1)).UserFunc(&eval).Repeat(1);
+
+        TJLedRef ref(&led1);
+        REQUIRE(ref.As<TestJLed>() == &led1);
+        REQUIRE(ref.As<TestJLedHD>() == nullptr);
+    }
+}
+
 TEST_CASE("JLedRefGroup references externally managed LEDs", "[jled_group]") {
     HalMock::Init();
     auto eval1 = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});

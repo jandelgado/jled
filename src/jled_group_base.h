@@ -178,6 +178,19 @@ struct TJLedAny {
 
     ~TJLedAny() { vtable_->dtor(buf_); }
 
+    // Recovers a pointer to the stored object if it is exactly of type T (no
+    // base-class match), or nullptr otherwise. VtableFor<T>() is one static
+    // instance per instantiation, so comparing its address is a no-RTTI
+    // stand-in for a dynamic_cast type check.
+    template<typename T>
+    T* As() {
+        return vtable_ == VtableFor<T>() ? reinterpret_cast<T*>(buf_) : nullptr;
+    }
+    template<typename T>
+    const T* As() const {
+        return vtable_ == VtableFor<T>() ? reinterpret_cast<const T*>(buf_) : nullptr;
+    }
+
  protected:
     bool Update(uint32_t t) { return vtable_->update(buf_, t); }
     void Reset() { vtable_->reset(buf_); }
@@ -227,6 +240,18 @@ class TJLedRef {
     template<typename Clock, typename AnyType>
     TJLedRef(TJLedGroup<Clock, AnyType>* ptr)  // NOLINT
         : obj_(ptr), vtable_(VtableFor<TJLedGroup<Clock, AnyType>>()) {}
+
+    // Recovers the referenced object as T* if it was constructed from
+    // exactly that type, or nullptr otherwise. See TJLedAny::As() for the
+    // no-RTTI mechanism.
+    template<typename T>
+    T* As() {
+        return vtable_ == VtableFor<T>() ? static_cast<T*>(obj_) : nullptr;
+    }
+    template<typename T>
+    const T* As() const {
+        return vtable_ == VtableFor<T>() ? static_cast<const T*>(obj_) : nullptr;
+    }
 
  protected:
     bool Update(uint32_t t) { return vtable_->update(obj_, t); }

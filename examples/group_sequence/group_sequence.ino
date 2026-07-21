@@ -38,11 +38,16 @@ void loop() {
         .OnRepeatStart([](JLedGroup*) { Serial.println("new iteration started"); })
         .OnElementChanged([](JLedGroup*) { Serial.println("next effect playing"); })
         .OnEnter([](JLedGroup*, uint8_t i) {
-                Serial.print("enter: ");
-                Serial.println(static_cast<int>(i)); })
+            Serial.print("enter: ");
+            Serial.println(static_cast<int>(i));
+        })
         .OnLeave([](JLedGroup*, uint8_t i) {
-                Serial.print("leave: ");
-                Serial.println(static_cast<int>(i)); })
+            if (auto* led = leds[i].As<JLed>()) {
+                led->MinBrightness(50);
+            }
+            Serial.print("leave: ");
+            Serial.println(static_cast<int>(i));
+        })
         .OnDone([](JLedGroup* g) {
             Serial.println("group finished -> Reset");
             g->Reset();
