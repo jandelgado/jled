@@ -730,7 +730,7 @@ avoids this, see [When to use what?](#when-to-use-what) below.
 
 #### Group lifecycle events
 
-`GroupUpdateResult` reports four group-level events, analogous to `JLed`'s
+`GroupUpdateResult` reports six group-level events, analogous to `JLed`'s
 [Lifecycle events](#lifecycle-events) but scoped to the group as a whole:
 
 | Query                | Fires when                                                                                                                                                                                                                                                     |
@@ -739,27 +739,39 @@ avoids this, see [When to use what?](#when-to-use-what) below.
 | `IsDone()`           | once, when the group finishes: all repetitions exhausted, or `Stop()` is called                                                                                                                                                                                |
 | `IsRepeatStarted()`  | once per repetition, including the first: coincides with `IsStarted()` on the first, and fires again each time a full pass through the group completes and another repetition follows (`Repeat(n>1)`/`Forever()`). Independent of `Parallel`/`Sequential` mode |
 | `IsElementChanged()` | `Sequential` groups only: the active element changed, either advancing to the next element or wrapping back to the first for a new repetition                                                                                                                  |
+| `IsEnter()`          | some element became active this tick: coincides with `IsStarted()` on the first element, or with `IsElementChanged()` on any later handoff. In `Parallel` mode, aliases `IsStarted()` exactly                                                                  |
+| `IsLeave()`          | some element stopped being active this tick: coincides with `IsElementChanged()` on a handoff, or with `IsDone()` when the last element finishes. In `Parallel` mode, aliases `IsDone()` exactly                                                               |
 
 An empty group (no elements) fires `IsStarted()`, `IsRepeatStarted()` and `IsDone()` together on its
 one and only `Update()` call. `IsElementChanged()` never fires for `Parallel` groups (there is no
 single "active" element) or for a single-element sequence. Each event has a matching fluent
-callback:
+callback. `OnEnter`/`OnLeave` additionally pass the 0-based index of the element, into the array
+given to `Sequential()`/`Parallel()`, that just entered/left:
 
 ```c++
 group.Update()
     .OnStart([](JLedGroup* g) { Serial.println("group started"); })
     .OnRepeatStart([](JLedGroup* g) { Serial.println("repetition begins"); })
     .OnElementChanged([](JLedGroup* g) { Serial.println("next LED playing"); })
+    .OnEnter([](JLedGroup* g, uint8_t idx) { Serial.print("enter: "); Serial.println(idx); })
+    .OnLeave([](JLedGroup* g, uint8_t idx) { Serial.print("leaver: "); Serial.println(idx); })
     .OnDone([](JLedGroup* g) { Serial.println("group finished"); });
 ```
 
-This works identically for `JLedRefGroup`. These events describe the group as a whole, per-element
-events are not supported.
+This works identically for `JLedRefGroup`. `OnElementChanged`/`OnDone` describe the group as a
+whole and don't identify which element changed. `OnEnter`/`OnLeave` do, via the index argument,
+for `Sequential` groups; in `Parallel` mode the index is always `0` and does not identify a
+specific element, since every element moves together there.
+
+Note: on a single-element sequence or in `Parallel` mode with `Repeat(n>1)`, a mid-run repetition
+boundary is silent on `OnEnter`/`OnLeave` (no index changes, so neither `IsElementChanged()` nor
+`IsStarted()`/`IsDone()` fire), even though the element conceptually restarted. Use `OnRepeatStart` to
+observe that boundary instead.
 
 With `JLedRefGroup` you can poll an individual LED yourself, since the group updates the very
-object your variable names. For the common case of just knowing when a step finished, prefer the
-lifecycle events over polling: `OnElementChanged()` fires when the active element hands off to the
-next, and `OnDone()` fires when the group as a whole finishes:
+object your variable names. For the common case of just knowing when a step finished, prefer
+`OnLeave()` over polling, it names the element directly via its index, and works the same way
+regardless of how many elements the sequence has:
 
 ```c++
 auto led1 = JLed(4).Blink(750, 250).Repeat(2);
@@ -768,28 +780,17 @@ JLedRef refs[] = {&led1, &led2};
 auto group = JLedRefGroup::Sequential(refs);
 
 void loop() {
-    group.Update()
-        .OnElementChanged([](JLedRefGroup*) { Serial.println("led1 finished"); })
-        .OnDone([](JLedRefGroup*) { Serial.println("led2 finished"); });
+    group.Update().OnLeave([](JLedRefGroup*, uint8_t idx) {
+        if (idx == 0) Serial.println("led1 finished");
+        else if (idx == 1) Serial.println("led2 finished");
+    });
 }
 ```
 
-`OnElementChanged()` fires exactly once here, on the tick the group hands off from `led1` to
-`led2`. It does not fire again for `led2`, since it is the last element of a non-repeating
-sequence, there is no next element to hand off to, so its completion is reported by `OnDone()`
-instead. Polling would not catch it either: on the same `Update()` call that the group detects it
-is done, it also resets every element back to its initial state, so `led2.IsRunning()` never
-observably goes `false` from the outside. `OnDone()` is the only reliable signal for the last
-element's completion.
-
+`idx` is the 0-based position in the `refs` array, so `0` is `led1`, `1` is `led2`. `OnLeave`
+fires once for `led1` (handing off to `led2`) and once more for `led2` (the group finishing).
 This callback-based approach works identically with plain `JLedGroup`, since it only relies on
-group-level events. Polling the LED objects directly does not, since `JLedGroup` plays its own
-copies, not the objects `led1`/`led2` name, that is what `JLedRefGroup` is for.
-
-For sequences with more than two elements, `OnElementChanged()` only tells you a handoff happened,
-not which one, count the calls yourself if you need the index. `IsRunning()` polling still has its
-place for state beyond finished/not-finished, e.g. reading `led1`'s current brightness or pause
-state through the named object.
+group-level events.
 
 **Nested groups:** `IsStarted()`/`IsDone()`/`IsRepeatStarted()` compose correctly regardless of
 nesting depth, since they are driven purely by a group's own state. `IsElementChanged()` does not:
