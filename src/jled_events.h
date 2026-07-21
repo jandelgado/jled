@@ -148,11 +148,18 @@ template<typename Group>
 class GroupUpdateResult {
     Group* obj_;
     EventSet event_;
+    uint8_t enter_index_;  // valid iff IsEnter(); index of the element that just became active
+    uint8_t leave_index_;  // valid iff IsLeave(); index of the element that just stopped
     uint8_t running_ : 1;
 
  public:
-    GroupUpdateResult(bool running, EventSet event, Group* obj)
-        : obj_(obj), event_(event), running_(running) {}
+    GroupUpdateResult(bool running, EventSet event, uint8_t enter_index, uint8_t leave_index,
+                      Group* obj)
+        : obj_(obj),
+          event_(event),
+          enter_index_(enter_index),
+          leave_index_(leave_index),
+          running_(running) {}
 
     // Implicit bool: preserves all existing if/while/|= usage
     operator bool() const { return running_; }  // NOLINT(runtime/explicit)
@@ -162,6 +169,15 @@ class GroupUpdateResult {
     bool IsDone() const { return HasEvent(event_, Event::kDone); }
     bool IsRepeatStarted() const { return HasEvent(event_, Event::kRepeatStart); }
     bool IsElementChanged() const { return HasEvent(event_, Event::kElementChanged); }
+    // IsEnter()/IsLeave(): SEQUENCE mode, some element became active / stopped being
+    // active this tick, regardless of position. In PARALLEL mode these alias
+    // IsStarted()/IsDone() exactly, since kElementChanged never fires there.
+    bool IsEnter() const {
+        return HasEvent(event_, Event::kStart) || HasEvent(event_, Event::kElementChanged);
+    }
+    bool IsLeave() const {
+        return HasEvent(event_, Event::kElementChanged) || HasEvent(event_, Event::kDone);
+    }
     EventSet GetEvents() const { return event_; }
 
     template<typename F>
@@ -185,6 +201,21 @@ class GroupUpdateResult {
     template<typename F>
     GroupUpdateResult& OnElementChanged(F cb) {
         if (IsElementChanged()) cb(obj_);
+        return *this;
+    }
+
+    // index is 0-based, into the array passed to Sequential()/Parallel(). In
+    // PARALLEL mode, or on an empty group, the index is always 0 and does
+    // not identify a specific element.
+    template<typename F>
+    GroupUpdateResult& OnEnter(F cb) {
+        if (IsEnter()) cb(obj_, enter_index_);
+        return *this;
+    }
+
+    template<typename F>
+    GroupUpdateResult& OnLeave(F cb) {
+        if (IsLeave()) cb(obj_, leave_index_);
         return *this;
     }
 };

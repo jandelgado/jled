@@ -103,8 +103,8 @@ class TJLedGroup {
     uint16_t num_repetitions_ = 1;
     uint16_t iteration_ = 0;
     uint8_t is_running_ : 1;
-    uint8_t started_ : 1;  // gates kStart to the first Update() call of a run
-    uint8_t done_ : 1;     // gates kDone to the tick that observes is_running_ becoming false
+    uint8_t started_ : 1;       // gates kStart to the first Update() call of a run
+    uint8_t done_ : 1;          // gates kDone to the tick that observes is_running_ becoming false
     uint8_t last_update_time_;  // duplicate-tick guard, see Update()
 };
 
@@ -287,6 +287,7 @@ GroupUpdateResult<TJLedGroup<Clock, AnyType>> TJLedGroup<Clock, AnyType>::Update
 template<typename Clock, typename AnyType>
 GroupUpdateResult<TJLedGroup<Clock, AnyType>> TJLedGroup<Clock, AnyType>::Update(uint32_t t) {
     EventSet events = 0;
+    const auto cur_before = cur_;
     const bool was_started = started_;
     if (!started_) {
         started_ = true;
@@ -299,7 +300,7 @@ GroupUpdateResult<TJLedGroup<Clock, AnyType>> TJLedGroup<Clock, AnyType>::Update
             done_ = true;
             events |= Event::kDone;
         }
-        return GroupUpdateResult<TJLedGroup>(false, events, this);
+        return GroupUpdateResult<TJLedGroup>(false, events, cur_, cur_before, this);
     }
 
     // Duplicate-tick guard: a repetition boundary's ResetLeds() puts every
@@ -308,18 +309,17 @@ GroupUpdateResult<TJLedGroup<Clock, AnyType>> TJLedGroup<Clock, AnyType>::Update
     // one-tick effect (e.g. a plain On()) finish instantly, silently
     // advancing an extra lap.
     if (was_started && static_cast<uint8_t>(t & 255) == last_update_time_) {
-        return GroupUpdateResult<TJLedGroup>(true, events, this);
+        return GroupUpdateResult<TJLedGroup>(true, events, cur_, cur_before, this);
     }
     last_update_time_ = static_cast<uint8_t>(t & 255);
 
-    const auto cur_before = cur_;
     const auto led_running = (mode_ == eMode::PARALLEL) ? UpdateParallel(t) : UpdateSequentially(t);
 
     if (led_running) {
         if (mode_ == eMode::SEQUENCE && cur_ != cur_before) {
             events |= Event::kElementChanged;
         }
-        return GroupUpdateResult<TJLedGroup>(true, events, this);
+        return GroupUpdateResult<TJLedGroup>(true, events, cur_, cur_before, this);
     }
 
     cur_ = 0;
@@ -337,7 +337,7 @@ GroupUpdateResult<TJLedGroup<Clock, AnyType>> TJLedGroup<Clock, AnyType>::Update
         }
     }
 
-    return GroupUpdateResult<TJLedGroup>(is_running_, events, this);
+    return GroupUpdateResult<TJLedGroup>(is_running_, events, cur_, cur_before, this);
 }
 
 template<typename Clock, typename AnyType>
