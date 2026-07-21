@@ -15,7 +15,7 @@ jobs:
       - name: checkout code
         uses: actions/checkout@v7
       - name: install python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: '3.13'
       - name: install cpplint
@@ -28,7 +28,7 @@ jobs:
       - name: checkout code
         uses: actions/checkout@v7
       - name: install python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: '3.13'
       - name: Cache PlatformIO
