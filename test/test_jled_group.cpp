@@ -101,7 +101,7 @@ TEST_CASE("Repeat(n) plays the group n times", "[jled_group]") {
     for (auto i = 0u; i < sizeof(expected); i++) {
         TimeMock::set_millis(i);
         group.Update();
-        INFO("mode=" << mode << ", i=" << i);
+        INFO("mode=" << static_cast<int>(mode) << ", i=" << i);
         REQUIRE(HalMock::PinValue(1) == expected[i]);
     }
     REQUIRE(!group.Update());
@@ -120,7 +120,7 @@ TEST_CASE("Forever plays group indefinitely", "[jled_group]") {
 
     for (uint32_t t = 0; t < 1000; t++) {
         TimeMock::set_millis(t);
-        INFO("mode=" << mode << ", t=" << t);
+        INFO("mode=" << static_cast<int>(mode) << ", t=" << t);
         REQUIRE(group.Update());
         REQUIRE(HalMock::PinValue(1) == expected[t % num]);
     }
@@ -885,7 +885,7 @@ TEST_CASE("group kRepeatStart fires on the first Update() call, coincident with 
 
     TimeMock::set_millis(0);
     auto r0 = group.Update();
-    INFO("mode=" << mode);
+    INFO("mode=" << static_cast<int>(mode));
     CHECK(r0.IsStarted());
     CHECK(r0.IsRepeatStarted());
 
@@ -911,7 +911,7 @@ TEST_CASE(
         auto r = group.Update();
         if (r.IsRepeatStarted()) repeatStartCount++;
     }
-    INFO("mode=" << mode);
+    INFO("mode=" << static_cast<int>(mode));
     CHECK(repeatStartCount == 3);
 }
 
@@ -933,7 +933,7 @@ TEST_CASE("group kRepeatStart does not fire on the terminal tick when no repetit
     group.Update();
     TimeMock::set_millis(3);
     auto r3 = group.Update();  // lap 2 done, group finished
-    INFO("mode=" << mode);
+    INFO("mode=" << static_cast<int>(mode));
     CHECK(r3.IsDone());
     CHECK_FALSE(r3.IsRepeatStarted());
 }
@@ -1180,20 +1180,26 @@ TEST_CASE("OnEnter/OnLeave alias OnStart/OnDone with index 0 in PARALLEL mode", 
     CHECK_FALSE(r1.IsEnter());
 }
 
-TEST_CASE("OnEnter/OnLeave fire with index 0 on an empty group's one and only tick",
-          "[jled_group]") {
+TEST_CASE("OnEnter/OnLeave do not fire on an empty group's one and only tick", "[jled_group]") {
     auto group = TestJLedGroupAny::Parallel(nullptr, 0);
 
     TimeMock::set_millis(0);
     auto r0 = group.Update();
+    CHECK(r0.IsStarted());
+    CHECK(r0.IsDone());
+
+    // there is no element to enter or leave, so neither fires, even though
+    // IsStarted()/IsDone() (and the kStart/kDone bits IsEnter()/IsLeave()
+    // would otherwise alias) are both true on this tick.
+    CHECK_FALSE(r0.IsEnter());
+    CHECK_FALSE(r0.IsLeave());
+
     uint8_t enter0 = 255, leave0 = 255;
-    CHECK(r0.IsEnter());
-    CHECK(r0.IsLeave());
     r0.OnEnter([&](TestJLedGroupAny*, uint8_t idx) {
           enter0 = idx;
       }).OnLeave([&](TestJLedGroupAny*, uint8_t idx) { leave0 = idx; });
-    CHECK(enter0 == 0);
-    CHECK(leave0 == 0);
+    CHECK(enter0 == 255);
+    CHECK(leave0 == 255);
 }
 
 TEST_CASE(
@@ -1276,7 +1282,7 @@ TEST_CASE(
 
     TimeMock::set_millis(0);
     auto r0 = group.Update();  // lap 1 begins and completes on this single tick
-    INFO("mode=" << mode);
+    INFO("mode=" << static_cast<int>(mode));
     CHECK(r0.IsRepeatStarted());
     CHECK(r0.IsRunning());
 

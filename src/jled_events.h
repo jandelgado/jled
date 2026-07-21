@@ -21,7 +21,7 @@
 //
 #pragma once
 
-#include <inttypes.h>  // types, e.g. uint8_t
+#include <inttypes.h>  // types, e.g. uint8_t NOLINT
 
 // Lifecycle events shared by TJLed and TJLedGroup
 
@@ -171,12 +171,16 @@ class GroupUpdateResult {
     bool IsElementChanged() const { return HasEvent(event_, Event::kElementChanged); }
     // IsEnter()/IsLeave(): SEQUENCE mode, some element became active / stopped being
     // active this tick, regardless of position. In PARALLEL mode these alias
-    // IsStarted()/IsDone() exactly, since kElementChanged never fires there.
+    // IsStarted()/IsDone() exactly, since kElementChanged never fires there. Neither
+    // ever fires for a group with zero elements: kStart/kDone still fire there (the
+    // group itself starts and finishes), but there is no element to enter or leave.
     bool IsEnter() const {
-        return HasEvent(event_, Event::kStart) || HasEvent(event_, Event::kElementChanged);
+        return obj_->HasElements() &&
+               (HasEvent(event_, Event::kStart) || HasEvent(event_, Event::kElementChanged));
     }
     bool IsLeave() const {
-        return HasEvent(event_, Event::kElementChanged) || HasEvent(event_, Event::kDone);
+        return obj_->HasElements() &&
+               (HasEvent(event_, Event::kElementChanged) || HasEvent(event_, Event::kDone));
     }
     EventSet GetEvents() const { return event_; }
 

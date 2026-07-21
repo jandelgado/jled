@@ -743,10 +743,11 @@ avoids this, see [When to use what?](#when-to-use-what) below.
 | `IsLeave()`          | some element stopped being active this tick: coincides with `IsElementChanged()` on a handoff, or with `IsDone()` when the last element finishes. In `Parallel` mode, aliases `IsDone()` exactly                                                               |
 
 An empty group (no elements) fires `IsStarted()`, `IsRepeatStarted()` and `IsDone()` together on its
-one and only `Update()` call. `IsElementChanged()` never fires for `Parallel` groups (there is no
-single "active" element) or for a single-element sequence. Each event has a matching fluent
-callback. `OnEnter`/`OnLeave` additionally pass the 0-based index of the element, into the array
-given to `Sequential()`/`Parallel()`, that just entered/left:
+one and only `Update()` call. `IsEnter()`/`IsLeave()` do not fire there since there is no element to
+enter or leave. `IsElementChanged()` never fires for `Parallel` groups (there is no single "active"
+element) or for a single-element sequence. Each event has a matching fluent callback.
+`OnEnter`/`OnLeave` additionally pass the 0-based index of the element, into the array given to
+`Sequential()`/`Parallel()`, that just entered/left:
 
 ```c++
 group.Update()
@@ -763,10 +764,9 @@ whole and don't identify which element changed. `OnEnter`/`OnLeave` do, via the 
 for `Sequential` groups; in `Parallel` mode the index is always `0` and does not identify a
 specific element, since every element moves together there.
 
-The index pairs naturally with `JLedAny`'s (and `JLedRef`'s) `As<T>()`, which recovers the
-concrete type erased away in the array, e.g. to reach a method that isn't part of the common
-group interface from inside the callback. It returns `T*`, or `nullptr` if the slot doesn't hold
-exactly that type:
+Use the index with `JLedAny`'s (and `JLedRef`'s) `As<T>()` method, which recovers the concrete type
+erased away in the group's underlying array. It returns `T*`, or `nullptr` if the array slot doesn't
+hold exactly that type:
 
 ```c++
 JLedAny leds[] = {JLed(4).Blink(750, 250), JLedHD(3).Breathe(2000)};
@@ -776,11 +776,6 @@ group.Update().OnEnter([&](JLedGroup*, uint8_t idx) {
     if (auto* led = leds[idx].As<JLed>()) led->MaxBrightness(64);
 });
 ```
-
-Note: on a single-element sequence or in `Parallel` mode with `Repeat(n>1)`, a mid-run repetition
-boundary is silent on `OnEnter`/`OnLeave` (no index changes, so neither `IsElementChanged()` nor
-`IsStarted()`/`IsDone()` fire), even though the element conceptually restarted. Use `OnRepeatStart` to
-observe that boundary instead.
 
 With `JLedRefGroup` you can poll an individual LED yourself, since the group updates the very
 object your variable names. For the common case of just knowing when a step finished, prefer
