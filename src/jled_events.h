@@ -183,7 +183,6 @@ class GroupUpdateResult {
         return obj_->IsSequenceMode() && obj_->HasElements() &&
                (HasEvent(event_, Event::kElementChanged) || HasEvent(event_, Event::kDone));
     }
-    EventSet GetEvents() const { return event_; }
 
     // OnStart/OnDone/OnRepeatStart callbacks each receive a Group* (the TJLedGroup
     // instance being updated).

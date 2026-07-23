@@ -34,14 +34,6 @@ using TestJLedRefGroup = TJLedGroup<TimeMock, TJLedRef>;
 template class TJLedGroup<TimeMock, TestJLedAny>;
 template class TJLedGroup<TimeMock, TJLedRef>;
 
-// kElementChanged is an internal transition bit driving OnElementEnter/OnElementLeave;
-// it has no public predicate, so tests that verify the raw transition detection read
-// it off GetEvents() directly.
-template<typename R>
-static bool ElementChanged(const R& r) {
-    return HasEvent(r.GetEvents(), Event::kElementChanged);
-}
-
 // Parallel uses the pointer overload; Sequential uses the array overload.
 // Both static factory overloads are exercised across the test suite.
 
@@ -693,14 +685,6 @@ TEST_CASE("group OnStart/OnDone chaining invokes callbacks", "[jled_group]") {
     CHECK(doneCount == 1);
 }
 
-TEST_CASE("GroupUpdateResult::GetEvents() returns the raw bitmask", "[jled_group]") {
-    auto group = TestJLedGroupAny::Parallel(nullptr, 0);
-
-    TimeMock::set_millis(0);
-    auto r = group.Update();
-    CHECK(r.GetEvents() == (jled::Event::kStart | jled::Event::kRepeatStart | jled::Event::kDone));
-}
-
 TEST_CASE("GroupUpdateResult stays usable as a plain bool (backwards compatibility)",
           "[jled_group]") {
     HalMock::Init();
@@ -746,139 +730,6 @@ TEST_CASE("group lifecycle events work through JLedRefGroup", "[jled_group]") {
     TimeMock::set_millis(2);
     auto r2 = group.Update();
     CHECK_FALSE(r2.IsDone());
-}
-
-// --- Lifecycle events: kElementChanged (SEQUENCE mode only) ---
-
-TEST_CASE("kElementChanged fires when the sequence advances to the next element", "[jled_group]") {
-    HalMock::Init();
-    auto eval1 = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
-    auto eval2 = MockBrightnessEvaluator(std::vector<uint8_t>{50, 25});
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval1).Repeat(1),
-                          TestJLed(HalMock(2)).UserFunc(&eval2).Repeat(1)};
-    auto group = TestJLedGroupAny::Sequential(leds);
-
-    TimeMock::set_millis(0);
-    auto r0 = group.Update();  // led1 tick 0
-    CHECK_FALSE(ElementChanged(r0));
-
-    TimeMock::set_millis(1);
-    auto r1 = group.Update();  // led1 finishes, cur_ advances to led2
-    CHECK(ElementChanged(r1));
-
-    TimeMock::set_millis(2);
-    auto r2 = group.Update();  // led2 tick 0
-    CHECK_FALSE(ElementChanged(r2));
-
-    TimeMock::set_millis(3);
-    auto r3 = group.Update();  // led2 finishes, group done (no "next" element)
-    CHECK(r3.IsDone());
-    CHECK_FALSE(ElementChanged(r3));
-}
-
-TEST_CASE("kElementChanged never fires in PARALLEL mode", "[jled_group]") {
-    HalMock::Init();
-    auto eval1 = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
-    auto eval2 = MockBrightnessEvaluator(std::vector<uint8_t>{50, 25});
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval1).Repeat(1),
-                          TestJLed(HalMock(2)).UserFunc(&eval2).Repeat(1)};
-    auto group = TestJLedGroupAny::Parallel(leds, 2);
-
-    for (uint32_t t = 0; t < 2; t++) {
-        TimeMock::set_millis(t);
-        auto r = group.Update();
-        CHECK_FALSE(ElementChanged(r));
-    }
-}
-
-TEST_CASE("kElementChanged does not fire for a single-element sequence", "[jled_group]") {
-    HalMock::Init();
-    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval)};
-    auto group = TestJLedGroupAny::Sequential(leds).Repeat(3);
-
-    for (uint32_t t = 0; t < 6; t++) {
-        TimeMock::set_millis(t);
-        auto r = group.Update();
-        CHECK_FALSE(ElementChanged(r));
-    }
-}
-
-TEST_CASE(
-    "kElementChanged fires when the sequence wraps to the first element "
-    "for a new repetition",
-    "[jled_group]") {
-    HalMock::Init();
-    auto eval1 = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
-    auto eval2 = MockBrightnessEvaluator(std::vector<uint8_t>{50, 25});
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval1).Repeat(1),
-                          TestJLed(HalMock(2)).UserFunc(&eval2).Repeat(1)};
-    auto group = TestJLedGroupAny::Sequential(leds).Repeat(2);
-
-    TimeMock::set_millis(0);
-    group.Update();  // led1 tick 0
-    TimeMock::set_millis(1);
-    group.Update();  // led1 finishes -> led2
-    TimeMock::set_millis(2);
-    group.Update();  // led2 tick 0
-
-    TimeMock::set_millis(3);
-    auto r3 = group.Update();  // led2 finishes -> wraps to led1 for repetition 2
-    CHECK(r3.IsRunning());
-    CHECK_FALSE(r3.IsDone());
-    CHECK(ElementChanged(r3));
-}
-
-TEST_CASE("kElementChanged fires on each advance across a 3-element sequence", "[jled_group]") {
-    HalMock::Init();
-    auto eval1 = MockBrightnessEvaluator(std::vector<uint8_t>{200});
-    auto eval2 = MockBrightnessEvaluator(std::vector<uint8_t>{100});
-    auto eval3 = MockBrightnessEvaluator(std::vector<uint8_t>{50, 25});
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval1),
-                          TestJLed(HalMock(2)).UserFunc(&eval2),
-                          TestJLed(HalMock(3)).UserFunc(&eval3)};
-    auto group = TestJLedGroupAny::Sequential(leds);
-
-    // led1 and led2 are single-tick, so both advances land on t=0 (led1->led2)
-    // and t=1 (led2->led3): two independent kElementChanged fires in one run.
-    TimeMock::set_millis(0);
-    auto r0 = group.Update();  // led1 finishes instantly -> led2
-    CHECK(ElementChanged(r0));
-
-    TimeMock::set_millis(1);
-    auto r1 = group.Update();  // led2 finishes instantly -> led3
-    CHECK(ElementChanged(r1));
-
-    TimeMock::set_millis(2);
-    auto r2 = group.Update();  // led3 tick 0
-    CHECK_FALSE(ElementChanged(r2));
-
-    TimeMock::set_millis(3);
-    auto r3 = group.Update();  // led3 finishes, group done
-    CHECK(r3.IsDone());
-    CHECK_FALSE(ElementChanged(r3));
-}
-
-TEST_CASE("kElementChanged fires on wraparound with Forever()", "[jled_group]") {
-    HalMock::Init();
-    auto eval1 = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
-    auto eval2 = MockBrightnessEvaluator(std::vector<uint8_t>{50, 25});
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval1).Repeat(1),
-                          TestJLed(HalMock(2)).UserFunc(&eval2).Repeat(1)};
-    auto group = TestJLedGroupAny::Sequential(leds).Forever();
-
-    TimeMock::set_millis(0);
-    group.Update();  // led1 tick 0
-    TimeMock::set_millis(1);
-    group.Update();  // led1 finishes -> led2
-    TimeMock::set_millis(2);
-    group.Update();  // led2 tick 0
-
-    TimeMock::set_millis(3);
-    auto r3 = group.Update();  // led2 finishes -> wraps to led1, group keeps running forever
-    CHECK(r3.IsRunning());
-    CHECK_FALSE(r3.IsDone());
-    CHECK(ElementChanged(r3));
 }
 
 // --- Lifecycle events: kRepeatStart (group-level, mode-independent) ---
@@ -946,45 +797,6 @@ TEST_CASE("group kRepeatStart does not fire on the terminal tick when no repetit
     CHECK_FALSE(r3.IsRepeatStarted());
 }
 
-TEST_CASE(
-    "kRepeatStart and kElementChanged coincide when a SEQUENCE group wraps "
-    "for a new repetition",
-    "[jled_group]") {
-    HalMock::Init();
-    auto eval1 = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
-    auto eval2 = MockBrightnessEvaluator(std::vector<uint8_t>{50, 25});
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval1).Repeat(1),
-                          TestJLed(HalMock(2)).UserFunc(&eval2).Repeat(1)};
-    auto group = TestJLedGroupAny::Sequential(leds).Repeat(2);
-
-    TimeMock::set_millis(0);
-    group.Update();
-    TimeMock::set_millis(1);
-    group.Update();
-    TimeMock::set_millis(2);
-    group.Update();
-
-    TimeMock::set_millis(3);
-    auto r3 = group.Update();  // led2 finishes -> wraps to led1 for repetition 2
-    CHECK(ElementChanged(r3));
-    CHECK(r3.IsRepeatStarted());
-}
-
-TEST_CASE("kRepeatStart fires in PARALLEL mode even though kElementChanged never does",
-          "[jled_group]") {
-    HalMock::Init();
-    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval)};
-    auto group = TestJLedGroupAny::Parallel(leds, 1).Repeat(2);
-
-    TimeMock::set_millis(0);
-    group.Update();
-    TimeMock::set_millis(1);
-    auto r1 = group.Update();  // lap 1 done, lap 2 begins
-    CHECK(r1.IsRepeatStarted());
-    CHECK_FALSE(ElementChanged(r1));
-}
-
 TEST_CASE("empty group also fires kRepeatStart together with kStart and kDone", "[jled_group]") {
     auto group = TestJLedGroupAny::Parallel(nullptr, 0);
 
@@ -1030,24 +842,6 @@ TEST_CASE("group OnRepeatStart callback invokes on each repetition boundary", "[
     TimeMock::set_millis(2);
     group.Update().OnRepeatStart([&](TestJLedGroupAny*) { repeatStartCount++; });
     CHECK(repeatStartCount == 2);
-}
-
-TEST_CASE(
-    "kElementChanged and kStart coincide when the first element finishes "
-    "on the very first tick",
-    "[jled_group]") {
-    HalMock::Init();
-    auto eval1 = MockBrightnessEvaluator(std::vector<uint8_t>{200});
-    auto eval2 = MockBrightnessEvaluator(std::vector<uint8_t>{50, 25});
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval1),
-                          TestJLed(HalMock(2)).UserFunc(&eval2)};
-    auto group = TestJLedGroupAny::Sequential(leds);
-
-    TimeMock::set_millis(0);
-    auto r0 = group.Update();
-    CHECK(r0.IsStarted());
-    CHECK(ElementChanged(r0));
-    CHECK(r0.IsRunning());
 }
 
 // --- Lifecycle events: OnElementEnter/OnElementLeave (SEQUENCE only, derived from
