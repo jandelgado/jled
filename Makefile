@@ -2,7 +2,7 @@
 #
 SHELL := /bin/bash
 .PHONY: phony
-RUN := $(if $(shell which devbox 2>/dev/null),devbox run --,)
+RUN := $(if $(shell which pio 2>/dev/null),,$(if $(shell which devbox 2>/dev/null),devbox run --,))
 
 help: phony ## show available make targets (this help)
 	@grep -E '^[a-zA-Z_%-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-12s %s\n", $$1, $$2}' | sort

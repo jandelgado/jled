@@ -733,13 +733,13 @@ avoids this, see [When to use what?](#when-to-use-what) below.
 `GroupUpdateResult` reports these group-level events, analogous to `JLed`'s
 [Lifecycle events](#lifecycle-events) but scoped to the group as a whole:
 
-| Query                | Fires when                                                                                                                                                                                                                                                     |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `IsStarted()`        | once per run, on the first `Update()` call (or the first after `Reset()`)                                                                                                                                                                                      |
-| `IsDone()`           | once, when the group finishes: all repetitions exhausted, or `Stop()` is called                                                                                                                                                                                |
-| `IsRepeatStarted()`  | once per repetition, including the first: coincides with `IsStarted()` on the first, and fires again each time a full pass through the group completes and another repetition follows (`Repeat(n>1)`/`Forever()`). Independent of `Parallel`/`Sequential` mode |
-| `IsElementEnter()`   | `Sequential` groups only: an element became active this tick, the first element on start or the next element on a handoff. Never fires in `Parallel` mode                                                                                                      |
-| `IsElementLeave()`   | `Sequential` groups only: an element stopped being active this tick, on a handoff to the next element or when the last element finishes. Never fires in `Parallel` mode                                                                                        |
+| Query               | Fires when                                                                                                                                                                                                                                                     |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `IsStarted()`       | once per run, on the first `Update()` call (or the first after `Reset()`)                                                                                                                                                                                      |
+| `IsDone()`          | once, when the group finishes: all repetitions exhausted, or `Stop()` is called                                                                                                                                                                                |
+| `IsRepeatStarted()` | once per repetition, including the first: coincides with `IsStarted()` on the first, and fires again each time a full pass through the group completes and another repetition follows (`Repeat(n>1)`/`Forever()`). Independent of `Parallel`/`Sequential` mode |
+| `IsElementEnter()`  | `Sequential` groups only: an element became active this tick, the first element on start or the next element on a handoff. Never fires in `Parallel` mode                                                                                                      |
+| `IsElementLeave()`  | `Sequential` groups only: an element stopped being active this tick, on a handoff to the next element or when the last element finishes. Never fires in `Parallel` mode                                                                                        |
 
 An empty group (no elements) fires `IsStarted()`, `IsRepeatStarted()` and `IsDone()` together on its
 one and only `Update()` call. `IsElementEnter()`/`IsElementLeave()` do not fire there, since there is
@@ -753,12 +753,12 @@ reference to the element itself, so you can act on it without capturing the arra
 group.Update()
     .OnStart([](JLedGroup*) { Serial.println("group started"); })
     .OnRepeatStart([](JLedGroup*) { Serial.println("repetition begins"); })
-    .OnElementEnter([](JLedGroup*, uint8_t idx, JLedAny&) {
-        Serial.print("enter: ");
-        Serial.println(idx);
-    })
     .OnElementLeave([](JLedGroup*, uint8_t idx, JLedAny&) {
         Serial.print("leave: ");
+        Serial.println(idx);
+    })
+    .OnElementEnter([](JLedGroup*, uint8_t idx, JLedAny&) {
+        Serial.print("enter: ");
         Serial.println(idx);
     })
     .OnDone([](JLedGroup*) { Serial.println("group finished"); });
@@ -1105,7 +1105,7 @@ Example sketches are provided in the [examples](examples/) directory.
 - [Fade LED off](examples/fade_off)
 - [Fade from-to effect](examples/fade_from_to)
 - [Pulse effect](examples/pulse)
-- [Controlling a group of LEDs sequentially + Group lifecycle events](examples/group_sequence)
+- [Controlling a group of LEDs sequentially](examples/group_sequence)
 - [Controlling a group of LEDs in parallel](examples/group_parallel)
 - [Controlling a group of LEDs by reference](examples/group_ref)
 - [Controlling a nested group of LEDs](examples/group_nested)
@@ -1115,6 +1115,7 @@ Example sketches are provided in the [examples](examples/) directory.
 - [Last brightness value example](examples/last_brightness)
 - [Pause and resume effect with a button](examples/pause_resume)
 - [JLed lifecycle events](examples/jled_lifecycle)
+- [Group lifecycle events](examples/group_lifecycle)
 - [Custom HAL example](examples/custom_hal)
 - [Custom PCA9685 HAL](https://github.com/jandelgado/jled-pca9685-hal)
 - [Dynamically switch sequences](https://github.com/jandelgado/jled-example-switch-sequence)
