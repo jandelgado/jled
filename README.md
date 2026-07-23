@@ -1108,6 +1108,7 @@ Example sketches are provided in the [examples](examples/) directory.
 
 - [Hello, world](examples/hello)
 - [Blink effect](examples/blink)
+- [Accelerating blink effect](examples/blink_accelerate)
 - [High resolution effects with JLedHD](examples/hires)
 - [Turn LED on after a delay](examples/simple_on)
 - [Breathe effect](examples/breathe)
