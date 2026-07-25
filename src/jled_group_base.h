@@ -95,6 +95,14 @@ class TJLedGroup {
     friend class TJLedRef;
 
  private:
+    // GroupUpdateResult resolves OnElementEnter/OnElementLeave through IsSequenceMode()
+    // and ElementRef(); neither is part of the public group API.
+    template<typename Group>
+    friend class GroupUpdateResult;
+
+    bool IsSequenceMode() const { return mode_ == eMode::SEQUENCE; }
+    AnyType& ElementRef(uint8_t i) { return leds_[i]; }
+
     bool UpdateParallel(uint32_t t);
     bool UpdateSequentially(uint32_t t);
     void ResetLeds();
