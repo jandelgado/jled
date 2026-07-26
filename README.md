@@ -1112,6 +1112,7 @@ Example sketches are provided in the [examples](examples/) directory.
 - [High resolution effects with JLedHD](examples/hires)
 - [Turn LED on after a delay](examples/simple_on)
 - [Breathe effect](examples/breathe)
+- [Long running breathe effect](examples/slow_breathe)
 - [Candle effect](examples/candle)
 - [Fade LED on](examples/fade_on)
 - [Fade LED off](examples/fade_off)
