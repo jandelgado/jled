@@ -507,18 +507,29 @@ Beyond brightness, `UpdateResult` exposes lifecycle events, see
 `Update()` call, so you can react inline instead of polling the return value
 and tracking state yourself:
 
-| Query                    | Fires when                                                                |
-| ------------------------ | ------------------------------------------------------------------------- |
-| `IsStarted()`            | once per run, on the first `Update()` call (or the first after `Reset()`) |
-| `IsActive()`             | once per run, on the first actual output tick                             |
-| `IsRepeatStarted()`      | once per repetition, including the first                                  |
-| `IsEnteringDelayAfter()` | once per repetition that has a `DelayAfter()`, on entry to that phase     |
-| `IsDone()`               | once, when the effect stops                                               |
+These are **inspected per `Update()` call**, not registered once: you re-attach
+the callbacks (or read the predicates) on the `UpdateResult` each time you call
+`Update()` in your loop. There is no stored handler, and a bare `Update()` with
+no callbacks costs nothing beyond the small `UpdateResult` value it returns.
+
+Each event has both a predicate (`Is<Event>()`, a state query answering "did this
+happen on this tick?") and a fluent callback (`On<Event>(cb)`, an event hook). The
+two spell the same event slightly differently by design: `IsStarted()` pairs with
+`OnStart()`, `IsRepeatStarted()` with `OnRepeatStart()`, `IsEnteringDelayAfter()`
+with `OnEnterDelayAfter()`.
+
+| Query                    | Fires when                                                                   |
+| ------------------------ | ---------------------------------------------------------------------------- |
+| `IsStarted()`            | once per run, on the first `Update()` call (or the first after `Reset()`)    |
+| `IsFirstOutput()`        | once per run, on the first actual output tick                                |
+| `IsRepeatStarted()`      | once per repetition, including the first                                     |
+| `IsEnteringDelayAfter()` | once per repetition that has a `DelayAfter()`, on entry to that phase        |
+| `IsDone()`               | once, when the effect stops: all repetitions complete, or `Stop()` is called |
 
 More than one of these can be true on the same `Update()` call. E.g., an
 effect with the default `duration = 1` (as used by `On()`, `Off()` and
 `Set()`) starts and finishes on its one and only call, so `IsStarted()`,
-`IsActive()`, `IsRepeatStarted()` and `IsDone()` are all `true` together.
+`IsFirstOutput()`, `IsRepeatStarted()` and `IsDone()` are all `true` together.
 
 Each event also has a matching fluent callback, so you can react at the call
 site without an `if`:
@@ -526,7 +537,7 @@ site without an `if`:
 ```c++
 led.Update()
     .OnStart([](JLed* l) { Serial.println("started"); })
-    .OnActive([](JLed* l) { Serial.println("first output"); })
+    .OnFirstOutput([](JLed* l) { Serial.println("first output"); })
     .OnRepeatStart([](JLed* l) { Serial.println("iteration"); })
     .OnEnterDelayAfter([](JLed* l) { l->MaxBrightness(64); })
     .OnDone([](JLed* l) { l->Reset(); });

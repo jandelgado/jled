@@ -66,6 +66,7 @@ class TJLed : public JLedBase {
           bLowActive_{false},
           bPaused_{false},
           first_cycle_{false},
+          done_{false},
           minBrightness_{BrightnessTraits<Brightness>::kZeroBrightness},
           maxBrightness_{BrightnessTraits<Brightness>::kFullBrightness} {}
 
@@ -75,6 +76,7 @@ class TJLed : public JLedBase {
           bLowActive_{false},
           bPaused_{false},
           first_cycle_{false},
+          done_{false},
           minBrightness_{BrightnessTraits<Brightness>::kZeroBrightness},
           maxBrightness_{BrightnessTraits<Brightness>::kFullBrightness} {}
 
@@ -85,6 +87,7 @@ class TJLed : public JLedBase {
         bLowActive_ = rLed.bLowActive_;
         bPaused_ = rLed.bPaused_;
         first_cycle_ = rLed.first_cycle_;
+        done_ = rLed.done_;
         minBrightness_ = rLed.minBrightness_;
         maxBrightness_ = rLed.maxBrightness_;
         num_repetitions_ = rLed.num_repetitions_;
@@ -248,6 +251,7 @@ class TJLed : public JLedBase {
         last_update_time_ = 0;
         bPaused_ = false;
         first_cycle_ = false;
+        done_ = false;
         state_ = ST_INIT;
         return static_cast<Derived&>(*this);
     }
@@ -304,11 +308,11 @@ class TJLed : public JLedBase {
     //        A            B          C         D          C            E
     //
     //   A  kStart            fires once, on the very first Update() call
-    //   B  kRepeatStart,      first repetition begins; kActive fires only
-    //      kActive            here, on the first output tick of the run
+    //   B  kRepeatStart,      first repetition begins; kFirstOutput fires
+    //      kFirstOutput       only here, on the first output tick of the run
     //   C  kEnterDelayAfter   fires once per repetition, entering its
     //                         delay_after phase (only if delay_after > 0)
-    //   D  kRepeatStart       every following repetition begins (kActive
+    //   D  kRepeatStart       every following repetition begins (kFirstOutput
     //                         does not fire again)
     //   E  kDone              fires once, on the very last tick of the run
     UpdateResult<Derived> Update() { return Update(Clock::millis()); }
@@ -320,7 +324,20 @@ class TJLed : public JLedBase {
         };
 
         if (bPaused_) return noResult(true, 0);
-        if (state_ == ST_STOPPED || !eval_storage_.IsSet()) return noResult(false, 0);
+        if (state_ == ST_STOPPED) {
+            // A run ends either by completing naturally (kDone emitted on the
+            // terminal tick below) or via Stop(). Either way kDone fires exactly
+            // once. done_ gates it: the terminal path sets done_ = true as it
+            // emits kDone; Stop() leaves done_ = false, so the first Update()
+            // after Stop() emits kDone here, then done_ suppresses repeats. An
+            // effect-less LED never emits kDone.
+            if (!done_ && eval_storage_.IsSet()) {
+                done_ = true;
+                return noResult(false, static_cast<EventSet>(Event::kDone));
+            }
+            return noResult(false, 0);
+        }
+        if (!eval_storage_.IsSet()) return noResult(false, 0);
 
         const bool was_init = (state_ == ST_INIT);
         if (was_init) {
@@ -359,7 +376,7 @@ class TJLed : public JLedBase {
         if (t_cycle == 0) {
             events |= Event::kRepeatStart;
             if (!first_cycle_) {
-                events |= Event::kActive;
+                events |= Event::kFirstOutput;
                 first_cycle_ = true;
             }
         }
@@ -373,6 +390,7 @@ class TJLed : public JLedBase {
             if (static_cast<int32_t>(t - time_end) >= 0) {
                 // make sure final value of t = (period-1) is set
                 state_ = ST_STOPPED;
+                done_ = true;
                 events |= Event::kDone;
                 return UpdateResult<Derived>(false, events, writeCur(period - 1), true, self);
             }
@@ -438,7 +456,8 @@ class TJLed : public JLedBase {
     uint8_t state_ : 2;  // stored as uint8_t to avoid GCC warning about enum bit-field signedness
     uint8_t bLowActive_ : 1;
     uint8_t bPaused_ : 1;
-    uint8_t first_cycle_ : 1;  // gates kActive to the first repeat-start of a run
+    uint8_t first_cycle_ : 1;  // gates kFirstOutput to the first repeat-start of a run
+    uint8_t done_ : 1;         // gates kDone to the single tick that observes the stop
     Brightness minBrightness_;
     Brightness maxBrightness_;
 
