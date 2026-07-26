@@ -21,7 +21,7 @@
 //
 #pragma once
 
-#include <inttypes.h>  // types, e.g. uint8_t
+#include <inttypes.h>  // types, e.g. uint8_t NOLINT
 
 // Lifecycle events shared by TJLed and TJLedGroup
 
@@ -107,6 +107,7 @@ class UpdateResult {
     // function pointer). No heap allocation. Callbacks fire synchronously,
     // inline in the same statement as Update(). With the bitmask, more than one
     // of these may fire in a single call; they run in the order chained.
+    // Each callback receives a T* (the JLed/JLedHD instance being updated).
 
     template<typename F>
     UpdateResult& OnStart(F cb) {
@@ -140,19 +141,26 @@ class UpdateResult {
 };
 
 // Result of a single TJLedGroup::Update() call: whether the group is still
-// running and which group-level events (kStart, kDone, kRepeatStart,
-// kElementChanged) fired this tick. Distinct from UpdateResult<T>: a group
-// has no brightness value, no delay-after phase, and no single "active"
-// output tick of its own.
+// running and which group-level events fired this tick (start, done,
+// repeat-start, and, for SEQUENCE groups, per-element enter/leave). Distinct
+// from UpdateResult<T>: a group has no brightness value, no delay-after phase,
+// and no single "active" output tick of its own.
 template<typename Group>
 class GroupUpdateResult {
     Group* obj_;
     EventSet event_;
+    uint8_t enter_index_;  // valid iff IsElementEnter(); index of the element that became active
+    uint8_t leave_index_;  // valid iff IsElementLeave(); index of the element that stopped
     uint8_t running_ : 1;
 
  public:
-    GroupUpdateResult(bool running, EventSet event, Group* obj)
-        : obj_(obj), event_(event), running_(running) {}
+    GroupUpdateResult(bool running, EventSet event, uint8_t enter_index, uint8_t leave_index,
+                      Group* obj)
+        : obj_(obj),
+          event_(event),
+          enter_index_(enter_index),
+          leave_index_(leave_index),
+          running_(running) {}
 
     // Implicit bool: preserves all existing if/while/|= usage
     operator bool() const { return running_; }  // NOLINT(runtime/explicit)
@@ -161,9 +169,23 @@ class GroupUpdateResult {
     bool IsStarted() const { return HasEvent(event_, Event::kStart); }
     bool IsDone() const { return HasEvent(event_, Event::kDone); }
     bool IsRepeatStarted() const { return HasEvent(event_, Event::kRepeatStart); }
-    bool IsElementChanged() const { return HasEvent(event_, Event::kElementChanged); }
-    EventSet GetEvents() const { return event_; }
+    // IsElementEnter()/IsElementLeave(): SEQUENCE groups only, some element became
+    // active / stopped being active this tick. They do not
+    // fire in PARALLEL mode (all elements move together there, so there is no single
+    // element handoff: use IsStarted()/IsDone() instead), nor for a group with zero
+    // elements (kStart/kDone still fire there, the group itself starts and finishes,
+    // but there is no element to enter or leave).
+    bool IsElementEnter() const {
+        return obj_->IsSequenceMode() && obj_->HasElements() &&
+               (HasEvent(event_, Event::kStart) || HasEvent(event_, Event::kElementChanged));
+    }
+    bool IsElementLeave() const {
+        return obj_->IsSequenceMode() && obj_->HasElements() &&
+               (HasEvent(event_, Event::kElementChanged) || HasEvent(event_, Event::kDone));
+    }
 
+    // OnStart/OnDone/OnRepeatStart callbacks each receive a Group* (the TJLedGroup
+    // instance being updated).
     template<typename F>
     GroupUpdateResult& OnStart(F cb) {
         if (IsStarted()) cb(obj_);
@@ -182,9 +204,21 @@ class GroupUpdateResult {
         return *this;
     }
 
+    // OnElementEnter/OnElementLeave fire only for SEQUENCE groups, once per element
+    // handoff (plus on the group's start/finish, for its first/last element). The
+    // callback receives a Group*, the 0-based uint8_t index of the element that just
+    // entered/left (into the array passed to Sequential()), and a reference to that
+    // element itself (AnyType&, e.g. TJLedAny&/TJLedRef&), so it can be acted on
+    // directly without capturing the array. Recover the concrete type with element.As<T>().
     template<typename F>
-    GroupUpdateResult& OnElementChanged(F cb) {
-        if (IsElementChanged()) cb(obj_);
+    GroupUpdateResult& OnElementEnter(F cb) {
+        if (IsElementEnter()) cb(obj_, enter_index_, obj_->ElementRef(enter_index_));
+        return *this;
+    }
+
+    template<typename F>
+    GroupUpdateResult& OnElementLeave(F cb) {
+        if (IsElementLeave()) cb(obj_, leave_index_, obj_->ElementRef(leave_index_));
         return *this;
     }
 };

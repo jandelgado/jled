@@ -12,8 +12,7 @@ JLedAny leds[] = {JLed(4).Blink(750, 250).Repeat(2),
 
 auto group = JLedGroup::Parallel(leds).Repeat(5);
 
-void setup() {
-}
+void setup() {}
 
 void loop() {
     group.Update();

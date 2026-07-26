@@ -2,7 +2,7 @@
 #
 SHELL := /bin/bash
 .PHONY: phony
-RUN := $(if $(shell which devbox 2>/dev/null),devbox run --,)
+RUN := $(if $(shell which pio 2>/dev/null),,$(if $(shell which devbox 2>/dev/null),devbox run --,))
 
 help: phony ## show available make targets (this help)
 	@grep -E '^[a-zA-Z_%-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-12s %s\n", $$1, $$2}' | sort
@@ -53,7 +53,11 @@ format-check: phony ## check formatting without modifying files (clang-format --
 	$(RUN) find examples -maxdepth 2 -type f \( -name "*.cpp" -o -name "*.h" -o -name "*.ino" \) -exec clang-format --dry-run --Werror {} +
 
 lint-tidy: phony ## run clang-tidy static analysis on src/test (modern, complements 'lint')
-	$(RUN) find src test -maxdepth 1 -type f \( -name "*.cpp" -o -name "*.h" \) -exec clang-tidy {} \;
+	$(RUN) find src -type f \( -name "*.cpp" -o -name "*.h" \) -exec clang-tidy {} \;
+	$(RUN) find examples -maxdepth 2 -type f \( -name "*.cpp" -o -name "*.h" -o -name "*.ino" \) -exec clang-tidy {} \;
+
+lint-tidy-tests: phony ## run clang-tidy static analysis on src/test (modern, complements 'lint')
+	$(RUN) find test -maxdepth 1 -type f \( -name "*.cpp" -o -name "*.h" \) -exec clang-tidy {} \;
 
 test: phony ## run unit tests with coverage
 	$(RUN) $(MAKE) -C test coverage

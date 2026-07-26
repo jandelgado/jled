@@ -1,114 +1,77 @@
-# JLed LED library for embedded devices
+# JLed: LED library for embedded devices
 
-JLed is an embedded C++ library for non-blocking, time-driven LED control (blink, breathe, fade, etc.). LEDs can be grouped and controlled in parallel or sequentially.
+Non-blocking, time-driven C++14 library for LED control (blink, breathe, fade). LEDs group for parallel or sequential control.
 
-- **Language**: C++14 (both `src/` and `test/`), embedded-friendly: no exceptions, RTTI, or dynamic allocation
-- **Build**: PlatformIO + Make, managed via `devbox shell`
-- **Key constraint**: Non-blocking, time-driven; never use `delay()`
+**Hard constraints** (core logic in `src/`): no float, dynamic allocation, exceptions, RTTI, `delay()`, or blocking ops. Templates over virtual functions. Backwards-compatible public API; break only with a major version bump.
 
 ## Repository Structure
 
-| Path             | Purpose                                           |
-| ---------------- | ------------------------------------------------- |
-| `src/`           | Library source (`.h`/`.cpp`)                      |
-| `test/`          | Host-based unit tests (Catch2, separate Makefile) |
-| `examples/`      | MCU `.ino` sketches                               |
-| `.tools/`        | Dev tools (doc site generator, act log analyser)  |
-| `platformio.ini` | PlatformIO config                                 |
-| `devbox.json`    | Dev environment (Python 3.13, lcov, cpplint, pio) |
+| Path             | Purpose                                          |
+| ---------------- | ------------------------------------------------ |
+| `src/`           | Library source (`.h`/`.cpp`)                     |
+| `test/`          | Host unit tests (Catch2, separate Makefile)      |
+| `examples/`      | MCU `.ino` sketches                              |
+| `.tools/`        | Dev tools (doc site generator, act log analyser) |
+| `platformio.ini` | PlatformIO config                                |
+| `devbox.json`    | Dev environment                                  |
 
 ## Build & Test
 
-- `Makefile` targets: run "make help" for discovery
-- `test/Makefile` targets: `test`, `clean`, `clobber`, `coverage` (HTML report in `test/report/`)
+PlatformIO + Make inside `devbox shell`. Discover targets with `make help`.
+`test/Makefile` targets: `test`, `clean`, `clobber`, `coverage` (HTML in `test/report/`).
 
 ## Code Style
 
-- **Formatting**: `.clang-format` (Google style); run `make format` / `make format-check`, or legacy `make lint`
-- **Static analysis**: `make lint-tidy` (clang-tidy); see `doc/LINTING_GUIDE.md`
-- **Naming**: `PascalCase` classes/methods, `snake_case_` private members, `kPascalCase` constants, `lowercase_t` type aliases
-- Prefer `constexpr` over `#define`; no `constexpr` on functions with `if` (C++14 limit)
-- Use `= delete`, `override`; no float in core logic; templates over virtual functions
+- **Format**: `.clang-format` (Google). `make format` / `make format-check` (legacy: `make lint`).
+- **Static analysis**: `make lint-tidy` (clang-tidy); see `doc/LINTING_GUIDE.md`.
+- **Naming**: `PascalCase` classes/methods, `snake_case_` private members, `kPascalCase` constants, `lowercase_t` aliases.
+- Prefer `constexpr` over `#define`. No `constexpr` on functions with `if` (C++14 limit); `if (sizeof(Brightness) == 1)` stands in for `if constexpr` until C++17.
+- Use `= delete` and `override`.
 
 ## Architecture
 
-**Strict separation**: state machine logic / effect calculation / hardware access.
+**Strict separation**: state machine / effect calculation / hardware access. Never put platform-specific code in `jled_base.h`.
 
-**Core files:**
+- `src/jled_effects.h`/`.cpp`: `BrightnessEvaluator` + effects (`Blink`, `Breathe`, `Candle`, ...), `scale`/`lerp`/`fadeon_func`.
+- `src/jled_base.h`: platform-agnostic `TJLed<Hal, Clock, B>` state machine + fluent API.
+- `src/jled_group_base.h`: `TJLedGroup`, `TJLedAny`, `TJLedRef` (grouping, type erasure).
+- `src/jled.h`: platform detection; exposes `JLed`, `JLedHD`, `JLedGroup`, `JLedAny`.
+- `src/*_hal.h`: per-platform HAL (Arduino, ESP32, ESP8266, mbed, Pico), two abstractions each: PWM (e.g. `ArduinoHal::analogWrite(Brightness)`) and Clock (e.g. `ArduinoClock::millis()`).
 
-- `src/jled_effects.h`/`.cpp` — `BrightnessEvaluator` and all effects (`Blink`/`Breathe`/`Candle`/etc.), `scale`/`lerp`/`fadeon_func`
-- `src/jled_base.h` — platform-agnostic: `TJLed<Hal, Clock, B>` state machine
-- `src/jled_group_base.h` — `TJLedGroup`, `TJLedAny`, `TJLedRef` (grouping and type erasure)
-- `src/jled.h` — platform detection (preprocessor macros), exposes `JLed`, `JLedHD`, `JLedGroup`, `JLedAny`
-- `src/*_hal.h` — HAL per platform (Arduino, ESP32, ESP8266, mbed, Pico)
+**Effects**: structs with `Period()` and `Eval(t)`, stateless and copyable (see `ConstantBrightnessEvaluator`).
+**Resolution**: `JLed`/`JLedHD` are template instances; higher resolution = smoother PWM.
+**Memory**: fixed buffers or placement new, never dynamic.
 
-**HAL**: each platform has two abstractions in `src/*_hal.h`:
-
-- **PWM HAL** (e.g. `ArduinoHal`) — `analogWrite(Brightness val)`
-- **Clock** (e.g. `ArduinoClock`) — `static uint32_t millis()`
-
-**Effects**: simple structs with `Period()` and `Eval(t)`. Must be stateless and copyable (see
-ConstantBrightnessEvaluator)
-
-**Resolution**: `JLed`/`JLedHD` etc. are template instances; higher resolution = smoother PWM.
-
-**Memory**: no dynamic memory allocation, use fixed buffers or placement new.
-
-**Fluent API** via CRTP — methods return `B&`:
+**Fluent API** via CRTP (methods return `B&`):
 
 ```cpp
 JLed led = JLed(21).DelayBefore(1500).Breathe(500).Repeat(5).MaxBrightness(150);
 ```
 
-**Technical debt (C++14 compat)**: `if (sizeof(Brightness) == 1)` instead of `if constexpr` — acceptable until C++17 is baseline in Arduino ecosystem.
-
 ## Testing
 
-- Framework: Catch2 (amalgamated in `test/catch2/`)
-- Naming: `TEST_CASE("what is tested", "[tag]")`, use `SECTION()` for variations
-- Tags: `[jled]`, `[sequence]`, `[hal]`
-- Test effect evaluators by calling `Eval(t)` at various time points
-- HAL mocks: see `test/Arduino.h`, `test/esp-idf/`
-- Add new test files to `test/Makefile`
+Catch2 (amalgamated in `test/catch2/`). `TEST_CASE("what", "[tag]")`, `SECTION()` for variations. Tags: `[jled]`, `[sequence]`, `[hal]`. Test evaluators by calling `Eval(t)` at various time points. HAL mocks in `test/Arduino.h`, `test/esp-idf/`. Register new test files in `test/Makefile`.
 
 ## Common Tasks
 
-**New effect** (`src/jled_effects.h` for the evaluator, `src/jled_base.h` for the fluent method):
+- **New effect**: evaluator in `src/jled_effects.h`, fluent method in `src/jled_base.h` (ref `BlinkBrightnessEvaluator` / `TJLed::Blink`). Add tests, an example, a `README.md` entry.
+- **New HAL**: copy `src/arduino_hal.h`, add detection in `src/jled.h`, add `test/test_[platform]_hal.cpp`.
+- **Bug fix**: failing test first, then fix, then `make test`, `make coverage`, `make lint`.
 
-1. use `BlinkBrightnessEvaluator` and `TJLed::Blink` etc. as reference
-2. Add tests in `test/test_jled.cpp`, example in `examples/`, update `README.md`
-
-**New HAL**: use `src/arduino_hal.h` as reference → create `src/[platform]_hal.h` → add detection in `src/jled.h` → add tests in `test/test_[platform]_hal.cpp`
-
-**Bug fix**: write failing test first → fix → `make test` → `make coverage` → `make lint`
-
-## Do's and Don'ts
-
-**DO**: preserve API backwards compatibility · add tests for all changes · `make lint && make test` before commit
-
-**DON'T**:
-
-- Add platform-specific code to `jled_base.h`
-- Use float in core logic
-- Use dynamic allocation, exceptions, or RTTI
-- Use `delay()` or blocking operations
-- Break public API without a major version bump
-- **Change a test to make it pass** — fix the code instead
+Every change adds tests. Run `make lint && make test` before commit. Don't change a test to make it pass; fix the code. Correctness over completeness: don't guess or invent APIs/files/configs; label assumptions; ask when unsure.
 
 ## CI/CD
 
-GitHub Actions on push/PR to `master`: lint → unit tests + coverage (Coveralls). All must pass.
+GitHub Actions on push/PR to `master`: lint, then unit tests + coverage (Coveralls). All must pass.
 
-`make ci-act` runs the full build matrix locally via `act` (~10min), stores NDJSON logs in `.act-logs/`.
-
-Analyse results with
+`make ci-act` runs the full build matrix locally via `act` (~10min), logging NDJSON to `.act-logs/`:
 
 ```sh
 .tools/act-log/act-log.py report           # summary table; exits 1 on failures
-.tools/act-log/act-log.py report <board>   # full log for one board, e.g.: report uno
+.tools/act-log/act-log.py report <board>   # full log for one board, e.g. uno
 ```
 
-Status: `OK` = build succeeded · `FAIL` = build failed (code bug) · `INFRA` = job never reached build step (act issue, not a code bug). Ignore `jobResult` in the NDJSON — it's buggy for parallel jobs; the analyser uses `stepResult` instead.
+Status: `OK` built, `FAIL` build failed (code bug), `INFRA` never reached build (act issue, not code). Ignore NDJSON `jobResult` (buggy for parallel jobs); the analyser uses `stepResult`.
 
 ## Documentation Site
 

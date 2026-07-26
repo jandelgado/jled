@@ -1,7 +1,6 @@
 // Arduino mock for unit testing JLed.
 // Copyright 2017 Jan Delgado jdelgado@gmx.net
-#ifndef TEST_ARDUINO_H_
-#define TEST_ARDUINO_H_
+#pragma once
 
 #include <math.h>
 #include <stdint.h>
@@ -33,4 +32,18 @@ uint32_t millis(void);
 
 #define OUTPUT 0x1
 
-#endif  // TEST_ARDUINO_H_
+// dummy Serial mock, only used to keep the LSP happy while editing
+// examples/*.ino, never linked against (examples are not part of the
+// host unit test build).
+class SerialClass {
+ public:
+    void begin(unsigned long) {}  // NOLINT
+    template <typename T>
+    void print(const T&) {}
+    template <typename T>
+    void println(const T&) {}
+    void println() {}
+    explicit operator bool() const { return true; }
+};
+
+extern SerialClass Serial;

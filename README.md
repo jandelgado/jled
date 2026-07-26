@@ -90,6 +90,7 @@ void loop() {
   - [Controlling a group of LEDs](#controlling-a-group-of-leds)
     - [Group lifecycle events](#group-lifecycle-events)
     - [JLedRefGroup, pointer-based groups for named LED objects](#jledrefgroup-pointer-based-groups-for-named-led-objects)
+    - [When to use what?](#when-to-use-what)
 - [Framework notes](#framework-notes)
 - [Platform notes](#platform-notes)
   - [Resolution and the `Brightness` type](#resolution-and-the-brightness-type)
@@ -713,51 +714,112 @@ automatically. A runtime-size overload is also available:
   [`JLed::Stop(mode)`](#immediate-stop). Further calls to `Update()` have no effect.
 - `Reset()` - resets all elements and restarts the group from the beginning.
 
-`JLedAny` has a fixed-size internal buffer sized to hold `JLed`, `JLedHD`,
-or `JLedGroup`. If you use a custom LED type that is larger, define your own
-alias: `using MyLedAny = TJLedAny<sizeof(MyBigLed)>;`
+`JLedAny` has a fixed-size internal buffer sized to hold `JLed`, `JLedHD`, or
+`JLedGroup`. A custom LED type that is larger does not fit and fails to compile.
+In that case define your own aliases, both of them, since `JLedGroup` is bound
+to `JLedAny`:
+
+```c++
+using MyLedAny   = TJLedAny<sizeof(MyBigLed)>;
+using MyLedGroup = TJLedGroup<JLedClockType, MyLedAny>;
+```
+
+Note that this widens every slot of the group, also those holding a plain
+`JLed`. [`JLedRefGroup`](#jledrefgroup-pointer-based-groups-for-named-led-objects)
+avoids this, see [When to use what?](#when-to-use-what) below.
 
 #### Group lifecycle events
 
-`GroupUpdateResult` reports four group-level events, analogous to `JLed`'s
+`GroupUpdateResult` reports these group-level events, analogous to `JLed`'s
 [Lifecycle events](#lifecycle-events) but scoped to the group as a whole:
 
-| Query                | Fires when                                                                                                                                                                                                                                                     |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `IsStarted()`        | once per run, on the first `Update()` call (or the first after `Reset()`)                                                                                                                                                                                      |
-| `IsDone()`           | once, when the group finishes: all repetitions exhausted, or `Stop()` is called                                                                                                                                                                                |
-| `IsRepeatStarted()`  | once per repetition, including the first: coincides with `IsStarted()` on the first, and fires again each time a full pass through the group completes and another repetition follows (`Repeat(n>1)`/`Forever()`). Independent of `Parallel`/`Sequential` mode |
-| `IsElementChanged()` | `Sequential` groups only: the active element changed, either advancing to the next element or wrapping back to the first for a new repetition                                                                                                                  |
+| Query               | Fires when                                                                                                                                                                                                                                                     |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `IsStarted()`       | once per run, on the first `Update()` call (or the first after `Reset()`)                                                                                                                                                                                      |
+| `IsDone()`          | once, when the group finishes: all repetitions exhausted, or `Stop()` is called                                                                                                                                                                                |
+| `IsRepeatStarted()` | once per repetition, including the first: coincides with `IsStarted()` on the first, and fires again each time a full pass through the group completes and another repetition follows (`Repeat(n>1)`/`Forever()`). Independent of `Parallel`/`Sequential` mode |
+| `IsElementEnter()`  | `Sequential` groups only: an element became active this tick, the first element on start or the next element on a handoff. Never fires in `Parallel` mode                                                                                                      |
+| `IsElementLeave()`  | `Sequential` groups only: an element stopped being active this tick, on a handoff to the next element or when the last element finishes. Never fires in `Parallel` mode                                                                                        |
 
 An empty group (no elements) fires `IsStarted()`, `IsRepeatStarted()` and `IsDone()` together on its
-one and only `Update()` call. `IsElementChanged()` never fires for `Parallel` groups (there is no
-single "active" element) or for a single-element sequence. Each event has a matching fluent
-callback:
+one and only `Update()` call. `IsElementEnter()`/`IsElementLeave()` do not fire there, since there is
+no element to enter or leave. They are a `Sequential` concept and never fire in `Parallel` mode either,
+where all elements move together and there is no single-element handoff: use `OnStart()`/`OnDone()`
+there instead. Each event has a matching fluent callback. `OnElementEnter`/`OnElementLeave`
+additionally pass the 0-based index of the element (into the array given to `Sequential()`) and a
+reference to the element itself, so you can act on it without capturing the array:
 
 ```c++
 group.Update()
-    .OnStart([](JLedGroup* g) { Serial.println("group started"); })
-    .OnRepeatStart([](JLedGroup* g) { Serial.println("repetition begins"); })
-    .OnElementChanged([](JLedGroup* g) { Serial.println("next LED playing"); })
-    .OnDone([](JLedGroup* g) { Serial.println("group finished"); });
+    .OnStart([](JLedGroup*) { Serial.println("group started"); })
+    .OnRepeatStart([](JLedGroup*) { Serial.println("repetition begins"); })
+    .OnElementLeave([](JLedGroup*, uint8_t idx, JLedAny&) {
+        Serial.print("leave: ");
+        Serial.println(idx);
+    })
+    .OnElementEnter([](JLedGroup*, uint8_t idx, JLedAny&) {
+        Serial.print("enter: ");
+        Serial.println(idx);
+    })
+    .OnDone([](JLedGroup*) { Serial.println("group finished"); });
 ```
 
-This works identically for `JLedRefGroup`. Per-element events (reacting to individual LEDs within a
-group) are not yet supported.
+This works identically for `JLedRefGroup`. `OnStart`/`OnRepeatStart`/`OnDone` describe the group as a
+whole. `OnElementEnter`/`OnElementLeave` name the specific element, via both the index argument and
+the element reference, and fire only for `Sequential` groups.
+
+The element reference recovers the concrete type erased away in the group's underlying array via
+`As<T>()` (available on both `JLedAny` and `JLedRef`). It returns `T*`, or `nullptr` if the element
+isn't exactly that type, so you can act on the element directly, without indexing the array yourself:
+
+```c++
+JLedAny leds[] = {JLed(4).Blink(750, 250), JLedHD(3).Breathe(2000)};
+auto group = JLedGroup::Sequential(leds);
+
+group.Update().OnElementEnter([](JLedGroup*, uint8_t idx, JLedAny& led) {
+    if (auto* l = led.As<JLed>()) l->MaxBrightness(64);
+});
+```
+
+With `JLedRefGroup` the group updates the very objects your variables name, so you can also poll an
+individual LED yourself. For the common case of just knowing when a step finished, prefer
+`OnElementLeave()`, it names the element directly via its index and reference, and works the same way
+regardless of how many elements the sequence has:
+
+```c++
+auto led1 = JLed(4).Blink(750, 250).Repeat(2);
+auto led2 = JLedHD(3).Breathe(2000);
+JLedRef refs[] = {&led1, &led2};
+auto group = JLedRefGroup::Sequential(refs);
+
+void loop() {
+    group.Update().OnElementLeave([](JLedRefGroup*, uint8_t idx, JLedRef&) {
+        if (idx == 0) Serial.println("led1 finished");
+        else if (idx == 1) Serial.println("led2 finished");
+    });
+}
+```
+
+`idx` is the 0-based position in the `refs` array, so `0` is `led1`, `1` is `led2`. `OnElementLeave`
+fires once for `led1` (handing off to `led2`) and once more for `led2` (the group finishing).
+This callback-based approach works identically with plain `JLedGroup`, since it only relies on
+group-level events.
 
 **Nested groups:** `IsStarted()`/`IsDone()`/`IsRepeatStarted()` compose correctly regardless of
-nesting depth, since they are driven purely by a group's own state. `IsElementChanged()` does not:
-it only reports transitions among a group's own direct elements. While a nested group occupies one
-slot of an outer group, the outer's active element does not change for the nested group's entire
-run, so transitions among the nested group's own elements are invisible from the outer's
-`GroupUpdateResult`. Full-depth, per-leaf visibility is planned via a future per-element callback.
+nesting depth, since they are driven purely by a group's own state. `OnElementEnter`/`OnElementLeave`
+do not: they only report transitions among a group's own direct elements. While a nested group
+occupies one slot of an outer group, the outer's active element does not change for the nested group's
+entire run, so transitions among the nested group's own elements are invisible from the outer's
+`GroupUpdateResult`. A group's events are reported only by the `Update()` call that produced them,
+and for a nested group that call is made by the outer group, so they cannot be picked up afterwards.
+To follow a nested group's progress, poll the LEDs you care about as shown above.
 
 #### JLedRefGroup, pointer-based groups for named LED objects
 
 `JLedRef` and `JLedRefGroup` are a more memory-efficient alternative to `JLedAny` and `JLedGroup`.
-Each `JLedRef` slot stores only a pointer and a shared vtable pointer (4 bytes on 32-bit, 2 bytes on
-8-bit AVR), rather than a full copy of the LED state. The tradeoff is ergonomics: LED objects must
-be declared as named variables, anonymous inline construction is not possible.
+Each `JLedRef` slot stores only a pointer to the LED and a shared vtable pointer (8 bytes on 32-bit,
+4 bytes on 8-bit AVR), rather than a full copy of the LED state. The tradeoff is ergonomics: LED
+objects must be declared as named variables, anonymous inline construction is not possible.
 
 ```c++
 auto led1 = JLed(4).Blink(750, 250).Repeat(2);
@@ -788,6 +850,28 @@ applies the implicit conversion per element.
 
 > **Lifetime:** LED objects must outlive the `JLedRef` / `JLedRefGroup` that
 > references them. Do not create `JLedRef` from temporaries.
+
+#### When to use what?
+
+Most of the time `JLedGroup` is the right one, so start there. It lets you write the effects
+straight into the array, and knowing when the whole group starts, repeats or finishes is usually
+enough.
+
+Reach for `JLedRefGroup` when:
+
+- you want to keep your LEDs as named variables anyway, because you also want to reach them from
+  elsewhere in your sketch, or because you want to poll them individually
+- you want to build the group from LEDs that are declared in different places
+- you use a user-defined `TJLed` type, e.g. a PCA9685 driver. `JLedRef` takes any of them as is,
+  whatever their size. `JLedGroup` only accepts types that fit its buffer, anything larger needs
+  a `TJLedAny` alias plus a matching `TJLedGroup` type, and widens every slot of the group
+- you want to save RAM: every `JLedAny` slot is padded to hold the largest supported type
+  (`JLed`, `JLedHD` or `JLedGroup`), while a `JLedRef` slot is two pointers regardless. A group of
+  plain `JLed` objects therefore wastes the size difference per element
+
+The price is two extra rules: the LED objects must be named variables, and they must outlive the
+group. If you are unsure, start with `JLedGroup`. Moving to `JLedRefGroup` later is a small change:
+pull the LEDs out into named variables and swap the array type.
 
 ## Framework notes
 
@@ -1021,7 +1105,7 @@ Example sketches are provided in the [examples](examples/) directory.
 - [Fade LED off](examples/fade_off)
 - [Fade from-to effect](examples/fade_from_to)
 - [Pulse effect](examples/pulse)
-- [Controlling a group of LEDs sequentially + Group lifecycle events](examples/group_sequence)
+- [Controlling a group of LEDs sequentially](examples/group_sequence)
 - [Controlling a group of LEDs in parallel](examples/group_parallel)
 - [Controlling a group of LEDs by reference](examples/group_ref)
 - [Controlling a nested group of LEDs](examples/group_nested)
@@ -1031,6 +1115,7 @@ Example sketches are provided in the [examples](examples/) directory.
 - [Last brightness value example](examples/last_brightness)
 - [Pause and resume effect with a button](examples/pause_resume)
 - [JLed lifecycle events](examples/jled_lifecycle)
+- [Group lifecycle events](examples/group_lifecycle)
 - [Custom HAL example](examples/custom_hal)
 - [Custom PCA9685 HAL](https://github.com/jandelgado/jled-pca9685-hal)
 - [Dynamically switch sequences](https://github.com/jandelgado/jled-example-switch-sequence)
