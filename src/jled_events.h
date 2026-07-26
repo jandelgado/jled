@@ -32,8 +32,8 @@ enum class Event : uint8_t {
     kEnterDelayAfter = 1 << 1,  // TJLed only: effect entered a delay-after phase this tick
     kDone = 1 << 2,             // effect stopped this tick
     kRepeatStart = 1 << 3,      // a repetition cycle started this tick
-    kActive =
-        1 << 4,  // TJLed Only: first actual output tick (fires with kRepeatStart on iteration 0;
+    kFirstOutput =
+        1 << 4,  // TJLed only: first actual output tick (fires with kRepeatStart on iteration 0)
     // TJLedGroup only: the active element changed this tick. Only ever set in
     // SEQUENCE mode, where the group has a single "current" element; PARALLEL
     // groups have no such notion and never set this bit.
@@ -90,7 +90,7 @@ class UpdateResult {
 
     bool IsRunning() const { return running_; }
     bool IsStarted() const { return HasEvent(event_, Event::kStart); }
-    bool IsActive() const { return HasEvent(event_, Event::kActive); }
+    bool IsFirstOutput() const { return HasEvent(event_, Event::kFirstOutput); }
     bool IsRepeatStarted() const { return HasEvent(event_, Event::kRepeatStart); }
     bool IsEnteringDelayAfter() const { return HasEvent(event_, Event::kEnterDelayAfter); }
     bool IsDone() const { return HasEvent(event_, Event::kDone); }
@@ -116,8 +116,8 @@ class UpdateResult {
     }
 
     template<typename F>
-    UpdateResult& OnActive(F cb) {
-        if (IsActive()) cb(obj_);
+    UpdateResult& OnFirstOutput(F cb) {
+        if (IsFirstOutput()) cb(obj_);
         return *this;
     }
 

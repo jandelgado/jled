@@ -477,14 +477,14 @@ TEST_CASE("kStart fires once, on the first call, even with delay_before_", "[jle
     auto r0 = jled.Update(0);
     CHECK(r0.IsStarted());
     CHECK(r0.IsRunning());
-    CHECK_FALSE(r0.IsActive());
+    CHECK_FALSE(r0.IsFirstOutput());
 
     auto r1 = jled.Update(1);
     CHECK_FALSE(r1.IsStarted());
 
     auto r3 = jled.Update(3);
     CHECK_FALSE(r3.IsStarted());
-    CHECK(r3.IsActive());
+    CHECK(r3.IsFirstOutput());
     CHECK(r3.IsRepeatStarted());
 }
 
@@ -505,7 +505,7 @@ TEST_CASE("kRepeatStart fires on every repetition, including across a DelayAfter
 
     auto r0 = jled.Update(0);
     CHECK(r0.IsRepeatStarted());
-    CHECK(r0.IsActive());
+    CHECK(r0.IsFirstOutput());
 
     auto r1 = jled.Update(1);
     CHECK_FALSE(r1.IsRepeatStarted());
@@ -522,7 +522,7 @@ TEST_CASE("kRepeatStart fires on every repetition, including across a DelayAfter
     // the LED in ST_IN_DELAY_AFTER_PHASE, not ST_RUNNING.
     auto r4 = jled.Update(4);
     CHECK(r4.IsRepeatStarted());
-    CHECK_FALSE(r4.IsActive());  // second repetition, not the first
+    CHECK_FALSE(r4.IsFirstOutput());  // second repetition, not the first
 
     auto r6 = jled.Update(6);
     CHECK(r6.IsEnteringDelayAfter());
@@ -570,13 +570,14 @@ TEST_CASE("kDone fires exactly once, on the terminal tick", "[jled]") {
     CHECK(sawNotRunning);
 }
 
-TEST_CASE("single-tick effect fires kStart|kActive|kRepeatStart|kDone on its one call", "[jled]") {
+TEST_CASE("single-tick effect fires kStart|kFirstOutput|kRepeatStart|kDone on its one call",
+          "[jled]") {
     TestJLed jled(1);
     jled.On();
     auto r = jled.Update(0);
     CHECK_FALSE(r.IsRunning());
     CHECK(r.IsStarted());
-    CHECK(r.IsActive());
+    CHECK(r.IsFirstOutput());
     CHECK(r.IsRepeatStarted());
     CHECK(r.IsDone());
     REQUIRE(r.HasBrightness());
@@ -588,17 +589,17 @@ TEST_CASE("repeated single-tick effect: final kRepeatStart lands on the terminal
 
     auto r0 = jled.Update(0);
     CHECK(r0.IsRepeatStarted());
-    CHECK(r0.IsActive());
+    CHECK(r0.IsFirstOutput());
     CHECK_FALSE(r0.IsDone());
 
     auto r1 = jled.Update(1);
     CHECK(r1.IsRepeatStarted());
-    CHECK_FALSE(r1.IsActive());
+    CHECK_FALSE(r1.IsFirstOutput());
     CHECK_FALSE(r1.IsDone());
 
     auto r2 = jled.Update(2);
     CHECK(r2.IsRepeatStarted());
-    CHECK_FALSE(r2.IsActive());
+    CHECK_FALSE(r2.IsFirstOutput());
     CHECK(r2.IsDone());
 }
 
@@ -629,7 +630,7 @@ TEST_CASE("On* callback chain invokes matching hooks on a coincident tick", "[jl
     int startCount = 0, activeCount = 0, repeatCount = 0, enterDelayCount = 0, doneCount = 0;
     jled.Update(0)
         .OnStart([&](TestJLed*) { startCount++; })
-        .OnActive([&](TestJLed*) { activeCount++; })
+        .OnFirstOutput([&](TestJLed*) { activeCount++; })
         .OnRepeatStart([&](TestJLed*) { repeatCount++; })
         .OnEnterDelayAfter([&](TestJLed*) { enterDelayCount++; })
         .OnDone([&](TestJLed*) { doneCount++; });

@@ -10,7 +10,7 @@
 // Expected console output:
 //   JLed lifecycle demo
 //   OnStart
-//   OnActive - first output
+//   OnFirstOutput - first output
 //   OnRepeatStart
 //   OnEnterDelayAfter
 //   OnRepeatStart
@@ -39,7 +39,7 @@ void setup() {
 void loop() {
     led.Update()
         .OnStart([](JLed*) { Serial.println("OnStart"); })
-        .OnActive([](JLed*) { Serial.println("OnActive - first output"); })
+        .OnFirstOutput([](JLed*) { Serial.println("OnFirstOutput - first output"); })
         .OnRepeatStart([](JLed*) { Serial.println("OnRepeatStart"); })
         // every time the delay-after phase begins, increase the max brightness and
         // turn the LED off for the duration of the delay-after phase

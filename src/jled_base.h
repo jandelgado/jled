@@ -308,11 +308,11 @@ class TJLed : public JLedBase {
     //        A            B          C         D          C            E
     //
     //   A  kStart            fires once, on the very first Update() call
-    //   B  kRepeatStart,      first repetition begins; kActive fires only
-    //      kActive            here, on the first output tick of the run
+    //   B  kRepeatStart,      first repetition begins; kFirstOutput fires
+    //      kFirstOutput       only here, on the first output tick of the run
     //   C  kEnterDelayAfter   fires once per repetition, entering its
     //                         delay_after phase (only if delay_after > 0)
-    //   D  kRepeatStart       every following repetition begins (kActive
+    //   D  kRepeatStart       every following repetition begins (kFirstOutput
     //                         does not fire again)
     //   E  kDone              fires once, on the very last tick of the run
     UpdateResult<Derived> Update() { return Update(Clock::millis()); }
@@ -376,7 +376,7 @@ class TJLed : public JLedBase {
         if (t_cycle == 0) {
             events |= Event::kRepeatStart;
             if (!first_cycle_) {
-                events |= Event::kActive;
+                events |= Event::kFirstOutput;
                 first_cycle_ = true;
             }
         }
@@ -456,7 +456,7 @@ class TJLed : public JLedBase {
     uint8_t state_ : 2;  // stored as uint8_t to avoid GCC warning about enum bit-field signedness
     uint8_t bLowActive_ : 1;
     uint8_t bPaused_ : 1;
-    uint8_t first_cycle_ : 1;  // gates kActive to the first repeat-start of a run
+    uint8_t first_cycle_ : 1;  // gates kFirstOutput to the first repeat-start of a run
     uint8_t done_ : 1;         // gates kDone to the single tick that observes the stop
     Brightness minBrightness_;
     Brightness maxBrightness_;
