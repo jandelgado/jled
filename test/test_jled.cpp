@@ -701,6 +701,83 @@ TEST_CASE("Stop() default mode is TO_MIN_BRIGHTNESS", "[jled]") {
     CHECK(50 == static_cast<int>(jled.GetHal().Value()));
 }
 
+TEST_CASE("Stop() makes the next Update() fire kDone exactly once", "[jled]") {
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{10, 20, 30});
+    TestJLed jled = TestJLed(HalMock(1)).UserFunc(&eval);
+
+    TimeMock::set_millis(0);
+    auto r0 = jled.Update();  // running
+    CHECK(r0.IsRunning());
+    CHECK_FALSE(r0.IsDone());
+
+    jled.Stop();
+
+    TimeMock::set_millis(1);
+    auto r1 = jled.Update();  // first tick after Stop(): kDone fires
+    CHECK_FALSE(r1.IsRunning());
+    CHECK(r1.IsDone());
+
+    TimeMock::set_millis(2);
+    auto r2 = jled.Update();  // no further kDone
+    CHECK_FALSE(r2.IsRunning());
+    CHECK_FALSE(r2.IsDone());
+}
+
+TEST_CASE("OnDone callback fires once after Stop()", "[jled]") {
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{10, 20, 30});
+    TestJLed jled = TestJLed(HalMock(1)).UserFunc(&eval);
+
+    int doneCount = 0;
+    TimeMock::set_millis(0);
+    jled.Update();
+    jled.Stop();
+
+    for (uint32_t t = 1; t < 5; t++) {
+        TimeMock::set_millis(t);
+        jled.Update().OnDone([&](TestJLed*) { doneCount++; });
+    }
+    CHECK(doneCount == 1);
+}
+
+TEST_CASE("natural completion still fires kDone exactly once (regression)", "[jled]") {
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{10, 20});
+    TestJLed jled = TestJLed(HalMock(1)).UserFunc(&eval);
+
+    int doneCount = 0;
+    for (uint32_t t = 0; t < 5; t++) {
+        TimeMock::set_millis(t);
+        jled.Update().OnDone([&](TestJLed*) { doneCount++; });
+    }
+    CHECK(doneCount == 1);
+}
+
+TEST_CASE("Reset() re-arms kDone after a Stop()", "[jled]") {
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{10, 20, 30});
+    TestJLed jled = TestJLed(HalMock(1)).UserFunc(&eval);
+
+    TimeMock::set_millis(0);
+    jled.Update();
+    jled.Stop();
+    TimeMock::set_millis(1);
+    CHECK(jled.Update().IsDone());  // first done
+
+    jled.Reset();
+    TimeMock::set_millis(2);
+    auto r = jled.Update();
+    CHECK(r.IsRunning());
+    CHECK(r.IsStarted());
+    CHECK_FALSE(r.IsDone());  // fresh run, not done yet
+}
+
+TEST_CASE("Stop() on an effect-less LED fires no kDone", "[jled]") {
+    TestJLed jled = TestJLed(HalMock(1));  // no UserFunc/effect set
+    jled.Stop();
+    TimeMock::set_millis(0);
+    auto r = jled.Update();
+    CHECK_FALSE(r.IsRunning());
+    CHECK_FALSE(r.IsDone());
+}
+
 TEST_CASE("Pause() idle modes", "[jled]") {
     using P = std::pair<jled::eIdleMode, int>;
     auto tc = GENERATE(values<P>({

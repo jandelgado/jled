@@ -38,9 +38,9 @@ uint32_t millis(void);
 class SerialClass {
  public:
     void begin(unsigned long) {}  // NOLINT
-    template <typename T>
+    template<typename T>
     void print(const T&) {}
-    template <typename T>
+    template<typename T>
     void println(const T&) {}
     void println() {}
     explicit operator bool() const { return true; }

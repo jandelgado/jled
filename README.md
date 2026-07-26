@@ -513,7 +513,7 @@ and tracking state yourself:
 | `IsActive()`             | once per run, on the first actual output tick                             |
 | `IsRepeatStarted()`      | once per repetition, including the first                                  |
 | `IsEnteringDelayAfter()` | once per repetition that has a `DelayAfter()`, on entry to that phase     |
-| `IsDone()`               | once, when the effect stops                                               |
+| `IsDone()`               | once, when the effect stops: all repetitions complete, or `Stop()` is called |
 
 More than one of these can be true on the same `Update()` call. E.g., an
 effect with the default `duration = 1` (as used by `On()`, `Off()` and

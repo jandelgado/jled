@@ -14,7 +14,7 @@ JLedAny leds[] = {  // JLedGroup requires JLedAny, not JLed[]
 
 auto sequence = JLedGroup::Sequential(leds);
 
-void setup() { }
+void setup() {}
 
 void loop() {
     sequence.Update();
