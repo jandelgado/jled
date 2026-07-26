@@ -547,10 +547,6 @@ Callbacks are template parameters ([lambdas](https://en.cppreference.com/cpp/lan
 function pointers) and they run synchronously inline, in the order chained. A `led.Update()` call
 without any of these incurs no extra cost beyond the small `UpdateResult` value returned itself.
 
-For advanced use, `GetEvents()` returns the raw `jled::Event` bitmask if you want
-to inspect several events at once or store them. Treat the `Event` enum values as
-a committed part of the API: renumbering the bits is a breaking change.
-
 Common patterns:
 
 ```c++

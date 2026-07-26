@@ -94,7 +94,6 @@ class UpdateResult {
     bool IsRepeatStarted() const { return HasEvent(event_, Event::kRepeatStart); }
     bool IsEnteringDelayAfter() const { return HasEvent(event_, Event::kEnterDelayAfter); }
     bool IsDone() const { return HasEvent(event_, Event::kDone); }
-    EventSet GetEvents() const { return event_; }
 
     // Value written to the HAL this tick. HasBrightness() distinguishes "wrote value 0"
     // from "wrote nothing". Holds the full range for both 8-bit (JLed) and 16-bit (JLedHD)
