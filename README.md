@@ -507,6 +507,17 @@ Beyond brightness, `UpdateResult` exposes lifecycle events, see
 `Update()` call, so you can react inline instead of polling the return value
 and tracking state yourself:
 
+These are **inspected per `Update()` call**, not registered once: you re-attach
+the callbacks (or read the predicates) on the `UpdateResult` each time you call
+`Update()` in your loop. There is no stored handler, and a bare `Update()` with
+no callbacks costs nothing beyond the small `UpdateResult` value it returns.
+
+Each event has both a predicate (`Is<Event>()`, a state query answering "did this
+happen on this tick?") and a fluent callback (`On<Event>(cb)`, an event hook). The
+two spell the same event slightly differently by design: `IsStarted()` pairs with
+`OnStart()`, `IsRepeatStarted()` with `OnRepeatStart()`, `IsEnteringDelayAfter()`
+with `OnEnterDelayAfter()`.
+
 | Query                    | Fires when                                                                   |
 | ------------------------ | ---------------------------------------------------------------------------- |
 | `IsStarted()`            | once per run, on the first `Update()` call (or the first after `Reset()`)    |
@@ -535,6 +546,10 @@ led.Update()
 Callbacks are template parameters ([lambdas](https://en.cppreference.com/cpp/language/lambda) or
 function pointers) and they run synchronously inline, in the order chained. A `led.Update()` call
 without any of these incurs no extra cost beyond the small `UpdateResult` value returned itself.
+
+For advanced use, `GetEvents()` returns the raw `jled::Event` bitmask if you want
+to inspect several events at once or store them. Treat the `Event` enum values as
+a committed part of the API: renumbering the bits is a breaking change.
 
 Common patterns:
 
