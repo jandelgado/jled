@@ -5,16 +5,17 @@
 
 #include "catch2/catch_amalgamated.hpp"
 #include "hal_mock.h"              // NOLINT
+#include "invertable_hal.h"        // NOLINT
 #include "mock_brightness_eval.h"  // NOLINT
 
 using namespace jled;  // NOLINT
 
-class TestJLed : public TJLed<HalMock, TimeMock, uint8_t, TestJLed> {
-    using TJLed<HalMock, TimeMock, uint8_t, TestJLed>::TJLed;
+class TestJLed : public TJLed<InvertableHal<HalMock>, TimeMock, uint8_t, TestJLed> {
+    using TJLed<InvertableHal<HalMock>, TimeMock, uint8_t, TestJLed>::TJLed;
 };
 
-class TestJLedHD : public TJLed<HalMock, TimeMock, uint16_t, TestJLedHD> {
-    using TJLed<HalMock, TimeMock, uint16_t, TestJLedHD>::TJLed;
+class TestJLedHD : public TJLed<InvertableHal<HalMock>, TimeMock, uint16_t, TestJLedHD> {
+    using TJLed<InvertableHal<HalMock>, TimeMock, uint16_t, TestJLedHD>::TJLed;
 };
 
 namespace {
@@ -41,8 +42,8 @@ TEST_CASE("parallel group updates all elements simultaneously", "[jled_group]") 
     HalMock::Init();
     auto eval1 = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
     auto eval2 = MockBrightnessEvaluator(std::vector<uint8_t>{150, 50});
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval1).Repeat(1),
-                          TestJLed(HalMock(2)).UserFunc(&eval2).Repeat(1)};
+    TestJLedAny leds[] = {TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval1).Repeat(1),
+                          TestJLed(InvertableHal<HalMock>(2)).UserFunc(&eval2).Repeat(1)};
     // Use pointer overload to cover Parallel(AnyType*, size_t)
     auto group = TestJLedGroupAny::Parallel(leds, 2);
 
@@ -61,8 +62,8 @@ TEST_CASE("sequential group plays elements one at a time", "[jled_group]") {
     HalMock::Init();
     auto eval1 = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
     auto eval2 = MockBrightnessEvaluator(std::vector<uint8_t>{50, 25});
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval1).Repeat(1),
-                          TestJLed(HalMock(2)).UserFunc(&eval2).Repeat(1)};
+    TestJLedAny leds[] = {TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval1).Repeat(1),
+                          TestJLed(InvertableHal<HalMock>(2)).UserFunc(&eval2).Repeat(1)};
     // Use array overload to cover Sequential(AnyType (&)[N])
     auto group = TestJLedGroupAny::Sequential(leds);
 
@@ -94,7 +95,7 @@ TEST_CASE("Repeat(n) plays the group n times", "[jled_group]") {
     auto mode = GENERATE(TestJLedGroupAny::eMode::SEQUENCE, TestJLedGroupAny::eMode::PARALLEL);
 
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{255, 0});
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval)};
+    TestJLedAny leds[] = {TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval)};
     auto group = TestJLedGroupAny(mode, leds, 1).Repeat(2);
 
     constexpr uint8_t expected[] = {255, 0, 255, 0};
@@ -112,7 +113,7 @@ TEST_CASE("Forever plays group indefinitely", "[jled_group]") {
     auto mode = GENERATE(TestJLedGroupAny::eMode::SEQUENCE, TestJLedGroupAny::eMode::PARALLEL);
 
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{255, 0, 0});
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval)};
+    TestJLedAny leds[] = {TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval)};
     auto group = TestJLedGroupAny(mode, leds, 1).Forever();
 
     constexpr uint8_t expected[] = {255, 0, 0};
@@ -128,7 +129,7 @@ TEST_CASE("Forever plays group indefinitely", "[jled_group]") {
 
 TEST_CASE("IsForever is false initially, true after Forever()", "[jled_group]") {
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{255});
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval)};
+    TestJLedAny leds[] = {TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval)};
     auto mode = GENERATE(TestJLedGroupAny::eMode::SEQUENCE, TestJLedGroupAny::eMode::PARALLEL);
     auto group = TestJLedGroupAny(mode, leds, 1);
     REQUIRE_FALSE(group.IsForever());
@@ -144,7 +145,7 @@ TEST_CASE("Reset restarts group from beginning", "[jled_group]") {
     auto mode = GENERATE(TestJLedGroupAny::eMode::SEQUENCE, TestJLedGroupAny::eMode::PARALLEL);
 
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval).Repeat(1)};
+    TestJLedAny leds[] = {TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval).Repeat(1)};
     auto group = TestJLedGroupAny(mode, leds, 1);
 
     TimeMock::set_millis(0);
@@ -169,7 +170,7 @@ TEST_CASE("Stop halts group execution and turns LEDs off", "[jled_group]") {
     auto mode = GENERATE(TestJLedGroupAny::eMode::SEQUENCE, TestJLedGroupAny::eMode::PARALLEL);
 
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval).Repeat(1)};
+    TestJLedAny leds[] = {TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval).Repeat(1)};
     auto group = TestJLedGroupAny(mode, leds, 1);
 
     TimeMock::set_millis(0);
@@ -189,8 +190,9 @@ TEST_CASE("nested JLedGroup within JLedGroup", "[jled_group]") {
     HalMock::Init();
     auto outer_eval = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
     auto inner_eval = MockBrightnessEvaluator(std::vector<uint8_t>{50, 25});
-    TestJLedAny inner_leds[] = {TestJLed(HalMock(2)).UserFunc(&inner_eval).Repeat(1)};
-    TestJLedAny outer_leds[] = {TestJLed(HalMock(1)).UserFunc(&outer_eval).Repeat(1),
+    TestJLedAny inner_leds[] = {
+        TestJLed(InvertableHal<HalMock>(2)).UserFunc(&inner_eval).Repeat(1)};
+    TestJLedAny outer_leds[] = {TestJLed(InvertableHal<HalMock>(1)).UserFunc(&outer_eval).Repeat(1),
                                 TestJLedGroupAny::Parallel(inner_leds)};
     auto group = TestJLedGroupAny::Parallel(outer_leds);
 
@@ -208,7 +210,8 @@ TEST_CASE("nested JLedGroup within JLedGroup", "[jled_group]") {
 TEST_CASE("Stop(FULL_OFF) sets group LEDs to 0 regardless of MinBrightness", "[jled_group]") {
     HalMock::Init();
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval).Repeat(1).MinBrightness(50)};
+    TestJLedAny leds[] = {
+        TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval).Repeat(1).MinBrightness(50)};
     auto group = TestJLedGroupAny::Parallel(leds);
 
     TimeMock::set_millis(0);
@@ -221,7 +224,8 @@ TEST_CASE("Stop(FULL_OFF) sets group LEDs to 0 regardless of MinBrightness", "[j
 TEST_CASE("Stop(TO_MIN_BRIGHTNESS) sets group LEDs to minBrightness", "[jled_group]") {
     HalMock::Init();
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval).Repeat(1).MinBrightness(50)};
+    TestJLedAny leds[] = {
+        TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval).Repeat(1).MinBrightness(50)};
     auto group = TestJLedGroupAny::Parallel(leds);
 
     TimeMock::set_millis(0);
@@ -234,7 +238,7 @@ TEST_CASE("Stop(TO_MIN_BRIGHTNESS) sets group LEDs to minBrightness", "[jled_gro
 TEST_CASE("Stop(KEEP_CURRENT) leaves group LEDs at current brightness", "[jled_group]") {
     HalMock::Init();
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval).Repeat(1)};
+    TestJLedAny leds[] = {TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval).Repeat(1)};
     auto group = TestJLedGroupAny::Parallel(leds);
 
     TimeMock::set_millis(0);
@@ -249,8 +253,9 @@ TEST_CASE("Stop propagates to nested group and inner LEDs", "[jled_group]") {
     HalMock::Init();
     auto outer_eval = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
     auto inner_eval = MockBrightnessEvaluator(std::vector<uint8_t>{50, 25});
-    TestJLedAny inner_leds[] = {TestJLed(HalMock(2)).UserFunc(&inner_eval).Repeat(1)};
-    TestJLedAny outer_leds[] = {TestJLed(HalMock(1)).UserFunc(&outer_eval).Repeat(1),
+    TestJLedAny inner_leds[] = {
+        TestJLed(InvertableHal<HalMock>(2)).UserFunc(&inner_eval).Repeat(1)};
+    TestJLedAny outer_leds[] = {TestJLed(InvertableHal<HalMock>(1)).UserFunc(&outer_eval).Repeat(1),
                                 TestJLedGroupAny::Parallel(inner_leds)};
     auto group = TestJLedGroupAny::Parallel(outer_leds);
 
@@ -269,7 +274,8 @@ TEST_CASE("JLedAny stores TestJLedHD and exercises 16-bit scale path", "[jled_gr
     HalMock::Init();
     // MaxBrightness(0x8000u) means lerp<uint16_t>(val, 0, 0x8000) calls scale<uint16_t>
     auto eval = MockBrightnessEvaluatorT<uint16_t>(std::vector<uint16_t>{32768u, 16384u});
-    TestJLedAny leds[] = {TestJLedHD(HalMock(1)).UserFunc(&eval).Repeat(1).MaxBrightness(0x8000u)};
+    TestJLedAny leds[] = {
+        TestJLedHD(InvertableHal<HalMock>(1)).UserFunc(&eval).Repeat(1).MaxBrightness(0x8000u)};
     auto group = TestJLedGroupAny::Parallel(leds);
 
     TimeMock::set_millis(0);
@@ -285,7 +291,7 @@ TEST_CASE("JLedAny copy constructor copies all state", "[jled_group]") {
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{255, 0});
 
     SECTION("copy of JLed") {
-        TestJLedAny src(TestJLed(HalMock(1)).UserFunc(&eval).Repeat(1));
+        TestJLedAny src(TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval).Repeat(1));
         TestJLedAny arr[] = {src};
         TimeMock::set_millis(0);
         TestJLedGroupAny::Parallel(arr).Update(0);
@@ -293,7 +299,7 @@ TEST_CASE("JLedAny copy constructor copies all state", "[jled_group]") {
     }
 
     SECTION("copy of JLedGroup") {
-        TestJLedAny led_arr[] = {TestJLed(HalMock(1)).UserFunc(&eval).Repeat(1)};
+        TestJLedAny led_arr[] = {TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval).Repeat(1)};
         TestJLedAny src(TestJLedGroupAny::Parallel(led_arr));
         TestJLedAny arr[] = {src};
         TimeMock::set_millis(0);
@@ -307,7 +313,7 @@ TEST_CASE("As<T>() recovers the concrete stored/referenced type", "[jled_group]"
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
 
     SECTION("TJLedAny holding a JLed") {
-        TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval).Repeat(1)};
+        TestJLedAny leds[] = {TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval).Repeat(1)};
 
         auto* led = leds[0].As<TestJLed>();
         REQUIRE(led != nullptr);
@@ -318,7 +324,7 @@ TEST_CASE("As<T>() recovers the concrete stored/referenced type", "[jled_group]"
     }
 
     SECTION("TJLedAny holding a nested group") {
-        TestJLedAny inner_leds[] = {TestJLed(HalMock(1)).UserFunc(&eval).Repeat(1)};
+        TestJLedAny inner_leds[] = {TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval).Repeat(1)};
         TestJLedAny outer[] = {TestJLedGroupAny::Parallel(inner_leds).Forever()};
 
         auto* group = outer[0].As<TestJLedGroupAny>();
@@ -329,7 +335,7 @@ TEST_CASE("As<T>() recovers the concrete stored/referenced type", "[jled_group]"
     }
 
     SECTION("TJLedRef referencing a JLed") {
-        TestJLed led1 = TestJLed(HalMock(1)).UserFunc(&eval).Repeat(1);
+        TestJLed led1 = TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval).Repeat(1);
 
         TJLedRef ref(&led1);
         REQUIRE(ref.As<TestJLed>() == &led1);
@@ -341,8 +347,8 @@ TEST_CASE("JLedRefGroup references externally managed LEDs", "[jled_group]") {
     HalMock::Init();
     auto eval1 = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
     auto eval2 = MockBrightnessEvaluator(std::vector<uint8_t>{50, 25});
-    TestJLed led1 = TestJLed(HalMock(1)).UserFunc(&eval1).Repeat(1);
-    TestJLed led2 = TestJLed(HalMock(2)).UserFunc(&eval2).Repeat(1);
+    TestJLed led1 = TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval1).Repeat(1);
+    TestJLed led2 = TestJLed(InvertableHal<HalMock>(2)).UserFunc(&eval2).Repeat(1);
 
     SECTION("references to two LEDs") {
         TJLedRef refs[] = {&led1, &led2};
@@ -361,7 +367,7 @@ TEST_CASE("JLedRefGroup references externally managed LEDs", "[jled_group]") {
 
     SECTION("TJLedRef wraps a JLedGroup") {
         auto eval3 = MockBrightnessEvaluator(std::vector<uint8_t>{100, 0});
-        TestJLedAny inner_leds[] = {TestJLed(HalMock(3)).UserFunc(&eval3).Repeat(1)};
+        TestJLedAny inner_leds[] = {TestJLed(InvertableHal<HalMock>(3)).UserFunc(&eval3).Repeat(1)};
         TestJLedGroupAny inner_group = TestJLedGroupAny::Parallel(inner_leds);
 
         TJLedRef refs[] = {&led1, &inner_group};
@@ -423,7 +429,8 @@ TEST_CASE("JLedRefGroup references externally managed LEDs", "[jled_group]") {
 TEST_CASE("Pause() default mode is TO_MIN_BRIGHTNESS", "[jled_group]") {
     HalMock::Init();
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval).Repeat(1).MinBrightness(50)};
+    TestJLedAny leds[] = {
+        TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval).Repeat(1).MinBrightness(50)};
     auto group = TestJLedGroupAny::Parallel(leds);
 
     TimeMock::set_millis(0);
@@ -438,8 +445,8 @@ TEST_CASE("Pause() propagates to all children in parallel group", "[jled_group]"
     HalMock::Init();
     auto eval1 = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100, 50});
     auto eval2 = MockBrightnessEvaluator(std::vector<uint8_t>{150, 75, 25});
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval1).Repeat(1),
-                          TestJLed(HalMock(2)).UserFunc(&eval2).Repeat(1)};
+    TestJLedAny leds[] = {TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval1).Repeat(1),
+                          TestJLed(InvertableHal<HalMock>(2)).UserFunc(&eval2).Repeat(1)};
     auto group = TestJLedGroupAny::Parallel(leds, 2);
 
     TimeMock::set_millis(0);
@@ -464,8 +471,8 @@ TEST_CASE("Resume() continues parallel group from freeze point", "[jled_group]")
     HalMock::Init();
     auto eval1 = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
     auto eval2 = MockBrightnessEvaluator(std::vector<uint8_t>{150, 50});
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval1).Repeat(1),
-                          TestJLed(HalMock(2)).UserFunc(&eval2).Repeat(1)};
+    TestJLedAny leds[] = {TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval1).Repeat(1),
+                          TestJLed(InvertableHal<HalMock>(2)).UserFunc(&eval2).Repeat(1)};
     auto group = TestJLedGroupAny::Parallel(leds, 2);
 
     // Advance to t=0 (elapsed=0, first values output)
@@ -488,8 +495,8 @@ TEST_CASE("Pause() freezes sequential group on current LED", "[jled_group]") {
     HalMock::Init();
     auto eval1 = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
     auto eval2 = MockBrightnessEvaluator(std::vector<uint8_t>{50, 25});
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval1).Repeat(1),
-                          TestJLed(HalMock(2)).UserFunc(&eval2).Repeat(1)};
+    TestJLedAny leds[] = {TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval1).Repeat(1),
+                          TestJLed(InvertableHal<HalMock>(2)).UserFunc(&eval2).Repeat(1)};
     auto group = TestJLedGroupAny::Sequential(leds);
 
     TimeMock::set_millis(0);
@@ -528,8 +535,8 @@ TEST_CASE("Pause()/Resume() propagate through TJLedRef", "[jled_group]") {
     HalMock::Init();
     auto eval1 = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
     auto eval2 = MockBrightnessEvaluator(std::vector<uint8_t>{150, 50});
-    TestJLed led1 = TestJLed(HalMock(1)).UserFunc(&eval1).Repeat(1);
-    TestJLed led2 = TestJLed(HalMock(2)).UserFunc(&eval2).Repeat(1);
+    TestJLed led1 = TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval1).Repeat(1);
+    TestJLed led2 = TestJLed(InvertableHal<HalMock>(2)).UserFunc(&eval2).Repeat(1);
     TJLedRef refs[] = {&led1, &led2};
     auto group = TestJLedRefGroup::Parallel(refs);
 
@@ -560,7 +567,7 @@ TEST_CASE("Pause()/Resume() propagate through TJLedRef", "[jled_group]") {
 TEST_CASE("group kStart fires once, on the first Update() call", "[jled_group]") {
     HalMock::Init();
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval)};
+    TestJLedAny leds[] = {TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval)};
     auto group = TestJLedGroupAny::Parallel(leds, 1);
 
     TimeMock::set_millis(0);
@@ -576,7 +583,7 @@ TEST_CASE("group kStart fires once, on the first Update() call", "[jled_group]")
 TEST_CASE("group kStart re-arms after Reset()", "[jled_group]") {
     HalMock::Init();
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{200});
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval)};
+    TestJLedAny leds[] = {TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval)};
     auto group = TestJLedGroupAny::Parallel(leds, 1);
 
     TimeMock::set_millis(0);
@@ -595,7 +602,7 @@ TEST_CASE("group kDone fires exactly once, on the terminal tick (natural complet
           "[jled_group]") {
     HalMock::Init();
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval)};
+    TestJLedAny leds[] = {TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval)};
     auto group = TestJLedGroupAny::Parallel(leds, 1);
 
     int doneCount = 0;
@@ -611,7 +618,7 @@ TEST_CASE("group kDone fires exactly once, on the terminal tick (natural complet
 TEST_CASE("group kDone fires on Update() after Stop(), exactly once", "[jled_group]") {
     HalMock::Init();
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100, 50, 25});
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval)};
+    TestJLedAny leds[] = {TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval)};
     auto group = TestJLedGroupAny::Parallel(leds, 1);
 
     TimeMock::set_millis(0);
@@ -649,7 +656,7 @@ TEST_CASE("empty group fires kStart and kDone together on its one Update() call"
 TEST_CASE("group kDone re-arms after Reset() for a second full run", "[jled_group]") {
     HalMock::Init();
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{200});
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval)};
+    TestJLedAny leds[] = {TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval)};
     auto group = TestJLedGroupAny::Parallel(leds, 1);
 
     TimeMock::set_millis(0);
@@ -666,7 +673,7 @@ TEST_CASE("group kDone re-arms after Reset() for a second full run", "[jled_grou
 TEST_CASE("group OnStart/OnDone chaining invokes callbacks", "[jled_group]") {
     HalMock::Init();
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval)};
+    TestJLedAny leds[] = {TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval)};
     auto group = TestJLedGroupAny::Parallel(leds, 1);
 
     int startCount = 0, doneCount = 0;
@@ -689,7 +696,7 @@ TEST_CASE("GroupUpdateResult stays usable as a plain bool (backwards compatibili
           "[jled_group]") {
     HalMock::Init();
     auto eval1 = MockBrightnessEvaluator(std::vector<uint8_t>{200});
-    TestJLedAny leds1[] = {TestJLed(HalMock(1)).UserFunc(&eval1)};
+    TestJLedAny leds1[] = {TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval1)};
     auto group1 = TestJLedGroupAny::Parallel(leds1, 1);
 
     TimeMock::set_millis(0);
@@ -697,7 +704,7 @@ TEST_CASE("GroupUpdateResult stays usable as a plain bool (backwards compatibili
     CHECK_FALSE(x);  // single-tick element finishes on first tick
 
     auto eval2 = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
-    TestJLedAny leds2[] = {TestJLed(HalMock(2)).UserFunc(&eval2)};
+    TestJLedAny leds2[] = {TestJLed(InvertableHal<HalMock>(2)).UserFunc(&eval2)};
     auto group2 = TestJLedGroupAny::Parallel(leds2, 1);
 
     TimeMock::set_millis(0);
@@ -711,7 +718,7 @@ TEST_CASE("GroupUpdateResult stays usable as a plain bool (backwards compatibili
 TEST_CASE("group lifecycle events work through JLedRefGroup", "[jled_group]") {
     HalMock::Init();
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100, 50, 25});
-    TestJLed led1 = TestJLed(HalMock(1)).UserFunc(&eval).Repeat(1);
+    TestJLed led1 = TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval).Repeat(1);
     TJLedRef refs[] = {&led1};
     auto group = TestJLedRefGroup::Parallel(refs);
 
@@ -739,7 +746,7 @@ TEST_CASE("group kRepeatStart fires on the first Update() call, coincident with 
     HalMock::Init();
     auto mode = GENERATE(TestJLedGroupAny::eMode::SEQUENCE, TestJLedGroupAny::eMode::PARALLEL);
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval)};
+    TestJLedAny leds[] = {TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval)};
     auto group = TestJLedGroupAny(mode, leds, 1);
 
     TimeMock::set_millis(0);
@@ -761,7 +768,7 @@ TEST_CASE(
     HalMock::Init();
     auto mode = GENERATE(TestJLedGroupAny::eMode::SEQUENCE, TestJLedGroupAny::eMode::PARALLEL);
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval)};
+    TestJLedAny leds[] = {TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval)};
     auto group = TestJLedGroupAny(mode, leds, 1).Repeat(3);
 
     int repeatStartCount = 0;
@@ -779,7 +786,7 @@ TEST_CASE("group kRepeatStart does not fire on the terminal tick when no repetit
     HalMock::Init();
     auto mode = GENERATE(TestJLedGroupAny::eMode::SEQUENCE, TestJLedGroupAny::eMode::PARALLEL);
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval)};
+    TestJLedAny leds[] = {TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval)};
     auto group = TestJLedGroupAny(mode, leds, 1).Repeat(2);
 
     TimeMock::set_millis(0);
@@ -810,7 +817,7 @@ TEST_CASE("empty group also fires kRepeatStart together with kStart and kDone", 
 TEST_CASE("group kRepeatStart re-arms after Reset()", "[jled_group]") {
     HalMock::Init();
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{200});
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval)};
+    TestJLedAny leds[] = {TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval)};
     auto group = TestJLedGroupAny::Sequential(leds);
 
     TimeMock::set_millis(0);
@@ -827,7 +834,7 @@ TEST_CASE("group kRepeatStart re-arms after Reset()", "[jled_group]") {
 TEST_CASE("group OnRepeatStart callback invokes on each repetition boundary", "[jled_group]") {
     HalMock::Init();
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval)};
+    TestJLedAny leds[] = {TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval)};
     auto group = TestJLedGroupAny::Sequential(leds).Repeat(2);
 
     int repeatStartCount = 0;
@@ -852,8 +859,8 @@ TEST_CASE("OnElementEnter/OnElementLeave report correct indices across a 2-eleme
     HalMock::Init();
     auto eval1 = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
     auto eval2 = MockBrightnessEvaluator(std::vector<uint8_t>{50, 25});
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval1).Repeat(1),
-                          TestJLed(HalMock(2)).UserFunc(&eval2).Repeat(1)};
+    TestJLedAny leds[] = {TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval1).Repeat(1),
+                          TestJLed(InvertableHal<HalMock>(2)).UserFunc(&eval2).Repeat(1)};
     auto group = TestJLedGroupAny::Sequential(leds);
 
     TimeMock::set_millis(0);
@@ -905,8 +912,8 @@ TEST_CASE("OnElementEnter/OnElementLeave indices are correct across a Repeat(2) 
     HalMock::Init();
     auto eval1 = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
     auto eval2 = MockBrightnessEvaluator(std::vector<uint8_t>{50, 25});
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval1).Repeat(1),
-                          TestJLed(HalMock(2)).UserFunc(&eval2).Repeat(1)};
+    TestJLedAny leds[] = {TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval1).Repeat(1),
+                          TestJLed(InvertableHal<HalMock>(2)).UserFunc(&eval2).Repeat(1)};
     auto group = TestJLedGroupAny::Sequential(leds).Repeat(2);
 
     TimeMock::set_millis(0);
@@ -954,8 +961,8 @@ TEST_CASE("OnElementEnter/OnElementLeave do not fire in PARALLEL mode", "[jled_g
     HalMock::Init();
     auto eval1 = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
     auto eval2 = MockBrightnessEvaluator(std::vector<uint8_t>{50, 25});
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval1).Repeat(1),
-                          TestJLed(HalMock(2)).UserFunc(&eval2).Repeat(1)};
+    TestJLedAny leds[] = {TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval1).Repeat(1),
+                          TestJLed(InvertableHal<HalMock>(2)).UserFunc(&eval2).Repeat(1)};
     auto group = TestJLedGroupAny::Parallel(leds, 2);
 
     int enterCount = 0, leaveCount = 0;
@@ -1012,7 +1019,7 @@ TEST_CASE(
     "[jled_group]") {
     HalMock::Init();
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval)};
+    TestJLedAny leds[] = {TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval)};
     auto group = TestJLedGroupAny::Sequential(leds).Repeat(2);
 
     TimeMock::set_millis(0);
@@ -1051,8 +1058,8 @@ TEST_CASE("OnElementEnter/OnElementLeave report correct indices regardless of ch
     HalMock::Init();
     auto eval1 = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
     auto eval2 = MockBrightnessEvaluator(std::vector<uint8_t>{50, 25});
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval1).Repeat(1),
-                          TestJLed(HalMock(2)).UserFunc(&eval2).Repeat(1)};
+    TestJLedAny leds[] = {TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval1).Repeat(1),
+                          TestJLed(InvertableHal<HalMock>(2)).UserFunc(&eval2).Repeat(1)};
     auto group = TestJLedGroupAny::Sequential(leds);
 
     TimeMock::set_millis(0);
@@ -1076,8 +1083,8 @@ TEST_CASE("OnElementLeave hands back the element for JLedRefGroup (As<T> recover
     HalMock::Init();
     auto eval1 = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
     auto eval2 = MockBrightnessEvaluator(std::vector<uint8_t>{50, 25});
-    TestJLed led1 = TestJLed(HalMock(1)).UserFunc(&eval1).Repeat(1);
-    TestJLed led2 = TestJLed(HalMock(2)).UserFunc(&eval2).Repeat(1);
+    TestJLed led1 = TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval1).Repeat(1);
+    TestJLed led2 = TestJLed(InvertableHal<HalMock>(2)).UserFunc(&eval2).Repeat(1);
     TJLedRef refs[] = {&led1, &led2};
     auto group = TestJLedRefGroup::Sequential(refs);
 
@@ -1103,7 +1110,7 @@ TEST_CASE(
     auto mode = GENERATE(TestJLedGroupAny::eMode::SEQUENCE, TestJLedGroupAny::eMode::PARALLEL);
     // single-tick element: every Update() call is a repetition boundary
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{200});
-    TestJLedAny leds[] = {TestJLed(HalMock(1)).UserFunc(&eval)};
+    TestJLedAny leds[] = {TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval)};
     auto group = TestJLedGroupAny(mode, leds, 1).Repeat(3);
 
     TimeMock::set_millis(0);

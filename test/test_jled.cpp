@@ -12,17 +12,20 @@
 #include "brightness.h"
 #include "catch2/catch_amalgamated.hpp"
 #include "hal_mock.h"              // NOLINT
+#include "invertable_hal.h"        // NOLINT
 #include "mock_brightness_eval.h"  // NOLINT
 
+using jled::InvertableHal;
 using jled::TJLed;
 
-// TestJLed is a JLed class using the HalMock for tests. This allows to
-// test the code abstracted from the actual hardware in use.
-class TestJLed : public TJLed<HalMock, TimeMock, uint8_t, TestJLed> {
-    using TJLed<HalMock, TimeMock, uint8_t, TestJLed>::TJLed;
+// TestJLed is a JLed class using the HalMock (wrapped for the analogWrite(val,
+// invert) contract) for tests. This allows to test the code abstracted from
+// the actual hardware in use.
+class TestJLed : public TJLed<InvertableHal<HalMock>, TimeMock, uint8_t, TestJLed> {
+    using TJLed<InvertableHal<HalMock>, TimeMock, uint8_t, TestJLed>::TJLed;
 };
 // instanciate for test coverage measurement
-template class TJLed<HalMock, TimeMock, uint8_t, TestJLed>;
+template class TJLed<InvertableHal<HalMock>, TimeMock, uint8_t, TestJLed>;
 
 // Type aliases for 8-bit evaluators (used in tests)
 using BlinkBrightnessEvaluator = jled::BlinkBrightnessEvaluator<uint8_t>;
@@ -757,7 +760,7 @@ TEST_CASE("Stop() default mode is TO_MIN_BRIGHTNESS", "[jled]") {
 
 TEST_CASE("Stop() makes the next Update() fire kDone exactly once", "[jled]") {
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{10, 20, 30});
-    TestJLed jled = TestJLed(HalMock(1)).UserFunc(&eval);
+    TestJLed jled = TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval);
 
     TimeMock::set_millis(0);
     auto r0 = jled.Update();  // running
@@ -779,7 +782,7 @@ TEST_CASE("Stop() makes the next Update() fire kDone exactly once", "[jled]") {
 
 TEST_CASE("OnDone callback fires once after Stop()", "[jled]") {
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{10, 20, 30});
-    TestJLed jled = TestJLed(HalMock(1)).UserFunc(&eval);
+    TestJLed jled = TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval);
 
     int doneCount = 0;
     TimeMock::set_millis(0);
@@ -795,7 +798,7 @@ TEST_CASE("OnDone callback fires once after Stop()", "[jled]") {
 
 TEST_CASE("natural completion still fires kDone exactly once (regression)", "[jled]") {
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{10, 20});
-    TestJLed jled = TestJLed(HalMock(1)).UserFunc(&eval);
+    TestJLed jled = TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval);
 
     int doneCount = 0;
     for (uint32_t t = 0; t < 5; t++) {
@@ -807,7 +810,7 @@ TEST_CASE("natural completion still fires kDone exactly once (regression)", "[jl
 
 TEST_CASE("Reset() re-arms kDone after a Stop()", "[jled]") {
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{10, 20, 30});
-    TestJLed jled = TestJLed(HalMock(1)).UserFunc(&eval);
+    TestJLed jled = TestJLed(InvertableHal<HalMock>(1)).UserFunc(&eval);
 
     TimeMock::set_millis(0);
     jled.Update();
@@ -824,7 +827,7 @@ TEST_CASE("Reset() re-arms kDone after a Stop()", "[jled]") {
 }
 
 TEST_CASE("Stop() on an effect-less LED fires no kDone", "[jled]") {
-    TestJLed jled = TestJLed(HalMock(1));  // no UserFunc/effect set
+    TestJLed jled = TestJLed(InvertableHal<HalMock>(1));  // no UserFunc/effect set
     jled.Stop();
     TimeMock::set_millis(0);
     auto r = jled.Update();
@@ -946,7 +949,7 @@ TEST_CASE("After calling Forever() the effect is repeated over and over again ",
 
 TEST_CASE("The Hal object provided in the ctor is used during update", "[jled]") {
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{10, 20});
-    TestJLed jled = TestJLed(HalMock(123)).UserFunc(&eval);
+    TestJLed jled = TestJLed(InvertableHal<HalMock>(123)).UserFunc(&eval);
 
     CHECK(jled.GetHal().Pin() == 123);
 }
@@ -1135,7 +1138,7 @@ TEST_CASE("lerp8by8 interpolates a byte into the given interval", "[lerp8by8]") 
 }
 
 TEST_CASE("Pause() during ST_RUNNING sets LED to minBrightness", "[jled]") {
-    TestJLed jled(HalMock(1));
+    TestJLed jled(InvertableHal<HalMock>(1));
     jled.Blink(4, 4);  // on for t_cycle=0..3, off for t_cycle=4..7, done at t=8
 
     // Run to t=2 (mid-blink, brightness=255)
@@ -1155,7 +1158,7 @@ TEST_CASE("Pause() during ST_RUNNING sets LED to minBrightness", "[jled]") {
 }
 
 TEST_CASE("Resume() continues effect from freeze point", "[jled]") {
-    TestJLed jled(HalMock(1));
+    TestJLed jled(InvertableHal<HalMock>(1));
     jled.Blink(4, 4);  // on=[0..3], off=[4..7], period=8
 
     // Advance to t=2 (elapsed=2, on-phase)
@@ -1180,7 +1183,7 @@ TEST_CASE("Resume() continues effect from freeze point", "[jled]") {
 }
 
 TEST_CASE("Pause() in ST_STOPPED is a no-op", "[jled]") {
-    TestJLed jled(HalMock(1));
+    TestJLed jled(InvertableHal<HalMock>(1));
     jled.Blink(2, 2);
     jled.Update(0);
     jled.Stop();
@@ -1191,7 +1194,7 @@ TEST_CASE("Pause() in ST_STOPPED is a no-op", "[jled]") {
 }
 
 TEST_CASE("Pause() in ST_INIT delays effect start until Resume()", "[jled]") {
-    TestJLed jled(HalMock(1));
+    TestJLed jled(InvertableHal<HalMock>(1));
     jled.Blink(2, 2);  // on=[0,1], off=[2,3], period=4
 
     TimeMock::set_millis(0);
@@ -1213,7 +1216,7 @@ TEST_CASE("Pause() in ST_INIT delays effect start until Resume()", "[jled]") {
 }
 
 TEST_CASE("Pause() is idempotent", "[jled]") {
-    TestJLed jled(HalMock(1));
+    TestJLed jled(InvertableHal<HalMock>(1));
     jled.Blink(4, 4);
     jled.Update(0);  // time_start_=0
 
@@ -1230,7 +1233,7 @@ TEST_CASE("Pause() is idempotent", "[jled]") {
 }
 
 TEST_CASE("Resume() is idempotent", "[jled]") {
-    TestJLed jled(HalMock(1));
+    TestJLed jled(InvertableHal<HalMock>(1));
     jled.Blink(4, 4);
     jled.Update(0);
     TimeMock::set_millis(1);
@@ -1247,7 +1250,7 @@ TEST_CASE("Resume() is idempotent", "[jled]") {
 }
 
 TEST_CASE("copy of paused JLed preserves pause state", "[jled]") {
-    TestJLed jled(HalMock(1));
+    TestJLed jled(InvertableHal<HalMock>(1));
     jled.Blink(4, 4);
     jled.Update(0);
     jled.Update(2);
@@ -1266,7 +1269,7 @@ TEST_CASE("copy of paused JLed preserves pause state", "[jled]") {
 }
 
 TEST_CASE("Reset() clears pause state", "[jled]") {
-    TestJLed jled(HalMock(1));
+    TestJLed jled(InvertableHal<HalMock>(1));
     jled.Blink(4, 4);
     jled.Update(0);
     TimeMock::set_millis(1);
@@ -1282,7 +1285,7 @@ TEST_CASE("Reset() clears pause state", "[jled]") {
 }
 
 TEST_CASE("Stop() clears pause state", "[jled]") {
-    TestJLed jled(HalMock(1));
+    TestJLed jled(InvertableHal<HalMock>(1));
     jled.Blink(4, 4);
     jled.Update(0);
     TimeMock::set_millis(1);

@@ -22,9 +22,9 @@
 // analogWriteResolution(). Before the fix, JLedHD wrongly fell back to 8-bit here.
 TEST_CASE("ESP8266 core v3+: JLed maps to 8-bit, JLedHD to 10-bit HAL", "[jled][esp8266]") {
     // Compile-time: a wrong HAL selection fails the build, not just the run.
-    static_assert(std::is_same<jled::JLedHal, jled::ArduinoHal<8>>::value,
-                  "JLed must use ArduinoHal<8> on ESP8266 core v3+");
-    static_assert(std::is_same<jled::JLedHalHD, jled::ArduinoHal<10>>::value,
-                  "JLedHD must use ArduinoHal<10> on ESP8266 core v3+");
+    static_assert(std::is_same<jled::JLedHal, jled::InvertableHal<jled::ArduinoHal<8>>>::value,
+                  "JLed must use InvertableHal<ArduinoHal<8>> on ESP8266 core v3+");
+    static_assert(std::is_same<jled::JLedHalHD, jled::InvertableHal<jled::ArduinoHal<10>>>::value,
+                  "JLedHD must use InvertableHal<ArduinoHal<10>> on ESP8266 core v3+");
     SUCCEED("ESP8266 core v3+ HAL selection verified at compile time");
 }

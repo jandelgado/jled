@@ -279,12 +279,14 @@ class TJLed : public JLedBase {
     // Returns current maximum brightness level.
     Brightness MaxBrightness() const { return maxBrightness_; }
 
-    // Write val directly out to the hardware, inverting signal when
-    // active-low is set. Bypasses the effect state machine entirely, e.g.
-    // for forcing an output from a lifecycle callback (see UpdateResult).
+    // Write val directly out to the hardware. Bypasses the effect state
+    // machine ("raw" = no Update()/Eval()), not that val is already in
+    // hardware-native units: turning the effect-space value into the final
+    // physical write (resolution scaling, and inversion for low-active
+    // wiring) is entirely the HAL's job. Used e.g. for forcing an output
+    // from a lifecycle callback (see UpdateResult).
     Derived& WriteRaw(Brightness val) {
-        constexpr auto kFullBright = BrightnessTraits<Brightness>::kFullBrightness;
-        hal_.template analogWrite<Brightness>(IsLowActive() ? kFullBright - val : val);
+        hal_.template analogWrite<Brightness>(val, IsLowActive());
         return static_cast<Derived&>(*this);
     }
 
