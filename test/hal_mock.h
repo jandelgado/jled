@@ -14,7 +14,7 @@ class HalMock {
     explicit HalMock(PinType pin) : pin_(pin) {}
 
     template<typename Brightness>
-    void analogWrite(Brightness val) {
+    void analogWrite(Brightness val) const {
         val_ = static_cast<uint16_t>(val);
         pin_values()[pin_] = val_;
     }
@@ -32,7 +32,7 @@ class HalMock {
     }
 
  private:
-    uint16_t val_ = 0;
+    mutable uint16_t val_ = 0;
     PinType pin_ = 0;
 
     static uint16_t* pin_values() {
