@@ -67,11 +67,8 @@ using JLedClockType = MbedClock;
 #elif defined(ESP32) && !defined(JLED_FORCE_ARDUINO_HAL)
 #include "esp32_hal.h"  // NOLINT
 namespace jled {
-// ESP32 LEDC has a hardware output-invert bit, but flipping it means a full
-// ledc_channel_config() re-init (duty read-back, hpoint, timer_sel) rather than
-// a cheap register write, so we rely on InvertableHal's software fallback.
-using JLedHal = InvertableHal<Esp32Hal<8, LEDC_TIMER_0> >;
-using JLedHalHD = InvertableHal<Esp32Hal<13, LEDC_TIMER_1> >;
+using JLedHal = Esp32Hal<8, LEDC_TIMER_0>;
+using JLedHalHD = Esp32Hal<13, LEDC_TIMER_1>;
 using JLedClockType = Esp32Clock;
 }  // namespace jled
 
