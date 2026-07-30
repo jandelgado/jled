@@ -32,6 +32,15 @@
   unmodified single-argument `analogWrite(Color)` to the new signature at zero storage
   cost. All bundled HALs (Arduino, ESP32, ESP8266, mbed, Pico) use `InvertableHal`'s
   software fallback
+- breaking (HAL authors only): the HAL concept gains a required `SetLowActive(bool)`
+  method, called once from `LowActive()`. HALs with a hardware polarity register use it
+  to pre-arm the register; HALs without one (all `InvertableHal`-wrapped HALs) implement
+  it as a no-op, since `analogWrite(val, invert)` already applies inversion on every
+  call. A custom HAL written before this change needs to add the method, or wrap the HAL
+  in `InvertableHal<Hal>` to get the no-op for free. `Esp32Hal` and `PicoHal` now use this
+  to invert natively (a GPIO-matrix bit via `gpio_matrix_out()`, and a masked PWM CSR
+  write via `hw_write_masked()`, respectively) instead of `InvertableHal`'s software
+  fallback
 
 ## [2024-12-01] 4.15.0
 

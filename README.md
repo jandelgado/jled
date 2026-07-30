@@ -638,10 +638,12 @@ will be inverted (i.e., instead of x, the value of `FullBrightness - x` will be
 set, where `FullBrightness` is 255 for `JLed` and 65535 for `JLedHD`).
 Use `IsLowActive()` to query whether the LED is configured as low active.
 
-Inversion is performed by the HAL layer, via `InvertableHal`'s software
-fallback on all bundled platforms. This is transparent to `JLed`/`JLedHD`
-users; it only matters if you are writing a custom HAL, see the "New HAL"
-section in `CLAUDE.md`.
+Inversion is performed by the HAL layer: on ESP32 and Raspberry Pi Pico it is
+done in hardware (a GPIO-matrix / PWM-CSR polarity bit, armed once when
+`LowActive()` is called), with `InvertableHal`'s software fallback used on
+every other bundled platform. This is transparent to `JLed`/`JLedHD` users;
+it only matters if you are writing a custom HAL, see the "New HAL" section in
+`CLAUDE.md`.
 
 #### Minimum- and Maximum brightness level
 
@@ -1287,6 +1289,7 @@ class CustomJLed : public jled::TJLed<CustomHal, CustomJLed> { ... };
 // after
 class CustomHal {
     void analogWrite(uint8_t val, bool invert) const;  // millis() gone; invert added for low-active support
+    void SetLowActive(bool invert) const;  // new: required; no-op if there's no polarity register
 };
 class CustomJLed : public jled::TJLed<CustomHal, jled::JLedClockType, uint8_t, CustomJLed> { ... };
 ```
@@ -1294,7 +1297,7 @@ class CustomJLed : public jled::TJLed<CustomHal, jled::JLedClockType, uint8_t, C
 See the [custom_hal](examples/custom_hal) example for a complete implementation. See the
 [Low active for inverted output](#low-active-for-inverted-output) section for the
 `analogWrite(val, invert)` contract, and `InvertableHal<Hal>` if your HAL has no native inversion
-capability.
+capability (it implements `SetLowActive(bool)` as a no-op).
 
 Reason: a platform may have multiple PWM HALs (for example the built-in one plus an external PCA9685
 driver) but only a single clock. Separating them avoids duplicating time logic across HALs. Making
