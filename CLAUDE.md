@@ -55,7 +55,7 @@ Catch2 (amalgamated in `test/catch2/`). `TEST_CASE("what", "[tag]")`, `SECTION()
 ## Common Tasks
 
 - **New effect**: evaluator in `src/jled_effects.h`, fluent method in `src/jled_base.h` (ref `BlinkBrightnessEvaluator` / `TJLed::Blink`). Add tests, an example, a `README.md` entry.
-- **New HAL**: copy `src/arduino_hal.h`, add detection in `src/jled.h`, add `test/test_[platform]_hal.cpp`.
+- **New HAL**: copy `src/arduino_hal.h`, add detection in `src/jled.h`, add `test/test_[platform]_hal.cpp`. The HAL concept's `analogWrite()` requires two arguments, `analogWrite<Color>(Color val, bool invert)`; if your HAL has no native inversion capability, implement a plain single-argument `analogWrite(Color val)` and wrap it in `InvertableHal<YourHal>` (`src/invertable_hal.h`) to get software inversion for free.
 - **Bug fix**: failing test first, then fix, then `make test`, `make coverage`, `make lint`.
 
 Every change adds tests. Run `make lint && make test` before commit. Don't change a test to make it pass; fix the code. Correctness over completeness: don't guess or invent APIs/files/configs; label assumptions; ask when unsure.

@@ -24,6 +24,14 @@
 - new: high resolution (up to 16-bit effect) with `JLedHD`
 - new/breaking: `JLedGroup`/`JLedRefGroup` as a flexible `JLedSequence` replacement
 - new: `Blink` effect now has a repeat parameter
+- breaking (HAL authors only): the HAL concept's `analogWrite()` gains a required second
+  parameter, `analogWrite<Color>(Color val, bool invert)`. `LowActive()`/`IsLowActive()`
+  and all other public JLed/JLedHD/JLedGroup/JLedAny API is unaffected. A custom HAL
+  written before this change needs to either add the parameter directly, or wrap the HAL
+  in the new `InvertableHal<Hal>` decorator (`src/invertable_hal.h`), which adapts an
+  unmodified single-argument `analogWrite(Color)` to the new signature at zero storage
+  cost. All bundled HALs (Arduino, ESP32, ESP8266, mbed, Pico) use `InvertableHal`'s
+  software fallback
 
 ## [2024-12-01] 4.15.0
 

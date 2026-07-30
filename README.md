@@ -634,9 +634,14 @@ the entire group freezes and resumes in sync.
 #### Low active for inverted output
 
 Use the `LowActive()` method when the connected LED is low active. All output
-will be inverted by JLed (i.e., instead of x, the value of `FullBrightness - x`
-will be set, where `FullBrightness` is 255 for `JLed` and 65535 for `JLedHD`).
+will be inverted (i.e., instead of x, the value of `FullBrightness - x` will be
+set, where `FullBrightness` is 255 for `JLed` and 65535 for `JLedHD`).
 Use `IsLowActive()` to query whether the LED is configured as low active.
+
+Inversion is performed by the HAL layer, via `InvertableHal`'s software
+fallback on all bundled platforms. This is transparent to `JLed`/`JLedHD`
+users; it only matters if you are writing a custom HAL, see the "New HAL"
+section in `CLAUDE.md`.
 
 #### Minimum- and Maximum brightness level
 
@@ -1281,12 +1286,15 @@ class CustomJLed : public jled::TJLed<CustomHal, CustomJLed> { ... };
 
 // after
 class CustomHal {
-    void analogWrite(uint8_t val) const;  // millis() gone
+    void analogWrite(uint8_t val, bool invert) const;  // millis() gone; invert added for low-active support
 };
 class CustomJLed : public jled::TJLed<CustomHal, jled::JLedClockType, uint8_t, CustomJLed> { ... };
 ```
 
-See the [custom_hal](examples/custom_hal) example for a complete implementation.
+See the [custom_hal](examples/custom_hal) example for a complete implementation. See the
+[Low active for inverted output](#low-active-for-inverted-output) section for the
+`analogWrite(val, invert)` contract, and `InvertableHal<Hal>` if your HAL has no native inversion
+capability.
 
 Reason: a platform may have multiple PWM HALs (for example the built-in one plus an external PCA9685
 driver) but only a single clock. Separating them avoids duplicating time logic across HALs. Making
