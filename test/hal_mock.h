@@ -6,6 +6,14 @@
 #ifndef TEST_HAL_MOCK_H_
 #define TEST_HAL_MOCK_H_
 
+#include "brightness.h"  // jled::BrightnessTraits
+
+// HalMock implements the JLed HAL protocol directly (analogWrite(val,
+// invert) + SetLowActive(bool)), applying inversion in software like any
+// plain HAL without a hardware polarity register would. It is not wrapped
+// in InvertableHal: that adapter is production code with its own dedicated
+// test (test_invertable_hal.cpp) and has no business in these state-machine
+// tests.
 class HalMock {
  public:
     using PinType = uint8_t;
@@ -14,13 +22,21 @@ class HalMock {
     explicit HalMock(PinType pin) : pin_(pin) {}
 
     template<typename Brightness>
-    void analogWrite(Brightness val) const {
-        val_ = static_cast<uint16_t>(val);
+    void analogWrite(Brightness val, bool invert) const {
+        val_ = static_cast<uint16_t>(
+            invert ? jled::BrightnessTraits<Brightness>::kFullBrightness - val : val);
         pin_values()[pin_] = val_;
+    }
+
+    void SetLowActive(bool f) const {
+        set_low_active_call_count_++;
+        set_low_active_value_ = f;
     }
 
     uint8_t Pin() const { return pin_; }
     uint16_t Value() const { return val_; }
+    int SetLowActiveCallCount() const { return set_low_active_call_count_; }
+    bool SetLowActiveValue() const { return set_low_active_value_; }
 
     // Global pin-state table: allows reading back brightness from LEDs stored
     // inside type-erased containers (where GetHal() is not accessible).
@@ -34,6 +50,8 @@ class HalMock {
  private:
     mutable uint16_t val_ = 0;
     PinType pin_ = 0;
+    mutable int set_low_active_call_count_ = 0;
+    mutable bool set_low_active_value_ = false;
 
     static uint16_t* pin_values() {
         static uint16_t values[256] = {};

@@ -11,7 +11,10 @@ extern Esp32State* gState_;
 
 esp_err_t ledc_channel_config(const ledc_channel_config_t* ledc_conf) {
     assert(gState_);
+    assert(ledc_conf->channel >= LEDC_CHANNEL_0 && ledc_conf->channel < LEDC_CHANNEL_MAX);
     gState_->channel_config = *ledc_conf;
+    gState_->duty[ledc_conf->channel] = ledc_conf->duty;
+    gState_->hpoint[ledc_conf->channel] = ledc_conf->hpoint;
     return (esp_err_t)0;
 }
 
@@ -32,5 +35,18 @@ esp_err_t ledc_set_duty(ledc_mode_t speed_mode, ledc_channel_t channel, uint32_t
     assert(gState_);
     assert(channel >= LEDC_CHANNEL_0 && channel < LEDC_CHANNEL_MAX);
     gState_->set_duty[channel] = esp32_mock_ledc_set_duty_args{speed_mode, duty};
+    gState_->duty[channel] = duty;
     return (esp_err_t)0;
+}
+
+uint32_t ledc_get_duty(ledc_mode_t /*speed_mode*/, ledc_channel_t channel) {
+    assert(gState_);
+    assert(channel >= LEDC_CHANNEL_0 && channel < LEDC_CHANNEL_MAX);
+    return gState_->duty[channel];
+}
+
+int ledc_get_hpoint(ledc_mode_t /*speed_mode*/, ledc_channel_t channel) {
+    assert(gState_);
+    assert(channel >= LEDC_CHANNEL_0 && channel < LEDC_CHANNEL_MAX);
+    return gState_->hpoint[channel];
 }

@@ -5,13 +5,32 @@
 #include <invertable_hal.h>  // NOLINT
 
 #include "catch2/catch_amalgamated.hpp"
-#include "hal_mock.h"  // NOLINT
 
 using jled::ArduinoHal;
 using jled::InvertableHal;
 
-TEST_CASE("InvertableHal<HalMock> analogWrite", "[invertable_hal]") {
-    InvertableHal<HalMock> hal(1);
+// A plain HAL with the single-argument analogWrite(val) contract InvertableHal
+// adapts, i.e. a HAL with no native inversion capability of its own.
+class SingleArgHal {
+ public:
+    using PinType = uint8_t;
+
+    explicit SingleArgHal(PinType pin) : pin_(pin) {}
+
+    template<typename Brightness>
+    void analogWrite(Brightness val) const {
+        val_ = static_cast<uint16_t>(val);
+    }
+
+    uint16_t Value() const { return val_; }
+
+ private:
+    PinType pin_;
+    mutable uint16_t val_ = 0;
+};
+
+TEST_CASE("InvertableHal<SingleArgHal> analogWrite", "[invertable_hal]") {
+    InvertableHal<SingleArgHal> hal(1);
 
     SECTION("passthrough when invert is false (uint8_t)") {
         hal.analogWrite<uint8_t>(123, false);

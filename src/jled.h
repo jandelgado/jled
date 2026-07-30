@@ -67,8 +67,15 @@ using JLedClockType = MbedClock;
 #elif defined(ESP32) && !defined(JLED_FORCE_ARDUINO_HAL)
 #include "esp32_hal.h"  // NOLINT
 namespace jled {
+#if JLED_ESP32_HAS_LEDC_OUTPUT_INVERT
 using JLedHal = Esp32Hal<8, LEDC_TIMER_0>;
 using JLedHalHD = Esp32Hal<13, LEDC_TIMER_1>;
+#else
+// Pre-4.4 ESP-IDF has no documented hardware invert for LEDC (see
+// esp32_hal.h); invert in software instead, same as Arduino/ESP8266/mbed.
+using JLedHal = InvertableHal<Esp32Hal<8, LEDC_TIMER_0> >;
+using JLedHalHD = InvertableHal<Esp32Hal<13, LEDC_TIMER_1> >;
+#endif
 using JLedClockType = Esp32Clock;
 }  // namespace jled
 

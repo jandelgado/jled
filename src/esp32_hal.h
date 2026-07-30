@@ -32,11 +32,22 @@
 #pragma once
 
 #include <driver/ledc.h>
+#include <esp_idf_version.h>
 #include <esp_timer.h>
 #include <stdint.h>
 
 #include "brightness.h"
 #include "jled_std.h"
+
+// The LEDC driver's own output_invert flag (driver/ledc.h) is only available
+// starting with ESP-IDF v4.4 (added in
+// https://github.com/espressif/esp-idf/commit/48c848a1, absent from the v4.3
+// maintenance branch). Older SDKs have no documented hardware invert for
+// LEDC: on those, Esp32Hal below doesn't define analogWrite(val, invert) or
+// SetLowActive() at all, and jled.h wraps Esp32Hal in InvertableHal instead,
+// the same software-invert fallback used for Arduino/ESP8266/mbed.
+#define JLED_ESP32_HAS_LEDC_OUTPUT_INVERT \
+    (ESP_IDF_VERSION_MAJOR > 4 || (ESP_IDF_VERSION_MAJOR == 4 && ESP_IDF_VERSION_MINOR >= 4))
 
 namespace jled {
 
@@ -71,6 +82,9 @@ class Esp32ChanMapper {
         return (ledc_channel_t)i;
     }
 
+    PinType pinForChan(ledc_channel_t chan) const { return chanMap_[chan]; }
+    void registerPin(ledc_channel_t chan, PinType pin) { chanMap_[chan] = pin; }
+
  private:
     PinType nextChan_ = 0;
     PinType chanMap_[kLedcMaxChan];
@@ -102,8 +116,13 @@ class Esp32Hal : public Esp32HalBase {
     // freq  LEDC base frequency in Hz (default: 5000).
     // The PWM resolution (kResBits_) and timer (kTimer_) are template parameters.
     explicit Esp32Hal(PinType pin, int chan = kAutoSelectChan, uint16_t freq = 5000) noexcept {
-        chan_ = (chan == kAutoSelectChan) ? Esp32Hal::chanMapper().chanForPin(pin)
-                                          : (ledc_channel_t)chan;
+        if (chan == kAutoSelectChan) {
+            // chanForPin() already registers the pin for the channel it returns.
+            chan_ = Esp32Hal::chanMapper().chanForPin(pin);
+        } else {
+            chan_ = (ledc_channel_t)chan;
+            Esp32Hal::chanMapper().registerPin(chan_, pin);
+        }
 
         ledc_timer_config_t ledc_timer{};
         ledc_timer.speed_mode = kLedcSpeedMode;
@@ -115,17 +134,7 @@ class Esp32Hal : public Esp32HalBase {
 #endif
         ledc_timer_config(&ledc_timer);
 
-        ledc_channel_config_t ledc_channel{};
-        ledc_channel.gpio_num = pin;
-        ledc_channel.speed_mode = kLedcSpeedMode;
-        ledc_channel.channel = chan_;
-        ledc_channel.intr_type = LEDC_INTR_DISABLE;
-        ledc_channel.timer_sel = kTimer_;
-        ledc_channel.duty = 0;
-        ledc_channel.hpoint = 0;
-#if ESP_IDF_VERSION_MAJOR > 4
-        ledc_channel.flags.output_invert = 0;
-#endif
+        auto ledc_channel = makeChannelConfig(pin, 0);
         ledc_channel_config(&ledc_channel);
     }
 
@@ -149,10 +158,57 @@ class Esp32Hal : public Esp32HalBase {
         ledc_update_duty(kLedcSpeedMode, chan_);
     }
 
+#if JLED_ESP32_HAS_LEDC_OUTPUT_INVERT
+    template<typename Brightness>
+    void analogWrite(Brightness val, bool /*invert*/) const {
+        // Inversion is fully owned by SetLowActive()'s output_invert flag
+        // below; this HAL inverts in hardware, so it never needs to inspect
+        // invert on a per-call basis the way a software-fallback HAL would.
+        analogWrite(val);
+    }
+
+    // Inverts the channel's output in hardware via the LEDC driver's own
+    // output_invert flag. May be called at any time, including mid-effect
+    // (LowActive() can be toggled on and off), so it reads back the LEDC
+    // driver's own current duty/hpoint via ledc_get_duty()/ledc_get_hpoint()
+    // and writes them back unchanged, instead of caching them itself: this
+    // way the currently displayed brightness survives the polarity flip.
+    // A plain duty of 0 is the exception: at duty 0 the LEDC comparator
+    // never toggles, so output_invert has nothing to flip and the pin would
+    // stay low instead of the expected off/high; use the same full-duty
+    // value the full-on fix in analogWrite() uses so the invert actually
+    // applies, keeping the LED off by default in both polarities.
+    void SetLowActive(bool f) const {
+        const auto pin = chanMapper().pinForChan(chan_);
+        const auto duty = ledc_get_duty(kLedcSpeedMode, chan_);
+        auto ledc_channel = makeChannelConfig(pin, duty == 0 ? (f ? kMaxBrightness + 1 : 0) : duty);
+        ledc_channel.hpoint = ledc_get_hpoint(kLedcSpeedMode, chan_);
+        ledc_channel.flags.output_invert = f;
+        ledc_channel_config(&ledc_channel);
+    }
+#endif  // JLED_ESP32_HAS_LEDC_OUTPUT_INVERT
+
     PinType chan() const { return chan_; }
 
  private:
     static constexpr uint16_t kMaxBrightness = (1u << kResBits_) - 1;
+
+    // Builds the shared part of a ledc_channel_config_t. output_invert is
+    // deliberately left untouched here: that struct field only exists from
+    // ESP-IDF v4.4 on (see JLED_ESP32_HAS_LEDC_OUTPUT_INVERT), while this
+    // helper is also called unconditionally from the constructor.
+    ledc_channel_config_t makeChannelConfig(PinType pin, uint32_t duty) const {
+        ledc_channel_config_t ledc_channel{};
+        ledc_channel.gpio_num = pin;
+        ledc_channel.speed_mode = kLedcSpeedMode;
+        ledc_channel.channel = chan_;
+        ledc_channel.intr_type = LEDC_INTR_DISABLE;
+        ledc_channel.timer_sel = kTimer_;
+        ledc_channel.duty = duty;
+        ledc_channel.hpoint = 0;
+        return ledc_channel;
+    }
+
     ledc_channel_t chan_;
 };
 

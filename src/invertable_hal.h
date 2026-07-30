@@ -39,6 +39,10 @@ class InvertableHal : public Hal {
 
     template<typename Color>
     void analogWrite(Color val, bool invert) const {
+        // Unlike a HAL with native invert (e.g. Esp32Hal), which discards
+        // invert here because SetLowActive() already applied it in hardware,
+        // this is where invert actually gets applied: val is flipped in
+        // software before being forwarded to Hal's plain analogWrite(val).
         Hal::template analogWrite<Color>(invert ? BrightnessTraits<Color>::kFullBrightness - val
                                                 : val);
     }
