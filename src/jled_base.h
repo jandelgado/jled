@@ -103,9 +103,14 @@ class TJLed : public JLedBase {
     Hal& GetHal() { return hal_; }
 
     // Set physical LED polarity to be low active. This inverts every
-    // signal physically output to a pin.
+    // signal physically output to a pin. Every HAL must implement
+    // SetLowActive(bool); it is notified once here so a HAL with a hardware
+    // polarity register can pre-arm it instead of inspecting invert on every
+    // analogWrite(). HALs without one implement it as a no-op (see
+    // InvertableHal).
     Derived& LowActive() {
         bLowActive_ = true;
+        hal_.SetLowActive(bLowActive_);
         return static_cast<Derived&>(*this);
     }
 

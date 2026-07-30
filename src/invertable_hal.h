@@ -42,6 +42,10 @@ class InvertableHal : public Hal {
         Hal::template analogWrite<Color>(invert ? BrightnessTraits<Color>::kFullBrightness - val
                                                 : val);
     }
+
+    // Hal has no hardware polarity register; invert is already applied above
+    // on every analogWrite(), so there is nothing to pre-arm here.
+    void SetLowActive(bool) const {}
 };
 
 }  // namespace jled
