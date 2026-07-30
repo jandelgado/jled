@@ -89,6 +89,21 @@ class PicoHal {
         pwm_set_chan_level(slice_num_, channel_, full_duty);
     }
 
+    template<typename Brightness>
+    void analogWrite(Brightness val, bool /*invert*/) const {
+        // Inversion is fully owned by SetLowActive()'s CSR bit below; this
+        // HAL inverts in hardware, so it never needs to inspect invert on a
+        // per-call basis the way a software-fallback HAL would.
+        analogWrite(val);
+    }
+
+    void SetLowActive(bool f) const {
+        const auto lsb = (channel_ == PWM_CHAN_A) ? PWM_CH0_CSR_A_INV_LSB : PWM_CH0_CSR_B_INV_LSB;
+        const auto bits =
+            (channel_ == PWM_CHAN_A) ? PWM_CH0_CSR_A_INV_BITS : PWM_CH0_CSR_B_INV_BITS;
+        hw_write_masked(&pwm_hw->slice[slice_num_].csr, bool_to_bit(f) << lsb, bits);
+    }
+
  private:
     uint8_t slice_num_, channel_;
 };

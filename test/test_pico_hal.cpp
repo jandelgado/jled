@@ -96,6 +96,52 @@ TEST_CASE_METHOD(PicoMockFixture, "PicoHal<16> analogWrite", "[pico_hal]") {
     }
 }
 
+TEST_CASE_METHOD(PicoMockFixture, "PicoHal<> SetLowActive", "[pico_hal]") {
+    PicoHal<> hal(kPin);  // pin 10 -> slice 5, channel A (0)
+
+    SECTION("SetLowActive(true) sets this channel's CSR invert bit") {
+        hal.SetLowActive(true);
+        REQUIRE(mock.getPwmInvert(kSlice, kChan) == true);
+    }
+
+    SECTION("SetLowActive(false) clears this channel's CSR invert bit") {
+        hal.SetLowActive(true);
+        hal.SetLowActive(false);
+        REQUIRE(mock.getPwmInvert(kSlice, kChan) == false);
+    }
+}
+
+TEST_CASE_METHOD(PicoMockFixture, "PicoHal<> SetLowActive does not clobber sibling channel",
+                 "[pico_hal]") {
+    // GPIO10 -> slice 5, channel A (0); GPIO11 -> slice 5, channel B (1)
+    PicoHal<> hal_a(10);
+    PicoHal<> hal_b(11);
+
+    hal_a.SetLowActive(true);
+    REQUIRE(mock.getPwmInvert(5, 0) == true);
+    REQUIRE(mock.getPwmInvert(5, 1) == false);
+
+    hal_b.SetLowActive(true);
+    REQUIRE(mock.getPwmInvert(5, 0) == true);  // hal_a's bit preserved
+    REQUIRE(mock.getPwmInvert(5, 1) == true);
+
+    hal_a.SetLowActive(false);
+    REQUIRE(mock.getPwmInvert(5, 0) == false);
+    REQUIRE(mock.getPwmInvert(5, 1) == true);  // hal_b's bit preserved
+}
+
+TEST_CASE_METHOD(PicoMockFixture, "PicoHal<> analogWrite ignores invert", "[pico_hal]") {
+    PicoHal<> hal(kPin);
+
+    hal.analogWrite<uint8_t>(123, true);
+    const auto level_true = mock.getPwmChanLevel(kSlice, kChan);
+
+    hal.analogWrite<uint8_t>(123, false);
+    const auto level_false = mock.getPwmChanLevel(kSlice, kChan);
+
+    REQUIRE(level_true == level_false);
+}
+
 TEST_CASE_METHOD(PicoMockFixture, "PicoClock::millis()", "[pico_hal]") {
     SECTION("returns 0 at boot") {
         mock.setBootTimeUs(0);
