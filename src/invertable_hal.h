@@ -39,8 +39,8 @@ class InvertableHal : public Hal {
 
     template<typename Color>
     void analogWrite(Color val, bool invert) const {
-        Hal::template analogWrite<Color>(
-            invert ? BrightnessTraits<Color>::kFullBrightness - val : val);
+        Hal::template analogWrite<Color>(invert ? BrightnessTraits<Color>::kFullBrightness - val
+                                                : val);
     }
 };
 

@@ -1,9 +1,8 @@
 // JLed unit tests for the InvertableHal<Hal> adapter (run on host).
 // Copyright 2026 Jan Delgado jdelgado@gmx.net
-#include <invertable_hal.h>  // NOLINT
-
 #include <Arduino.h>
-#include <arduino_hal.h>  // NOLINT
+#include <arduino_hal.h>     // NOLINT
+#include <invertable_hal.h>  // NOLINT
 
 #include "catch2/catch_amalgamated.hpp"
 #include "hal_mock.h"  // NOLINT
