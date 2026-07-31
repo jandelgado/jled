@@ -63,7 +63,20 @@ T lut_lerp(uint32_t t, uint16_t period, const T (&lut)[N]) {
     const auto y0 = lut[i];
     const auto y1 = lut[i + 1];
     const uint16_t x0 = i << kSegShift;
-    return static_cast<T>((((tnorm - x0) * (y1 - y0)) >> kSegShift) + y0);
+    const uint16_t dx = tnorm - x0;
+    // For 8-bit LUTs, dx and (y1-y0) are both <= 255, so their product always
+    // fits in 16 bits and can be computed natively. For 16-bit LUTs, dx can
+    // be up to ~2^kSegShift and (y1-y0) up to ~2^16, so their product can
+    // exceed 65535 and must be widened to 32 bits. On platforms where int is
+    // 32 bits the 8-bit case happens to work out either way via integer
+    // promotion, but on AVR (e.g. ATmega328P) int/unsigned int is only 16
+    // bits, so the unconditional 32-bit widening would incur an expensive
+    // 32-bit multiply/shift even when not needed.
+    if (sizeof(T) == 1) {
+        return static_cast<T>((dx * (y1 - y0) >> kSegShift) + y0);
+    } else {
+        return static_cast<T>((static_cast<uint32_t>(dx) * (y1 - y0) >> kSegShift) + y0);
+    }
 }
 
 // Template helper functions - implemented below after evaluator definitions
