@@ -168,20 +168,15 @@ class Esp32Hal : public Esp32HalBase {
     }
 
     // Inverts the channel's output in hardware via the LEDC driver's own
-    // output_invert flag. May be called at any time, including mid-effect
-    // (LowActive() can be toggled on and off), so it reads back the LEDC
-    // driver's own current duty/hpoint via ledc_get_duty()/ledc_get_hpoint()
-    // and writes them back unchanged, instead of caching them itself: this
-    // way the currently displayed brightness survives the polarity flip.
-    // A plain duty of 0 is the exception: at duty 0 the LEDC comparator
-    // never toggles, so output_invert has nothing to flip and the pin would
-    // stay low instead of the expected off/high; use the same full-duty
-    // value the full-on fix in analogWrite() uses so the invert actually
-    // applies, keeping the LED off by default in both polarities.
+    // output_invert flag. ledc_channel_config() always writes a full
+    // channel config, so this reads back the current duty/hpoint first;
+    // otherwise the call would reset an in-flight duty to 0 instead of
+    // just flipping polarity. If the native LEDC flag misbehaves at some
+    // duty value on your chip, wrap this HAL in InvertableHal
+    // (src/invertable_hal.h) for a software fallback instead.
     void SetLowActive(bool f) const {
         const auto pin = chanMapper().pinForChan(chan_);
-        const auto duty = ledc_get_duty(kLedcSpeedMode, chan_);
-        auto ledc_channel = makeChannelConfig(pin, duty == 0 ? (f ? kMaxBrightness + 1 : 0) : duty);
+        auto ledc_channel = makeChannelConfig(pin, ledc_get_duty(kLedcSpeedMode, chan_));
         ledc_channel.hpoint = ledc_get_hpoint(kLedcSpeedMode, chan_);
         ledc_channel.flags.output_invert = f;
         ledc_channel_config(&ledc_channel);

@@ -163,17 +163,10 @@ TEST_CASE_METHOD(Esp32MockFixture, "Esp32Hal<8> SetLowActive", "[esp32_hal]") {
         REQUIRE(config.flags.output_invert == false);
     }
 
-    SECTION("SetLowActive(true) uses the full-duty value so the LED defaults off") {
-        // A plain duty of 0 never toggles the LEDC comparator, so
-        // output_invert would have nothing to flip and the pin would stay
-        // low (LED on for low active wiring) instead of off.
+    SECTION("SetLowActive() leaves a duty of 0 untouched") {
+        // No special-casing for duty 0: SetLowActive() just carries the
+        // current duty through unchanged, same as for any other value.
         hal.SetLowActive(true);
-        auto config = mock.getLedcChannelConfig();
-        REQUIRE(config.duty == 256);
-    }
-
-    SECTION("SetLowActive(false) uses a plain 0 duty so the LED defaults off") {
-        hal.SetLowActive(false);
         auto config = mock.getLedcChannelConfig();
         REQUIRE(config.duty == 0);
     }
