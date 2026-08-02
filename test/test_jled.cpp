@@ -903,6 +903,21 @@ TEST_CASE("LowActive() calls the HAL's SetLowActive() hook", "[jled]") {
     CHECK(jled.GetHal().SetLowActiveValue());
 }
 
+TEST_CASE("LowActive(false) restores normal, high active output", "[jled]") {
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{0, 255});
+    TestJLed jled = TestJLed(1).UserFunc(&eval).LowActive().LowActive(false);
+
+    CHECK_FALSE(jled.IsLowActive());
+    CHECK(2 == jled.GetHal().SetLowActiveCallCount());
+    CHECK_FALSE(jled.GetHal().SetLowActiveValue());
+
+    jled.Update(0);
+    CHECK(0 == jled.GetHal().Value());
+
+    jled.Update(1);
+    CHECK(255 == jled.GetHal().Value());
+}
+
 TEST_CASE("effect with repeat 2 repeats sequence once", "[jled]") {
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{10, 20});
     TestJLed jled = TestJLed(10).UserFunc(&eval).Repeat(2);

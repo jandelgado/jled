@@ -633,17 +633,14 @@ the entire group freezes and resumes in sync.
 
 #### Low active for inverted output
 
-Use the `LowActive()` method when the connected LED is low active. All output
-will be inverted (i.e., instead of x, the value of `FullBrightness - x` will be
-set, where `FullBrightness` is 255 for `JLed` and 65535 for `JLedHD`).
+Use the `LowActive()` method when the connected LED is low active (common anode). All output
+will be inverted then. Call `LowActive(false)` to switch back to normal (high active) output.
 Use `IsLowActive()` to query whether the LED is configured as low active.
 
 Inversion is performed by the HAL layer: on Raspberry Pi Pico, and on ESP32 with ESP-IDF
 ≥ 4.4, it is done in hardware (a PWM-CSR polarity bit / the LEDC driver's `output_invert`
-flag, armed once when `LowActive()` is called), with `InvertableHal`'s software fallback
-used on ESP-IDF < 4.4 and every other bundled platform. This is transparent to `JLed`/`JLedHD` users;
-it only matters if you are writing a custom HAL, see the "New HAL" section in
-`CLAUDE.md`.
+flag is set when `LowActive()` is called). `InvertableHal` is a software fallback
+used on ESP-IDF < 4.4 and every other bundled platform.
 
 #### Minimum- and Maximum brightness level
 

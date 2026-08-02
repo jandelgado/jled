@@ -2,6 +2,9 @@
 
 ## [Unreleased - scheduled for JLed 5.0]
 
+- new: `LowActive(bool on = true)` accepts a parameter, so low-active
+  polarity can be toggled off again with `LowActive(false)` without
+  needing a separate API. Existing `LowActive()` calls are unaffected
 - new: lifecycle events (`kStart`/`kActive`/`kRepeatStart`/`kEnterDelayAfter`/`kDone`)
   for `TJLed` via `UpdateResult`, with `IsStarted()`/`IsActive()`/... queries
   and matching `OnStart()`/`OnActive()`/... callbacks
