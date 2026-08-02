@@ -9,10 +9,13 @@
 #include "brightness.h"  // jled::BrightnessTraits
 
 // HalMock implements the JLed HAL protocol directly (analogWrite(val,
-// invert) + SetLowActive(bool)), applying inversion in software like any
-// plain HAL without a hardware polarity register would. It is not wrapped
-// in InvertableHal: that adapter is production code with its own dedicated
-// test (test_invertable_hal.cpp) and has no business in these state-machine
+// invert) + SetLowActive(bool)). It records the raw val and invert exactly
+// as passed, applying no inversion math of its own: whether a given call
+// site should see an inverted value is TJLed's decision, not the mock's, so
+// tests assert on the recorded (val, invert) pair rather than on a
+// re-derived physical output. It is not wrapped in InvertableHal: that
+// adapter is production code with its own dedicated test
+// (test_invertable_hal.cpp) and has no business in these state-machine
 // tests.
 class HalMock {
  public:
@@ -21,10 +24,12 @@ class HalMock {
     HalMock() {}
     explicit HalMock(PinType pin) : pin_(pin) {}
 
+    // -- JLed HAL protocol (see src/*_hal.h) --
+
     template<typename Brightness>
     void analogWrite(Brightness val, bool invert) const {
-        val_ = static_cast<uint16_t>(
-            invert ? jled::BrightnessTraits<Brightness>::kFullBrightness - val : val);
+        val_ = static_cast<uint16_t>(val);
+        invert_ = invert;
         pin_values()[pin_] = val_;
     }
 
@@ -33,8 +38,11 @@ class HalMock {
         set_low_active_value_ = f;
     }
 
+    // -- Mock-only introspection, not part of the HAL protocol --
+
     uint8_t Pin() const { return pin_; }
     uint16_t Value() const { return val_; }
+    bool Invert() const { return invert_; }
     int SetLowActiveCallCount() const { return set_low_active_call_count_; }
     bool SetLowActiveValue() const { return set_low_active_value_; }
 
@@ -49,6 +57,7 @@ class HalMock {
 
  private:
     mutable uint16_t val_ = 0;
+    mutable bool invert_ = false;
     PinType pin_ = 0;
     mutable int set_low_active_call_count_ = 0;
     mutable bool set_low_active_value_ = false;

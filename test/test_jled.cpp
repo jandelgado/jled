@@ -865,10 +865,12 @@ TEST_CASE("LowActive() inverts signal", "[jled]") {
     CHECK(jled.IsLowActive());
 
     jled.Update(0);
-    CHECK(255 == jled.GetHal().Value());
+    CHECK(0 == jled.GetHal().Value());
+    CHECK(jled.GetHal().Invert());
 
     jled.Update(1);
-    CHECK(0 == jled.GetHal().Value());
+    CHECK(255 == jled.GetHal().Value());
+    CHECK(jled.GetHal().Invert());
 }
 
 TEST_CASE("WriteRaw() writes directly to the HAL, bypassing the effect", "[jled]") {
@@ -887,10 +889,12 @@ TEST_CASE("WriteRaw() applies LowActive() inversion", "[jled]") {
     TestJLed jled = TestJLed(1).LowActive();
 
     jled.WriteRaw(0);
-    CHECK(255 == jled.GetHal().Value());
+    CHECK(0 == jled.GetHal().Value());
+    CHECK(jled.GetHal().Invert());
 
     jled.WriteRaw(255);
-    CHECK(0 == jled.GetHal().Value());
+    CHECK(255 == jled.GetHal().Value());
+    CHECK(jled.GetHal().Invert());
 }
 
 TEST_CASE("LowActive() calls the HAL's SetLowActive() hook", "[jled]") {
@@ -913,9 +917,11 @@ TEST_CASE("LowActive(false) restores normal, high active output", "[jled]") {
 
     jled.Update(0);
     CHECK(0 == jled.GetHal().Value());
+    CHECK_FALSE(jled.GetHal().Invert());
 
     jled.Update(1);
     CHECK(255 == jled.GetHal().Value());
+    CHECK_FALSE(jled.GetHal().Invert());
 }
 
 TEST_CASE("effect with repeat 2 repeats sequence once", "[jled]") {
