@@ -2,6 +2,12 @@
 
 ## [Unreleased - scheduled for JLed 5.0]
 
+- perf: `ArduinoHal` now initializes `pinMode()`/`analogWriteResolution()`
+  eagerly in its constructor by default, at zero extra storage/runtime cost.
+  Deferring this to the first `analogWrite()` call was only ever needed on
+  STM32duino, which forbids touching hardware from a global constructor. This
+  is now opt-in. All other Arduino-compatible platforms no longer pay for the
+  "already set up" flag and initialize in the constructor.
 - new: `LowActive(bool on = true)` accepts a parameter, so low-active
   polarity can be toggled off again with `LowActive(false)` without
   needing a separate API. Existing `LowActive()` calls are unaffected

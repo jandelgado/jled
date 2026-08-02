@@ -90,6 +90,11 @@ namespace jled {
 #if defined(ESP8266) && \
     !(defined(HAS_ESP8266_VERSION_NUMERIC) && ARDUINO_ESP8266_VERSION_MAJOR >= 3)
 using JLedHal = InvertableHal<ArduinoHal<10> >;
+#elif defined(ARDUINO_ARCH_STM32)
+// STM32duino forbids touching hardware from a global constructor; defer
+// pinMode()/analogWriteResolution() to the first analogWrite() call instead.
+// Using 12 bits as the default for JLedHal allows mixing JLed and JLedHD in the code.
+using JLedHal = InvertableHal<ArduinoHal<12, /* kLazyInit_ = */ true> >;
 #else
 using JLedHal = InvertableHal<ArduinoHal<8> >;
 #endif
@@ -110,7 +115,8 @@ using JLedHalHD = InvertableHal<ArduinoHal<16> >;  // frequency/resolution are i
 #elif defined(__SAMD21__) || defined(ARDUINO_ARCH_SAM)  // SAMD21 (Zero, MKR), Arduino Due
 using JLedHalHD = InvertableHal<ArduinoHal<12> >;  // 12-bit -> ~11.7 kHz on 48/84 MHz GCLK
 #elif defined(ARDUINO_ARCH_STM32)
-using JLedHalHD = InvertableHal<ArduinoHal<12> >;  // 12-bit avoids STM32duino prescaler issues
+// 12-bit avoids STM32duino prescaler issues; kLazyInit_=true, see JLedHal above
+using JLedHalHD = InvertableHal<ArduinoHal<12, true> >;
 #elif defined(ARDUINO_ARCH_NRF5)
 using JLedHalHD = InvertableHal<ArduinoHal<12> >;  // 16-bit -> ~244 Hz on nRF52; 12-bit -> ~3.9 kHz
 #elif defined(ESP8266)
