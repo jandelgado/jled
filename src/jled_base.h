@@ -181,16 +181,21 @@ class TJLed : public JLedBase {
     }
 
     // Set effect to Candle light simulation.
-    // When offset is omitted, the address of this JLed instance is used as a
-    // random offset so multiple LEDs with default parameters automatically
-    // flicker independently. Pass an explicit offset (in ms) to control the
-    // phase precisely.
+    // When offset is omitted, a value derived from this instance's address
+    // and the current time is used, so multiple LEDs with default parameters
+    // automatically flicker independently, and the pattern also varies
+    // across power cycles (the address alone would be link-time fixed on
+    // most embedded targets and thus identical every boot). Pass an explicit
+    // offset (in ms) to control the phase precisely, e.g. to build a
+    // deliberate multi-LED wave/chase effect.
     Derived& Candle(uint8_t speed = 6, uint8_t jitter = 15, uint16_t period = 0xffff,
                     uint16_t offset = kCandleOffsetAuto) {
         eval_storage_.type = EvalType::CANDLE;
         const uint16_t actual_offset =
-            (offset == kCandleOffsetAuto) ? static_cast<uint16_t>(reinterpret_cast<uintptr_t>(this))
-                                          : offset;
+            (offset == kCandleOffsetAuto)
+                ? static_cast<uint16_t>(hash32(
+                      static_cast<uint32_t>(reinterpret_cast<uintptr_t>(this)) ^ Clock::millis()))
+                : offset;
         eval_storage_.data.candle =
             CandleBrightnessEvaluator<Brightness>(speed, jitter, period, actual_offset);
         return Reset();
