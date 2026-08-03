@@ -86,6 +86,12 @@ Brightness fadeon_func(uint32_t t, uint16_t period);
 template<typename Brightness>
 Brightness candle_func(uint32_t t, uint8_t speed, uint8_t jitter);
 
+// Simple 32-bit integer hash (avalanche mix). Exposed so callers outside
+// jled_effects.cpp (e.g. TJLed::Candle()) can derive a well-spread
+// pseudo-random value from a small/related seed, such as an instance
+// address, without picking up the address's original small deltas.
+uint32_t hash32(uint32_t x);
+
 template<typename Brightness>
 Brightness scale(Brightness val, Brightness factor);
 

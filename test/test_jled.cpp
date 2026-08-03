@@ -185,6 +185,7 @@ TEST_CASE("using default Candle() configures CandleBrightnessEvaluator with semi
      public:
         using TestJLed::TestJLed;
         static void test() {
+            TimeMock::set_millis(0);
             TestableJLed jled(1);
             jled.Candle(1, 2, 3);
             REQUIRE(jled.eval_storage_.type == jled::EvalType::CANDLE);
@@ -192,8 +193,60 @@ TEST_CASE("using default Candle() configures CandleBrightnessEvaluator with semi
             CHECK(3 == eval.period_);
             CHECK(1 == eval.speed_);
             CHECK(2 == eval.jitter_);
-            // if no explicit offset is given, offset is initialized pseudo randomly
-            CHECK(static_cast<uint16_t>(reinterpret_cast<uintptr_t>(&jled)) == eval.offset_);
+            // if no explicit offset is given, offset is derived by hashing the
+            // instance's address together with the current time
+            const auto expected = static_cast<uint16_t>(jled::hash32(
+                static_cast<uint32_t>(reinterpret_cast<uintptr_t>(&jled)) ^ TimeMock::millis()));
+            CHECK(expected == eval.offset_);
+        }
+    };
+    TestableJLed::test();
+}
+
+TEST_CASE(
+    "using default Candle() varies the auto-offset with construction time, not just the address",
+    "[jled]") {
+    // On most embedded targets an instance's address is fixed at link time,
+    // so it alone would reproduce the exact same flicker pattern every power
+    // cycle. Mixing in the current time avoids that.
+    class TestableJLed : public TestJLed {
+     public:
+        using TestJLed::TestJLed;
+        static void test() {
+            TestableJLed jled(1);
+
+            TimeMock::set_millis(0);
+            jled.Candle(1, 2, 3);
+            const auto offset_at_t0 = jled.eval_storage_.data.candle.offset_;
+
+            TimeMock::set_millis(12345);
+            jled.Candle(1, 2, 3);
+            const auto offset_at_t1 = jled.eval_storage_.data.candle.offset_;
+
+            CHECK(offset_at_t0 != offset_at_t1);
+        }
+    };
+    TestableJLed::test();
+}
+
+TEST_CASE("using default Candle() decorrelates offsets of adjacent instances", "[jled]") {
+    // Adjacent array elements have addresses only sizeof(TestJLed) apart. The
+    // auto-derived offset must not simply track that small, constant address
+    // delta (which is what previously caused adjacent LEDs to flicker as a
+    // visibly correlated, delayed copy of one another, looking like a wave).
+    class TestableJLed : public TestJLed {
+     public:
+        using TestJLed::TestJLed;
+        static void test() {
+            TimeMock::set_millis(0);
+            TestableJLed leds[3] = {TestableJLed(1), TestableJLed(2), TestableJLed(3)};
+            for (auto& led : leds) led.Candle(6, 15);
+
+            const auto o0 = leds[0].eval_storage_.data.candle.offset_;
+            const auto o1 = leds[1].eval_storage_.data.candle.offset_;
+            const auto o2 = leds[2].eval_storage_.data.candle.offset_;
+
+            CHECK(static_cast<uint16_t>(o1 - o0) != static_cast<uint16_t>(o2 - o1));
         }
     };
     TestableJLed::test();

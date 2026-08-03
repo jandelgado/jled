@@ -58,13 +58,15 @@ uint16_t fadeon_func<uint16_t>(uint32_t t, uint16_t period) {
     return lut_lerp(t, period, lut);
 }
 
-static uint8_t hash8(uint32_t x) {
+uint32_t hash32(uint32_t x) {
     x += 0x9e3779b9u;
     x ^= x >> 16;
     x *= 0x45d9f3bu;
     x ^= x >> 16;
-    return static_cast<uint8_t>(x);
+    return x;
 }
+
+static uint8_t hash8(uint32_t x) { return static_cast<uint8_t>(hash32(x)); }
 
 template<>
 uint8_t candle_func<uint8_t>(uint32_t t, uint8_t speed, uint8_t jitter) {
