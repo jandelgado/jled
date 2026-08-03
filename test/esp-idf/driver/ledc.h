@@ -111,3 +111,6 @@ typedef struct {
     ledc_mode_t speed_mode;
     uint32_t duty;
 } esp32_mock_ledc_set_duty_args;
+
+uint32_t ledc_get_duty(ledc_mode_t speed_mode, ledc_channel_t channel);
+int ledc_get_hpoint(ledc_mode_t speed_mode, ledc_channel_t channel);

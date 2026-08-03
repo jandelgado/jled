@@ -25,11 +25,19 @@ TEST_ESP32_SRC=esp-idf/esp_timer.cpp esp-idf/driver/ledc.cpp \
 			   test_esp32_hal.cpp test_main.cpp ${CATCH}
 TEST_ESP32_OBJECTS=$(TEST_ESP32_SRC:.cpp=.o)
 
+TEST_ESP32_LEGACY_SRC=esp-idf/esp_timer.cpp esp-idf/driver/ledc.cpp \
+			   esp32_mock.cpp \
+			   test_esp32_hal_legacy_idf.cpp test_main.cpp ${CATCH}
+TEST_ESP32_LEGACY_OBJECTS=$(TEST_ESP32_LEGACY_SRC:.cpp=.o)
+
 TEST_MBED_SRC=mbed.cpp test_mbed_hal.cpp test_main.cpp ${CATCH}
 TEST_MBED_OBJECTS=$(TEST_MBED_SRC:.cpp=.o)
 
 TEST_ARDUINO_SRC=Arduino.cpp test_arduino_hal.cpp test_main.cpp ${CATCH}
 TEST_ARDUINO_OBJECTS=$(TEST_ARDUINO_SRC:.cpp=.o)
+
+TEST_INVERTABLE_HAL_SRC=Arduino.cpp test_invertable_hal.cpp test_main.cpp ${CATCH}
+TEST_INVERTABLE_HAL_OBJECTS=$(TEST_INVERTABLE_HAL_SRC:.cpp=.o)
 
 TEST_MORSE_SRC=test_example_morse.cpp test_main.cpp  ${CATCH}
 TEST_MORSE_OBJECTS=$(TEST_MORSE_SRC:.cpp=.o)
@@ -51,10 +59,10 @@ TEST_JLED_GROUP_OBJECTS=$(TEST_JLED_GROUP_SRC:.cpp=.o)
 
 all: bin bin/test_arduino_mock  \
 	 bin/test_jled \
-	 bin/test_esp32_hal bin/test_arduino_hal bin/test_mbed_hal \
+	 bin/test_esp32_hal bin/test_esp32_hal_legacy_idf bin/test_arduino_hal bin/test_mbed_hal \
 	 bin/test_pico_hal bin/test_jled_esp8266_hal \
 	 bin/test_example_morse bin/test_brightness bin/test_fadeon_func \
-	 bin/test_jled_group
+	 bin/test_invertable_hal bin/test_jled_group
 
 bin/test_arduino_mock: $(TEST_ARDUINO_MOCK_OBJECTS)
 	$(CXX) -o $@ $(LDFLAGS) $(TEST_ARDUINO_MOCK_OBJECTS)
@@ -66,12 +74,19 @@ bin/test_esp32_hal: CFLAGS += -DESP32
 bin/test_esp32_hal: $(TEST_ESP32_OBJECTS)
 	$(CXX) -o $@ $(LDFLAGS) $(TEST_ESP32_OBJECTS)
 
+bin/test_esp32_hal_legacy_idf: CFLAGS += -DESP32
+bin/test_esp32_hal_legacy_idf: $(TEST_ESP32_LEGACY_OBJECTS)
+	$(CXX) -o $@ $(LDFLAGS) $(TEST_ESP32_LEGACY_OBJECTS)
+
 bin/test_mbed_hal: CFLAGS += -D__MBED__
 bin/test_mbed_hal: $(TEST_MBED_OBJECTS)
 	$(CXX) -o $@ $(LDFLAGS) $(TEST_MBED_OBJECTS)
 
 bin/test_arduino_hal: $(TEST_ARDUINO_OBJECTS)
 	$(CXX) -o $@ $(LDFLAGS) $(TEST_ARDUINO_OBJECTS)
+
+bin/test_invertable_hal: $(TEST_INVERTABLE_HAL_OBJECTS)
+	$(CXX) -o $@ $(LDFLAGS) $(TEST_INVERTABLE_HAL_OBJECTS)
 
 bin/test_pico_hal: CFLAGS += -I./pico-sdk
 bin/test_pico_hal: $(TEST_PICO_OBJECTS)
@@ -101,12 +116,14 @@ test: depend all
 	./bin/test_jled
 	./bin/test_mbed_hal
 	./bin/test_esp32_hal
+	./bin/test_esp32_hal_legacy_idf
 	./bin/test_arduino_hal
 	./bin/test_pico_hal
 	./bin/test_jled_esp8266_hal
 	./bin/test_example_morse
 	./bin/test_brightness
 	./bin/test_fadeon_func
+	./bin/test_invertable_hal
 	./bin/test_jled_group
 
 .cpp.o:
@@ -127,7 +144,7 @@ clobber: clean
 
 depend: .depend
 
-.depend: $(TEST_JLED_SRC) $(TEST_ESP32_SRC) $(TEST_ESP8266_HAL_SRC) $(TEST_ARDUINO_SRC) $(TEST_MBED_SRC) $(TEST_PICO_SRC) $(TEST_MORSE_SRC) $(TEST_BRIGHTNESS_SRC) $(TEST_FADEON_SRC) $(TEST_JLED_GROUP_SRC)
+.depend: $(TEST_JLED_SRC) $(TEST_ESP32_SRC) $(TEST_ESP32_LEGACY_SRC) $(TEST_ESP8266_HAL_SRC) $(TEST_ARDUINO_SRC) $(TEST_INVERTABLE_HAL_SRC) $(TEST_MBED_SRC) $(TEST_PICO_SRC) $(TEST_MORSE_SRC) $(TEST_BRIGHTNESS_SRC) $(TEST_FADEON_SRC) $(TEST_JLED_GROUP_SRC)
 	@echo updating dependencies in .depend
 	@rm -f ./.depend
 	@$(CC) -I ../src -I . -I ./pico-sdk -MM $^ > .depend

@@ -30,6 +30,7 @@ struct PicoState {
     uint16_t getPwmChanLevel(uint32_t slice, uint32_t chan) const {
         return slices[slice].chan_level[chan];
     }
+    bool getPwmInvert(uint32_t slice, uint32_t channel) const;
 };
 
 // Register the active mock instance. Resets it to default values.

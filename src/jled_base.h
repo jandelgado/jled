@@ -102,10 +102,15 @@ class TJLed : public JLedBase {
 
     Hal& GetHal() { return hal_; }
 
-    // Set physical LED polarity to be low active. This inverts every
-    // signal physically output to a pin.
-    Derived& LowActive() {
-        bLowActive_ = true;
+    // Set or clear physical LED low-active polarity. When on, every signal
+    // physically output to a pin is inverted. Every HAL must implement
+    // SetLowActive(bool); it is notified once here so a HAL with a hardware
+    // polarity register can pre-arm it instead of inspecting invert on every
+    // analogWrite(). HALs without one implement it as a no-op (see
+    // InvertableHal).
+    Derived& LowActive(bool on = true) {
+        bLowActive_ = on;
+        hal_.SetLowActive(bLowActive_);
         return static_cast<Derived&>(*this);
     }
 
@@ -279,12 +284,14 @@ class TJLed : public JLedBase {
     // Returns current maximum brightness level.
     Brightness MaxBrightness() const { return maxBrightness_; }
 
-    // Write val directly out to the hardware, inverting signal when
-    // active-low is set. Bypasses the effect state machine entirely, e.g.
-    // for forcing an output from a lifecycle callback (see UpdateResult).
+    // Write val directly out to the hardware. Bypasses the effect state
+    // machine ("raw" = no Update()/Eval()), note that val is already in
+    // hardware-native units: turning the effect-space value into the final
+    // physical write (resolution scaling, and inversion for low-active
+    // wiring) is entirely the HAL's job. Used e.g. for forcing an output
+    // from a lifecycle callback (see UpdateResult).
     Derived& WriteRaw(Brightness val) {
-        constexpr auto kFullBright = BrightnessTraits<Brightness>::kFullBrightness;
-        hal_.template analogWrite<Brightness>(IsLowActive() ? kFullBright - val : val);
+        hal_.template analogWrite<Brightness>(val, IsLowActive());
         return static_cast<Derived&>(*this);
     }
 

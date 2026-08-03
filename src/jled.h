@@ -32,6 +32,7 @@
 //     led.Update();
 //   }
 
+#include "invertable_hal.h"   // NOLINT
 #include "jled_base.h"        // NOLINT
 #include "jled_group_base.h"  // NOLINT
 #include "jled_std.h"         // NOLINT
@@ -56,8 +57,8 @@ using JLedClockType = PicoClock;
 #elif defined(__MBED__) && !defined(ARDUINO_API_VERSION)
 #include "mbed_hal.h"  // NOLINT
 namespace jled {
-using JLedHal = MbedHal<8>;
-using JLedHalHD = MbedHal<16>;
+using JLedHal = InvertableHal<MbedHal<8> >;
+using JLedHalHD = InvertableHal<MbedHal<16> >;
 using JLedClockType = MbedClock;
 }  // namespace jled
 
@@ -66,8 +67,15 @@ using JLedClockType = MbedClock;
 #elif defined(ESP32) && !defined(JLED_FORCE_ARDUINO_HAL)
 #include "esp32_hal.h"  // NOLINT
 namespace jled {
+#if JLED_ESP32_HAS_LEDC_OUTPUT_INVERT
 using JLedHal = Esp32Hal<8, LEDC_TIMER_0>;
 using JLedHalHD = Esp32Hal<13, LEDC_TIMER_1>;
+#else
+// Pre-4.4 ESP-IDF has no documented hardware invert for LEDC (see
+// esp32_hal.h); invert in software instead, same as Arduino/ESP8266/mbed.
+using JLedHal = InvertableHal<Esp32Hal<8, LEDC_TIMER_0> >;
+using JLedHalHD = InvertableHal<Esp32Hal<13, LEDC_TIMER_1> >;
+#endif
 using JLedClockType = Esp32Clock;
 }  // namespace jled
 
@@ -81,9 +89,9 @@ namespace jled {
 // All other Arduino-compatible platforms: 8-bit.
 #if defined(ESP8266) && \
     !(defined(HAS_ESP8266_VERSION_NUMERIC) && ARDUINO_ESP8266_VERSION_MAJOR >= 3)
-using JLedHal = ArduinoHal<10>;
+using JLedHal = InvertableHal<ArduinoHal<10> >;
 #else
-using JLedHal = ArduinoHal<8>;
+using JLedHal = InvertableHal<ArduinoHal<8> >;
 #endif
 // JLedHD uses the best practical PWM resolution per platform.
 // Bit-depth is chosen to keep PWM frequency well above the visible flicker
@@ -96,19 +104,19 @@ using JLedHal = ArduinoHal<8>;
 //     analogWriteResolution(), so JLedHD keeps full 10-bit resolution there.
 //   - All other Arduino-compatible platforms: 8-bit
 #if defined(ARDUINO_ARCH_RP2040)  // only hit if also JLED_FORCE_ARDUINO_HAL is set
-using JLedHalHD = ArduinoHal<16>;
+using JLedHalHD = InvertableHal<ArduinoHal<16> >;
 #elif defined(__IMXRT1062__) || defined(KINETISK) || defined(KINETISL)  // Teensy 4.x/3.x/LC
-using JLedHalHD = ArduinoHal<16>;  // frequency/resolution are independent on Teensy
+using JLedHalHD = InvertableHal<ArduinoHal<16> >;  // frequency/resolution are independent on Teensy
 #elif defined(__SAMD21__) || defined(ARDUINO_ARCH_SAM)  // SAMD21 (Zero, MKR), Arduino Due
-using JLedHalHD = ArduinoHal<12>;  // 12-bit -> ~11.7 kHz on 48 MHz GCLK (SAMD21) / 84 MHz (Due)
+using JLedHalHD = InvertableHal<ArduinoHal<12> >;  // 12-bit -> ~11.7 kHz on 48/84 MHz GCLK
 #elif defined(ARDUINO_ARCH_STM32)
-using JLedHalHD = ArduinoHal<12>;  // 12-bit avoids timer prescaler issues in STM32duino
+using JLedHalHD = InvertableHal<ArduinoHal<12> >;  // 12-bit avoids STM32duino prescaler issues
 #elif defined(ARDUINO_ARCH_NRF5)
-using JLedHalHD = ArduinoHal<12>;  // 16-bit -> ~244 Hz on nRF52; 12-bit -> ~3.9 kHz
+using JLedHalHD = InvertableHal<ArduinoHal<12> >;  // 16-bit -> ~244 Hz on nRF52; 12-bit -> ~3.9 kHz
 #elif defined(ESP8266)
-using JLedHalHD = ArduinoHal<10>;  // 10-bit on all core versions (see note above)
+using JLedHalHD = InvertableHal<ArduinoHal<10> >;  // 10-bit on all core versions (see note above)
 #else
-using JLedHalHD = ArduinoHal<8>;
+using JLedHalHD = InvertableHal<ArduinoHal<8> >;
 #endif
 using JLedClockType = ArduinoClock;
 }  // namespace jled

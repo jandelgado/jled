@@ -9,12 +9,23 @@
 #include "pico-sdk/pico/time.h"        // NOLINT
 
 static PicoState* gState_ = nullptr;
+pwm_hw_t pwm_hw_mock = {};
 
 void picoMockSetInstance(PicoState* state) {
     gState_ = state;
     if (state) {
         *state = PicoState{};
+        pwm_hw_mock = pwm_hw_t{};
     }
+}
+
+bool PicoState::getPwmInvert(uint32_t slice, uint32_t channel) const {
+    const auto lsb = (channel == PWM_CHAN_A) ? PWM_CH0_CSR_A_INV_LSB : PWM_CH0_CSR_B_INV_LSB;
+    return (pwm_hw_mock.slice[slice].csr >> lsb) & 1u;
+}
+
+void hw_write_masked(io_rw_32* addr, uint32_t values, uint32_t write_mask) {
+    *addr = (*addr & ~write_mask) | (values & write_mask);
 }
 
 // --- Pico SDK mock implementations ---

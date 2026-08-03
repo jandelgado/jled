@@ -12,6 +12,11 @@ struct Esp32State {
     ledc_timer_config_t timer_config = {};
     esp32_mock_ledc_update_duty_args update_duty[LEDC_CHANNEL_MAX] = {};
     esp32_mock_ledc_set_duty_args set_duty[LEDC_CHANNEL_MAX] = {};
+    // Per-channel duty/hpoint as tracked by real LEDC hardware registers,
+    // written by both ledc_channel_config() and ledc_set_duty(), and read
+    // back by ledc_get_duty()/ledc_get_hpoint().
+    uint32_t duty[LEDC_CHANNEL_MAX] = {};
+    int hpoint[LEDC_CHANNEL_MAX] = {};
 
     void setTimer(int64_t t) { timer_us = t; }
     int64_t getTimer() const { return timer_us; }

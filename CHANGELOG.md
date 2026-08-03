@@ -2,6 +2,9 @@
 
 ## [Unreleased - scheduled for JLed 5.0]
 
+- new: `LowActive(bool on = true)` accepts a parameter, so low-active
+  polarity can be toggled off again with `LowActive(false)` without
+  needing a separate API. Existing `LowActive()` calls are unaffected
 - new: lifecycle events (`kStart`/`kActive`/`kRepeatStart`/`kEnterDelayAfter`/`kDone`)
   for `TJLed` via `UpdateResult`, with `IsStarted()`/`IsActive()`/... queries
   and matching `OnStart()`/`OnActive()`/... callbacks
@@ -24,6 +27,25 @@
 - new: high resolution (up to 16-bit effect) with `JLedHD`
 - new/breaking: `JLedGroup`/`JLedRefGroup` as a flexible `JLedSequence` replacement
 - new: `Blink` effect now has a repeat parameter
+- breaking (HAL authors only): the HAL concept's `analogWrite()` gains a required second
+  parameter, `analogWrite<Color>(Color val, bool invert)`. `LowActive()`/`IsLowActive()`
+  and all other public JLed/JLedHD/JLedGroup/JLedAny API is unaffected. A custom HAL
+  written before this change needs to either add the parameter directly, or wrap the HAL
+  in the new `InvertableHal<Hal>` decorator (`src/invertable_hal.h`), which adapts an
+  unmodified single-argument `analogWrite(Color)` to the new signature at zero storage
+  cost. Of the bundled HALs, Arduino, ESP8266 and mbed use `InvertableHal`'s software
+  fallback; ESP32 and Pico invert natively instead, see below
+- breaking (HAL authors only): the HAL concept gains a required `SetLowActive(bool)`
+  method, called once from `LowActive()`. HALs with a hardware polarity register use it
+  to pre-arm the register; HALs without one (all `InvertableHal`-wrapped HALs) implement
+  it as a no-op, since `analogWrite(val, invert)` already applies inversion on every
+  call. A custom HAL written before this change needs to add the method, or wrap the HAL
+  in `InvertableHal<Hal>` to get the no-op for free. `Esp32Hal` and `PicoHal` now use this
+  to invert natively (the LEDC driver's own `output_invert` flag on ESP32, and a masked
+  PWM CSR write via `hw_write_masked()` on Pico) instead of `InvertableHal`'s software
+  fallback. `output_invert` requires ESP-IDF >= 4.4; on older SDKs `Esp32Hal` doesn't
+  define `SetLowActive()`/`analogWrite(val, invert)` at all, and `jled.h` falls back to
+  wrapping it in `InvertableHal` instead, same as Arduino/ESP8266/mbed
 
 ## [2024-12-01] 4.15.0
 

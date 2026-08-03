@@ -1,4 +1,5 @@
-// JLed Unit tests for the ESP32 HAL (runs on host).
+// JLed Unit tests for the ESP32 HAL (runs on host). See
+// test_esp32_hal_legacy_idf.cpp for the pre-4.4 ESP-IDF fallback path.
 // Copyright 2017-2025 Jan Delgado jdelgado@gmx.net
 #define ESP_IDF_VERSION_MAJOR 5
 #include <esp32_hal.h>  // NOLINT
@@ -138,6 +139,79 @@ TEST_CASE_METHOD(Esp32MockFixture, "Esp32Hal<13> analogWrite 16-bit", "[esp32_ha
         auto set_duty = mock.getLedcSetDuty((ledc_channel_t)kChan);
         REQUIRE(set_duty.duty == 4096);
     }
+}
+
+TEST_CASE_METHOD(Esp32MockFixture, "Esp32Hal<8> SetLowActive", "[esp32_hal]") {
+    constexpr auto kChan = 5;
+    constexpr auto kPin = 10;
+    auto hal = Esp32Hal<8>(kPin, kChan);
+
+    SECTION("SetLowActive(true) inverts via the LEDC output_invert flag") {
+        hal.SetLowActive(true);
+        auto config = mock.getLedcChannelConfig();
+        REQUIRE(config.gpio_num == kPin);
+        REQUIRE(config.channel == kChan);
+        REQUIRE(config.speed_mode == LEDC_LOW_SPEED_MODE);
+        REQUIRE(config.timer_sel == LEDC_TIMER_0);
+        REQUIRE(config.flags.output_invert == true);
+    }
+
+    SECTION("SetLowActive(false) clears inversion") {
+        hal.SetLowActive(true);
+        hal.SetLowActive(false);
+        auto config = mock.getLedcChannelConfig();
+        REQUIRE(config.flags.output_invert == false);
+    }
+
+    SECTION("SetLowActive() leaves a duty of 0 untouched") {
+        // No special-casing for duty 0: SetLowActive() just carries the
+        // current duty through unchanged, same as for any other value.
+        hal.SetLowActive(true);
+        auto config = mock.getLedcChannelConfig();
+        REQUIRE(config.duty == 0);
+    }
+
+    SECTION("SetLowActive() preserves the currently displayed duty and hpoint") {
+        // toggling polarity mid-effect (LowActive() can be called at any
+        // time) must not force the LED to full on/off; it should only flip
+        // output_invert and leave the currently displayed duty untouched.
+        hal.analogWrite<uint8_t>(123);
+
+        hal.SetLowActive(true);
+        auto config = mock.getLedcChannelConfig();
+        REQUIRE(config.duty == 123);
+        REQUIRE(config.hpoint == 0);
+        REQUIRE(config.flags.output_invert == true);
+    }
+}
+
+TEST_CASE_METHOD(Esp32MockFixture, "Esp32Hal<8> SetLowActive with explicit channel construction",
+                 "[esp32_hal]") {
+    // Explicit (non auto-select) channel construction must still register the
+    // pin in Esp32ChanMapper, otherwise pinForChan() has nothing to return
+    // for SetLowActive()'s ledc_channel_config() call to use.
+    constexpr auto kChan = 3;
+    constexpr auto kPin = 22;
+    auto hal = Esp32Hal<8>(kPin, kChan);
+
+    hal.SetLowActive(true);
+    auto config = mock.getLedcChannelConfig();
+    REQUIRE(config.gpio_num == kPin);
+    REQUIRE(config.channel == kChan);
+}
+
+TEST_CASE_METHOD(Esp32MockFixture, "Esp32Hal<8> analogWrite ignores invert", "[esp32_hal]") {
+    constexpr auto kChan = 5;
+    constexpr auto kPin = 10;
+    auto hal = Esp32Hal<8>(kPin, kChan);
+
+    hal.analogWrite<uint8_t>(123, true);
+    const auto duty_true = mock.getLedcSetDuty((ledc_channel_t)kChan).duty;
+
+    hal.analogWrite<uint8_t>(123, false);
+    const auto duty_false = mock.getLedcSetDuty((ledc_channel_t)kChan).duty;
+
+    REQUIRE(duty_true == duty_false);
 }
 
 TEST_CASE_METHOD(Esp32MockFixture, "Esp32Clock::millis()", "[esp32_hal]") {

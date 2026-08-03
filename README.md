@@ -633,10 +633,14 @@ the entire group freezes and resumes in sync.
 
 #### Low active for inverted output
 
-Use the `LowActive()` method when the connected LED is low active. All output
-will be inverted by JLed (i.e., instead of x, the value of `FullBrightness - x`
-will be set, where `FullBrightness` is 255 for `JLed` and 65535 for `JLedHD`).
+Use the `LowActive()` method when the connected LED is low active (common anode). All output
+will be inverted then. Call `LowActive(false)` to switch back to normal (high active) output.
 Use `IsLowActive()` to query whether the LED is configured as low active.
+
+Inversion is performed by the HAL layer: on Raspberry Pi Pico, and on ESP32 with ESP-IDF
+≥ 4.4, it is done in hardware (a PWM-CSR polarity bit / the LEDC driver's `output_invert`
+flag is set when `LowActive()` is called). `InvertableHal` is a software fallback
+used on ESP-IDF < 4.4 and every other bundled platform.
 
 #### Minimum- and Maximum brightness level
 
@@ -886,7 +890,9 @@ pull the LEDs out into named variables and swap the array type.
 
 ## Framework notes
 
-JLed supports the Arduino and [mbed](https://www.mbed.org) frameworks. When
+JLed supports the Arduino and [mbed](https://www.mbed.org) frameworks, as well as native
+Pico-SDK and ESP-IDF builds without any framework at all (see the [Raspberry Pi
+Pico](#raspberry-pi-pico) and [ESP32](#esp32) sections). When
 using platformio, the framework to be used is configured in the `platform.ini`
 file, as shown in the following example, which for example selects the `mbed`
 framework:
@@ -939,8 +945,8 @@ each supported platform:
 
 | Platform                                                | `JLed`                    | `JLedHD`                  |
 | ------------------------------------------------------- | ------------------------- | ------------------------- |
-| ESP32 (native SDK / ESP-IDF)                            | `Esp32Hal<8>` (8-bit)     | `Esp32Hal<13>` (13-bit)   |
-| Raspberry Pi Pico (native Pico SDK)                     | `PicoHal<8>` (8-bit)      | `PicoHal<16>` (16-bit)    |
+| ESP32 (default)                                         | `Esp32Hal<8>` (8-bit)     | `Esp32Hal<13>` (13-bit)   |
+| Raspberry Pi Pico (default)                             | `PicoHal<8>` (8-bit)      | `PicoHal<16>` (16-bit)    |
 | mbed                                                    | `MbedHal<8>` (8-bit)      | `MbedHal<16>` (16-bit)    |
 | Teensy 4.x / 3.x / LC                                   | `ArduinoHal<8>` (8-bit)   | `ArduinoHal<16>` (16-bit) |
 | SAMD21 (Arduino Zero, MKR series) / Arduino Due         | `ArduinoHal<8>` (8-bit)   | `ArduinoHal<12>` (12-bit) |
@@ -988,7 +994,9 @@ build_flags = -DJLED_FORCE_ARDUINO_HAL
 
 When `JLED_FORCE_ARDUINO_HAL` is set on an RP2040 board, `JLedHD` maps to
 `ArduinoHal<16>` (Earle Philhower arduino-pico SDK) instead of `PicoHal<16>`, subject to
-the global `analogWriteResolution` constraint described above.
+the global `analogWriteResolution` constraint described above. On ESP32, the flag falls
+back to `ArduinoHal<8>` for both `JLed` and `JLedHD`, so they share the same resolution
+and can be mixed freely.
 
 ### ESP8266
 
@@ -996,8 +1004,8 @@ The ESP8266 PWM peripheral supports up to 10-bit resolution. On Arduino core v1/
 and `JLedHD` operate at native 10-bit resolution (`ArduinoHal<10>`), with brightness values
 scaled from 8-bit or 16-bit internal precision accordingly. ESP8266 Arduino core v3+ reverted
 the `analogWrite()` default to 8 bits for compatibility, so `JLed` maps to `ArduinoHal<8>`
-there. `JLedHD`, however, stays at `ArduinoHal<10>`: the HAL calls `analogWriteResolution(10)`
-(available since core v3) to restore full 10-bit output, so `JLedHD` keeps its extra resolution
+there. `JLedHD`, however, stays at `ArduinoHal<10>` so the HAL calls `analogWriteResolution(10)`
+(available since core v3) to restore full 10-bit output. `JLedHD` keeps its extra resolution
 on every ESP8266 core version. Because `JLed` and `JLedHD` then differ in width, they cannot be
 mixed in the same sketch on core v3+ (see the [`ArduinoHal`
 note](#arduinohal-and-the-global-analogwriteresolution-limit) above); on core v1/v2 both are
@@ -1027,9 +1035,7 @@ brightness gradients at the cost of a lower maximum PWM frequency. At 13-bit res
 and the default 5 kHz base frequency the ESP32 is still well within its hardware limits.
 
 The `jled::Esp32Hal(pin, chan)` constructor takes the pin number as the first
-argument and the ESP32 ledc channel number on the second position. Note that
-using the above-mentioned constructor results in non-platform independent code,
-so it should be avoided and is normally not necessary.
+argument and the ESP32 ledc channel number on the second position.
 
 For completeness, the full signature of the `Esp32Hal` constructor is
 
@@ -1069,11 +1075,11 @@ possible). See these repositories for example projects:
 #### Arduino framework
 
 I had success running JLed on a [STM32 Nucleo64 F401RE
-board](https://www.st.com/en/evaluation-tools/nucleo-f401re.html) using this
-[STM32 Arduino
-core](https://github.com/rogerclarkmelbourne/Arduino_STM32/tree/master/STM32F4)
-and compiling examples from the Arduino IDE. Note that the `stlink` is
-necessary to upload sketches to the microcontroller.
+board](https://www.st.com/en/evaluation-tools/nucleo-f401re.html) using the official
+[STM32duino core](https://github.com/stm32duino/Arduino_Core_STM32) (PlatformIO
+`ststm32` platform, see `env:nucleo_f401re` in [platformio.ini](platformio.ini)) and
+compiling examples from the Arduino IDE. Note that the `stlink` is necessary to upload
+sketches to the micro controller.
 
 ### Raspberry Pi Pico
 
@@ -1097,10 +1103,10 @@ Even at 16-bit resolution the PWM frequency stays above 1 kHz, producing smooth 
 output on LEDs. The Pico supports up to 16 PWM channels in parallel. See the
 [pico-demo](examples/raspi_pico) for an example and build instructions.
 
-When using the **Arduino framework** on the RP2040 (Earle Philhower arduino-pico SDK),
-`JLedHD` maps to `ArduinoHal<16>` (16-bit) instead. The `analogWriteResolution` global
-constraint described above applies in this case. See [platformio.ini](platformio.ini) for
-details (look for `env:raspberrypi_pico_w`, which targets the Raspberry Pi Pico W).
+`PicoHal` is used by default even when building through the **Arduino framework** (Earle
+Philhower arduino-pico SDK). To use the generic `ArduinoHal` instead, e.g. `JLedHD` as
+`ArduinoHal<16>`, define [`JLED_FORCE_ARDUINO_HAL`](#jled_force_arduino_hal); the
+`analogWriteResolution` global constraint described above then applies.
 
 ## Example sketches
 
@@ -1204,7 +1210,7 @@ led.Stop(jled::eIdleMode::KEEP_CURRENT);
 ```
 
 Reason: otherwise we would have separate `eStopMode` enums for `JLed`, `JLedHD` etc.
-classes, bloating the code.
+classes, bloating users code.
 
 #### JLedSequence to JLedGroup migration
 
@@ -1281,12 +1287,16 @@ class CustomJLed : public jled::TJLed<CustomHal, CustomJLed> { ... };
 
 // after
 class CustomHal {
-    void analogWrite(uint8_t val) const;  // millis() gone
+    void analogWrite(uint8_t val, bool invert) const;  // millis() gone; invert added for low-active support
+    void SetLowActive(bool invert) const;  // new: required; no-op if there's no polarity register
 };
 class CustomJLed : public jled::TJLed<CustomHal, jled::JLedClockType, uint8_t, CustomJLed> { ... };
 ```
 
-See the [custom_hal](examples/custom_hal) example for a complete implementation.
+See the [custom_hal](examples/custom_hal) example for a complete implementation. See the
+[Low active for inverted output](#low-active-for-inverted-output) section for the
+`analogWrite(val, invert)` contract, and `InvertableHal<Hal>` if your HAL has no native inversion
+capability (it implements `SetLowActive(bool)` as a no-op).
 
 Reason: a platform may have multiple PWM HALs (for example the built-in one plus an external PCA9685
 driver) but only a single clock. Separating them avoids duplicating time logic across HALs. Making
