@@ -319,6 +319,11 @@ bool TJLedGroup<Clock, AnyType>::UpdateParallel(uint32_t t) {
 template<typename Clock, typename AnyType>
 bool TJLedGroup<Clock, AnyType>::UpdateSequentially(uint32_t t) {
     if (!leds_[cur_].Update(t)) {
+        if (reverse_) {
+            if (cur_ == 0) return false;
+            --cur_;
+            return true;
+        }
         return ++cur_ < n_;
     }
     return true;

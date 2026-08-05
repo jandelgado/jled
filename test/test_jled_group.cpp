@@ -89,6 +89,39 @@ TEST_CASE("sequential group plays elements one at a time", "[jled_group]") {
     REQUIRE(HalMock::PinValue(2) == 25);
 }
 
+TEST_CASE("Reverse() plays a Sequential group's elements in reverse order", "[jled_group]") {
+    HalMock::Init();
+    auto eval1 = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
+    auto eval2 = MockBrightnessEvaluator(std::vector<uint8_t>{50, 25});
+    TestJLedAny leds[] = {TestJLed(1).UserFunc(&eval1).Repeat(1),
+                          TestJLed(2).UserFunc(&eval2).Repeat(1)};
+    auto group = TestJLedGroupAny::Sequential(leds).Reverse();
+
+    // moves cursor to last element
+    group.Reset();
+
+    // t=0: only LED2 (the last element) is active
+    TimeMock::set_millis(0);
+    REQUIRE(group.Update());
+    REQUIRE(HalMock::PinValue(2) == 50);
+    REQUIRE(HalMock::PinValue(1) == 0);
+
+    // t=1: LED2 finishes; LED1 not yet started
+    TimeMock::set_millis(1);
+    REQUIRE(group.Update());
+    REQUIRE(HalMock::PinValue(2) == 25);
+
+    // t=2: LED1 starts
+    TimeMock::set_millis(2);
+    REQUIRE(group.Update());
+    REQUIRE(HalMock::PinValue(1) == 200);
+
+    // t=3: LED1 finishes, group done
+    TimeMock::set_millis(3);
+    REQUIRE(!group.Update());
+    REQUIRE(HalMock::PinValue(1) == 100);
+}
+
 TEST_CASE("Repeat(n) plays the group n times", "[jled_group]") {
     HalMock::Init();
     auto mode = GENERATE(TestJLedGroupAny::eMode::SEQUENCE, TestJLedGroupAny::eMode::PARALLEL);
@@ -203,9 +236,9 @@ TEST_CASE("Skip() advances cur_ by one in the current direction", "[jled_group]"
         group.Reverse().Skip();  // cur_: 1 -> 0 (backward)
 
         TimeMock::set_millis(0);
-        REQUIRE(group.Update());  // element 0 plays, group continues to element 1
+        REQUIRE(!group.Update());  // at reverse far end (cur_=0); group finishes
         REQUIRE(HalMock::PinValue(1) == 200);  // element 0 was played
-        REQUIRE(HalMock::PinValue(2) == 0);   // element 1 not yet played
+        REQUIRE(HalMock::PinValue(2) == 0);   // element 1 was skipped, never played
     }
 
 }
