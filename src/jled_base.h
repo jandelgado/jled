@@ -54,7 +54,7 @@ class TJLed : public JLedBase {
     Hal hal_;
 
     // Evaluate effect(t), assumes eval_storage_.IsSet().
-    Brightness Eval(uint32_t t) const { return eval_storage_.Eval(t); }
+    Brightness Eval(period_t t) const { return eval_storage_.Eval(t); }
 
  public:
     using brightness_t = Brightness;
@@ -368,7 +368,7 @@ class TJLed : public JLedBase {
 
         if (static_cast<int32_t>(t - time_start_) < 0) return noResult(true, events);
 
-        auto writeCur = [this](uint32_t t) {
+        auto writeCur = [this](period_t t) {
             const auto val = lerp<Brightness>(Eval(t), minBrightness_, maxBrightness_);
             WriteRaw(val);
             return val;
