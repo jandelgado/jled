@@ -235,6 +235,25 @@ TEST_CASE("Reset restarts group from beginning", "[jled_group]") {
     REQUIRE(!group.Update());
 }
 
+TEST_CASE("Reset() on an empty reversed group does not underflow cur_", "[jled_group]") {
+    auto group = TestJLedGroupAny::Sequential(nullptr, 0).Reverse();
+    group.Reset();  // n_ - 1 would underflow uint8_t if not guarded
+
+    TimeMock::set_millis(0);
+    auto r = group.Update();
+    CHECK(r.IsDone());
+}
+
+TEST_CASE("reverse_ persists across Reset(), like Repeat()'s count", "[jled_group]") {
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
+    TestJLedAny leds[] = {TestJLed(1).UserFunc(&eval)};
+    auto group = TestJLedGroupAny::Sequential(leds).Reverse();
+
+    REQUIRE(group.IsReversed());
+    group.Reset();
+    REQUIRE(group.IsReversed());  // Reset() reads reverse_ to reposition cur_, doesn't clear it
+}
+
 TEST_CASE("Stop halts group execution and turns LEDs off", "[jled_group]") {
     HalMock::Init();
     auto mode = GENERATE(TestJLedGroupAny::eMode::SEQUENCE, TestJLedGroupAny::eMode::PARALLEL);

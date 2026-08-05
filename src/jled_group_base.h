@@ -98,7 +98,7 @@ class TJLedGroup {
     // Update() reads the clock once and delegates to Update(t).
     GroupUpdateResult<TJLedGroup> Update();
     GroupUpdateResult<TJLedGroup> Update(uint32_t t);
-    void Reset();
+    TJLedGroup& Reset();
     void Stop(eIdleMode mode = eIdleMode::TO_MIN_BRIGHTNESS);
     void Pause(eIdleMode mode = eIdleMode::TO_MIN_BRIGHTNESS);
     void Resume();
@@ -409,14 +409,19 @@ GroupUpdateResult<TJLedGroup<Clock, AnyType>> TJLedGroup<Clock, AnyType>::Update
 }
 
 template<typename Clock, typename AnyType>
-void TJLedGroup<Clock, AnyType>::Reset() {
+TJLedGroup<Clock, AnyType>& TJLedGroup<Clock, AnyType>::Reset() {
     ResetLeds();
-    cur_ = 0;
+    // "Restart from the beginning" means the beginning of the currently
+    // configured direction. Guard n_ > 0: n_ - 1 would underflow uint8_t for
+    // an empty (n_ == 0) reversed group. reverse_ itself is untouched (it is
+    // configuration, not run state, like num_repetitions_).
+    cur_ = (reverse_ && n_ > 0) ? n_ - 1 : 0;
     iteration_ = 0;
     is_running_ = true;
     started_ = false;
     done_ = false;
     last_update_time_ = 0;
+    return *this;
 }
 
 template<typename Clock, typename AnyType>
