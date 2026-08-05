@@ -73,12 +73,6 @@ TEST_CASE_METHOD(ArduinoMockFixture, "InvertableHal<ArduinoHal<8>> analogWrite",
     constexpr auto kPin = 10;
     InvertableHal<ArduinoHal<8>> hal(kPin);
 
-    SECTION("first call sets pin mode to OUTPUT, same as unwrapped ArduinoHal") {
-        REQUIRE(mock.getPinMode(kPin) == 0);
-        hal.analogWrite<uint8_t>(123, false);
-        REQUIRE(mock.getPinMode(kPin) == OUTPUT);
-    }
-
     SECTION("passes value through unchanged when invert is false") {
         hal.analogWrite<uint8_t>(123, false);
         REQUIRE(mock.getPinState(kPin) == 123);

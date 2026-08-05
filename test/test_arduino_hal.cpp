@@ -16,9 +16,7 @@ TEST_CASE_METHOD(ArduinoMockFixture, "ArduinoHal<> analogWrite", "[arduino_hal]"
     constexpr auto kPin = 10;
     auto h = ArduinoHal<>(kPin);
 
-    SECTION("first call to analogWrite() sets pin mode to OUTPUT") {
-        REQUIRE(mock.getPinMode(kPin) == 0);
-        h.analogWrite<uint8_t>(123);
+    SECTION("constructor sets pin mode to OUTPUT immediately") {
         REQUIRE(mock.getPinMode(kPin) == OUTPUT);
     }
 
@@ -73,8 +71,7 @@ TEST_CASE_METHOD(ArduinoMockFixture, "ArduinoHal<10> analogWrite", "[arduino_hal
         REQUIRE(mock.getPinState(kPin) == 512);
     }
 
-    SECTION("analogWriteResolution() called once with kResBits") {
-        h.analogWrite<uint8_t>(128);
+    SECTION("analogWriteResolution() called once with kResBits, immediately upon construction") {
         REQUIRE(mock.getAnalogWriteResolution() == 10);
 
         mock.analog_write_resolution = 0;
@@ -107,6 +104,35 @@ TEST_CASE_METHOD(ArduinoMockFixture, "ArduinoHal<12> analogWrite", "[arduino_hal
 
         h.analogWrite<uint16_t>(32768);
         REQUIRE(mock.getPinState(kPin) == 2048);
+    }
+}
+
+TEST_CASE_METHOD(ArduinoMockFixture, "ArduinoHal<10, true> analogWrite (lazy init, e.g. STM32)",
+                 "[arduino_hal]") {
+    constexpr auto kPin = 10;
+    auto h = ArduinoHal<10, true>(kPin);
+
+    SECTION("constructor does not set pin mode or PWM resolution") {
+        REQUIRE(mock.getPinMode(kPin) == 0);
+        REQUIRE(mock.getAnalogWriteResolution() == 0);
+    }
+
+    SECTION("first call to analogWrite() sets pin mode to OUTPUT and PWM resolution") {
+        h.analogWrite<uint8_t>(123);
+        REQUIRE(mock.getPinMode(kPin) == OUTPUT);
+        REQUIRE(mock.getAnalogWriteResolution() == 10);
+    }
+
+    SECTION("analogWriteResolution() called only once, not on subsequent writes") {
+        h.analogWrite<uint8_t>(123);
+        mock.analog_write_resolution = 0;
+        h.analogWrite<uint8_t>(64);
+        REQUIRE(mock.getAnalogWriteResolution() == 0);
+    }
+
+    SECTION("correct 10-bit value written") {
+        h.analogWrite<uint8_t>(255);
+        REQUIRE(mock.getPinState(kPin) == 1023);
     }
 }
 
