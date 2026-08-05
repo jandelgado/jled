@@ -6,7 +6,7 @@
 template<typename Brightness>
 class UserEffect : public jled::BrightnessEvaluator<Brightness> {
  public:
-    Brightness Eval(uint32_t t) const override {
+    Brightness Eval(jled::period_t t) const override {
         // this function changes between OFF and ON  every 250 ms.
         return jled::BrightnessTraits<Brightness>::kFullBrightness * ((t / 250) % 2);
     }

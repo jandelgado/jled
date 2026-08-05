@@ -422,10 +422,11 @@ void loop() {
 It is also possible to provide a user defined brightness evaluator. The class must be derived from
 the `jled::BrightnessEvaluator<Brightness>` template class and implement two methods:
 
-- `Brightness Eval(uint32_t t) const` - the brightness evaluation function that
-  calculates a brightness for the given time `t`. The brightness must be returned
-  as an unsigned byte, where 0 means LED off and 255 means full brightness if `Brightness`
-  is `uint8_t` and as an unsigned int between 0 and 65535 if `Brightness` is `uint16_t`.
+- `Brightness Eval(jled::period_t t) const` - the brightness evaluation function that
+  calculates a brightness for the given time `t` (`t` is always in `[0, Period())`, and
+  `period_t` is `uint16_t`). The brightness must be returned as an unsigned byte, where 0
+  means LED off and 255 means full brightness if `Brightness` is `uint8_t` and as an
+  unsigned int between 0 and 65535 if `Brightness` is `uint16_t`.
 - `uint16_t Period() const` - period of the effect.
 
 All time values are specified in milliseconds.
@@ -444,7 +445,7 @@ The example shows how to implement a user defined effect that works both with `J
 template<typename Brightness>
 class UserEffect : public jled::BrightnessEvaluator<Brightness> {
   public:
-    Brightness Eval(uint32_t t) const override {
+    Brightness Eval(jled::period_t t) const override {
         // this function changes between OFF and ON  every 250 ms.
         return jled::BrightnessTraits<Brightness>::kFullBrightness*((t/250)%2);
     }

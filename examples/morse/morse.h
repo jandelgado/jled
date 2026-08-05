@@ -1,8 +1,8 @@
 // Copyright (c) 2019 Jan Delgado <jdelgado[at]gmx.net>
 // https://github.com/jandelgado/jled
 #include <Arduino.h>
-#include <inttypes.h>
-#include <stddef.h>
+#include <inttypes.h>  // NOLINT
+#include <stddef.h>    // NOLINT
 
 #include "bitset.h"  // NOLINT
 
@@ -23,13 +23,15 @@ class Morse {
     static constexpr auto DURATION_PAUSE_WORD = 7 * DURATION_DIT;
 
  protected:
-    char upper(char c) const { return c >= 'a' && c <= 'z' ? c - 32 : c; }
-    bool isspace(char c) const { return c == ' '; }
+    static constexpr char upper(char c) {
+        return c >= 'a' && c <= 'z' ? static_cast<char>(c - 32) : c;
+    }
+    static constexpr bool isspace(char c) { return c == ' '; }
 
     // returns position of char in morse tree. Count starts with 1, i.e.
     // E=2, T=3, etc.
-    size_t treepos(char c) const {
-        auto i = 1u;
+    static size_t treepos(char c) {
+        auto i = 1U;
         while (LATIN[i++] != c) {
         }
         return i;
@@ -37,7 +39,7 @@ class Morse {
 
     // returns uint16_t with size of morse sequence (dit's and dah's) in MSB
     // and the morse sequence in the LSB
-    uint16_t pos_to_morse_code(int code) const {
+    static uint16_t pos_to_morse_code(size_t code) {
         uint8_t res = 0;
         uint8_t size = 0;
         while (code > 1) {
@@ -97,7 +99,7 @@ class Morse {
 
     explicit Morse(const char* s) {
         const auto length = iterate_sequence(s, [](int, bool) -> void {});
-        auto bits = new Bitset(length);
+        auto *bits = new Bitset(length);
         iterate_sequence(s, [bits](int i, bool v) -> void { bits->set(i, v); });
         bits_ = bits;
     }
@@ -107,6 +109,7 @@ class Morse {
     // make sure that the following, currently not needed, methods are not used
     Morse(const Morse& m) { *this = m; }
     Morse& operator=(const Morse& m) {
+        if (this == &m) return *this;
         delete bits_;
         bits_ = new Bitset(*m.bits_);
         return *this;

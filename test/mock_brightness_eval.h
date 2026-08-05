@@ -20,7 +20,7 @@ class MockBrightnessEvaluatorT : public jled::BrightnessEvaluator<B> {
     explicit MockBrightnessEvaluatorT(std::vector<B> values) : values_(values) {}
     uint16_t TimesEvalWasCalled() const { return count_; }
     uint16_t Period() const { return values_.size(); }
-    B Eval(uint32_t t) const {
+    B Eval(jled::period_t t) const {
         assert(t < values_.size());
         count_++;
         return values_[t];

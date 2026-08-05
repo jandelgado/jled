@@ -35,7 +35,7 @@ namespace jled {
 
 // 8-bit specialization
 template<>
-uint8_t fadeon_func<uint8_t>(uint32_t t, uint16_t period) {
+uint8_t fadeon_func<uint8_t>(period_t t, period_t period) {
     // pre-calculated fade-on function at x={0,16,...,256}
     // clang-format off
     static const uint8_t lut[] JLED_PROGMEM = {0,  0,   3,   7,   13,  22,  33,  49, 68,
@@ -46,7 +46,7 @@ uint8_t fadeon_func<uint8_t>(uint32_t t, uint16_t period) {
 
 // t = 0..period-1
 template<>
-uint16_t fadeon_func<uint16_t>(uint32_t t, uint16_t period) {
+uint16_t fadeon_func<uint16_t>(period_t t, period_t period) {
     // pre-calculated fade-on function at x={0,2048,...,65536}
     // clang-format off
     static const uint16_t lut[] JLED_PROGMEM = {
@@ -71,19 +71,22 @@ static uint8_t hash8(uint32_t x) {
 }
 
 template<>
-uint8_t candle_func<uint8_t>(uint32_t t, uint8_t speed, uint8_t jitter) {
+uint8_t candle_func<uint8_t>(period_t t, uint8_t speed, uint8_t jitter) {
     // gamma-corrected (γ=2.2) flicker values
     // clang-format off
     static const uint8_t kCandleTable[] JLED_PROGMEM = {9,  14,  21,  29,  38,  48,  60,  74,
                                                          89, 106, 124, 143, 165, 188, 212, 238};
     // clang-format on
-    const uint32_t slot = t >> (speed & 0x1f);
+    // speed is documented as 0..15, so mask to 0xf: the shift then always
+    // stays below t's 16-bit width (shifting by >= 16 bits is undefined
+    // behavior), with no need to widen t to compute it.
+    const period_t slot = t >> (speed & 0xf);
     if (hash8(slot) >= jitter) return kFullBrightness;
     return FlashReader<uint8_t>::Read(&kCandleTable[hash8(~slot) & 0xf]);
 }
 
 template<>
-uint16_t candle_func<uint16_t>(uint32_t t, uint8_t speed, uint8_t jitter) {
+uint16_t candle_func<uint16_t>(period_t t, uint8_t speed, uint8_t jitter) {
     const uint8_t val8 = candle_func<uint8_t>(t, speed, jitter);
     return static_cast<uint16_t>((val8 << 8) | val8);
 }

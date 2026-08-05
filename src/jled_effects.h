@@ -36,6 +36,10 @@ namespace jled {
 static constexpr uint8_t kFullBrightness = 255;
 static constexpr uint8_t kZeroBrightness = 0;
 
+// Time argument to Eval(), always in [0, period). Shares its domain with
+// Period()'s uint16_t return, so it never needs more than 16 bits.
+using period_t = uint16_t;
+
 // Compile-time log2 (C++14 compatible single-expression constexpr)
 constexpr uint8_t log2_floor(size_t n) {
     return n <= 1 ? 0 : 1 + log2_floor(n >> 1);
@@ -53,13 +57,16 @@ constexpr uint8_t log2_floor(size_t n) {
 //
 // Requires: N >= 2 and (N-1) is a power of two (checked by static_assert).
 template<typename T, size_t N>
-T lut_lerp(uint32_t t, uint16_t period, const T (&lut)[N]) {
+T lut_lerp(period_t t, period_t period, const T (&lut)[N]) {
     static_assert(N >= 2 && ((N - 1) & (N - 2)) == 0, "lut_lerp: N-1 must be a power of 2");
     constexpr uint8_t kNormShift = 16 - sizeof(T) * 8;
     constexpr uint8_t kSegShift = (16 - kNormShift) - log2_floor(N - 1);
     if (t + 1 >= period) return FlashReader<T>::Read(&lut[N - 1]);
-    const uint16_t tnorm =
-        static_cast<uint16_t>((t << (16 - kNormShift)) / static_cast<uint16_t>(period));
+    // t << (16-kNormShift) can need up to ~24 bits (t is up to 16 bits wide),
+    // so re-widen explicitly here for correctness; this is unrelated to (and
+    // not shrunk by) t's 16-bit parameter type.
+    const uint16_t tnorm = static_cast<uint16_t>((static_cast<uint32_t>(t) << (16 - kNormShift)) /
+                                                  static_cast<uint16_t>(period));
     const uint16_t i = tnorm >> kSegShift;
     const auto y0 = FlashReader<T>::Read(&lut[i]);
     const auto y1 = FlashReader<T>::Read(&lut[i + 1]);
@@ -82,10 +89,10 @@ T lut_lerp(uint32_t t, uint16_t period, const T (&lut)[N]) {
 
 // Template helper functions - implemented below after evaluator definitions
 template<typename Brightness>
-Brightness fadeon_func(uint32_t t, uint16_t period);
+Brightness fadeon_func(period_t t, period_t period);
 
 template<typename Brightness>
-Brightness candle_func(uint32_t t, uint8_t speed, uint8_t jitter);
+Brightness candle_func(period_t t, uint8_t speed, uint8_t jitter);
 
 // Simple 32-bit integer hash (avalanche mix). Exposed so callers outside
 // jled_effects.cpp (e.g. TJLed::Candle()) can derive a well-spread
@@ -116,7 +123,7 @@ template<typename Brightness>
 class BrightnessEvaluator {
  public:
     virtual uint16_t Period() const = 0;
-    virtual Brightness Eval(uint32_t t) const = 0;
+    virtual Brightness Eval(period_t t) const = 0;
 };
 
 template<typename Brightness>
@@ -125,7 +132,7 @@ struct ConstantBrightnessEvaluator {
     uint16_t duration_;
 
     uint16_t Period() const { return duration_; }
-    Brightness Eval(uint32_t) const { return val_; }
+    Brightness Eval(period_t) const { return val_; }
 };
 
 // BlinkBrightnessEvaluator does n on-off cycles in the specified period
@@ -139,14 +146,11 @@ struct BlinkBrightnessEvaluator {
         : duration_on_(duration_on), sub_period_(duration_on + duration_off), n_(n) {}
 
     uint16_t Period() const { return sub_period_ * n_; }
-    Brightness Eval(uint32_t t) const {
-        // Eval is only ever called with t < Period(), and the contract requires
-        // Period() to fit in uint16_t, so t fits in uint16_t too. For the common
-        // single-cycle case (n_ == 1) t < sub_period_, so the modulo is a no-op
-        // and skipped. Narrowing to 16-bit avoids the costly 32-bit
-        // division/modulo routine on MCUs without a hardware divider (e.g. AVR).
-        const uint16_t slot_start_t =
-            (n_ == 1) ? static_cast<uint16_t>(t) : static_cast<uint16_t>(t) % sub_period_;
+    Brightness Eval(period_t t) const {
+        // For the common single-cycle case (n_ == 1) t < sub_period_, so the
+        // modulo is a no-op and skipped, avoiding the costly division/modulo
+        // routine on MCUs without a hardware divider (e.g. AVR).
+        const period_t slot_start_t = (n_ == 1) ? t : t % sub_period_;
 
         return (slot_start_t < duration_on_) ? BrightnessTraits<Brightness>::kFullBrightness
                                              : BrightnessTraits<Brightness>::kZeroBrightness;
@@ -167,7 +171,7 @@ struct BreatheBrightnessEvaluator {
     Brightness from_;
     Brightness to_;
     uint16_t Period() const { return duration_fade_on_ + duration_on_ + duration_fade_off_; }
-    Brightness Eval(uint32_t t) const {
+    Brightness Eval(period_t t) const {
         Brightness val = BrightnessTraits<Brightness>::kZeroBrightness;
         if (t < duration_fade_on_)
             val = fadeon_func<Brightness>(t, duration_fade_on_);
@@ -199,7 +203,10 @@ struct CandleBrightnessEvaluator {
 
     uint16_t Period() const { return period_; }
 
-    Brightness Eval(uint32_t t) const {
+    Brightness Eval(period_t t) const {
+        // offset_ shifts t to give independently configured LEDs distinct
+        // flicker phases; the sum wraps at 65536, which only reshuffles the
+        // hash input candle_func uses, not its correctness.
         return candle_func<Brightness>(t + offset_, speed_, jitter_);
     }
 };
@@ -243,7 +250,7 @@ struct EvalStorage {
         }
     }
 
-    Brightness Eval(uint32_t t) const {
+    Brightness Eval(period_t t) const {
         switch (type) {
             case EvalType::CONSTANT:
                 return data.constant.Eval(t);
@@ -291,11 +298,11 @@ Brightness lerp(Brightness val, Brightness a, Brightness b) {
 // Fade-on function: approximates exp(sin(x)) curve for smooth LED fading
 // 8-bit specialization uses pre-computed table from jled_effects.cpp
 template<>
-uint8_t fadeon_func<uint8_t>(uint32_t t, uint16_t period);
+uint8_t fadeon_func<uint8_t>(period_t t, period_t period);
 
 // 16-bit specialization: interpolate from 8-bit table and scale to 16-bit
 // This is implemented in jled_effects.cpp
 template<>
-uint16_t fadeon_func<uint16_t>(uint32_t t, uint16_t period);
+uint16_t fadeon_func<uint16_t>(period_t t, period_t period);
 
 };  // namespace jled
