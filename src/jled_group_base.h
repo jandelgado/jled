@@ -70,21 +70,16 @@ class TJLedGroup {
     bool IsForever() const { return num_repetitions_ == kRepeatForever; }
     bool HasElements() const { return n_ >= 1; }
 
-    // Toggles playback direction for SEQUENCE mode (false = forward, the
-    // default; true = backward). A harmless no-op in PARALLEL mode, since
-    // UpdateParallel() never reads cur_. Configuration, not run state: it
-    // survives Reset(), see Reset()'s own comment.
+    // Toggles playback direction. Relevant only for SEQUENCE mode (false = forward,
+    // true = backward). No effect in PARALLEL mode.
     TJLedGroup& Reverse() {
         reverse_ = !reverse_;
         return *this;
     }
     bool IsReversed() const { return reverse_; }
 
-    // Advances cur_ by one step in the currently configured direction, without
-    // invoking Update() on the skipped element this pass. Clamped to [0, n_):
-    // a no-op if there is nowhere left to advance to (n_ <= 1, or cur_ already
-    // at the far end for the current direction). Meaningful only in SEQUENCE
-    // mode; harmless no-op in PARALLEL mode, same reasoning as Reverse().
+    // Advances current JLed object by one step in the currently configured direction, without
+    // invoking Update() on the skipped element this pass. Clamped to [0, n_).
     TJLedGroup& Skip() {
         if (n_ == 0) return *this;
         if (reverse_) {
@@ -341,7 +336,9 @@ GroupUpdateResult<TJLedGroup<Clock, AnyType>> TJLedGroup<Clock, AnyType>::Update
     return Update(Clock::millis());
 }
 
-// kStart fires on the first Update() call of a run; kDone fires on the tick
+// Update the group and return a GroupUpdateResult that optionally fires event.
+//
+// kStart fires on the first Update() call of a run. kDone fires on the tick
 // that first observes is_running_ having become false, whether that happened
 // here (repetitions exhausted) or earlier via Stop().
 //
@@ -391,7 +388,8 @@ GroupUpdateResult<TJLedGroup<Clock, AnyType>> TJLedGroup<Clock, AnyType>::Update
         return GroupUpdateResult<TJLedGroup>(true, events, cur_, cur_before, this);
     }
 
-    cur_ = 0;
+    // n_ >= 1 here: the n_ < 1 case already returned earlier in this function.
+    cur_ = reverse_ ? n_ - 1 : 0;
     is_running_ = ++iteration_ < num_repetitions_ || num_repetitions_ == kRepeatForever;
 
     if (!is_running_) {
@@ -413,13 +411,11 @@ GroupUpdateResult<TJLedGroup<Clock, AnyType>> TJLedGroup<Clock, AnyType>::Update
     return GroupUpdateResult<TJLedGroup>(is_running_, events, cur_, cur_before, this);
 }
 
+// Reset means "Restart from the beginning" which is the beginning of the currently
+// configured direction.
 template<typename Clock, typename AnyType>
 TJLedGroup<Clock, AnyType>& TJLedGroup<Clock, AnyType>::Reset() {
     ResetLeds();
-    // "Restart from the beginning" means the beginning of the currently
-    // configured direction. Guard n_ > 0: n_ - 1 would underflow uint8_t for
-    // an empty (n_ == 0) reversed group. reverse_ itself is untouched (it is
-    // configuration, not run state, like num_repetitions_).
     cur_ = (reverse_ && n_ > 0) ? n_ - 1 : 0;
     iteration_ = 0;
     is_running_ = true;

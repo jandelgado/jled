@@ -3,6 +3,8 @@
 #include <jled_base.h>        // NOLINT
 #include <jled_group_base.h>  // NOLINT
 
+#include <vector>  // NOLINT
+
 #include "catch2/catch_amalgamated.hpp"
 #include "hal_mock.h"              // NOLINT
 #include "mock_brightness_eval.h"  // NOLINT
@@ -122,6 +124,55 @@ TEST_CASE("Reverse() plays a Sequential group's elements in reverse order", "[jl
     REQUIRE(HalMock::PinValue(1) == 100);
 }
 
+TEST_CASE("reverse_ set before a run applies to every lap of Repeat(n > 1)", "[jled_group]") {
+    HalMock::Init();
+    auto eval1 = MockBrightnessEvaluator(std::vector<uint8_t>{200});
+    auto eval2 = MockBrightnessEvaluator(std::vector<uint8_t>{50});
+    TestJLedAny leds[] = {TestJLed(1).UserFunc(&eval1), TestJLed(2).UserFunc(&eval2)};
+    auto group = TestJLedGroupAny::Sequential(leds).Reverse().Repeat(2);
+    group.Reset();
+
+    // lap 1: LED2 then LED1
+    TimeMock::set_millis(0);
+    group.Update();
+    REQUIRE(HalMock::PinValue(2) == 50);
+    TimeMock::set_millis(1);
+    auto r1 = group.Update();
+    REQUIRE(HalMock::PinValue(1) == 200);
+    CHECK(r1.IsRepeatStarted());  // lap 2 begins
+
+    // lap 2: LED2 then LED1 again
+    TimeMock::set_millis(2);
+    auto r2 = group.Update();
+    REQUIRE(r2);
+    REQUIRE(HalMock::PinValue(2) == 50);
+    TimeMock::set_millis(3);
+    REQUIRE(!group.Update());
+    REQUIRE(HalMock::PinValue(1) == 200);
+}
+
+TEST_CASE("Reverse()/Skip() are no-ops in PARALLEL mode", "[jled_group]") {
+    HalMock::Init();
+    auto eval1 = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
+    auto eval2 = MockBrightnessEvaluator(std::vector<uint8_t>{150, 50});
+    TestJLedAny leds[] = {TestJLed(1).UserFunc(&eval1).Repeat(1),
+                          TestJLed(2).UserFunc(&eval2).Repeat(1)};
+    auto group = TestJLedGroupAny::Parallel(leds, 2).Reverse();
+    group.Skip();  // IsReversed() still true; no effect, UpdateParallel() ignores cur_
+
+    REQUIRE(group.IsReversed());
+
+    TimeMock::set_millis(0);
+    REQUIRE(group.Update());
+    REQUIRE(HalMock::PinValue(1) == 200);
+    REQUIRE(HalMock::PinValue(2) == 150);
+
+    TimeMock::set_millis(1);
+    REQUIRE(!group.Update());
+    REQUIRE(HalMock::PinValue(1) == 100);
+    REQUIRE(HalMock::PinValue(2) == 50);
+}
+
 TEST_CASE("Repeat(n) plays the group n times", "[jled_group]") {
     HalMock::Init();
     auto mode = GENERATE(TestJLedGroupAny::eMode::SEQUENCE, TestJLedGroupAny::eMode::PARALLEL);
@@ -131,7 +182,7 @@ TEST_CASE("Repeat(n) plays the group n times", "[jled_group]") {
     auto group = TestJLedGroupAny(mode, leds, 1).Repeat(2);
 
     constexpr uint8_t expected[] = {255, 0, 255, 0};
-    for (auto i = 0u; i < sizeof(expected); i++) {
+    for (auto i = 0U; i < sizeof(expected); i++) {
         TimeMock::set_millis(i);
         group.Update();
         INFO("mode=" << static_cast<int>(mode) << ", i=" << i);
@@ -199,7 +250,7 @@ TEST_CASE("Skip() advances cur_ by one in the current direction", "[jled_group]"
         group.Skip();
 
         TimeMock::set_millis(0);
-        REQUIRE(!group.Update());  // element 1 is single-tick, group finishes immediately
+        REQUIRE(!group.Update());            // element 1 is single-tick, group finishes immediately
         REQUIRE(HalMock::PinValue(1) == 0);  // element 0 was never played
         REQUIRE(HalMock::PinValue(2) == 50);
     }
@@ -232,15 +283,14 @@ TEST_CASE("Skip() advances cur_ by one in the current direction", "[jled_group]"
 
     SECTION("backward: Skip() after Reverse() moves cur_ backward") {
         auto group = TestJLedGroupAny::Sequential(leds);
-        group.Skip();  // cur_: 0 -> 1 (forward)
+        group.Skip();            // cur_: 0 -> 1 (forward)
         group.Reverse().Skip();  // cur_: 1 -> 0 (backward)
 
         TimeMock::set_millis(0);
-        REQUIRE(!group.Update());  // at reverse far end (cur_=0); group finishes
+        REQUIRE(!group.Update());              // at reverse far end (cur_=0); group finishes
         REQUIRE(HalMock::PinValue(1) == 200);  // element 0 was played
-        REQUIRE(HalMock::PinValue(2) == 0);   // element 1 was skipped, never played
+        REQUIRE(HalMock::PinValue(2) == 0);    // element 1 was skipped, never played
     }
-
 }
 
 TEST_CASE("Reset restarts group from beginning", "[jled_group]") {
@@ -391,8 +441,8 @@ TEST_CASE("Stop propagates to nested group and inner LEDs", "[jled_group]") {
 TEST_CASE("JLedAny stores TestJLedHD and exercises 16-bit scale path", "[jled_group]") {
     HalMock::Init();
     // MaxBrightness(0x8000u) means lerp<uint16_t>(val, 0, 0x8000) calls scale<uint16_t>
-    auto eval = MockBrightnessEvaluatorT<uint16_t>(std::vector<uint16_t>{32768u, 16384u});
-    TestJLedAny leds[] = {TestJLedHD(1).UserFunc(&eval).Repeat(1).MaxBrightness(0x8000u)};
+    auto eval = MockBrightnessEvaluatorT<uint16_t>(std::vector<uint16_t>{32768U, 16384U});
+    TestJLedAny leds[] = {TestJLedHD(1).UserFunc(&eval).Repeat(1).MaxBrightness(0x8000U)};
     auto group = TestJLedGroupAny::Parallel(leds);
 
     TimeMock::set_millis(0);
