@@ -80,6 +80,21 @@ class TJLedGroup {
     }
     bool IsReversed() const { return reverse_; }
 
+    // Advances cur_ by one step in the currently configured direction, without
+    // invoking Update() on the skipped element this pass. Clamped to [0, n_):
+    // a no-op if there is nowhere left to advance to (n_ <= 1, or cur_ already
+    // at the far end for the current direction). Meaningful only in SEQUENCE
+    // mode; harmless no-op in PARALLEL mode, same reasoning as Reverse().
+    TJLedGroup& Skip() {
+        if (n_ == 0) return *this;
+        if (reverse_) {
+            if (cur_ > 0) --cur_;
+        } else {
+            if (cur_ < n_ - 1) ++cur_;
+        }
+        return *this;
+    }
+
     // Update() reads the clock once and delegates to Update(t).
     GroupUpdateResult<TJLedGroup> Update();
     GroupUpdateResult<TJLedGroup> Update(uint32_t t);

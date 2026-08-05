@@ -155,6 +155,61 @@ TEST_CASE("IsReversed is false initially, true after Reverse(), toggles on repea
         TestJLedGroupAny(TestJLedGroupAny::eMode::SEQUENCE, leds, 1).Reverse().Repeat(2);
 }
 
+TEST_CASE("Skip() advances cur_ by one in the current direction", "[jled_group]") {
+    HalMock::Init();
+    auto eval1 = MockBrightnessEvaluator(std::vector<uint8_t>{200});
+    auto eval2 = MockBrightnessEvaluator(std::vector<uint8_t>{50});
+    TestJLedAny leds[] = {TestJLed(1).UserFunc(&eval1), TestJLed(2).UserFunc(&eval2)};
+
+    SECTION("forward: Skip() before the first Update() starts the group on element 1") {
+        auto group = TestJLedGroupAny::Sequential(leds);
+        group.Skip();
+
+        TimeMock::set_millis(0);
+        REQUIRE(!group.Update());  // element 1 is single-tick, group finishes immediately
+        REQUIRE(HalMock::PinValue(1) == 0);  // element 0 was never played
+        REQUIRE(HalMock::PinValue(2) == 50);
+    }
+
+    SECTION("Skip() is a no-op on an empty group (n_ - 1 must not underflow)") {
+        auto group = TestJLedGroupAny::Sequential(nullptr, 0);
+        group.Skip();
+        SUCCEED();
+    }
+
+    SECTION("Skip() is a no-op on a single-element sequence (nowhere to advance to)") {
+        TestJLedAny single[] = {TestJLed(1).UserFunc(&eval1)};
+        auto group = TestJLedGroupAny::Sequential(single);
+        group.Skip();
+
+        TimeMock::set_millis(0);
+        REQUIRE(!group.Update());
+        REQUIRE(HalMock::PinValue(1) == 200);  // still played, Skip() had nowhere to go
+    }
+
+    SECTION("forward: Skip() is a no-op already at the far end") {
+        auto group = TestJLedGroupAny::Sequential(leds);
+        group.Skip();  // cur_: 0 -> 1 (the far end for n_ == 2)
+        group.Skip();  // no-op, already at n_ - 1
+
+        TimeMock::set_millis(0);
+        REQUIRE(!group.Update());
+        REQUIRE(HalMock::PinValue(2) == 50);
+    }
+
+    SECTION("backward: Skip() after Reverse() moves cur_ backward") {
+        auto group = TestJLedGroupAny::Sequential(leds);
+        group.Skip();  // cur_: 0 -> 1 (forward)
+        group.Reverse().Skip();  // cur_: 1 -> 0 (backward)
+
+        TimeMock::set_millis(0);
+        REQUIRE(group.Update());  // element 0 plays, group continues to element 1
+        REQUIRE(HalMock::PinValue(1) == 200);  // element 0 was played
+        REQUIRE(HalMock::PinValue(2) == 0);   // element 1 not yet played
+    }
+
+}
+
 TEST_CASE("Reset restarts group from beginning", "[jled_group]") {
     HalMock::Init();
     auto mode = GENERATE(TestJLedGroupAny::eMode::SEQUENCE, TestJLedGroupAny::eMode::PARALLEL);
