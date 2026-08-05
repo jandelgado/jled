@@ -2,6 +2,23 @@
 
 ## [Unreleased - scheduled for JLed 5.0]
 
+- breaking/perf: `BrightnessEvaluator<Brightness>::Eval(uint32_t t)` is now
+  `Eval(jled::period_t t)` (`period_t` is `uint16_t`). `t` is always in
+  `[0, Period())`, and `Period()` already returns `uint16_t`, so it never
+  needed more than 16 bits; carrying it as `uint32_t` cost extra
+  register/stack traffic and promoted otherwise-16-bit arithmetic (including
+  in user `Eval()` overrides) to 32-bit on MCUs without a hardware divider
+  (e.g. AVR). Custom evaluators passed to `UserFunc()` need to update their
+  `Eval()` signature accordingly:
+
+  ```c++
+  // before
+  Brightness Eval(uint32_t t) const override { ... }
+
+  // after
+  Brightness Eval(jled::period_t t) const override { ... }
+  ```
+
 - perf: `ArduinoHal` now initializes `pinMode()`/`analogWriteResolution()`
   eagerly in its constructor by default, at zero extra storage/runtime cost.
   Deferring this to the first `analogWrite()` call was only ever needed on
