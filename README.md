@@ -880,6 +880,8 @@ group.Update().OnDone([](JLedGroup* g) { g->Reverse().Reset(); });
 // a, b, c, d, d, c, b, a, a, b, c, d, ...
 ```
 
+See the [Cylon/Larson scanner example](examples/group_reverse/) for a complete example.
+
 #### JLedRefGroup, pointer-based groups for named LED objects
 
 `JLedRef` and `JLedRefGroup` are a more memory-efficient alternative to `JLedAny` and `JLedGroup`.
@@ -1176,7 +1178,7 @@ Example sketches are provided in the [examples](examples/) directory.
 - [Fade from-to effect](examples/fade_from_to)
 - [Pulse effect](examples/pulse)
 - [Controlling a group of LEDs sequentially](examples/group_sequence)
-- [Reversing/bouncing a group of LEDs (Cylon scanner)](examples/group_reverse)
+- [Reversing/bouncing a group of LEDs (Cylon/Larson scanner)](examples/group_reverse)
 - [Controlling a group of LEDs in parallel](examples/group_parallel)
 - [Controlling a group of LEDs by reference](examples/group_ref)
 - [Controlling a nested group of LEDs](examples/group_nested)
