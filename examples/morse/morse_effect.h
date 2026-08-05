@@ -17,8 +17,8 @@ class MorseEffect : public jled::BrightnessEvaluator<uint8_t> {
     explicit MorseEffect(const char* message, uint16_t speed = 200)
         : morse_(message), speed_(speed) {}
 
-    uint8_t Eval(uint32_t t) const override {
-        const auto pos = t / speed_;
+    uint8_t Eval(jled::period_t t) const override {
+        const jled::period_t pos = t / speed_;
         if (pos >= morse_.size()) return 0;
         return morse_.test(pos) ? 255 : 0;
     }
