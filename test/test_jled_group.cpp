@@ -139,6 +139,22 @@ TEST_CASE("IsForever is false initially, true after Forever()", "[jled_group]") 
         TestJLedGroupAny(TestJLedGroupAny::eMode::PARALLEL, leds, 1).Repeat(1).Forever();
 }
 
+TEST_CASE("IsReversed is false initially, true after Reverse(), toggles on repeated calls",
+          "[jled_group]") {
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{255});
+    TestJLedAny leds[] = {TestJLed(1).UserFunc(&eval)};
+    auto mode = GENERATE(TestJLedGroupAny::eMode::SEQUENCE, TestJLedGroupAny::eMode::PARALLEL);
+    auto group = TestJLedGroupAny(mode, leds, 1);
+
+    REQUIRE_FALSE(group.IsReversed());
+    REQUIRE(group.Reverse().IsReversed());
+    REQUIRE_FALSE(group.Reverse().IsReversed());
+
+    // compile-time check: Reverse() chains with Repeat()/Forever()
+    TestJLedGroupAny chained [[gnu::unused]] =
+        TestJLedGroupAny(TestJLedGroupAny::eMode::SEQUENCE, leds, 1).Reverse().Repeat(2);
+}
+
 TEST_CASE("Reset restarts group from beginning", "[jled_group]") {
     HalMock::Init();
     auto mode = GENERATE(TestJLedGroupAny::eMode::SEQUENCE, TestJLedGroupAny::eMode::PARALLEL);

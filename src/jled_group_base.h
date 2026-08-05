@@ -70,6 +70,16 @@ class TJLedGroup {
     bool IsForever() const { return num_repetitions_ == kRepeatForever; }
     bool HasElements() const { return n_ >= 1; }
 
+    // Toggles playback direction for SEQUENCE mode (false = forward, the
+    // default; true = backward). A harmless no-op in PARALLEL mode, since
+    // UpdateParallel() never reads cur_. Configuration, not run state: it
+    // survives Reset(), see Reset()'s own comment.
+    TJLedGroup& Reverse() {
+        reverse_ = !reverse_;
+        return *this;
+    }
+    bool IsReversed() const { return reverse_; }
+
     // Update() reads the clock once and delegates to Update(t).
     GroupUpdateResult<TJLedGroup> Update();
     GroupUpdateResult<TJLedGroup> Update(uint32_t t);
@@ -84,7 +94,8 @@ class TJLedGroup {
           n_(static_cast<uint8_t>(n > 255 ? 255 : n)),
           is_running_(true),
           started_(false),
-          done_(false) {}
+          done_(false),
+          reverse_(false) {}
 
  protected:
     void Pause(uint32_t t, eIdleMode mode = eIdleMode::TO_MIN_BRIGHTNESS);
@@ -117,6 +128,7 @@ class TJLedGroup {
     uint8_t is_running_ : 1;
     uint8_t started_ : 1;  // gates kStart to the first Update() call of a run
     uint8_t done_ : 1;     // gates kDone to the tick that observes is_running_ becoming false
+    uint8_t reverse_ : 1;  // playback direction; false = forward (default), true = backward
     uint8_t last_update_time_ = 0;  // duplicate-tick guard, see Update()
 };
 
