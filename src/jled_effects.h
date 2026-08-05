@@ -25,6 +25,7 @@
 #include <stddef.h>    // size_t
 
 #include "brightness.h"  // brightness type traits and utilities
+#include "progmem.h"     // JLED_PROGMEM / FlashReader: flash-resident storage on AVR
 
 // Brightness evaluators: stateless, copyable functors that compute a
 // brightness value for a given point in time. Driven by TJLed (jled_base.h).
@@ -56,12 +57,12 @@ T lut_lerp(uint32_t t, uint16_t period, const T (&lut)[N]) {
     static_assert(N >= 2 && ((N - 1) & (N - 2)) == 0, "lut_lerp: N-1 must be a power of 2");
     constexpr uint8_t kNormShift = 16 - sizeof(T) * 8;
     constexpr uint8_t kSegShift = (16 - kNormShift) - log2_floor(N - 1);
-    if (t + 1 >= period) return lut[N - 1];
+    if (t + 1 >= period) return FlashReader<T>::Read(&lut[N - 1]);
     const uint16_t tnorm =
         static_cast<uint16_t>((t << (16 - kNormShift)) / static_cast<uint16_t>(period));
     const uint16_t i = tnorm >> kSegShift;
-    const auto y0 = lut[i];
-    const auto y1 = lut[i + 1];
+    const auto y0 = FlashReader<T>::Read(&lut[i]);
+    const auto y1 = FlashReader<T>::Read(&lut[i + 1]);
     const uint16_t x0 = i << kSegShift;
     const uint16_t dx = tnorm - x0;
     // For 8-bit LUTs, dx and (y1-y0) are both <= 255, so their product always

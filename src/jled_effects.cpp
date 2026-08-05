@@ -38,8 +38,8 @@ template<>
 uint8_t fadeon_func<uint8_t>(uint32_t t, uint16_t period) {
     // pre-calculated fade-on function at x={0,16,...,256}
     // clang-format off
-    static constexpr uint8_t lut[] = {0,  0,   3,   7,   13,  22,  33,  49, 68,
-                                      91, 118, 148, 179, 208, 232, 248, 255};
+    static const uint8_t lut[] JLED_PROGMEM = {0,  0,   3,   7,   13,  22,  33,  49, 68,
+                                                91, 118, 148, 179, 208, 232, 248, 255};
     // clang-format on
     return lut_lerp(t, period, lut);
 }
@@ -49,7 +49,7 @@ template<>
 uint16_t fadeon_func<uint16_t>(uint32_t t, uint16_t period) {
     // pre-calculated fade-on function at x={0,2048,...,65536}
     // clang-format off
-    static constexpr uint16_t lut[] = {
+    static const uint16_t lut[] JLED_PROGMEM = {
         0,     49,    198,   448,   807,   1278,  1874,  2600,  3474,  4505,
         5714,  7110,  8719,  10548, 12625, 14949, 17545, 20398, 23524, 26888,
         30485, 34254, 38166, 42127, 46081, 49910, 53536, 56829, 59707, 62054,
@@ -66,18 +66,20 @@ uint32_t hash32(uint32_t x) {
     return x;
 }
 
-static uint8_t hash8(uint32_t x) { return static_cast<uint8_t>(hash32(x)); }
+static uint8_t hash8(uint32_t x) {
+    return static_cast<uint8_t>(hash32(x));
+}
 
 template<>
 uint8_t candle_func<uint8_t>(uint32_t t, uint8_t speed, uint8_t jitter) {
     // gamma-corrected (γ=2.2) flicker values
     // clang-format off
-    static constexpr uint8_t kCandleTable[] = {9,  14,  21,  29,  38,  48,  60,  74,
-                                               89, 106, 124, 143, 165, 188, 212, 238};
+    static const uint8_t kCandleTable[] JLED_PROGMEM = {9,  14,  21,  29,  38,  48,  60,  74,
+                                                         89, 106, 124, 143, 165, 188, 212, 238};
     // clang-format on
     const uint32_t slot = t >> (speed & 0x1f);
     if (hash8(slot) >= jitter) return kFullBrightness;
-    return kCandleTable[hash8(~slot) & 0xf];
+    return FlashReader<uint8_t>::Read(&kCandleTable[hash8(~slot) & 0xf]);
 }
 
 template<>
