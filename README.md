@@ -89,6 +89,7 @@ void loop() {
     - [WriteRaw](#writeraw)
   - [Controlling a group of LEDs](#controlling-a-group-of-leds)
     - [Group lifecycle events](#group-lifecycle-events)
+    - [Reversing and bouncing a sequential group](#reversing-and-bouncing-a-sequential-group)
     - [JLedRefGroup, pointer-based groups for named LED objects](#jledrefgroup-pointer-based-groups-for-named-led-objects)
     - [When to use what?](#when-to-use-what)
 - [Framework notes](#framework-notes)
@@ -728,7 +729,17 @@ automatically. A runtime-size overload is also available:
 - `Stop(mode = jled::eIdleMode::TO_MIN_BRIGHTNESS)` - stops all elements
   immediately. `mode` controls the final brightness of each LED, identical to
   [`JLed::Stop(mode)`](#immediate-stop). Further calls to `Update()` have no effect.
-- `Reset()` - resets all elements and restarts the group from the beginning.
+- `Reset()` - resets all elements and restarts the group from the beginning
+  (the beginning of the currently configured direction, see below). Fluent:
+  returns `JLedGroup&`.
+- `Reverse()` - toggles sequential playback direction. `Sequential` only, a
+  no-op in `Parallel` mode. See
+  [Reversing and bouncing a sequential group](#reversing-and-bouncing-a-sequential-group).
+- `Skip()` - advances the sequence cursor by one step in the current
+  direction without playing the skipped element. `Sequential` only, a no-op
+  in `Parallel` mode.
+- `IsReversed()` - current playback direction, `false` is forward (the
+  default).
 
 `JLedAny` has a fixed-size internal buffer sized to hold `JLed`, `JLedHD`, or
 `JLedGroup`. A custom LED type that is larger does not fit and fails to compile.
@@ -829,6 +840,47 @@ entire run, so transitions among the nested group's own elements are invisible f
 `GroupUpdateResult`. A group's events are reported only by the `Update()` call that produced them,
 and for a nested group that call is made by the outer group, so they cannot be picked up afterwards.
 To follow a nested group's progress, poll the LEDs you care about as shown above.
+
+#### Reversing and bouncing a sequential group
+
+`Reverse()` toggles the playback direction on a `Sequential` group. It takes no argument
+so calling it repeatedly, e.g. once per `OnDone`, naturally alternates
+direction pass over pass.
+
+Composing `Reverse()`, `Reset()` and `Skip()` from `OnDone` is the idiomatic recipe for continuous
+ping-pong effects. `OnDone`'s callback runs again every time a pass finishes, so as long as
+something keeps calling `Update()`, it keeps alternating direction forever:
+
+```c++
+group.Update().OnDone([](JLedGroup* g) { g->Reverse().Reset().Skip(); });
+// a, b, c, d  ->  c, b, a  ->  b, c, d  ->  c, b, a  ->  ...
+```
+
+For "play once, then backward once, then stop", just add a guard to only reverse once in
+`OnDone`:
+
+```c++
+bool bounced = false;
+...
+group.Update().OnDone([&bounced](JLedGroup* g) {
+    if (bounced) return;
+    bounced = true;
+    g->Reverse().Reset().Skip();
+});
+// a, b, c, d  ->  c, b, a  ->  (stays stopped)
+```
+
+`Skip()` drops the reprise of the element the direction just reversed away from, which
+would otherwise play twice: once as the last element of the pass that just finished, once
+again as the first element of the naive next pass. Omitting `.Skip()` is a valid, deliberate
+choice for callers who want the duplicated endpoint:
+
+```c++
+group.Update().OnDone([](JLedGroup* g) { g->Reverse().Reset(); });
+// a, b, c, d, d, c, b, a, a, b, c, d, ...
+```
+
+See the [Cylon/Larson scanner example](examples/group_reverse/) for a complete example.
 
 #### JLedRefGroup, pointer-based groups for named LED objects
 
@@ -1126,6 +1178,7 @@ Example sketches are provided in the [examples](examples/) directory.
 - [Fade from-to effect](examples/fade_from_to)
 - [Pulse effect](examples/pulse)
 - [Controlling a group of LEDs sequentially](examples/group_sequence)
+- [Reversing/bouncing a group of LEDs (Cylon/Larson scanner)](examples/group_reverse)
 - [Controlling a group of LEDs in parallel](examples/group_parallel)
 - [Controlling a group of LEDs by reference](examples/group_ref)
 - [Controlling a nested group of LEDs](examples/group_nested)

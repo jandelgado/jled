@@ -39,6 +39,10 @@
   nested groups; `kElementChanged` fires for `Sequential` groups when the
   active element changes, but is scoped to a group's own direct elements
   (does not see into nested subgroups)
+- new: `Reverse()`/`Skip()`/`IsReversed()` on `TJLedGroup` for backward and
+  ping-pong playback of `Sequential` groups. `Reset()` is now fluent
+  (returns `TJLedGroup&`) and restarts from the beginning of the currently
+  configured direction
 - fix: `TJLedGroup::Update()` could silently consume an extra repetition if
   called more than once within the same millisecond at a repetition
   boundary (each element's own per-tick guard is bypassed by the `Reset()`

@@ -50,7 +50,10 @@ JLed led = JLed(21).DelayBefore(1500).Breathe(500).Repeat(5).MaxBrightness(150);
 
 ## Testing
 
-Catch2 (amalgamated in `test/catch2/`). `TEST_CASE("what", "[tag]")`, `SECTION()` for variations. Tags: `[jled]`, `[sequence]`, `[hal]`. Test evaluators by calling `Eval(t)` at various time points. HAL mocks in `test/Arduino.h`, `test/esp-idf/`. Register new test files in `test/Makefile`.
+- Catch2 (amalgamated in `test/catch2/`). `TEST_CASE("what", "[tag]")`, `SECTION()` for variations. Tags: `[jled]`, `[sequence]`, `[hal]`. Test evaluators by calling `Eval(t)` at various time points. HAL mocks in `test/Arduino.h`, `test/esp-idf/`. Register new test files in `test/Makefile`.
+- Tests are whitebox: read and understand the code path before writing a test for it, not just the public behavior.
+- Keep tests simple: test the specific behavior at hand, don't add setup, helpers, or cases beyond what's needed to cover it.
+- Use a fixture (`TEST_CASE_METHOD`) where applicable, e.g. `ArduinoMockFixture` in `test/test_arduino_hal.cpp`.
 
 ## Common Tasks
 

@@ -70,10 +70,30 @@ class TJLedGroup {
     bool IsForever() const { return num_repetitions_ == kRepeatForever; }
     bool HasElements() const { return n_ >= 1; }
 
+    // Toggles playback direction. Relevant only for SEQUENCE mode (false = forward,
+    // true = backward). No effect in PARALLEL mode.
+    TJLedGroup& Reverse() {
+        reverse_ = !reverse_;
+        return *this;
+    }
+    bool IsReversed() const { return reverse_; }
+
+    // Advances current JLed object by one step in the currently configured direction, without
+    // invoking Update() on the skipped element this pass. Clamped to [0, n_).
+    TJLedGroup& Skip() {
+        if (n_ == 0) return *this;
+        if (reverse_) {
+            if (cur_ > 0) --cur_;
+        } else {
+            if (cur_ < n_ - 1) ++cur_;
+        }
+        return *this;
+    }
+
     // Update() reads the clock once and delegates to Update(t).
     GroupUpdateResult<TJLedGroup> Update();
     GroupUpdateResult<TJLedGroup> Update(uint32_t t);
-    void Reset();
+    TJLedGroup& Reset();
     void Stop(eIdleMode mode = eIdleMode::TO_MIN_BRIGHTNESS);
     void Pause(eIdleMode mode = eIdleMode::TO_MIN_BRIGHTNESS);
     void Resume();
@@ -84,7 +104,8 @@ class TJLedGroup {
           n_(static_cast<uint8_t>(n > 255 ? 255 : n)),
           is_running_(true),
           started_(false),
-          done_(false) {}
+          done_(false),
+          reverse_(false) {}
 
  protected:
     void Pause(uint32_t t, eIdleMode mode = eIdleMode::TO_MIN_BRIGHTNESS);
@@ -117,6 +138,7 @@ class TJLedGroup {
     uint8_t is_running_ : 1;
     uint8_t started_ : 1;  // gates kStart to the first Update() call of a run
     uint8_t done_ : 1;     // gates kDone to the tick that observes is_running_ becoming false
+    uint8_t reverse_ : 1;  // playback direction; false = forward (default), true = backward
     uint8_t last_update_time_ = 0;  // duplicate-tick guard, see Update()
 };
 
@@ -292,6 +314,11 @@ bool TJLedGroup<Clock, AnyType>::UpdateParallel(uint32_t t) {
 template<typename Clock, typename AnyType>
 bool TJLedGroup<Clock, AnyType>::UpdateSequentially(uint32_t t) {
     if (!leds_[cur_].Update(t)) {
+        if (reverse_) {
+            if (cur_ == 0) return false;
+            --cur_;
+            return true;
+        }
         return ++cur_ < n_;
     }
     return true;
@@ -309,7 +336,9 @@ GroupUpdateResult<TJLedGroup<Clock, AnyType>> TJLedGroup<Clock, AnyType>::Update
     return Update(Clock::millis());
 }
 
-// kStart fires on the first Update() call of a run; kDone fires on the tick
+// Update the group and return a GroupUpdateResult that optionally fires event.
+//
+// kStart fires on the first Update() call of a run. kDone fires on the tick
 // that first observes is_running_ having become false, whether that happened
 // here (repetitions exhausted) or earlier via Stop().
 //
@@ -359,7 +388,8 @@ GroupUpdateResult<TJLedGroup<Clock, AnyType>> TJLedGroup<Clock, AnyType>::Update
         return GroupUpdateResult<TJLedGroup>(true, events, cur_, cur_before, this);
     }
 
-    cur_ = 0;
+    // n_ >= 1 here: the n_ < 1 case already returned earlier in this function.
+    cur_ = reverse_ ? n_ - 1 : 0;
     is_running_ = ++iteration_ < num_repetitions_ || num_repetitions_ == kRepeatForever;
 
     if (!is_running_) {
@@ -381,15 +411,18 @@ GroupUpdateResult<TJLedGroup<Clock, AnyType>> TJLedGroup<Clock, AnyType>::Update
     return GroupUpdateResult<TJLedGroup>(is_running_, events, cur_, cur_before, this);
 }
 
+// Reset means "Restart from the beginning" which is the beginning of the currently
+// configured direction.
 template<typename Clock, typename AnyType>
-void TJLedGroup<Clock, AnyType>::Reset() {
+TJLedGroup<Clock, AnyType>& TJLedGroup<Clock, AnyType>::Reset() {
     ResetLeds();
-    cur_ = 0;
+    cur_ = (reverse_ && n_ > 0) ? n_ - 1 : 0;
     iteration_ = 0;
     is_running_ = true;
     started_ = false;
     done_ = false;
     last_update_time_ = 0;
+    return *this;
 }
 
 template<typename Clock, typename AnyType>
