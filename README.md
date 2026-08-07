@@ -1134,6 +1134,30 @@ board](https://www.st.com/en/evaluation-tools/nucleo-f401re.html) using the offi
 compiling examples from the Arduino IDE. Note that the `stlink` is necessary to upload
 sketches to the micro controller.
 
+#### STM32Cube (native)
+
+On bare STM32Cube (CubeMX / STM32CubeIDE) builds, JLed auto-selects a native
+HAL that drives an already-configured timer PWM channel. You own timer setup:
+configure the timer frequency and resolution in CubeMX (`MX_TIMx_Init()`, which
+sets `Init.Period`), then hand JLed the handle plus channel:
+
+    // inside main(), after MX_TIMx_Init() has run:
+    JLed led = JLed({&htim2, TIM_CHANNEL_1}).Breathe(1000).Forever();
+    while (1) { led.Update(); }
+
+Notes:
+
+- Construct these JLed objects inside or below `main()`, after the timer init,
+  never as file-scope globals. The HAL starts PWM and reads the timer period in
+  its constructor, which for a global would run before `main()`.
+- Brightness is scaled to the timer period you configured, so PWM resolution is
+  as fine as that period. Both `JLed` (8-bit) and `JLedHD` (16-bit) work.
+- `LowActive()` inverts the output in hardware via the timer polarity bit.
+- STM32duino users can pass `timer.getHandle()` from a `HardwareTimer`. The
+  Arduino-framework STM32 path keeps using the standard Arduino HAL; the native
+  HAL is only selected on non-Arduino STM32Cube builds.
+- See `examples/stm32cube_demo` for a complete CubeMX project.
+
 ### Raspberry Pi Pico
 
 When using JLed on a Raspberry Pi Pico with the native **Pico SDK**, `JLed` uses

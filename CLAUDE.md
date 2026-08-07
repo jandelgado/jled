@@ -36,7 +36,7 @@ PlatformIO + Make inside `devbox shell`. Discover targets with `make help`.
 - `src/jled_base.h`: platform-agnostic `TJLed<Hal, Clock, B>` state machine + fluent API.
 - `src/jled_group_base.h`: `TJLedGroup`, `TJLedAny`, `TJLedRef` (grouping, type erasure).
 - `src/jled.h`: platform detection; exposes `JLed`, `JLedHD`, `JLedGroup`, `JLedAny`.
-- `src/*_hal.h`: per-platform HAL (Arduino, ESP32, ESP8266, mbed, Pico), two abstractions each: PWM (e.g. `ArduinoHal::analogWrite(Brightness)`) and Clock (e.g. `ArduinoClock::millis()`).
+- `src/*_hal.h`: per-platform HAL (Arduino, ESP32, ESP8266, mbed, Pico, STM32Cube), two abstractions each: PWM (e.g. `ArduinoHal::analogWrite(Brightness)`) and Clock (e.g. `ArduinoClock::millis()`).
 
 **Effects**: structs with `Period()` and `Eval(t)`, stateless and copyable (see `ConstantBrightnessEvaluator`).
 **Resolution**: `JLed`/`JLedHD` are template instances; higher resolution = smoother PWM.
