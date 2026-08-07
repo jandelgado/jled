@@ -57,6 +57,18 @@ class Stm32CubeHal {
         HAL_TIM_PWM_Start(htim_, channel_);
     }
 
+    template <typename Brightness>
+    void analogWrite(Brightness val) const {
+        constexpr uint32_t kFull = BrightnessTraits<Brightness>::kFullBrightness;
+        // 64-bit intermediate: val (<=65535) * period_ (<=2^32-1) can exceed 2^32.
+        uint32_t duty =
+            static_cast<uint32_t>((static_cast<uint64_t>(val) * period_) / kFull);
+        // CCR > ARR forces the output permanently active in PWM mode 1, the only
+        // way to reach true 100% duty (CCR == ARR is briefly inactive for one tick).
+        if (val == kFull) duty = period_ + 1;
+        __HAL_TIM_SET_COMPARE(htim_, channel_, duty);
+    }
+
     // Compiler-generated copy ctor/assignment duplicate htim_/channel_/period_
     // only; they touch no hardware, so TJLed's copy/assign never re-start PWM.
 

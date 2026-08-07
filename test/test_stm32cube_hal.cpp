@@ -31,3 +31,33 @@ TEST_CASE_METHOD(Stm32CubeMockFixture, "constructor starts PWM once and caches p
     REQUIRE(mock.pwm_start_count == 1);
     (void)hal_copy;
 }
+
+TEST_CASE_METHOD(Stm32CubeMockFixture, "analogWrite scales brightness to timer period",
+                 "[stm32cube_hal]") {
+    const int idx = stm32MockChanIndex(TIM_CHANNEL_1);
+
+    SECTION("8-bit brightness, non-power-of-two period") {
+        htim.Init.Period = 999;  // proves no hidden bit-width assumption
+        auto hal = Stm32CubeHal({&htim, TIM_CHANNEL_1});
+
+        hal.analogWrite<uint8_t>(0);
+        REQUIRE(mock.compare[idx] == 0);
+
+        hal.analogWrite<uint8_t>(128);  // 128 * 999 / 255 == 501
+        REQUIRE(mock.compare[idx] == 501);
+
+        hal.analogWrite<uint8_t>(255);  // full: CCR = period + 1
+        REQUIRE(mock.compare[idx] == 1000);
+    }
+
+    SECTION("16-bit brightness, large period") {
+        htim.Init.Period = 65535;
+        auto hal = Stm32CubeHal({&htim, TIM_CHANNEL_1});
+
+        hal.analogWrite<uint16_t>(32768);  // 32768 * 65535 / 65535 == 32768
+        REQUIRE(mock.compare[idx] == 32768);
+
+        hal.analogWrite<uint16_t>(65535);  // full: CCR = period + 1
+        REQUIRE(mock.compare[idx] == 65536);
+    }
+}
