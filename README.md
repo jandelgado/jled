@@ -102,6 +102,8 @@ void loop() {
     - [Using ESP-IDF](#using-esp-idf)
   - [STM32](#stm32)
     - [Arduino framework](#arduino-framework)
+    - [STM32Cube (native)](#stm32cube-native)
+    - [mbed framework](#mbed-framework)
   - [Raspberry Pi Pico](#raspberry-pi-pico)
 - [Example sketches](#example-sketches)
   - [Building examples with PlatformIO](#building-examples-with-platformio)
@@ -944,9 +946,9 @@ pull the LEDs out into named variables and swap the array type.
 ## Framework notes
 
 JLed supports the Arduino and [mbed](https://www.mbed.org) frameworks, as well as native
-Pico-SDK and ESP-IDF builds without any framework at all (see the [Raspberry Pi
-Pico](#raspberry-pi-pico) and [ESP32](#esp32) sections). When
-using platformio, the framework to be used is configured in the `platform.ini`
+Pico-SDK, ESP-IDF and STM32Cube builds without any framework at all (see the [Raspberry Pi
+Pico](#raspberry-pi-pico), [ESP32](#esp32) and [STM32](#stm32) sections). When
+using PlatformIO, the framework to be used is configured in the `platformio.ini`
 file, as shown in the following example, which for example selects the `mbed`
 framework:
 
@@ -955,19 +957,17 @@ framework:
 platform=ststm32
 board = nucleo_f401re
 framework = mbed
-build_flags = -Isrc
-src_filter = +<../../src/>  +<./>
 upload_protocol=stlink
 ```
 
-An [mbed example is provided here](examples/group_mbed/group_mbed.cpp).
-To compile it for the F401RE, make your [plaform.ini](platform.ini) look like:
+An [mbed example is provided here](examples/mbed_demo/mbed_demo.cpp).
+To compile it for the F401RE, make your [platformio.ini](platformio.ini) look like:
 
 ```ini
 ...
 [platformio]
 default_envs = nucleo_f401re_mbed
-src_dir = examples/group_mbed
+src_dir = examples/mbed_demo
 ...
 ```
 
@@ -1003,7 +1003,7 @@ each supported platform:
 | mbed                                                    | `MbedHal<8>` (8-bit)      | `MbedHal<16>` (16-bit)    |
 | Teensy 4.x / 3.x / LC                                   | `ArduinoHal<8>` (8-bit)   | `ArduinoHal<16>` (16-bit) |
 | SAMD21 (Arduino Zero, MKR series) / Arduino Due         | `ArduinoHal<8>` (8-bit)   | `ArduinoHal<12>` (12-bit) |
-| STM32 (STM32duino)                                      | `ArduinoHal<8>` (8-bit)   | `ArduinoHal<12>` (12-bit) |
+| STM32 (STM32duino)                                      | `ArduinoHal<12>` (12-bit) | `ArduinoHal<12>` (12-bit) |
 | nRF5 (Nordic)                                           | `ArduinoHal<8>` (8-bit)   | `ArduinoHal<12>` (12-bit) |
 | RP2040 arduino-pico SDK (with `JLED_FORCE_ARDUINO_HAL`) | `ArduinoHal<8>` (8-bit)   | `ArduinoHal<16>` (16-bit) |
 | ESP8266 Arduino core v1/v2                              | `ArduinoHal<10>` (10-bit) | `ArduinoHal<10>` (10-bit) |
@@ -1028,9 +1028,10 @@ pin at once. As a consequence, you currently **cannot mix** `JLed` (8-bit) and `
 sketch when both resolve to `ArduinoHal` with different bit widths. The last
 `analogWriteResolution()` call wins and silently misconfigures the other instances. This affects all
 platforms where `JLed` and `JLedHD` resolve to different bit widths: Teensy (16-bit), SAMD21 / Arduino
-Due / STM32 / nRF5 (12-bit), ESP8266 core v3+ (`JLed` 8-bit vs `JLedHD` 10-bit), and RP2040 via
-arduino-pico (16-bit). On all remaining Arduino-compatible platforms both types share the same
-resolution (including ESP8266 core v1/v2 where both are 10-bit), so mixing is safe.
+Due / nRF5 (12-bit `JLedHD` vs 8-bit `JLed`), ESP8266 core v3+ (`JLed` 8-bit vs `JLedHD` 10-bit), and
+RP2040 via arduino-pico (16-bit). On all remaining Arduino-compatible platforms both types share the
+same resolution (STM32duino where both are 12-bit, ESP8266 core v1/v2 where both are 10-bit), so
+mixing is safe.
 
 #### `JLED_FORCE_ARDUINO_HAL`
 
@@ -1132,7 +1133,8 @@ board](https://www.st.com/en/evaluation-tools/nucleo-f401re.html) using the offi
 [STM32duino core](https://github.com/stm32duino/Arduino_Core_STM32) (PlatformIO
 `ststm32` platform, see `env:nucleo_f401re` in [platformio.ini](platformio.ini)) and
 compiling examples from the Arduino IDE. Note that the `stlink` is necessary to upload
-sketches to the micro controller.
+sketches to the microcontroller. `STM32duino` provides the Arduino API for STM32
+microcontrollers, allowing to write portable code.
 
 #### STM32Cube (native)
 
@@ -1153,10 +1155,16 @@ Notes:
 - Brightness is scaled to the timer period you configured, so PWM resolution is
   as fine as that period. Both `JLed` (8-bit) and `JLedHD` (16-bit) work.
 - `LowActive()` inverts the output in hardware via the timer polarity bit.
-- STM32duino users can pass `timer.getHandle()` from a `HardwareTimer`. The
-  Arduino-framework STM32 path keeps using the standard Arduino HAL; the native
-  HAL is only selected on non-Arduino STM32Cube builds.
-- See `examples/stm32cube_demo` for a complete CubeMX project.
+- The Arduino-framework STM32 path (STM32duino) keeps using the standard Arduino
+  HAL; this native HAL is only auto-selected on non-Arduino STM32Cube builds.
+- See [the stm32cube demo](examples/stm32cube_demo) for a complete CubeMX project.
+
+#### mbed framework
+
+STM32 boards can also be driven through the [mbed](https://www.mbed.org)
+framework, in which case JLed uses `MbedHal`. Select the framework in
+`platformio.ini` (`framework = mbed`, see `env:nucleo_f401re_mbed`) and refer to
+the [Framework notes](#framework-notes) for a full configuration example.
 
 ### Raspberry Pi Pico
 
@@ -1206,7 +1214,6 @@ Example sketches are provided in the [examples](examples/) directory.
 - [Controlling a group of LEDs in parallel](examples/group_parallel)
 - [Controlling a group of LEDs by reference](examples/group_ref)
 - [Controlling a nested group of LEDs](examples/group_nested)
-- [Controlling a group of LEDs (mbed)](examples/group_mbed)
 - [Simple User provided effect](examples/user_func)
 - [Morsecode example](examples/morse)
 - [Last brightness value example](examples/last_brightness)
@@ -1216,6 +1223,8 @@ Example sketches are provided in the [examples](examples/) directory.
 - [Custom HAL example](examples/custom_hal)
 - [Custom PCA9685 HAL](https://github.com/jandelgado/jled-pca9685-hal)
 - [Dynamically switch sequences](https://github.com/jandelgado/jled-example-switch-sequence)
+- [STM32 mbed framework demo](examples/mbed_demo)
+- [STM32 STM32Cube framework demo](examples/stm32cube_demo)
 - [JLed compiled to WASM and running in the browser](https://jandelgado.github.io/jled-wasm)
 - [Raspberry Pi Pico Demo](examples/raspi_pico)
 - [ESP32 ESP-IDF example](https://github.com/jandelgado/jled-esp-idf-example)

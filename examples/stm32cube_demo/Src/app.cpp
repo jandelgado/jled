@@ -1,22 +1,6 @@
-/* USER CODE BEGIN Header */
-/**
- ******************************************************************************
- * @file           : main.c
- * @brief          : Main program body
- ******************************************************************************
- * @attention
- *
- * Copyright (c) 2026 STMicroelectronics.
- * All rights reserved.
- *
- * This software is licensed under terms that can be found in the LICENSE file
- * in the root directory of this software component.
- * If no LICENSE file comes with this software, it is provided AS-IS.
- *
- ******************************************************************************
- */
-/* USER CODE END Header */
-/* Includes ------------------------------------------------------------------*/
+// JLed STM32Cube example.
+// Copyright 2017-2026 by Jan Delgado. All rights reserved.
+// https://github.com/jandelgado/jled
 extern "C" {
 #include "main.h"
 #include "tim.h"  // htim1/htim4 handles
@@ -28,8 +12,7 @@ extern "C" {
 // Hardware initialization stays in the generated code, so regenerating the
 // project with STM32CubeMX needs no changes here. This never returns.
 extern "C" void app_main(void) {
-    // JLed objects are created here, after MX_TIMx_Init(), never as globals: the
-    // Stm32CubeHal constructor starts PWM and reads htim->Init.Period eagerly.
+    // JLed objects are created here, after MX_TIMx_Init() was called and never as globals.
     //
     // Timer channel to Nucleo F401RE pin mapping (configured in stm32.ioc):
     //   led1  htim1 CH1  PA8       led5  htim4 CH1  PB6

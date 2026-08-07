@@ -57,21 +57,27 @@ class Stm32CubeHal {
         HAL_TIM_PWM_Start(htim_, channel_);
     }
 
-    template <typename Brightness>
+    template<typename Brightness>
     void analogWrite(Brightness val) const {
         constexpr uint32_t kFull = BrightnessTraits<Brightness>::kFullBrightness;
         // 64-bit intermediate: val (<=65535) * period_ (<=2^32-1) can exceed 2^32.
-        uint32_t duty =
-            static_cast<uint32_t>((static_cast<uint64_t>(val) * period_) / kFull);
+        uint32_t duty = static_cast<uint32_t>((static_cast<uint64_t>(val) * period_) / kFull);
         // CCR > ARR forces the output permanently active in PWM mode 1, the only
-        // way to reach true 100% duty (CCR == ARR is briefly inactive for one tick).
-        if (val == kFull) duty = period_ + 1;
+        // way to reach true 100% duty (CCR == ARR is briefly inactive for one
+        // tick). CCR is only as wide as the timer, 16-bit on TIM1/3/4 and many
+        // others, 32-bit on TIM2/5: when the user configured the full-width
+        // period, period_ + 1 would overflow the register (65536 truncates to 0,
+        // blanking the LED). In that case fall back to CCR == ARR, whose one tick
+        // deficit is not visible.
+        if (val == kFull) {
+            duty = (period_ == 0xFFFFu || period_ == 0xFFFFFFFFu) ? period_ : period_ + 1;
+        }
         __HAL_TIM_SET_COMPARE(htim_, channel_, duty);
     }
 
     // Native hardware invert (SetLowActive() below) owns inversion entirely;
     // invert is ignored here, the same pattern as Esp32Hal/PicoHal.
-    template <typename Brightness>
+    template<typename Brightness>
     void analogWrite(Brightness val, bool /*invert*/) const {
         analogWrite(val);
     }
@@ -79,6 +85,12 @@ class Stm32CubeHal {
     // Set output-compare polarity via the official HAL_TIM_PWM_ConfigChannel().
     // Reads back the current compare value first so flipping polarity does not
     // reset an in-flight duty cycle (same read-back pattern as Esp32Hal).
+    // This assumes an STM32Cube HAL version that snapshots CCER before disabling
+    // the channel, which is true on current SDKs; on very old SDKs the channel
+    // may need re-arming after the reconfigure. Reconfiguring an advanced-timer
+    // channel (TIM1, TIM8) via HAL_TIM_PWM_ConfigChannel resets that channel's
+    // complementary output and idle-state configuration, so use standard
+    // non-complementary channels, consistent with the HAL's scope.
     void SetLowActive(bool f) const {
         TIM_OC_InitTypeDef sConfigOC = {};
         sConfigOC.OCMode = TIM_OCMODE_PWM1;

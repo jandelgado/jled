@@ -29,7 +29,9 @@ TEST_CASE_METHOD(Stm32CubeMockFixture, "constructor starts PWM once and caches p
     // A copy must not touch hardware (TJLed copies its Hal on copy/assign).
     auto hal_copy = hal;
     REQUIRE(mock.pwm_start_count == 1);
-    (void)hal_copy;
+    // full at 999 -> 1000, proves the copy kept period_/channel_
+    hal_copy.analogWrite<uint8_t>(255);
+    REQUIRE(mock.compare[stm32MockChanIndex(TIM_CHANNEL_2)] == 1000);
 }
 
 TEST_CASE_METHOD(Stm32CubeMockFixture, "analogWrite scales brightness to timer period",
@@ -46,6 +48,7 @@ TEST_CASE_METHOD(Stm32CubeMockFixture, "analogWrite scales brightness to timer p
         hal.analogWrite<uint8_t>(128);  // 128 * 999 / 255 == 501
         REQUIRE(mock.compare[idx] == 501);
 
+        // 999 is below full width, so the +1 applies at full brightness.
         hal.analogWrite<uint8_t>(255);  // full: CCR = period + 1
         REQUIRE(mock.compare[idx] == 1000);
     }
@@ -57,9 +60,28 @@ TEST_CASE_METHOD(Stm32CubeMockFixture, "analogWrite scales brightness to timer p
         hal.analogWrite<uint16_t>(32768);  // 32768 * 65535 / 65535 == 32768
         REQUIRE(mock.compare[idx] == 32768);
 
-        hal.analogWrite<uint16_t>(65535);  // full: CCR = period + 1
-        REQUIRE(mock.compare[idx] == 65536);
+        // At full-width period the code caps CCR at ARR (no +1) to avoid
+        // overflowing the register.
+        hal.analogWrite<uint16_t>(65535);  // full: CCR capped at ARR
+        REQUIRE(mock.compare[idx] == 65535);
     }
+}
+
+TEST_CASE_METHOD(Stm32CubeMockFixture, "full brightness does not overflow a 16-bit CCR",
+                 "[stm32cube_hal]") {
+    htim.Init.Period = 0xFFFF;  // full-width 16-bit timer period
+    auto hal = Stm32CubeHal({&htim, TIM_CHANNEL_1});
+    hal.analogWrite<uint16_t>(65535);  // full: must cap at ARR, never period+1
+    REQUIRE(mock.compare[stm32MockChanIndex(TIM_CHANNEL_1)] == 0xFFFF);
+}
+
+TEST_CASE_METHOD(Stm32CubeMockFixture, "period is cached at construction, not re-read",
+                 "[stm32cube_hal]") {
+    htim.Init.Period = 1000;
+    auto hal = Stm32CubeHal({&htim, TIM_CHANNEL_1});
+    htim.Init.Period = 500;             // change after construction, must be ignored
+    hal.analogWrite<uint8_t>(128);      // 128 * 1000 / 255 == 501, using cached 1000
+    REQUIRE(mock.compare[stm32MockChanIndex(TIM_CHANNEL_1)] == 501);
 }
 
 TEST_CASE_METHOD(Stm32CubeMockFixture, "analogWrite(val, invert) ignores invert",
@@ -70,6 +92,7 @@ TEST_CASE_METHOD(Stm32CubeMockFixture, "analogWrite(val, invert) ignores invert"
 
     hal.analogWrite<uint8_t>(128, false);
     const uint32_t duty_false = mock.compare[idx];
+    REQUIRE(duty_false == 501);  // 128 * 1000 / 255, a concrete expected value
     hal.analogWrite<uint8_t>(128, true);
     REQUIRE(mock.compare[idx] == duty_false);  // hardware owns inversion
 }
