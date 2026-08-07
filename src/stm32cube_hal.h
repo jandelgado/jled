@@ -1,3 +1,4 @@
+// STM32Cube HAL for JLed
 // Copyright (c) 2017-2020 Jan Delgado <jdelgado[at]gmx.net>
 // https://github.com/jandelgado/jled
 //
@@ -21,18 +22,18 @@
 //
 #pragma once
 
-#include <stdint.h>
+#include <stdint.h>  // NOLINT
 
 #include "brightness.h"  // BrightnessTraits
-#include "jled_std.h"
 
-// Symbol provenance: this header references STM32Cube types, macros and
+// This header references STM32Cube types, macros and
 // functions (TIM_HandleTypeDef, HAL_TIM_PWM_Start, HAL_TIM_PWM_ConfigChannel,
 // __HAL_TIM_SET_COMPARE/GET_COMPARE, TIM_OC_InitTypeDef, TIM_OCMODE_PWM1,
 // TIM_OCPOLARITY_HIGH/_LOW, TIM_OCFAST_DISABLE, HAL_GetTick) without including
-// any vendor header. The family HAL header (stm32XXxx_hal.h) must already be
-// visible: in CubeMX projects via main.h, in STM32duino via Arduino.h, both
-// pulled in before <jled.h>. On the host, test/stm32cube_hal_mock.h stands in.
+// any vendor header (because the header depends on the actual MCU that is used and
+// we want to keep things simple here). The family HAL header (stm32XXxx_hal.h) must
+// therefore be included before <jled.h>: in CubeMX projects it arrives via main.h, in
+// STM32duino via Arduino.h. On the host, test/stm32cube_hal_mock.h stands in.
 
 namespace jled {
 
@@ -45,13 +46,30 @@ struct Stm32PwmChannel {
 };
 
 // HAL for the STM32Cube framework, driving a pre-configured timer PWM channel.
-// Eager init: the constructor caches Init.Period and starts PWM. Construct
-// Stm32Cube-backed JLed objects inside/below main(), after MX_TIMx_Init(),
-// never as file-scope globals (whose constructors run before main()).
+// STM32 timer PWM (mode 1, up-counting) in a nutshell:
+//   - ARR (Auto Reload Register, == Init.Period) sets frequency and resolution
+//     (ARR+1 steps) together: f_pwm = f_timer / ((prescaler+1) * (ARR+1)).
+//   - CNT counts 0,1,...,ARR then reloads to 0. One period is ARR+1 ticks.
+//   - CCR (Capture/Compare Register) is the duty threshold. It is compared against CNT
+//     every tick to decide whether the output pin is high or low.
+//
+//   The output is active while CNT < CCR and inactive if CNT >= CCR.
+//   duty fraction is CCR / (ARR+1). In the HAL, analogWrite()
+//   derives CCR from the brightness value. SetLowActive() flips the pin in hardware.
+//
+//  Example:
+//   ARR = 7 (period 8 ticks), CCR = 3:
+//     CNT:  0 1 2 3 4 5 6 7   (wraps to 0)
+//     pin:  H H H L L L L L
+//           |active-|---inactive---|   (active while CNT < CCR)
+//
 class Stm32CubeHal {
  public:
     using PinType = Stm32PwmChannel;
 
+    // Eager init: the constructor caches Init.Period and starts PWM. Construct
+    // Stm32Cube-backed JLed objects inside/below main(), after MX_TIMx_Init(),
+    // never as file-scope globals (whose constructors run before main()).
     explicit Stm32CubeHal(PinType pin) noexcept
         : htim_(pin.htim), channel_(pin.channel), period_(pin.htim->Init.Period) {
         HAL_TIM_PWM_Start(htim_, channel_);
@@ -60,17 +78,19 @@ class Stm32CubeHal {
     template<typename Brightness>
     void analogWrite(Brightness val) const {
         constexpr uint32_t kFull = BrightnessTraits<Brightness>::kFullBrightness;
-        // 64-bit intermediate: val (<=65535) * period_ (<=2^32-1) can exceed 2^32.
-        uint32_t duty = static_cast<uint32_t>((static_cast<uint64_t>(val) * period_) / kFull);
-        // CCR > ARR forces the output permanently active in PWM mode 1, the only
-        // way to reach true 100% duty (CCR == ARR is briefly inactive for one
-        // tick). CCR is only as wide as the timer, 16-bit on TIM1/3/4 and many
-        // others, 32-bit on TIM2/5: when the user configured the full-width
-        // period, period_ + 1 would overflow the register (65536 truncates to 0,
-        // blanking the LED). In that case fall back to CCR == ARR, whose one tick
-        // deficit is not visible.
+        // Fast path: when the user's period equals JLed's full-brightness value,
+        // period_ / kFull == 1 so we can skip the 64-bit multiply/divide. Otherwise scale
+        // with a 64-bit intermediate: val (<=65535) * period_ (<=2^32-1) can exceed 2^32.
+        uint32_t duty = (period_ == kFull)
+                            ? static_cast<uint32_t>(val)
+                            : static_cast<uint32_t>((static_cast<uint64_t>(val) * period_) / kFull);
+        // fix full brightness: CCR == ARR is one tick short of 100% (CNT == ARR
+        // stays inactive), so push CCR past ARR. Matters most at small periods;
+        // symmetric across polarity since inversion is done in hardware. A
+        // full-width ARR has no room for +1 (it would wrap to 0 and blank the
+        // LED), so fall back to CCR == ARR there.
         if (val == kFull) {
-            duty = (period_ == 0xFFFFu || period_ == 0xFFFFFFFFu) ? period_ : period_ + 1;
+            duty = (period_ == 0xFFFFU || period_ == 0xFFFFFFFFU) ? period_ : period_ + 1;
         }
         __HAL_TIM_SET_COMPARE(htim_, channel_, duty);
     }
@@ -84,13 +104,9 @@ class Stm32CubeHal {
 
     // Set output-compare polarity via the official HAL_TIM_PWM_ConfigChannel().
     // Reads back the current compare value first so flipping polarity does not
-    // reset an in-flight duty cycle (same read-back pattern as Esp32Hal).
-    // This assumes an STM32Cube HAL version that snapshots CCER before disabling
-    // the channel, which is true on current SDKs; on very old SDKs the channel
-    // may need re-arming after the reconfigure. Reconfiguring an advanced-timer
-    // channel (TIM1, TIM8) via HAL_TIM_PWM_ConfigChannel resets that channel's
-    // complementary output and idle-state configuration, so use standard
-    // non-complementary channels, consistent with the HAL's scope.
+    // reset an in-flight duty cycle. On advanced timers (TIM1/TIM8) this also
+    // resets the channel's complementary output/idle config, so use standard
+    // non-complementary channels.
     void SetLowActive(bool f) const {
         TIM_OC_InitTypeDef sConfigOC = {};
         sConfigOC.OCMode = TIM_OCMODE_PWM1;

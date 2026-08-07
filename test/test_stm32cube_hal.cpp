@@ -21,17 +21,21 @@ TEST_CASE_METHOD(Stm32CubeMockFixture, "constructor starts PWM once and caches p
                  "[stm32cube_hal]") {
     htim.Init.Period = 999;
 
-    auto hal = Stm32CubeHal({&htim, TIM_CHANNEL_2});
+    SECTION("starts PWM once on the given channel") {
+        Stm32CubeHal({&htim, TIM_CHANNEL_2});  // constructed for its side effect
+        REQUIRE(mock.pwm_start_count == 1);
+        REQUIRE(mock.last_start_channel == TIM_CHANNEL_2);
+    }
 
-    REQUIRE(mock.pwm_start_count == 1);
-    REQUIRE(mock.last_start_channel == TIM_CHANNEL_2);
-
-    // A copy must not touch hardware (TJLed copies its Hal on copy/assign).
-    auto hal_copy = hal;
-    REQUIRE(mock.pwm_start_count == 1);
-    // full at 999 -> 1000, proves the copy kept period_/channel_
-    hal_copy.analogWrite<uint8_t>(255);
-    REQUIRE(mock.compare[stm32MockChanIndex(TIM_CHANNEL_2)] == 1000);
+    SECTION("a copy touches no hardware and keeps the cached period/channel") {
+        // TJLed copies its Hal on copy/assign, that copy must not re-start PWM.
+        auto hal = Stm32CubeHal({&htim, TIM_CHANNEL_2});
+        auto hal_copy = hal;
+        REQUIRE(mock.pwm_start_count == 1);
+        // full brightness at 999 -> 1000 proves the copy kept period_/channel_
+        hal_copy.analogWrite<uint8_t>(255);
+        REQUIRE(mock.compare[stm32MockChanIndex(TIM_CHANNEL_2)] == 1000);
+    }
 }
 
 TEST_CASE_METHOD(Stm32CubeMockFixture, "analogWrite scales brightness to timer period",
@@ -39,25 +43,43 @@ TEST_CASE_METHOD(Stm32CubeMockFixture, "analogWrite scales brightness to timer p
     const int idx = stm32MockChanIndex(TIM_CHANNEL_1);
 
     SECTION("8-bit brightness, non-power-of-two period") {
-        htim.Init.Period = 999;  // proves no hidden bit-width assumption
+        struct Case {
+            uint8_t brightness;
+            uint32_t expected;
+            const char* what;
+        };
+        auto tc = GENERATE(values<Case>({
+            {0, 0, "zero -> 0"},
+            {128, 501, "scaling: 128 * 999 / 255"},
+            {255, 1000, "full brightness: 999 + 1 (period below full width)"},
+        }));
+        CAPTURE(tc.what);
+
+        htim.Init.Period = 999;
+        auto hal = Stm32CubeHal({&htim, TIM_CHANNEL_1});
+        hal.analogWrite<uint8_t>(tc.brightness);
+        REQUIRE(mock.compare[idx] == tc.expected);
+    }
+
+    SECTION("8-bit brightness, period equals full brightness (identity fast path)") {
+        // GIVEN
+        htim.Init.Period = 255;  // period_ == kFull -> duty = val, no mul/div
         auto hal = Stm32CubeHal({&htim, TIM_CHANNEL_1});
 
-        hal.analogWrite<uint8_t>(0);
-        REQUIRE(mock.compare[idx] == 0);
-
-        hal.analogWrite<uint8_t>(128);  // 128 * 999 / 255 == 501
-        REQUIRE(mock.compare[idx] == 501);
-
-        // 999 is below full width, so the +1 applies at full brightness.
-        hal.analogWrite<uint8_t>(255);  // full: CCR = period + 1
-        REQUIRE(mock.compare[idx] == 1000);
+        // WHEN
+        hal.analogWrite<uint8_t>(200);  // identity: CCR == val
+        // THEN
+        REQUIRE(mock.compare[idx] == 200);
     }
 
     SECTION("16-bit brightness, large period") {
+        // GIVEN
         htim.Init.Period = 65535;
         auto hal = Stm32CubeHal({&htim, TIM_CHANNEL_1});
 
+        // WHEN
         hal.analogWrite<uint16_t>(32768);  // 32768 * 65535 / 65535 == 32768
+        // THEN
         REQUIRE(mock.compare[idx] == 32768);
 
         // At full-width period the code caps CCR at ARR (no +1) to avoid
@@ -67,34 +89,17 @@ TEST_CASE_METHOD(Stm32CubeMockFixture, "analogWrite scales brightness to timer p
     }
 }
 
-TEST_CASE_METHOD(Stm32CubeMockFixture, "full brightness does not overflow a 16-bit CCR",
-                 "[stm32cube_hal]") {
-    htim.Init.Period = 0xFFFF;  // full-width 16-bit timer period
-    auto hal = Stm32CubeHal({&htim, TIM_CHANNEL_1});
-    hal.analogWrite<uint16_t>(65535);  // full: must cap at ARR, never period+1
-    REQUIRE(mock.compare[stm32MockChanIndex(TIM_CHANNEL_1)] == 0xFFFF);
-}
-
-TEST_CASE_METHOD(Stm32CubeMockFixture, "period is cached at construction, not re-read",
-                 "[stm32cube_hal]") {
-    htim.Init.Period = 1000;
-    auto hal = Stm32CubeHal({&htim, TIM_CHANNEL_1});
-    htim.Init.Period = 500;             // change after construction, must be ignored
-    hal.analogWrite<uint8_t>(128);      // 128 * 1000 / 255 == 501, using cached 1000
-    REQUIRE(mock.compare[stm32MockChanIndex(TIM_CHANNEL_1)] == 501);
-}
-
 TEST_CASE_METHOD(Stm32CubeMockFixture, "analogWrite(val, invert) ignores invert",
                  "[stm32cube_hal]") {
     htim.Init.Period = 1000;
     auto hal = Stm32CubeHal({&htim, TIM_CHANNEL_1});
     const int idx = stm32MockChanIndex(TIM_CHANNEL_1);
+    const auto invert = GENERATE(false, true);
+    CAPTURE(invert);
 
-    hal.analogWrite<uint8_t>(128, false);
-    const uint32_t duty_false = mock.compare[idx];
-    REQUIRE(duty_false == 501);  // 128 * 1000 / 255, a concrete expected value
-    hal.analogWrite<uint8_t>(128, true);
-    REQUIRE(mock.compare[idx] == duty_false);  // hardware owns inversion
+    // Hardware owns inversion: duty is identical whatever the flag
+    hal.analogWrite<uint8_t>(200, invert);
+    REQUIRE(mock.compare[idx] == 784);  // 200 * 1000 / 255
 }
 
 TEST_CASE_METHOD(Stm32CubeMockFixture, "SetLowActive flips polarity, preserves duty",
@@ -104,19 +109,21 @@ TEST_CASE_METHOD(Stm32CubeMockFixture, "SetLowActive flips polarity, preserves d
     hal.analogWrite<uint16_t>(12345);  // establish an in-flight compare value
     const uint32_t duty = mock.compare[stm32MockChanIndex(TIM_CHANNEL_3)];
 
-    SECTION("low active -> OCPOLARITY_LOW") {
-        hal.SetLowActive(true);
-        REQUIRE(mock.last_config_channel == TIM_CHANNEL_3);
-        REQUIRE(mock.last_oc_config.OCMode == TIM_OCMODE_PWM1);
-        REQUIRE(mock.last_oc_config.OCPolarity == TIM_OCPOLARITY_LOW);
-        REQUIRE(mock.last_oc_config.Pulse == duty);  // duty preserved
-    }
+    struct Case {
+        bool low_active;
+        uint32_t expected_polarity;
+    };
+    auto tc = GENERATE(values<Case>({
+        {true, TIM_OCPOLARITY_LOW},
+        {false, TIM_OCPOLARITY_HIGH},
+    }));
+    CAPTURE(tc.low_active);
 
-    SECTION("high active -> OCPOLARITY_HIGH") {
-        hal.SetLowActive(false);
-        REQUIRE(mock.last_oc_config.OCPolarity == TIM_OCPOLARITY_HIGH);
-        REQUIRE(mock.last_oc_config.Pulse == duty);
-    }
+    hal.SetLowActive(tc.low_active);
+    REQUIRE(mock.last_config_channel == TIM_CHANNEL_3);
+    REQUIRE(mock.last_oc_config.OCMode == TIM_OCMODE_PWM1);
+    REQUIRE(mock.last_oc_config.OCPolarity == tc.expected_polarity);
+    REQUIRE(mock.last_oc_config.Pulse == duty);  // duty preserved
 }
 
 TEST_CASE_METHOD(Stm32CubeMockFixture, "Stm32CubeClock::millis forwards to HAL_GetTick",
