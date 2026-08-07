@@ -95,3 +95,9 @@ TEST_CASE_METHOD(Stm32CubeMockFixture, "SetLowActive flips polarity, preserves d
         REQUIRE(mock.last_oc_config.Pulse == duty);
     }
 }
+
+TEST_CASE_METHOD(Stm32CubeMockFixture, "Stm32CubeClock::millis forwards to HAL_GetTick",
+                 "[stm32cube_hal]") {
+    mock.tick = 4242;
+    REQUIRE(Stm32CubeClock::millis() == 4242);
+}
