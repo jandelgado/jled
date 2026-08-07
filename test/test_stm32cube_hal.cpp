@@ -61,3 +61,37 @@ TEST_CASE_METHOD(Stm32CubeMockFixture, "analogWrite scales brightness to timer p
         REQUIRE(mock.compare[idx] == 65536);
     }
 }
+
+TEST_CASE_METHOD(Stm32CubeMockFixture, "analogWrite(val, invert) ignores invert",
+                 "[stm32cube_hal]") {
+    htim.Init.Period = 1000;
+    auto hal = Stm32CubeHal({&htim, TIM_CHANNEL_1});
+    const int idx = stm32MockChanIndex(TIM_CHANNEL_1);
+
+    hal.analogWrite<uint8_t>(128, false);
+    const uint32_t duty_false = mock.compare[idx];
+    hal.analogWrite<uint8_t>(128, true);
+    REQUIRE(mock.compare[idx] == duty_false);  // hardware owns inversion
+}
+
+TEST_CASE_METHOD(Stm32CubeMockFixture, "SetLowActive flips polarity, preserves duty",
+                 "[stm32cube_hal]") {
+    htim.Init.Period = 1000;
+    auto hal = Stm32CubeHal({&htim, TIM_CHANNEL_3});
+    hal.analogWrite<uint16_t>(12345);  // establish an in-flight compare value
+    const uint32_t duty = mock.compare[stm32MockChanIndex(TIM_CHANNEL_3)];
+
+    SECTION("low active -> OCPOLARITY_LOW") {
+        hal.SetLowActive(true);
+        REQUIRE(mock.last_config_channel == TIM_CHANNEL_3);
+        REQUIRE(mock.last_oc_config.OCMode == TIM_OCMODE_PWM1);
+        REQUIRE(mock.last_oc_config.OCPolarity == TIM_OCPOLARITY_LOW);
+        REQUIRE(mock.last_oc_config.Pulse == duty);  // duty preserved
+    }
+
+    SECTION("high active -> OCPOLARITY_HIGH") {
+        hal.SetLowActive(false);
+        REQUIRE(mock.last_oc_config.OCPolarity == TIM_OCPOLARITY_HIGH);
+        REQUIRE(mock.last_oc_config.Pulse == duty);
+    }
+}

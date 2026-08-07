@@ -69,6 +69,25 @@ class Stm32CubeHal {
         __HAL_TIM_SET_COMPARE(htim_, channel_, duty);
     }
 
+    // Native hardware invert (SetLowActive() below) owns inversion entirely;
+    // invert is ignored here, the same pattern as Esp32Hal/PicoHal.
+    template <typename Brightness>
+    void analogWrite(Brightness val, bool /*invert*/) const {
+        analogWrite(val);
+    }
+
+    // Set output-compare polarity via the official HAL_TIM_PWM_ConfigChannel().
+    // Reads back the current compare value first so flipping polarity does not
+    // reset an in-flight duty cycle (same read-back pattern as Esp32Hal).
+    void SetLowActive(bool f) const {
+        TIM_OC_InitTypeDef sConfigOC = {};
+        sConfigOC.OCMode = TIM_OCMODE_PWM1;
+        sConfigOC.Pulse = __HAL_TIM_GET_COMPARE(htim_, channel_);
+        sConfigOC.OCPolarity = f ? TIM_OCPOLARITY_LOW : TIM_OCPOLARITY_HIGH;
+        sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+        HAL_TIM_PWM_ConfigChannel(htim_, &sConfigOC, channel_);
+    }
+
     // Compiler-generated copy ctor/assignment duplicate htim_/channel_/period_
     // only; they touch no hardware, so TJLed's copy/assign never re-start PWM.
 
