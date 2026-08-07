@@ -30,4 +30,5 @@ userstories/
 .tools/fade-func/
 .act-logs/
 .pio-cache/
+examples/stm32cube_demo/stm32pio.ini
 

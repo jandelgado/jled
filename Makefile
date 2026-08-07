@@ -65,15 +65,20 @@ test: phony ## run unit tests with coverage
 ACT_CACHE_DIR      = $(HOME)/.cache/act/jled-cache
 ACT_CACHE          = --cache-server-path $(ACT_CACHE_DIR)
 ACT_CONTAINER_OPTS = --user $(shell id -u):$(shell id -g)
+# jobs run by ci-act: the single examples matrix (Arduino boards plus the
+# dedicated nucleo_f401re_mbed and nucleo_f401re_stm32cube rows)
+ACT_JOBS           = examples
 
 ci-act: phony ## run full build matrix locally via act (runs ~10min)
 	@rm -rf "$(CURDIR)/.act-logs" && mkdir -p "$(CURDIR)/.act-logs"
-	$(RUN) act --job examples --json --action-offline-mode \
-	    -W "$(CURDIR)/.github/workflows/test.yml" \
-	    $(ACT_CACHE) \
-	    --container-options "$(ACT_CONTAINER_OPTS)" \
-	    2>&1 | tee "$(CURDIR)/.act-logs/act.ndjson" \
-	    || true
+	@for job in $(ACT_JOBS); do \
+	    $(RUN) act --job $$job --json --action-offline-mode \
+	        -W "$(CURDIR)/.github/workflows/test.yml" \
+	        $(ACT_CACHE) \
+	        --container-options "$(ACT_CONTAINER_OPTS)" \
+	        2>&1 | tee -a "$(CURDIR)/.act-logs/act.ndjson" \
+	        || true; \
+	done
 	$(RUN) .tools/act-log/act-log.py report
 
 clean: phony ## remove build artifacts and generated files

@@ -61,6 +61,7 @@ jobs:
           name: coverage-report
           path: test/report/
   examples:
+    name: examples (${{ matrix.board }})
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
@@ -73,6 +74,10 @@ jobs:
             extra_flags: --project-option="build_flags = -DLED_BUILTIN=1"
           - board: rpipico
             extra_flags: --project-option="board_build.core = earlephilhower"
+          - board: nucleo_f401re_mbed
+            build_cmd: pio ci --board nucleo_f401re --lib src --project-option "framework=mbed" examples/mbed_demo/mbed_demo.cpp
+          - board: nucleo_f401re_stm32cube
+            build_cmd: PLATFORMIO_SRC_DIR=examples/stm32cube_demo pio run -e nucleo_f401re_stm32cube
     steps:
       - name: checkout code
         uses: actions/checkout@v7
@@ -81,7 +86,31 @@ jobs:
           board: ${{ matrix.board }}
       - name: build examples
         shell: bash
+        env:
+          BUILD_CMD: ${{ matrix.build_cmd }}
         run: |-
+          # Rows that set build_cmd build a single dedicated example (mbed,
+          # stm32cube); every other row loops the Arduino .ino examples. Both
+          # paths wrap each build in a ::group:: so the act-log analyser reports
+          # them uniformly.
+          if [ -n "$BUILD_CMD" ]; then
+            echo "::group::${{ matrix.board }}"
+            if eval "$BUILD_CMD"; then
+              status=✅
+            else
+              echo "::error title=${{ matrix.board }}::build failed"
+              status=❌
+            fi
+            echo "::endgroup::"
+            {
+              echo "### \`${{ matrix.board }}\`"
+              echo "| example | status |"
+              echo "|---------|--------|"
+              echo "| \`${{ matrix.board }}\` | $status |"
+            } >> "$GITHUB_STEP_SUMMARY"
+            [[ "$status" == "✅" ]] || exit 1
+            exit 0
+          fi
           passed=(); failed=()
           for example in $(find examples -maxdepth 2 -name '*.ino' -printf '%P\n' | cut -d/ -f1 | sort -u); do
             extra_opts=()

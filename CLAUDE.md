@@ -67,14 +67,14 @@ Every change adds tests. Run `make lint && make test` before commit. Don't chang
 
 GitHub Actions on push/PR to `master`: lint, then unit tests + coverage (Coveralls). All must pass.
 
-`make ci-act` runs the full build matrix locally via `act` (~10min), logging NDJSON to `.act-logs/`:
+`make ci-act` runs the build jobs locally via `act` (~10min): the single `examples` matrix, which covers the Arduino boards plus the dedicated `nucleo_f401re_mbed` and `nucleo_f401re_stm32cube` rows, logging NDJSON to `.act-logs/`:
 
 ```sh
-.tools/act-log/act-log.py report           # summary table; exits 1 on failures
-.tools/act-log/act-log.py report <board>   # full log for one board, e.g. uno
+.tools/act-log/act-log.py report          # summary table; exits 1 on failures
+.tools/act-log/act-log.py report <unit>   # full log for one unit, e.g. uno or nucleo_f401re_mbed
 ```
 
-Status: `OK` built, `FAIL` build failed (code bug), `INFRA` never reached build (act issue, not code). Ignore NDJSON `jobResult` (buggy for parallel jobs); the analyser uses `stepResult`.
+A "unit" is one summary row: a matrix board (e.g. `uno`, `nucleo_f401re_mbed`). Status: `OK` built, `FAIL` build failed (code bug), `INFRA` never reached build (act issue, not code). Ignore NDJSON `jobResult` (buggy for parallel jobs); the analyser uses `stepResult`.
 
 ## Documentation Site
 
