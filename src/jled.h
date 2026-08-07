@@ -79,6 +79,16 @@ using JLedHalHD = InvertableHal<Esp32Hal<13, LEDC_TIMER_1> >;
 using JLedClockType = Esp32Clock;
 }  // namespace jled
 
+// STM32Cube
+//
+#elif USE_HAL_DRIVER
+#include "stm32cube_hal.h"
+namespace jled {
+    // TODO
+using JLedHal = Stm32CubeHal<16>;
+using JLedHalHD = Stm32CubeHal<16>;
+using JLedClockType = Stm32CubeClock;
+}
 #else
 // Use standard Arduino HAL.
 //
