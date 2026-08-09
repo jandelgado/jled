@@ -2,8 +2,11 @@
 """Analyse act NDJSON logs stored in .act-logs/.
 
 Usage:
-    act-log.py report           # summary table for the last run
-    act-log.py report <board>   # full log for one board job
+    act-log.py report          # summary table for the last run
+    act-log.py report <unit>   # full log for one unit (see below)
+
+A "unit" is one row of the summary table: a matrix board of the 'examples' job
+(e.g. 'uno', 'nucleo_f401re_mbed'), or a jobID for any job without a board.
 """
 
 import argparse
@@ -14,7 +17,7 @@ from pathlib import Path
 LOGS_DIR = Path(__file__).resolve().parents[2] / ".act-logs"
 MAIN_LOG = LOGS_DIR / "act.ndjson"
 
-# Groups emitted by setup steps — not example names
+# Groups emitted by setup actions (e.g. actions/setup-python) — not example names
 _SKIP_GROUPS = {"Installed versions"}
 
 
@@ -30,62 +33,86 @@ def iter_ndjson(path: Path):
                 pass
 
 
+def unit_of(entry: dict) -> str | None:
+    """The summary row an entry belongs to.
+
+    Matrix jobs fan out per board, so the board name identifies the unit.
+    Non-matrix jobs (the single-build examples) have no board, so the jobID
+    identifies the unit. Entries with neither (should not happen) are ignored.
+    """
+    board = (entry.get("matrix") or {}).get("board")
+    return board or entry.get("jobID")
+
+
 def split_per_job(entries: list[dict]) -> None:
-    """Write per-board NDJSON files from the full act log."""
-    per_board: dict[str, list[dict]] = {}
+    """Write one NDJSON file per unit from the full act log."""
+    per_unit: dict[str, list[dict]] = {}
     for entry in entries:
-        board = (entry.get("matrix") or {}).get("board")
-        if board:
-            per_board.setdefault(board, []).append(entry)
-    for board, job_entries in per_board.items():
-        out = LOGS_DIR / f"{board}.ndjson"
+        unit = unit_of(entry)
+        if unit:
+            per_unit.setdefault(unit, []).append(entry)
+    for unit, unit_entries in per_unit.items():
+        out = LOGS_DIR / f"{unit}.ndjson"
         with out.open("w") as f:
-            for e in job_entries:
+            for e in unit_entries:
                 f.write(json.dumps(e) + "\n")
 
 
 def build_summary(entries: list[dict]) -> dict[tuple[str, str], str]:
-    """Return {(board, example): 'OK'|'FAIL'|'INFRA'}.
+    """Return {(unit, example): 'OK'|'FAIL'|'INFRA'}.
 
-    Examples are discovered from ::group:: workflow commands emitted by the
-    build loop inside the 'build examples' step.  Boards whose job never
-    reached that step are reported as INFRA.
+    Two kinds of unit are reported uniformly, without hardcoding any job or
+    example name:
+
+    * Matrix boards build many examples per job, each wrapped in a ::group::
+      workflow command. Every group becomes a row; a ::error:: inside it marks
+      it FAIL. A matrix board that ran but emitted no build groups is INFRA
+      (it never reached the build step, i.e. an act issue, not a code bug).
+    * Single-build jobs emit no build groups, so the whole job is one row whose
+      status comes from step results: FAIL if any step failed, else OK. A job
+      scheduled but producing no step result at all is INFRA.
     """
-    # per-board tracking while scanning the interleaved parallel log
-    current: dict[str, str] = {}   # board -> active example name
-    failed:  dict[str, bool] = {}  # board -> whether current example errored
+    # per-unit tracking while scanning the interleaved parallel log
+    current: dict[str, str] = {}       # unit -> active group (example) name
+    group_failed: dict[str, bool] = {}  # unit -> whether current group errored
+    grouped: set[str] = set()          # units that produced build groups
+    is_matrix: dict[str, bool] = {}    # unit -> came from a board matrix
+    step_failed: dict[str, bool] = {}  # unit -> any step failed (non-grouped)
     results: dict[tuple[str, str], str] = {}
-    job_seen: set[str] = set()
 
     for entry in entries:
-        if entry.get("jobID") != "examples":
+        unit = unit_of(entry)
+        if not unit:
             continue
-        board = (entry.get("matrix") or {}).get("board")
-        if not board:
-            continue
+        is_matrix[unit] = is_matrix.get(unit, False) or \
+            bool((entry.get("matrix") or {}).get("board"))
 
-        if entry.get("jobResult") is not None:
-            job_seen.add(board)
-
-        if entry.get("step") != "build examples":
-            continue
+        result = entry.get("stepResult")
+        if result == "failure":
+            step_failed[unit] = True
+        elif result is not None:
+            step_failed.setdefault(unit, False)
 
         cmd = entry.get("command")
         arg = entry.get("arg", "")
-
         if cmd == "group" and arg and arg not in _SKIP_GROUPS:
-            current[board] = arg
-            failed[board] = False
-        elif cmd == "error" and board in current:
-            failed[board] = True
-        elif cmd == "endgroup" and current.get(board):
-            example = current.pop(board)
-            results[(board, example)] = "FAIL" if failed.pop(board, False) else "OK"
+            current[unit] = arg
+            group_failed[unit] = False
+        elif cmd == "error" and unit in current:
+            group_failed[unit] = True
+        elif cmd == "endgroup" and current.get(unit):
+            example = current.pop(unit)
+            results[(unit, example)] = "FAIL" if group_failed.pop(unit, False) else "OK"
+            grouped.add(unit)
 
-    # boards whose job ran but produced no example results → INFRA
-    for board in job_seen:
-        if not any(b == board for b, _ in results):
-            results[(board, "")] = "INFRA"
+    # units without build groups collapse to a single status row
+    for unit in is_matrix:
+        if unit in grouped:
+            continue
+        if is_matrix[unit] or unit not in step_failed:
+            results[(unit, "")] = "INFRA"
+        else:
+            results[(unit, "")] = "FAIL" if step_failed[unit] else "OK"
 
     return results
 
@@ -96,32 +123,36 @@ def print_summary(summary: dict[tuple[str, str], str]) -> bool:
         print("No results found.", file=sys.stderr)
         return True
 
-    board_w = max(len(b) for b, _ in summary) + 2
-    example_w = max((len(e) for _, e in summary if e), default=0) + 2
+    unit_w = max(len(u) for u, _ in summary) + 2
     has_failures = False
 
-    for (board, example), status in sorted(summary.items()):
-        label = example if example else "(infra)"
-        print(f"{status:<6} {board:<{board_w}} {label}")
+    for (unit, example), status in sorted(summary.items()):
+        if example:
+            label = example
+        elif status == "INFRA":
+            label = "(infra)"
+        else:
+            label = "-"
+        print(f"{status:<6} {unit:<{unit_w}} {label}")
         if status in ("FAIL", "INFRA"):
             has_failures = True
 
     return has_failures
 
 
-def cmd_report(board: str | None) -> None:
+def cmd_report(unit: str | None) -> None:
     if not MAIN_LOG.exists():
         sys.exit(f"No act log at {MAIN_LOG} — run 'make ci-act' first.")
 
     entries = list(iter_ndjson(MAIN_LOG))
 
-    if board:
-        job_log = LOGS_DIR / f"{board}.ndjson"
-        if not job_log.exists():
+    if unit:
+        unit_log = LOGS_DIR / f"{unit}.ndjson"
+        if not unit_log.exists():
             split_per_job(entries)
-        if not job_log.exists():
-            sys.exit(f"No log for board '{board}'.")
-        for entry in iter_ndjson(job_log):
+        if not unit_log.exists():
+            sys.exit(f"No log for unit '{unit}'.")
+        for entry in iter_ndjson(unit_log):
             msg = entry.get("msg", "")
             if msg:
                 print(msg.rstrip("\n"))
@@ -138,12 +169,13 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="command")
-    report = sub.add_parser("report", help="Print summary or per-board log")
-    report.add_argument("board", nargs="?", help="Board name (e.g. uno)")
+    report = sub.add_parser("report", help="Print summary or per-unit log")
+    report.add_argument("unit", nargs="?",
+                        help="Board or jobID (e.g. uno, nucleo_f401re_mbed)")
 
     args = parser.parse_args()
     if args.command == "report":
-        cmd_report(args.board)
+        cmd_report(args.unit)
     else:
         parser.print_help()
         sys.exit(1)

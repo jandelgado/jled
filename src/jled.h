@@ -79,6 +79,21 @@ using JLedHalHD = InvertableHal<Esp32Hal<13, LEDC_TIMER_1> >;
 using JLedClockType = Esp32Clock;
 }  // namespace jled
 
+// STM32Cube (native HAL), see stm32cube_hal.h
+//
+// USE_HAL_DRIVER marks a build against ST's STM32Cube HAL SDK (CubeMX projects
+// and PlatformIO framework = stm32cube). STM32duino also defines it but always
+// defines ARDUINO too; excluding ARDUINO keeps STM32duino on its existing
+// InvertableHal<ArduinoHal<...>> path in the #else block below.
+#elif defined(USE_HAL_DRIVER) && !defined(ARDUINO)
+#include "stm32cube_hal.h"  // NOLINT
+namespace jled {
+// One Stm32CubeHal type serves both 8- and 16-bit brightness: it has no
+// resolution template parameter, scaling duty to the user's timer period.
+using JLedHal = Stm32CubeHal;
+using JLedHalHD = Stm32CubeHal;
+using JLedClockType = Stm32CubeClock;
+}  // namespace jled
 #else
 // Use standard Arduino HAL.
 //

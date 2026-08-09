@@ -2,6 +2,8 @@
 
 ## [Unreleased - scheduled for JLed 5.0]
 
+- new: native STM32Cube HAL added, see the
+  [stm32cube_demo](examples/stm32cube_demo) example.
 - breaking/perf: `BrightnessEvaluator<Brightness>::Eval(uint32_t t)` is now
   `Eval(jled::period_t t)` (`period_t` is `uint16_t`). `t` is always in
   `[0, Period())`, and `Period()` already returns `uint16_t`, so it never

@@ -51,6 +51,9 @@ TEST_FADEON_OBJECTS=$(TEST_FADEON_SRC:.cpp=.o)
 TEST_PICO_SRC=pico_mock.cpp test_pico_hal.cpp test_main.cpp ${CATCH}
 TEST_PICO_OBJECTS=$(TEST_PICO_SRC:.cpp=.o)
 
+TEST_STM32CUBE_SRC=stm32cube_hal_mock.cpp test_stm32cube_hal.cpp test_main.cpp ${CATCH}
+TEST_STM32CUBE_OBJECTS=$(TEST_STM32CUBE_SRC:.cpp=.o)
+
 TEST_ESP8266_HAL_SRC=test_jled_esp8266_hal.cpp test_main.cpp ${CATCH}
 TEST_ESP8266_HAL_OBJECTS=$(TEST_ESP8266_HAL_SRC:.cpp=.o)
 
@@ -62,7 +65,7 @@ all: bin bin/test_arduino_mock  \
 	 bin/test_esp32_hal bin/test_esp32_hal_legacy_idf bin/test_arduino_hal bin/test_mbed_hal \
 	 bin/test_pico_hal bin/test_jled_esp8266_hal \
 	 bin/test_example_morse bin/test_brightness bin/test_fadeon_func \
-	 bin/test_invertable_hal bin/test_jled_group
+	 bin/test_invertable_hal bin/test_jled_group bin/test_stm32cube_hal
 
 bin/test_arduino_mock: $(TEST_ARDUINO_MOCK_OBJECTS)
 	$(CXX) -o $@ $(LDFLAGS) $(TEST_ARDUINO_MOCK_OBJECTS)
@@ -108,6 +111,9 @@ bin/test_fadeon_func: $(TEST_FADEON_OBJECTS)
 bin/test_jled_group: $(TEST_JLED_GROUP_OBJECTS)
 	$(CXX) -o $@ $(LDFLAGS) $(TEST_JLED_GROUP_OBJECTS)
 
+bin/test_stm32cube_hal: $(TEST_STM32CUBE_OBJECTS)
+	$(CXX) -o $@ $(LDFLAGS) $(TEST_STM32CUBE_OBJECTS)
+
 coverage: test
 	mkdir -p report
 	gcovr --root .. --filter ../src/ --merge-lines --merge-mode-functions=merge-use-line-max --print-summary --txt --coveralls coverage.json --html-details report/index.html --lcov report.info
@@ -125,6 +131,7 @@ test: depend all
 	./bin/test_fadeon_func
 	./bin/test_invertable_hal
 	./bin/test_jled_group
+	./bin/test_stm32cube_hal
 
 .cpp.o:
 	$(CXX) $< $(CFLAGS) -o $@
@@ -144,7 +151,7 @@ clobber: clean
 
 depend: .depend
 
-.depend: $(TEST_JLED_SRC) $(TEST_ESP32_SRC) $(TEST_ESP32_LEGACY_SRC) $(TEST_ESP8266_HAL_SRC) $(TEST_ARDUINO_SRC) $(TEST_INVERTABLE_HAL_SRC) $(TEST_MBED_SRC) $(TEST_PICO_SRC) $(TEST_MORSE_SRC) $(TEST_BRIGHTNESS_SRC) $(TEST_FADEON_SRC) $(TEST_JLED_GROUP_SRC)
+.depend: $(TEST_JLED_SRC) $(TEST_ESP32_SRC) $(TEST_ESP32_LEGACY_SRC) $(TEST_ESP8266_HAL_SRC) $(TEST_ARDUINO_SRC) $(TEST_INVERTABLE_HAL_SRC) $(TEST_MBED_SRC) $(TEST_PICO_SRC) $(TEST_MORSE_SRC) $(TEST_BRIGHTNESS_SRC) $(TEST_FADEON_SRC) $(TEST_JLED_GROUP_SRC) $(TEST_STM32CUBE_SRC)
 	@echo updating dependencies in .depend
 	@rm -f ./.depend
 	@$(CC) -I ../src -I . -I ./pico-sdk -MM $^ > .depend

@@ -36,7 +36,7 @@ PlatformIO + Make inside `devbox shell`. Discover targets with `make help`.
 - `src/jled_base.h`: platform-agnostic `TJLed<Hal, Clock, B>` state machine + fluent API.
 - `src/jled_group_base.h`: `TJLedGroup`, `TJLedAny`, `TJLedRef` (grouping, type erasure).
 - `src/jled.h`: platform detection; exposes `JLed`, `JLedHD`, `JLedGroup`, `JLedAny`.
-- `src/*_hal.h`: per-platform HAL (Arduino, ESP32, ESP8266, mbed, Pico), two abstractions each: PWM (e.g. `ArduinoHal::analogWrite(Brightness)`) and Clock (e.g. `ArduinoClock::millis()`).
+- `src/*_hal.h`: per-platform HAL (Arduino, ESP32, ESP8266, mbed, Pico, STM32Cube), two abstractions each: PWM (e.g. `ArduinoHal::analogWrite(Brightness)`) and Clock (e.g. `ArduinoClock::millis()`).
 
 **Effects**: structs with `Period()` and `Eval(t)`, stateless and copyable (see `ConstantBrightnessEvaluator`).
 **Resolution**: `JLed`/`JLedHD` are template instances; higher resolution = smoother PWM.
@@ -67,14 +67,14 @@ Every change adds tests. Run `make lint && make test` before commit. Don't chang
 
 GitHub Actions on push/PR to `master`: lint, then unit tests + coverage (Coveralls). All must pass.
 
-`make ci-act` runs the full build matrix locally via `act` (~10min), logging NDJSON to `.act-logs/`:
+`make ci-act` runs the build jobs locally via `act` (~10min): the single `examples` matrix, which covers the Arduino boards plus the dedicated `nucleo_f401re_mbed` and `nucleo_f401re_stm32cube` rows, logging NDJSON to `.act-logs/`:
 
 ```sh
-.tools/act-log/act-log.py report           # summary table; exits 1 on failures
-.tools/act-log/act-log.py report <board>   # full log for one board, e.g. uno
+.tools/act-log/act-log.py report          # summary table; exits 1 on failures
+.tools/act-log/act-log.py report <unit>   # full log for one unit, e.g. uno or nucleo_f401re_mbed
 ```
 
-Status: `OK` built, `FAIL` build failed (code bug), `INFRA` never reached build (act issue, not code). Ignore NDJSON `jobResult` (buggy for parallel jobs); the analyser uses `stepResult`.
+A "unit" is one summary row: a matrix board (e.g. `uno`, `nucleo_f401re_mbed`). Status: `OK` built, `FAIL` build failed (code bug), `INFRA` never reached build (act issue, not code). Ignore NDJSON `jobResult` (buggy for parallel jobs); the analyser uses `stepResult`.
 
 ## Documentation Site
 
