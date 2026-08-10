@@ -28,6 +28,8 @@ h1 { font-size: 1.8em; font-weight: 600; margin: 0 0 24px; padding-bottom: .3em;
 {% endfor %}
 {% endblock %}
 
+{% block sidebar_install %}{% endblock %}
+
 {% block sidebar_nav %}
 <nav>
     <h3>Navigation</h3>
@@ -42,6 +44,17 @@ h1 { font-size: 1.8em; font-weight: 600; margin: 0 0 24px; padding-bottom: .3em;
     <ul>
         {% for file in files %}
         <li><a href="#{{ file.safe_name }}">{{ file.name }}</a></li>
+        {% endfor %}
+    </ul>
+</nav>
+{% endif %}
+
+{% if links %}
+<nav>
+    <h3>Directories</h3>
+    <ul>
+        {% for link in links %}
+        <li><a href="{{ link.href }}">{{ link.name }}</a></li>
         {% endfor %}
     </ul>
 </nav>
@@ -61,6 +74,17 @@ h1 { font-size: 1.8em; font-weight: 600; margin: 0 0 24px; padding-bottom: .3em;
     <ul>
         {% for file in files %}
         <li><a href="#{{ file.safe_name }}">{{ file.name }}</a></li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+{% if links %}
+<div class="files-list">
+    <h2>Directories</h2>
+    <ul>
+        {% for link in links %}
+        <li><a href="{{ link.href }}">{{ link.name }}</a></li>
         {% endfor %}
     </ul>
 </div>
