@@ -59,7 +59,8 @@ lint-tidy: phony ## run clang-tidy static analysis on src/test (modern, compleme
 lint-tidy-tests: phony ## run clang-tidy static analysis on src/test (modern, complements 'lint')
 	$(RUN) find test -maxdepth 1 -type f \( -name "*.cpp" -o -name "*.h" \) -exec clang-tidy {} \;
 
-test: phony ## run unit tests with coverage
+test: phony ## run unit tests with coverage, plus doc-site generator tests
+	$(RUN) .tools/doc-site/test_generate_site.py
 	$(RUN) $(MAKE) -C test coverage
 
 ACT_CACHE_DIR      = $(HOME)/.cache/act/jled-cache
