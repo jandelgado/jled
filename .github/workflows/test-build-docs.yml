@@ -26,3 +26,12 @@ jobs:
         with:
           name: doc-site
           path: ./site-build
+  test-generator:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v7
+      - name: Run doc-site generator tests
+        run: uv run .tools/doc-site/test_generate_site.py

@@ -66,6 +66,9 @@ are specific to the selected microcontroller board (here: Nucleo F401RE). Note t
 the `Src` and `Inc` directories are uppercase in this project. This is because STM32CubeMX
 generates these directories uppercase and we kept it that way.
 
+<!-- doc:link Src -->
+<!-- doc:link Inc -->
+
 The file [main.c](Src/main.c) contains the generated `main()` function, the program's entry point.
 It performs the usual STM32Cube startup (clock configuration and peripheral initialization) and is
 left untouched apart from two lines placed inside the `USER CODE` markers that STM32CubeMX
@@ -89,6 +92,8 @@ Since JLed is C++, the LED logic lives in a C++ source file, [app.cpp](Src/app.c
 `app_main()` as `extern "C"`, instantiates the JLed objects, groups them, and runs the main loop.
 Hardware initialization stays in the generated code, so regenerating the project with STM32CubeMX
 needs no changes to `app.cpp` and no copying of generated code:
+
+<!-- doc:add Src/app.cpp -->
 
 ```c++
 extern "C" {
@@ -134,7 +139,7 @@ combination of configured timer and channel, e.g., `JLed({&htim1, TIM_CHANNEL_3}
 instantiates a `JLed` object for timer channel 3 on timer 1. `htim1` is generated
 by STM32CubeMX during code generation and pulled in through the `tim.h` header.
 
-This example project is built using the top level [platformio.ini](../../platformio.ini)
+This example project is built using the top level `platformio.ini`
 project file and the `env:nucleo_f401re_stm32cube` environment, alternatively run
 `make upload-stm32cube_demo ENV=nucleo_f401re_stm32cube` to build and upload the example.
 

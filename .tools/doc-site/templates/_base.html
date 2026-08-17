@@ -124,6 +124,7 @@
             {% block version_options %}{% endblock %}
         </select>
         {% block sidebar_nav %}{% endblock %}
+        {% block sidebar_install %}
         <nav>
             <h3>Install</h3>
             <ul>
@@ -133,6 +134,7 @@
                        target="_blank" rel="noopener">Arduino Library Manager</a></li>
             </ul>
         </nav>
+        {% endblock %}
         <nav>
             <h3>Links</h3>
             <ul>

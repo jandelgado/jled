@@ -89,6 +89,10 @@ For each version:
 4. **Copy assets**:
    - `doc/` folder → `VERSION/doc/`
    - `examples/` folder → `VERSION/examples/`
+   - Files that a README links to (e.g. `platformio.ini`, `LICENSE`) are copied
+     to the mirrored path under `VERSION/` so the links resolve. Only explicitly
+     linked files inside the repo are copied (never a blanket copy of the repo
+     root), so private and backup files stay out of the published site.
 5. **Generate example pages** (US-03):
    - For each example, create `examples/<name>/index.html`
    - Scan example directory for source files (.ino, .cpp, .h, etc.)
@@ -123,6 +127,23 @@ Each example in `examples/` is processed to create an individual page at `exampl
 - Scripts: .sh, .py
 - Config: .json, .yaml, .ini
 - Docs: README.md, .txt
+
+**README directives:**
+
+By default only files in the example's root directory are rendered. An example's
+`README.md` can opt extra content in via inert HTML comments (invisible in normal
+Markdown rendering):
+
+- `<!-- doc:add <relpath> -->` renders a file from a subdirectory as its own code
+  box, just like an auto-discovered file. The box is labeled with the full
+  relative path (e.g. `Src/app.cpp`) and appears after the auto-discovered files.
+- `<!-- doc:link <relpath> -->` adds a link to a subdirectory. Because GitHub
+  Pages has no directory listing, the generator emits a browsable `index.html`
+  into the copied directory that links to each of its files.
+
+Paths are relative to the example directory; absolute paths and paths containing
+`..` are rejected. A missing or wrong-type target is warned about and skipped.
+See `examples/stm32cube_demo` for a working example.
 
 ### Root Page
 

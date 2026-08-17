@@ -54,6 +54,17 @@ EXCLUDE_DIRS = {'CMakeFiles', '.vscode', '.idea', 'build', 'dist', '__pycache__'
 
 MAX_FILE_SIZE = 500 * 1024  # 500KB
 
+# Directives an example README.md may carry as inert HTML comments to opt extra
+# content into its generated page (invisible in normal Markdown rendering):
+#   <!-- doc:add Src/app.cpp -->  render a subdirectory file as a code box
+#   <!-- doc:link Src -->         link to a browsable subdirectory index
+DOC_DIRECTIVE_RE = re.compile(r'<!--\s*doc:(add|link)\s+(\S+)\s*-->')
+
+# Markdown inline link/image targets: the `(...)` part of `[text](target)` and
+# `![alt](target)`. Angle-bracket (`<...>`) targets are supported; a title after
+# the target is ignored.
+MD_LINK_RE = re.compile(r'\]\(\s*<?([^)\s>]+)>?[^)]*\)')
+
 
 def run_git_command(cmd: List[str], cwd: str = None, quiet: bool = False) -> str:
     """Run a git command and return the output."""
@@ -274,6 +285,8 @@ def should_include_file(filename: str, filepath: str) -> bool:
 
 def detect_language(filename: str) -> str:
     """Detect programming language from filename for Pygments."""
+    # doc:add names carry a relative path; match on the basename.
+    filename = os.path.basename(filename)
     ext = os.path.splitext(filename)[1]
 
     # Special filenames first
@@ -309,6 +322,103 @@ def make_safe_anchor(filename: str) -> str:
     """Convert filename to safe HTML anchor ID."""
     safe = re.sub(r'[^a-zA-Z0-9]+', '-', filename)
     return safe.strip('-').lower()
+
+
+def copy_linked_files(content: str, source_dir: str, work_dir: str, version_dir: Path) -> None:
+    """Copy repo files that a README links to, so the links resolve on the site.
+
+    For each markdown link/image target in ``content``, resolve it relative to
+    ``source_dir`` (where the README lives) and, if it points at a real file
+    inside the repo (``work_dir``), copy it to the mirrored path under
+    ``version_dir``. The output tree mirrors the repo tree, so the existing
+    relative link then resolves without rewriting.
+
+    Only explicitly linked files are copied (never a blanket copy of the repo
+    root), which keeps private/backup files out of the published site. URLs,
+    anchors, directories, oversized files, and files already present in the
+    output are skipped.
+    """
+    for raw_target in MD_LINK_RE.findall(content):
+        # Drop any fragment/query, then reject URLs, anchors, and absolutes.
+        target = raw_target.split('#', 1)[0].split('?', 1)[0]
+        if not target or target.startswith('//') or os.path.isabs(target):
+            continue
+        if re.match(r'^[a-z][a-z0-9+.-]*:', target):  # scheme:, e.g. http:, mailto:
+            continue
+
+        source_file = os.path.normpath(os.path.join(source_dir, target))
+        rel = os.path.relpath(source_file, work_dir)
+
+        # Containment guard: must stay inside the repo tree.
+        if rel == os.pardir or rel.startswith(os.pardir + os.sep):
+            continue
+        if not os.path.isfile(source_file):
+            continue
+        if os.path.getsize(source_file) > MAX_FILE_SIZE:
+            continue
+
+        dest = version_dir / rel
+        if dest.exists():  # already copied (doc/, examples/) or generated
+            continue
+
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source_file, dest)
+        print(f"    Copied linked file {rel}")
+
+
+def parse_doc_directives(readme_text: str, example_path: str) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """
+    Parse doc:add / doc:link directives from an example README.
+
+    Returns (added_files, linked_dirs). added_files entries mirror
+    get_example_files() output ({name, path, extension, safe_name}) with the
+    full relative path as the display name. linked_dirs entries carry
+    {name, relpath, path}. Invalid or missing targets are warned about and
+    skipped, matching the generator's warn-and-continue style.
+    """
+    added_files = []
+    linked_dirs = []
+
+    for kind, raw_relpath in DOC_DIRECTIVE_RE.findall(readme_text):
+        relpath = raw_relpath.replace('\\', '/').rstrip('/')
+
+        # Traversal guard: no absolute paths, no escaping the example dir.
+        if os.path.isabs(relpath) or '..' in relpath.split('/'):
+            print(f"    Warning: ignoring unsafe doc:{kind} path: {raw_relpath}", file=sys.stderr)
+            continue
+
+        target = os.path.join(example_path, relpath)
+
+        if kind == 'add':
+            if not os.path.isfile(target):
+                print(f"    Warning: doc:add target not found or not a file: {relpath}", file=sys.stderr)
+                continue
+            filename = os.path.basename(relpath)
+            if not should_include_file(filename, target):
+                print(f"    Warning: doc:add target excluded (size/type): {relpath}", file=sys.stderr)
+                continue
+            added_files.append({
+                'name': relpath,
+                'path': target,
+                'extension': os.path.splitext(filename)[1],
+                'safe_name': make_safe_anchor(relpath),
+            })
+        else:  # link
+            if not os.path.isdir(target):
+                print(f"    Warning: doc:link target not found or not a directory: {relpath}", file=sys.stderr)
+                continue
+            linked_dirs.append({
+                'name': relpath + '/',
+                'relpath': relpath,
+                'path': target,
+            })
+
+    return added_files, linked_dirs
+
+
+def strip_doc_directives(text: str) -> str:
+    """Remove recognized doc:* directive comments from README text."""
+    return DOC_DIRECTIVE_RE.sub('', text)
 
 
 def highlight_code(content: str, language: str) -> str:
@@ -399,6 +509,58 @@ def get_example_files(example_path: str) -> List[Dict[str, Any]]:
     return sorted(files, key=sort_key)
 
 
+def generate_directory_index(
+    linked_dir: Dict[str, Any],
+    example_output_dir: Path,
+    jinja_env: Environment,
+    current_version: str,
+    versions: List[str],
+    latest_stable: str,
+    example_name: str,
+) -> None:
+    """Emit a browsable index page for a doc:link'd directory.
+
+    GitHub Pages has no directory listing, so we write an index.html into the
+    already-copied directory that links to each of its (raw) files.
+    """
+    dir_path = linked_dir['path']
+    relpath = linked_dir['relpath']
+
+    entries = []
+    for root, dirs, filenames in os.walk(dir_path):
+        dirs[:] = sorted(d for d in dirs if d not in EXCLUDE_DIRS)
+        for filename in sorted(filenames):
+            filepath = os.path.join(root, filename)
+            if not should_include_file(filename, filepath):
+                continue
+            # href is relative to the index page, which sits at the dir root.
+            rel = os.path.relpath(filepath, dir_path).replace(os.sep, '/')
+            entries.append({'name': rel, 'href': rel})
+
+    entries.sort(key=lambda e: e['name'])
+
+    depth = len(relpath.split('/'))
+    example_href = '../' * depth + 'index.html'
+
+    template = jinja_env.get_template('directory.html')
+    html_content = template.render(
+        dir_name=relpath,
+        example_name=example_name,
+        example_href=example_href,
+        current_version=current_version,
+        versions=versions,
+        latest_stable=latest_stable,
+        entries=entries,
+    )
+
+    out_dir = example_output_dir / relpath
+    out_dir.mkdir(parents=True, exist_ok=True)
+    with open(out_dir / 'index.html', 'w', encoding='utf-8') as f:
+        f.write(html_content)
+
+    print(f"    Generated directory index {out_dir / 'index.html'}")
+
+
 def generate_example_page(
     example: Dict[str, str],
     version_dir: Path,
@@ -416,6 +578,17 @@ def generate_example_page(
 
     # Get files to display
     files_info = get_example_files(example_path)
+
+    # Parse doc:add / doc:link directives from the example README, if present.
+    added_files = []
+    linked_dirs = []
+    readme_path = os.path.join(example_path, 'README.md')
+    if os.path.isfile(readme_path):
+        with open(readme_path, 'r', encoding='utf-8', errors='ignore') as f:
+            added_files, linked_dirs = parse_doc_directives(f.read(), example_path)
+
+    # Auto-discovered files first, then explicitly added files in directive order.
+    files_info = files_info + added_files
 
     # Process each file
     files_data = []
@@ -435,6 +608,8 @@ def generate_example_page(
 
         # Handle README.md separately
         if filename == 'README.md':
+            copy_linked_files(content, example_path, work_dir, version_dir)
+            content = strip_doc_directives(content)
             readme_html = parse_markdown_content(content, base_path='../../doc/')
             continue
 
@@ -448,6 +623,9 @@ def generate_example_page(
             'highlighted_content': highlighted
         })
 
+    # Links to browsable directory indexes (doc:link).
+    links = [{'name': d['name'], 'href': d['relpath'] + '/'} for d in linked_dirs]
+
     # Render template
     template = jinja_env.get_template('example.html')
     html_content = template.render(
@@ -456,6 +634,7 @@ def generate_example_page(
         versions=versions,
         latest_stable=latest_stable,
         files=files_data,
+        links=links,
         readme_html=readme_html
     )
 
@@ -468,6 +647,18 @@ def generate_example_page(
         f.write(html_content)
 
     print(f"    Generated {output_path}")
+
+    # Emit a browsable index page for each doc:link'd directory.
+    for linked_dir in linked_dirs:
+        generate_directory_index(
+            linked_dir=linked_dir,
+            example_output_dir=example_output_dir,
+            jinja_env=jinja_env,
+            current_version=current_version,
+            versions=versions,
+            latest_stable=latest_stable,
+            example_name=example_name,
+        )
 
 
 def checkout_version(version: str, work_dir: str):
@@ -556,6 +747,12 @@ def generate_site(output_dir: str, script_dir: str):
                             versions=versions,
                             latest_stable=latest_stable
                         )
+
+                # Copy files the top-level README links to (e.g. platformio.ini)
+                # so those links resolve on the site.
+                if os.path.exists(readme_path):
+                    with open(readme_path, 'r', encoding='utf-8', errors='ignore') as f:
+                        copy_linked_files(f.read(), work_dir, work_dir, version_dir)
 
                 # Render HTML page
                 template = jinja_env.get_template('base.html')

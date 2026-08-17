@@ -1,0 +1,53 @@
+{% extends "_base.html" %}
+
+{% block title %}{{ dir_name }} - {{ example_name }} - JLed Examples - {{ current_version }}{% endblock %}
+
+{% block extra_styles %}
+h1 { font-size: 1.8em; font-weight: 600; margin: 0 0 24px; padding-bottom: .3em; border-bottom: 1px solid #d0d7de; }
+
+.files-list ul { list-style: none; margin: 0; padding: 0; }
+.files-list li { margin: 2px 0; }
+.files-list a { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 14px; }
+{% endblock %}
+
+{% block version_options %}
+{% for version in versions %}
+<option value="{{ version }}" {% if version == current_version %}selected{% endif %}>
+    {{ version }}{% if version == latest_stable %} (latest){% elif version == "master" %} (dev){% endif %}
+</option>
+{% endfor %}
+{% endblock %}
+
+{% block sidebar_install %}{% endblock %}
+
+{% block sidebar_nav %}
+<nav>
+    <h3>Navigation</h3>
+    <ul>
+        <li><a href="{{ example_href }}">← Back to {{ example_name }}</a></li>
+    </ul>
+</nav>
+{% endblock %}
+
+{% block page_content %}
+<h1>{{ example_name }}/{{ dir_name }}</h1>
+
+{% if entries %}
+<div class="files-list">
+    <ul>
+        {% for entry in entries %}
+        <li><a href="{{ entry.href }}">{{ entry.name }}</a></li>
+        {% endfor %}
+    </ul>
+</div>
+{% else %}
+<p>No files to display.</p>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+function switchVersion(version) {
+    const base = window.location.pathname.includes('/jled/') ? '/jled/' : '/';
+    window.location.href = base + version + '/examples/{{ example_name }}/{{ dir_name }}/';
+}
+{% endblock %}
