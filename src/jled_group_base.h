@@ -195,7 +195,8 @@ struct TJLedAny {
         Init(t);
     }
 
-    // Accepts any TJLedGroup<Clock, ElementType> (covers JLedGroup and clock variants used in tests).
+    // Accepts any TJLedGroup<Clock, ElementType> (covers JLedGroup and clock variants used in
+    // tests).
     template<typename Clock, typename ElementType>
     TJLedAny(TJLedGroup<Clock, ElementType> g) {  // NOLINT
         static_assert(sizeof(TJLedGroup<Clock, ElementType>) <= BufSize,
@@ -351,7 +352,8 @@ GroupUpdateResult<TJLedGroup<Clock, ElementType>> TJLedGroup<Clock, ElementType>
 // It never fires in PARALLEL mode or for a single-element sequence.
 // It does NOT "see" into nested subgroups.
 template<typename Clock, typename ElementType>
-GroupUpdateResult<TJLedGroup<Clock, ElementType>> TJLedGroup<Clock, ElementType>::Update(uint32_t t) {
+GroupUpdateResult<TJLedGroup<Clock, ElementType>> TJLedGroup<Clock, ElementType>::Update(
+    uint32_t t) {
     EventSet events = 0;
     const auto cur_before = cur_;
     const bool was_started = started_;
