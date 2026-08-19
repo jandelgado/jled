@@ -80,6 +80,73 @@ TEST_CASE("homogeneous parallel group updates TJLed elements directly", "[jled_g
     REQUIRE(HalMock::PinValue(2) == 50);
 }
 
+TEST_CASE("Stop/Reset/Pause/Resume propagate to TJLed elements in a homogeneous group",
+          "[jled_group]") {
+    HalMock::Init();
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100, 50, 25});
+    TestJLed leds[] = {TestJLed(1).UserFunc(&eval).Repeat(1)};
+    auto group = TestJLedGroup::Parallel(leds, 1);
+
+    TimeMock::set_millis(0);
+    REQUIRE(group.Update());
+    REQUIRE(HalMock::PinValue(1) == 200);
+
+    // Pause()/Resume(): exercises the protected TJLed::Pause(uint32_t, eIdleMode) and
+    // TJLed::Resume(uint32_t) that Task 1's friend declaration exposes to TJLedGroup.
+    TimeMock::set_millis(0);
+    group.Pause();
+    REQUIRE(HalMock::PinValue(1) == 0);  // TO_MIN_BRIGHTNESS default
+
+    TimeMock::set_millis(1);
+    REQUIRE(group.Update());
+    REQUIRE(HalMock::PinValue(1) == 0);  // still paused, unchanged
+
+    TimeMock::set_millis(5);
+    group.Resume();
+    TimeMock::set_millis(6);
+    REQUIRE(group.Update());
+    REQUIRE(HalMock::PinValue(1) == 100);  // resumed at elapsed=1
+
+    // Stop(): exercises TJLed::Stop(), already public before this change.
+    group.Stop(jled::eIdleMode::FULL_OFF);
+    REQUIRE(HalMock::PinValue(1) == 0);
+
+    // Reset(): exercises TJLed::Reset(), already public before this change.
+    group.Reset();
+    TimeMock::set_millis(10);
+    REQUIRE(group.Update());
+    REQUIRE(HalMock::PinValue(1) == 200);
+}
+
+TEST_CASE("OnElementEnter/OnElementLeave hand back a TestJLed& directly, no As<T>() needed",
+          "[jled_group]") {
+    HalMock::Init();
+    auto eval1 = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
+    auto eval2 = MockBrightnessEvaluator(std::vector<uint8_t>{50, 25});
+    TestJLed leds[] = {TestJLed(1).UserFunc(&eval1).Repeat(1),
+                       TestJLed(2).UserFunc(&eval2).Repeat(1)};
+    auto group = TestJLedGroup::Sequential(leds);
+
+    TimeMock::set_millis(0);
+    auto r0 = group.Update();  // led[0] enters
+    TestJLed* entered0 = nullptr;
+    r0.OnElementEnter([&](TestJLedGroup*, uint8_t, TestJLed& e) { entered0 = &e; });
+    REQUIRE(entered0 == &leds[0]);  // direct reference, no As<T>() recovery required
+
+    TimeMock::set_millis(1);
+    auto r1 = group.Update();  // led[0] leaves, led[1] enters
+    TestJLed* left1 = nullptr;
+    TestJLed* entered1 = nullptr;
+    r1.OnElementLeave([&](TestJLedGroup*, uint8_t, TestJLed& e) { left1 = &e; });
+    r1.OnElementEnter([&](TestJLedGroup*, uint8_t, TestJLed& e) { entered1 = &e; });
+    REQUIRE(left1 == &leds[0]);
+    REQUIRE(entered1 == &leds[1]);
+
+    // the reference is directly usable, e.g. to mutate the element in place
+    left1->MaxBrightness(64);
+    REQUIRE(leds[0].MaxBrightness() == 64);
+}
+
 TEST_CASE("sequential group plays elements one at a time", "[jled_group]") {
     HalMock::Init();
     auto eval1 = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
