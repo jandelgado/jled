@@ -31,10 +31,12 @@ constexpr size_t kTestAnyBufSize =
 using TestJLedAny = TJLedAny<kTestAnyBufSize>;
 using TestJLedGroupAny = TJLedGroup<TimeMock, TestJLedAny>;
 using TestJLedRefGroup = TJLedGroup<TimeMock, TJLedRef>;
+using TestJLedGroup = TJLedGroup<TimeMock, TestJLed>;
 
 // instantiate for test coverage measurement
 template class TJLedGroup<TimeMock, TestJLedAny>;
 template class TJLedGroup<TimeMock, TJLedRef>;
+template class TJLedGroup<TimeMock, TestJLed>;
 
 // Parallel uses the pointer overload; Sequential uses the array overload.
 // Both static factory overloads are exercised across the test suite.
@@ -47,6 +49,25 @@ TEST_CASE("parallel group updates all elements simultaneously", "[jled_group]") 
                           TestJLed(2).UserFunc(&eval2).Repeat(1)};
     // Use pointer overload to cover Parallel(AnyType*, size_t)
     auto group = TestJLedGroupAny::Parallel(leds, 2);
+
+    TimeMock::set_millis(0);
+    REQUIRE(group.Update());
+    REQUIRE(HalMock::PinValue(1) == 200);
+    REQUIRE(HalMock::PinValue(2) == 150);
+
+    TimeMock::set_millis(1);
+    REQUIRE(!group.Update());
+    REQUIRE(HalMock::PinValue(1) == 100);
+    REQUIRE(HalMock::PinValue(2) == 50);
+}
+
+TEST_CASE("homogeneous parallel group updates TJLed elements directly", "[jled_group]") {
+    HalMock::Init();
+    auto eval1 = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
+    auto eval2 = MockBrightnessEvaluator(std::vector<uint8_t>{150, 50});
+    TestJLed leds[] = {TestJLed(1).UserFunc(&eval1).Repeat(1),
+                       TestJLed(2).UserFunc(&eval2).Repeat(1)};
+    auto group = TestJLedGroup::Parallel(leds, 2);
 
     TimeMock::set_millis(0);
     REQUIRE(group.Update());
