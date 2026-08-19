@@ -154,28 +154,15 @@ class JLedHD : public TJLed<JLedHalHD, JLedClockType, uint16_t, JLedHD> {
     using TJLed<JLedHalHD, JLedClockType, uint16_t, JLedHD>::TJLed;
 };
 
-// Buffer size for JLedAny: large enough to hold JLed, JLedHD, or JLedGroup.
-// Users with a custom LED type that is larger should define their own alias:
-//   using MyLedAny   = TJLedAny<sizeof(MyBigLed)>;
-//   using MyLedGroup = TJLedGroup<JLedClockType, MyLedAny>;
-namespace detail {
-constexpr size_t kLedBufSize = sizeof(JLed) > sizeof(JLedHD) ? sizeof(JLed)
-                                                             : sizeof(JLedHD);  // NOLINT
-// TJLedGroup<Clock, T> stores only T* so its sizeof is the same for any T.
-// Use char as a placeholder to compute the group size without a circular dependency.
-constexpr size_t kGroupBufSize = sizeof(TJLedGroup<JLedClockType, char>);
-constexpr size_t kJLedAnyBufSize =
-    kLedBufSize > kGroupBufSize ? kLedBufSize : kGroupBufSize;  // NOLINT
-}  // namespace detail
-
-// JLedAny is a type-erased LED container holding JLed, JLedHD, or JLedGroup.
-using JLedAny = TJLedAny<detail::kJLedAnyBufSize>;
-
-// a group of JLedAny objects which can be controlled simultanously
-using JLedGroup = TJLedGroup<JLedClockType, JLedAny>;
+// JLedGroup/JLedHDGroup: homogeneous groups, elements stored by value, constructed inline.
+// A user-defined LED type needs no wrapper, just a matching alias:
+//   using MyLedGroup = TJLedGroup<JLedClockType, MyLed>;
+using JLedGroup = TJLedGroup<JLedClockType, JLed>;
+using JLedHDGroup = TJLedGroup<JLedClockType, JLedHD>;
 
 // JLedRef: non-owning reference to an externally-managed JLed, JLedHD, or JLedGroup.
-// Use JLedRefGroup when LED objects already exist as named variables to save memory.
+// JLedRefGroup: heterogeneous groups, elements referenced by pointer. Use it for mixed
+// resolutions, nested groups, user-defined types, or LEDs already declared elsewhere.
 // The LED objects must outlive the JLedRef / JLedRefGroup that references them.
 using JLedRef = TJLedRef;
 using JLedRefGroup = TJLedGroup<JLedClockType, JLedRef>;
@@ -185,6 +172,6 @@ using JLedRefGroup = TJLedGroup<JLedClockType, JLedRef>;
 using JLed = jled::JLed;
 using JLedHD = jled::JLedHD;
 using JLedGroup = jled::JLedGroup;
-using JLedAny = jled::JLedAny;
+using JLedHDGroup = jled::JLedHDGroup;
 using JLedRef = jled::JLedRef;
 using JLedRefGroup = jled::JLedRefGroup;
