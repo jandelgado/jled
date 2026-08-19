@@ -39,26 +39,26 @@ namespace jled {
 template<size_t BufSize>
 struct TJLedAny;
 
-// TJLedGroup groups TJLedAny elements and plays them in parallel or sequentially.
-template<typename Clock, typename AnyType>
+// TJLedGroup groups elements of ElementType and plays them in parallel or sequentially.
+template<typename Clock, typename ElementType>
 class TJLedGroup {
  public:
     enum class eMode : uint8_t { SEQUENCE, PARALLEL };
 
     template<size_t N>
-    static TJLedGroup Parallel(AnyType (&leds)[N]) {
+    static TJLedGroup Parallel(ElementType (&leds)[N]) {
         static_assert(N <= 255, "TJLedGroup supports at most 255 elements");
         return TJLedGroup(eMode::PARALLEL, leds, N);
     }
-    static TJLedGroup Parallel(AnyType* leds, size_t n) {
+    static TJLedGroup Parallel(ElementType* leds, size_t n) {
         return TJLedGroup(eMode::PARALLEL, leds, n);
     }
     template<size_t N>
-    static TJLedGroup Sequential(AnyType (&leds)[N]) {
+    static TJLedGroup Sequential(ElementType (&leds)[N]) {
         static_assert(N <= 255, "TJLedGroup supports at most 255 elements");
         return TJLedGroup(eMode::SEQUENCE, leds, N);
     }
-    static TJLedGroup Sequential(AnyType* leds, size_t n) {
+    static TJLedGroup Sequential(ElementType* leds, size_t n) {
         return TJLedGroup(eMode::SEQUENCE, leds, n);
     }
 
@@ -98,7 +98,7 @@ class TJLedGroup {
     void Pause(eIdleMode mode = eIdleMode::TO_MIN_BRIGHTNESS);
     void Resume();
 
-    TJLedGroup(eMode mode, AnyType* leds, size_t n)
+    TJLedGroup(eMode mode, ElementType* leds, size_t n)
         : mode_(mode),
           leds_(leds),
           n_(static_cast<uint8_t>(n > 255 ? 255 : n)),
@@ -122,14 +122,14 @@ class TJLedGroup {
     friend class GroupUpdateResult;
 
     bool IsSequenceMode() const { return mode_ == eMode::SEQUENCE; }
-    AnyType& ElementRef(uint8_t i) { return leds_[i]; }
+    ElementType& ElementRef(uint8_t i) { return leds_[i]; }
 
     bool UpdateParallel(uint32_t t);
     bool UpdateSequentially(uint32_t t);
     void ResetLeds();
 
     eMode mode_;
-    AnyType* leds_;
+    ElementType* leds_;
     uint8_t n_;
     uint8_t cur_ = 0;
     static constexpr uint16_t kRepeatForever = 65535;
@@ -195,10 +195,10 @@ struct TJLedAny {
         Init(t);
     }
 
-    // Accepts any TJLedGroup<Clock, AnyType> (covers JLedGroup and clock variants used in tests).
-    template<typename Clock, typename AnyType>
-    TJLedAny(TJLedGroup<Clock, AnyType> g) {  // NOLINT
-        static_assert(sizeof(TJLedGroup<Clock, AnyType>) <= BufSize,
+    // Accepts any TJLedGroup<Clock, ElementType> (covers JLedGroup and clock variants used in tests).
+    template<typename Clock, typename ElementType>
+    TJLedAny(TJLedGroup<Clock, ElementType> g) {  // NOLINT
+        static_assert(sizeof(TJLedGroup<Clock, ElementType>) <= BufSize,
                       "TJLedGroup exceeds TJLedAny buffer size. "
                       "Use TJLedAny<sizeof(YourType)> to define a custom-sized alias.");
         Init(g);
@@ -234,7 +234,7 @@ struct TJLedAny {
     }
     void Resume(uint32_t t) { vtable_->resume(buf_, t); }
 
-    template<typename Clock, typename AnyType>
+    template<typename Clock, typename ElementType>
     friend class TJLedGroup;
 };
 
@@ -271,9 +271,9 @@ class TJLedRef {
     TJLedRef(T* ptr) : obj_(ptr), vtable_(VtableFor<T>()) {}  // NOLINT
 
     // Accepts a pointer to any TJLedGroup (enables nested groups via JLedRef).
-    template<typename Clock, typename AnyType>
-    TJLedRef(TJLedGroup<Clock, AnyType>* ptr)  // NOLINT
-        : obj_(ptr), vtable_(VtableFor<TJLedGroup<Clock, AnyType>>()) {}
+    template<typename Clock, typename ElementType>
+    TJLedRef(TJLedGroup<Clock, ElementType>* ptr)  // NOLINT
+        : obj_(ptr), vtable_(VtableFor<TJLedGroup<Clock, ElementType>>()) {}
 
     // Recovers the referenced object as T* if it was constructed from
     // exactly that type, or nullptr otherwise. See TJLedAny::As() for the
@@ -296,14 +296,14 @@ class TJLedRef {
     }
     void Resume(uint32_t t) { vtable_->resume(obj_, t); }
 
-    template<typename Clock, typename AnyType>
+    template<typename Clock, typename ElementType>
     friend class TJLedGroup;
 };
 
 // TJLedGroup method bodies, defined after TJLedAny is complete.
 
-template<typename Clock, typename AnyType>
-bool TJLedGroup<Clock, AnyType>::UpdateParallel(uint32_t t) {
+template<typename Clock, typename ElementType>
+bool TJLedGroup<Clock, ElementType>::UpdateParallel(uint32_t t) {
     auto result = false;
     for (auto i = 0U; i < n_; i++) {
         result |= leds_[i].Update(t);
@@ -311,8 +311,8 @@ bool TJLedGroup<Clock, AnyType>::UpdateParallel(uint32_t t) {
     return result;
 }
 
-template<typename Clock, typename AnyType>
-bool TJLedGroup<Clock, AnyType>::UpdateSequentially(uint32_t t) {
+template<typename Clock, typename ElementType>
+bool TJLedGroup<Clock, ElementType>::UpdateSequentially(uint32_t t) {
     if (!leds_[cur_].Update(t)) {
         if (reverse_) {
             if (cur_ == 0) return false;
@@ -324,15 +324,15 @@ bool TJLedGroup<Clock, AnyType>::UpdateSequentially(uint32_t t) {
     return true;
 }
 
-template<typename Clock, typename AnyType>
-void TJLedGroup<Clock, AnyType>::ResetLeds() {
+template<typename Clock, typename ElementType>
+void TJLedGroup<Clock, ElementType>::ResetLeds() {
     for (auto i = 0U; i < n_; i++) {
         leds_[i].Reset();
     }
 }
 
-template<typename Clock, typename AnyType>
-GroupUpdateResult<TJLedGroup<Clock, AnyType>> TJLedGroup<Clock, AnyType>::Update() {
+template<typename Clock, typename ElementType>
+GroupUpdateResult<TJLedGroup<Clock, ElementType>> TJLedGroup<Clock, ElementType>::Update() {
     return Update(Clock::millis());
 }
 
@@ -350,8 +350,8 @@ GroupUpdateResult<TJLedGroup<Clock, AnyType>> TJLedGroup<Clock, AnyType>::Update
 // including wrapping back to the first element at a new repetition.
 // It never fires in PARALLEL mode or for a single-element sequence.
 // It does NOT "see" into nested subgroups.
-template<typename Clock, typename AnyType>
-GroupUpdateResult<TJLedGroup<Clock, AnyType>> TJLedGroup<Clock, AnyType>::Update(uint32_t t) {
+template<typename Clock, typename ElementType>
+GroupUpdateResult<TJLedGroup<Clock, ElementType>> TJLedGroup<Clock, ElementType>::Update(uint32_t t) {
     EventSet events = 0;
     const auto cur_before = cur_;
     const bool was_started = started_;
@@ -413,8 +413,8 @@ GroupUpdateResult<TJLedGroup<Clock, AnyType>> TJLedGroup<Clock, AnyType>::Update
 
 // Reset means "Restart from the beginning" which is the beginning of the currently
 // configured direction.
-template<typename Clock, typename AnyType>
-TJLedGroup<Clock, AnyType>& TJLedGroup<Clock, AnyType>::Reset() {
+template<typename Clock, typename ElementType>
+TJLedGroup<Clock, ElementType>& TJLedGroup<Clock, ElementType>::Reset() {
     ResetLeds();
     cur_ = (reverse_ && n_ > 0) ? n_ - 1 : 0;
     iteration_ = 0;
@@ -425,31 +425,31 @@ TJLedGroup<Clock, AnyType>& TJLedGroup<Clock, AnyType>::Reset() {
     return *this;
 }
 
-template<typename Clock, typename AnyType>
-void TJLedGroup<Clock, AnyType>::Stop(eIdleMode mode) {
+template<typename Clock, typename ElementType>
+void TJLedGroup<Clock, ElementType>::Stop(eIdleMode mode) {
     is_running_ = false;
     for (auto i = 0U; i < n_; i++) {
         leds_[i].Stop(mode);
     }
 }
 
-template<typename Clock, typename AnyType>
-void TJLedGroup<Clock, AnyType>::Pause(uint32_t t, eIdleMode mode) {
+template<typename Clock, typename ElementType>
+void TJLedGroup<Clock, ElementType>::Pause(uint32_t t, eIdleMode mode) {
     for (auto i = 0U; i < n_; i++) leds_[i].Pause(t, mode);
 }
 
-template<typename Clock, typename AnyType>
-void TJLedGroup<Clock, AnyType>::Pause(eIdleMode mode) {
+template<typename Clock, typename ElementType>
+void TJLedGroup<Clock, ElementType>::Pause(eIdleMode mode) {
     Pause(Clock::millis(), mode);
 }
 
-template<typename Clock, typename AnyType>
-void TJLedGroup<Clock, AnyType>::Resume(uint32_t t) {
+template<typename Clock, typename ElementType>
+void TJLedGroup<Clock, ElementType>::Resume(uint32_t t) {
     for (auto i = 0U; i < n_; i++) leds_[i].Resume(t);
 }
 
-template<typename Clock, typename AnyType>
-void TJLedGroup<Clock, AnyType>::Resume() {
+template<typename Clock, typename ElementType>
+void TJLedGroup<Clock, ElementType>::Resume() {
     Resume(Clock::millis());
 }
 

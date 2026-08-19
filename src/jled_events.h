@@ -207,8 +207,9 @@ class GroupUpdateResult {
     // handoff (plus on the group's start/finish, for its first/last element). The
     // callback receives a Group*, the 0-based uint8_t index of the element that just
     // entered/left (into the array passed to Sequential()), and a reference to that
-    // element itself (AnyType&, e.g. TJLedAny&/TJLedRef&), so it can be acted on
-    // directly without capturing the array. Recover the concrete type with element.As<T>().
+    // element itself (the group's element type, e.g. JLed&, or TJLedAny&/TJLedRef& for a
+    // heterogeneous group), so it can be acted on directly without capturing the array.
+    // For TJLedAny/TJLedRef elements, recover the concrete type with element.As<T>().
     template<typename F>
     GroupUpdateResult& OnElementEnter(F cb) {
         if (IsElementEnter()) cb(obj_, enter_index_, obj_->ElementRef(enter_index_));
