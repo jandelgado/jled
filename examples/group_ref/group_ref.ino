@@ -1,6 +1,7 @@
-// JLed group_ref demo. Mix JLed, JLedHD and nested groups via JLedRef.
-// Uses JLedRef/JLedRefGroup: each slot stores only a pointer, with no
-// internal buffer. LED objects must be declared as named variables.
+// JLed group_ref demo: example for mixing LED types and nesting groups. JLedGroup only accepts one
+// LED type per group, written inline. JLedRefGroup accept any mix (here: JLed, JLedHD, and a nested
+// JLedRefGroup), but LEDs have to be defined as named variables now.
+//
 // Copyright 2026 by Jan Delgado. All rights reserved.
 // https://github.com/jandelgado/jled
 #include <jled.h>
