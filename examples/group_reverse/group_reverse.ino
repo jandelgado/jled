@@ -6,7 +6,7 @@
 
 constexpr auto kTimeOn = 150;
 
-JLedAny leds[] = {
+JLed leds[] = {
     // on for kTimeOn ms, then off, before moving on to the next LED
     // The group's OnDone() handler switches the direction and starts over.
     JLed(32).Blink(kTimeOn, 1),

@@ -12,7 +12,7 @@
 #include <mbed.h>
 
 int main() {
-    JLedAny leds[] = {JLed(LED1).Blink(750, 250).Forever(),
+    JLed leds[] = {JLed(LED1).Blink(750, 250).Forever(),
                       JLed(PA_8).Breathe(2000).Forever(),
                       JLed(PB_10).FadeOff(1000).Forever(),
                       JLed(PB_4).FadeOn(1000).Forever(),

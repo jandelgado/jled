@@ -4,7 +4,7 @@
 
 constexpr auto LED_PIN = LED_BUILTIN;
 
-JLedAny leds[] = {  // JLedGroup requires JLedAny, not JLed[]
+JLed leds[] = {
     JLed(LED_PIN).Breathe(2000).Repeat(3),
     JLed(LED_PIN).Blink(750, 250).Repeat(3),
     JLed(LED_PIN).FadeOff(1000).Repeat(3),

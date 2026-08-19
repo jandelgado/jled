@@ -27,7 +27,7 @@
 
 constexpr auto LED_PIN = LED_BUILTIN;
 
-JLedAny leds[] = {  // JLedGroup requires JLedAny, not JLed[]
+JLed leds[] = {
     JLed(LED_PIN).Breathe(2000).Repeat(3),
     JLed(LED_PIN).Blink(750, 250, 3),
     JLed(LED_PIN).FadeOff(1000).Repeat(3),
@@ -56,18 +56,16 @@ void loop() {
         // demo: act on the groups lifecycle events. Watch the serial console
         .OnStart([](JLedGroup*) { Serial.println("group started"); })
         .OnRepeatStart([](JLedGroup*) { Serial.println("new iteration started"); })
-        .OnElementLeave([](JLedGroup*, uint8_t i, JLedAny& e) {
+        .OnElementLeave([](JLedGroup*, uint8_t i, JLed& e) {
             // called for each led after its effect is finished: adjust the MinBrightness
             // for the next run of the group. The element that just finished is handed to
             // us directly, no need to index the leds[] array ourselves.
             Serial.print("leave: ");
             Serial.println(static_cast<int>(i));
 
-            if (auto* led = e.As<JLed>()) {
-                led->MinBrightness(min_brightness);
-            }
+            e.MinBrightness(min_brightness);
         })
-        .OnElementEnter([](JLedGroup*, uint8_t i, JLedAny&) {
+        .OnElementEnter([](JLedGroup*, uint8_t i, JLed&) {
             Serial.print("enter: ");
             Serial.println(static_cast<int>(i));
         })

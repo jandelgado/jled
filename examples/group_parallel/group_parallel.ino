@@ -4,7 +4,7 @@
 //
 #include <jled.h>
 
-JLedAny leds[] = {JLed(4).Blink(750, 250).Repeat(2),
+JLed leds[] = {JLed(4).Blink(750, 250).Repeat(2),
                   JLed(3).Breathe(2000),
                   JLed(5).FadeOff(1000).Repeat(2),
                   JLed(6).FadeOn(1000).Repeat(2),
