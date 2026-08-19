@@ -44,7 +44,7 @@ namespace jled {
 template<typename Clock, typename ElementType>
 class TJLedGroup;
 
-// Non-template tag base, allows JLedAny to detect TJLed subclasses via
+// Non-template tag base, allows TJLedAny/TJLedRef to detect TJLed subclasses via
 // std::is_base_of without requiring a common virtual interface.
 class JLedBase {};
 

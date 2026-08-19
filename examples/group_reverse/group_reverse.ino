@@ -25,9 +25,9 @@ auto group = JLedGroup::Sequential(leds);
 void setup() {}
 
 void loop() {
-    group.Update().OnDone([](JLedGroup* g) {
+    group.Update().OnDone([](JLedGroup& g) {
             // group is done playing: reverse the direction, start over and
             // skip the last active LED to directly proceed to the previous one.
-            g->Reverse().Reset().Skip();
+            g.Reverse().Reset().Skip();
     });
 }

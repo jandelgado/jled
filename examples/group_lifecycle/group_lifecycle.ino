@@ -53,9 +53,9 @@ void loop() {
     sequence
         .Update()
         // demo: act on the groups lifecycle events. Watch the serial console
-        .OnStart([](JLedGroup*) { Serial.println("group started"); })
-        .OnRepeatStart([](JLedGroup*) { Serial.println("new iteration started"); })
-        .OnElementLeave([](JLedGroup*, uint8_t i, JLed& e) {
+        .OnStart([](JLedGroup&) { Serial.println("group started"); })
+        .OnRepeatStart([](JLedGroup&) { Serial.println("new iteration started"); })
+        .OnElementLeave([](JLedGroup&, uint8_t i, JLed& e) {
             // called for each led after its effect is finished: adjust the MinBrightness
             // for the next run of the group. The element that just finished is handed to
             // us directly, no need to index the leds[] array ourselves.
@@ -64,16 +64,16 @@ void loop() {
 
             e.MinBrightness(min_brightness);
         })
-        .OnElementEnter([](JLedGroup*, uint8_t i, JLed&) {
+        .OnElementEnter([](JLedGroup&, uint8_t i, JLed&) {
             Serial.print("enter: ");
             Serial.println(static_cast<int>(i));
         })
-        .OnDone([](JLedGroup* g) {
+        .OnDone([](JLedGroup& g) {
             // called when the group is done playing after the last effect. Increase
             // minimum brightness for the next run and start over by calling Reset()
             Serial.println("group finished -> Reset");
 
             min_brightness = (min_brightness > 150) ? 20 : min_brightness + 25;
-            g->Reset();
+            g.Reset();
         });
 }

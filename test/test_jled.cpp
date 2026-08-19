@@ -683,11 +683,11 @@ TEST_CASE("On* callback chain invokes matching hooks on a coincident tick", "[jl
 
     int startCount = 0, activeCount = 0, repeatCount = 0, enterDelayCount = 0, doneCount = 0;
     jled.Update(0)
-        .OnStart([&](TestJLed*) { startCount++; })
-        .OnFirstOutput([&](TestJLed*) { activeCount++; })
-        .OnRepeatStart([&](TestJLed*) { repeatCount++; })
-        .OnEnterDelayAfter([&](TestJLed*) { enterDelayCount++; })
-        .OnDone([&](TestJLed*) { doneCount++; });
+        .OnStart([&](TestJLed&) { startCount++; })
+        .OnFirstOutput([&](TestJLed&) { activeCount++; })
+        .OnRepeatStart([&](TestJLed&) { repeatCount++; })
+        .OnEnterDelayAfter([&](TestJLed&) { enterDelayCount++; })
+        .OnDone([&](TestJLed&) { doneCount++; });
 
     CHECK(startCount == 1);
     CHECK(activeCount == 1);
@@ -702,7 +702,7 @@ TEST_CASE("OnEnterDelayAfter never fires across a full run when delay_after_ == 
     int enterDelayCount = 0;
     for (uint32_t t = 0; t < 20; t++) {
         auto r = jled.Update(t);
-        r.OnEnterDelayAfter([&](TestJLed*) { enterDelayCount++; });
+        r.OnEnterDelayAfter([&](TestJLed&) { enterDelayCount++; });
         if (!r.IsRunning()) break;
     }
     CHECK(enterDelayCount == 0);
@@ -789,7 +789,7 @@ TEST_CASE("OnDone callback fires once after Stop()", "[jled]") {
 
     for (uint32_t t = 1; t < 5; t++) {
         TimeMock::set_millis(t);
-        jled.Update().OnDone([&](TestJLed*) { doneCount++; });
+        jled.Update().OnDone([&](TestJLed&) { doneCount++; });
     }
     CHECK(doneCount == 1);
 }
@@ -801,7 +801,7 @@ TEST_CASE("natural completion still fires kDone exactly once (regression)", "[jl
     int doneCount = 0;
     for (uint32_t t = 0; t < 5; t++) {
         TimeMock::set_millis(t);
-        jled.Update().OnDone([&](TestJLed*) { doneCount++; });
+        jled.Update().OnDone([&](TestJLed&) { doneCount++; });
     }
     CHECK(doneCount == 1);
 }

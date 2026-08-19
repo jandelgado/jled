@@ -106,35 +106,35 @@ class UpdateResult {
     // function pointer). No heap allocation. Callbacks fire synchronously,
     // inline in the same statement as Update(). With the bitmask, more than one
     // of these may fire in a single call; they run in the order chained.
-    // Each callback receives a T* (the JLed/JLedHD instance being updated).
+    // Each callback receives a T& (the JLed/JLedHD instance being updated).
 
     template<typename F>
     UpdateResult& OnStart(F cb) {
-        if (IsStarted()) cb(obj_);
+        if (IsStarted()) cb(*obj_);
         return *this;
     }
 
     template<typename F>
     UpdateResult& OnFirstOutput(F cb) {
-        if (IsFirstOutput()) cb(obj_);
+        if (IsFirstOutput()) cb(*obj_);
         return *this;
     }
 
     template<typename F>
     UpdateResult& OnRepeatStart(F cb) {
-        if (IsRepeatStarted()) cb(obj_);
+        if (IsRepeatStarted()) cb(*obj_);
         return *this;
     }
 
     template<typename F>
     UpdateResult& OnEnterDelayAfter(F cb) {
-        if (IsEnteringDelayAfter()) cb(obj_);
+        if (IsEnteringDelayAfter()) cb(*obj_);
         return *this;
     }
 
     template<typename F>
     UpdateResult& OnDone(F cb) {
-        if (IsDone()) cb(obj_);
+        if (IsDone()) cb(*obj_);
         return *this;
     }
 };
@@ -183,42 +183,42 @@ class GroupUpdateResult {
                (HasEvent(event_, Event::kElementChanged) || HasEvent(event_, Event::kDone));
     }
 
-    // OnStart/OnDone/OnRepeatStart callbacks each receive a Group* (the TJLedGroup
+    // OnStart/OnDone/OnRepeatStart callbacks each receive a Group& (the TJLedGroup
     // instance being updated).
     template<typename F>
     GroupUpdateResult& OnStart(F cb) {
-        if (IsStarted()) cb(obj_);
+        if (IsStarted()) cb(*obj_);
         return *this;
     }
 
     template<typename F>
     GroupUpdateResult& OnDone(F cb) {
-        if (IsDone()) cb(obj_);
+        if (IsDone()) cb(*obj_);
         return *this;
     }
 
     template<typename F>
     GroupUpdateResult& OnRepeatStart(F cb) {
-        if (IsRepeatStarted()) cb(obj_);
+        if (IsRepeatStarted()) cb(*obj_);
         return *this;
     }
 
     // OnElementEnter/OnElementLeave fire only for SEQUENCE groups, once per element
     // handoff (plus on the group's start/finish, for its first/last element). The
-    // callback receives a Group*, the 0-based uint8_t index of the element that just
+    // callback receives a Group&, the 0-based uint8_t index of the element that just
     // entered/left (into the array passed to Sequential()), and a reference to that
     // element itself (the group's element type, e.g. JLed&, or TJLedAny&/TJLedRef& for a
     // heterogeneous group), so it can be acted on directly without capturing the array.
     // For TJLedAny/TJLedRef elements, recover the concrete type with element.As<T>().
     template<typename F>
     GroupUpdateResult& OnElementEnter(F cb) {
-        if (IsElementEnter()) cb(obj_, enter_index_, obj_->ElementRef(enter_index_));
+        if (IsElementEnter()) cb(*obj_, enter_index_, obj_->ElementRef(enter_index_));
         return *this;
     }
 
     template<typename F>
     GroupUpdateResult& OnElementLeave(F cb) {
-        if (IsElementLeave()) cb(obj_, leave_index_, obj_->ElementRef(leave_index_));
+        if (IsElementLeave()) cb(*obj_, leave_index_, obj_->ElementRef(leave_index_));
         return *this;
     }
 };
