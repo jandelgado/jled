@@ -2,79 +2,41 @@
 
 ## [Unreleased - scheduled for JLed 5.0]
 
-- new: native STM32Cube HAL added, see the
-  [stm32cube_demo](examples/stm32cube_demo) example.
-- breaking/perf: `BrightnessEvaluator<Brightness>::Eval(uint32_t t)` is now
-  `Eval(jled::period_t t)` (`period_t` is `uint16_t`). `t` is always in
-  `[0, Period())`, and `Period()` already returns `uint16_t`, so it never
-  needed more than 16 bits; carrying it as `uint32_t` cost extra
-  register/stack traffic and promoted otherwise-16-bit arithmetic (including
-  in user `Eval()` overrides) to 32-bit on MCUs without a hardware divider
-  (e.g. AVR). Custom evaluators passed to `UserFunc()` need to update their
-  `Eval()` signature accordingly:
+JLed 5.0 is a major release with several breaking changes. See the "JLed 5.0 migration
+guide" in README.md for migration details and code samples.
 
-  ```c++
-  // before
-  Brightness Eval(uint32_t t) const override { ... }
-
-  // after
-  Brightness Eval(jled::period_t t) const override { ... }
-  ```
-
-- perf: `ArduinoHal` now initializes `pinMode()`/`analogWriteResolution()`
-  eagerly in its constructor by default, at zero extra storage/runtime cost.
-  Deferring this to the first `analogWrite()` call was only ever needed on
-  STM32duino, which forbids touching hardware from a global constructor. This
-  is now opt-in. All other Arduino-compatible platforms no longer pay for the
-  "already set up" flag and initialize in the constructor.
-- new: `LowActive(bool on = true)` accepts a parameter, so low-active
-  polarity can be toggled off again with `LowActive(false)` without
-  needing a separate API. Existing `LowActive()` calls are unaffected
-- new: lifecycle events (`kStart`/`kActive`/`kRepeatStart`/`kEnterDelayAfter`/`kDone`)
-  for `TJLed` via `UpdateResult`, with `IsStarted()`/`IsActive()`/... queries
-  and matching `OnStart()`/`OnActive()`/... callbacks
-- new: group-level lifecycle events (`kStart`/`kDone`/`kRepeatStart`/
-  `kElementChanged`) for `TJLedGroup` (`JLedGroup`/`JLedRefGroup`) via
-  `GroupUpdateResult`, with `IsStarted()`/`IsDone()`/`IsRepeatStarted()`/
-  `IsElementChanged()` queries and matching `On*()` callbacks.
-  `kRepeatStart` fires once per repetition and composes correctly across
-  nested groups; `kElementChanged` fires for `Sequential` groups when the
-  active element changes, but is scoped to a group's own direct elements
-  (does not see into nested subgroups)
-- new: `Reverse()`/`Skip()`/`IsReversed()` on `TJLedGroup` for backward and
-  ping-pong playback of `Sequential` groups. `Reset()` is now fluent
-  (returns `TJLedGroup&`) and restarts from the beginning of the currently
-  configured direction
-- fix: `TJLedGroup::Update()` could silently consume an extra repetition if
-  called more than once within the same millisecond at a repetition
-  boundary (each element's own per-tick guard is bypassed by the `Reset()`
-  a repetition boundary triggers). `TJLedGroup` now has its own duplicate-
-  tick guard, mirroring `TJLed`'s existing one
-- breaking: `Update(int16_t* pLast)` removed; use `UpdateResult::Brightness()` /
-  `HasBrightness()` instead. See migration guide in README.md
-- new: `Pause()` and `Resume()` to temporarily pause an effect
-- new: high resolution (up to 16-bit effect) with `JLedHD`
-- new/breaking: `JLedGroup`/`JLedRefGroup` as a flexible `JLedSequence` replacement
+- new: `JLedGroup`/`JLedHDGroup` replace `JLedSequence`: a simple group supporting a
+  single `JLed`/`JLedHD` type, e.g. `JLed leds[]`. Adds `Reverse()`/`Skip()`/
+  `IsReversed()` for backward and ping-pong playback, `Pause()`/`Resume()`, and
+  group-level lifecycle events via `GroupUpdateResult`. New `JLedRef` and `JLedRefGroup`
+  remain the way to mix LED types or nest groups. See "Controlling a group of LEDs"
+- new: lifecycle events for `JLed`/`JLedHD` (start, first output, repeat start, entering
+  delay-after, done), with matching `On*()` callbacks, via `UpdateResult`
+- new: `Pause()`/`Resume()`/`IsPaused()` to freeze and later resume an effect. Also
+  works on groups, pausing all members at once
+- new: high resolution (up to 16-bit) effects with `JLedHD`
+- new: `WriteRaw(val)` writes a brightness value straight to the hardware, bypassing the
+  effect logic. Handy from a lifecycle callback
+- new: `Percentage`/`_pct` literal to set `MinBrightness`/`MaxBrightness` as a percentage
+- new: native STM32Cube HAL, see the [stm32cube_demo](examples/stm32cube_demo) example
+- new: `LowActive(bool on = true)` takes a parameter, so it can be toggled off again with
+  `LowActive(false)`
 - new: `Blink` effect now has a repeat parameter
-- breaking (HAL authors only): the HAL concept's `analogWrite()` gains a required second
-  parameter, `analogWrite<Color>(Color val, bool invert)`. `LowActive()`/`IsLowActive()`
-  and all other public JLed/JLedHD/JLedGroup/JLedAny API is unaffected. A custom HAL
-  written before this change needs to either add the parameter directly, or wrap the HAL
-  in the new `InvertableHal<Hal>` decorator (`src/invertable_hal.h`), which adapts an
-  unmodified single-argument `analogWrite(Color)` to the new signature at zero storage
-  cost. Of the bundled HALs, Arduino, ESP8266 and mbed use `InvertableHal`'s software
-  fallback; ESP32 and Pico invert natively instead, see below
-- breaking (HAL authors only): the HAL concept gains a required `SetLowActive(bool)`
-  method, called once from `LowActive()`. HALs with a hardware polarity register use it
-  to pre-arm the register; HALs without one (all `InvertableHal`-wrapped HALs) implement
-  it as a no-op, since `analogWrite(val, invert)` already applies inversion on every
-  call. A custom HAL written before this change needs to add the method, or wrap the HAL
-  in `InvertableHal<Hal>` to get the no-op for free. `Esp32Hal` and `PicoHal` now use this
-  to invert natively (the LEDC driver's own `output_invert` flag on ESP32, and a masked
-  PWM CSR write via `hw_write_masked()` on Pico) instead of `InvertableHal`'s software
-  fallback. `output_invert` requires ESP-IDF >= 4.4; on older SDKs `Esp32Hal` doesn't
-  define `SetLowActive()`/`analogWrite(val, invert)` at all, and `jled.h` falls back to
-  wrapping it in `InvertableHal` instead, same as Arduino/ESP8266/mbed
+- perf: `ArduinoHal` now sets up the pin eagerly in its constructor by default
+- fix: `JLedGroup::Update()` could silently skip a repetition if called more than once
+  within the same millisecond at a repetition boundary
+- breaking: `Update(int16_t* pLast)` removed; use `UpdateResult::Brightness()` /
+  `HasBrightness()` instead
+- breaking: lifecycle callbacks (`OnStart`, `OnDone`, ...) now receive the `JLed`/
+  `JLedHD`/`JLedGroup` by reference (`JLed&`) instead of by pointer (`JLed*`)
+- breaking: `eStopMode` renamed to `eIdleMode` and moved to the `jled` namespace
+- breaking: custom `BrightnessEvaluator`s are now templated on the brightness type, and
+  their `Eval()` takes `jled::period_t t` instead of `uint32_t t`
+- breaking (custom HAL/`TJLed` authors): HALs no longer provide `millis()`; time now
+  comes from a separate `Clock` class, and `TJLed` takes two more template parameters
+- breaking (HAL authors only): `analogWrite()` gains a required `invert` parameter, and
+  HALs need a new `SetLowActive(bool)` method. Wrap an old single-argument HAL in the new
+  `InvertableHal<Hal>` to get both for free; ESP32 and Pico invert natively instead
 
 ## [2024-12-01] 4.15.0
 

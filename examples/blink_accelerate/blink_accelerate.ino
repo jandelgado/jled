@@ -15,7 +15,7 @@ void setup() {
 }
 
 void loop() {
-    led.Update().OnDone([](JLed* l) {
+    led.Update().OnDone([](JLed& l) {
         // after each complete run of the effect, change the blink time and start over
         if (accelerate) {
             blink_time = (blink_time * 9) / 10;
@@ -31,6 +31,6 @@ void loop() {
                 accelerate = true;
             }
         }
-        l->Blink(blink_time, blink_time, kTimes);
+        l.Blink(blink_time, blink_time, kTimes);
     });
 }

@@ -38,20 +38,20 @@ void setup() {
 
 void loop() {
     led.Update()
-        .OnStart([](JLed*) { Serial.println("OnStart"); })
-        .OnFirstOutput([](JLed*) { Serial.println("OnFirstOutput - first output"); })
-        .OnRepeatStart([](JLed*) { Serial.println("OnRepeatStart"); })
+        .OnStart([](JLed&) { Serial.println("OnStart"); })
+        .OnFirstOutput([](JLed&) { Serial.println("OnFirstOutput - first output"); })
+        .OnRepeatStart([](JLed&) { Serial.println("OnRepeatStart"); })
         // every time the delay-after phase begins, increase the max brightness and
         // turn the LED off for the duration of the delay-after phase
-        .OnEnterDelayAfter([](JLed* l) {
+        .OnEnterDelayAfter([](JLed& l) {
             Serial.println("OnEnterDelayAfter");
             max_br += 40;
-            l->MaxBrightness(max_br);
-            l->WriteRaw(0);
+            l.MaxBrightness(max_br);
+            l.WriteRaw(0);
         })
         // when finally done, turn the LED off
-        .OnDone([](JLed* l) {
+        .OnDone([](JLed& l) {
             Serial.println("OnDone");
-            l->Stop();
+            l.Stop();
         });
 }

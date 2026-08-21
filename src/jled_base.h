@@ -39,7 +39,12 @@
 
 namespace jled {
 
-// Non-template tag base, allows JLedAny to detect TJLed subclasses via
+// Forward declaration; TJLedGroup is defined in jled_group_base.h and needs friend
+// access to TJLed's protected Pause(uint32_t, eIdleMode)/Resume(uint32_t).
+template<typename Clock, typename ElementType>
+class TJLedGroup;
+
+// Non-template tag base, allows TJLedAny/TJLedRef to detect TJLed subclasses via
 // std::is_base_of without requiring a common virtual interface.
 class JLedBase {};
 
@@ -444,6 +449,8 @@ class TJLed : public JLedBase {
     template<size_t N>
     friend struct TJLedAny;
     friend class TJLedRef;
+    template<typename GroupClock, typename GroupElementType>
+    friend class TJLedGroup;
 
  public:
     // Number of bits used to control brightness with Min/MaxBrightness().

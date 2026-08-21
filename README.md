@@ -184,19 +184,17 @@ See the examples section below for further details.
 ### JLed vs JLedHD
 
 `JLed` uses 8-bit brightness internally (`uint8_t`, 0-255), while `JLedHD` ("high-definition")
-uses 16-bit (`uint16_t`, 0-65535). Both share the same API and effects, the extra resolution is
-a zero-cost abstraction: the brightness type is a template parameter, so no virtual dispatch or
-runtime branching is involved.
+uses 16-bit (`uint16_t`, 0-65535). Both share the same API and effects.
 
-**When to use `JLedHD`:** On long fade or breathe effects the 256 discrete steps of `JLed` can
+Use `JLedHD` on long fade or breathe effects where the 256 discrete steps of `JLed` can
 produce visible "staircase" banding, especially at low brightness. `JLedHD` eliminates this by
-giving the HAL up to 65536 values to work with; the HAL then maps them to the native PWM
+giving the HAL up to 65536 values to work with. The HAL then maps them to the native PWM
 resolution of the platform (e.g. 13-bit on ESP32, 16-bit on Pico/Teensy).
 
-**When to stick with `JLed`:** For simple on/off or blink effects the extra resolution buys
-nothing, and 8-bit uses half the memory per brightness value. Also note that on some platforms
-(see the table below) `JLed` and `JLedHD` resolve to the same HAL width (e.g. standard 8-bit
-Arduino boards), so `JLedHD` has no practical benefit there.
+Use `JLed` for simple on/off, blink or fast fade/breathe effects. Here the extra resolution buys
+usually nothing, and 8-bit uses half the memory per brightness value. Also note that on some
+platforms (see the table below) `JLed` and `JLedHD` resolve to the same HAL width (e.g. standard
+8-bit Arduino boards), so `JLedHD` has no practical benefit there.
 
 > **Note:** You cannot mix `JLed` and `JLedHD` objects in the same sketch when both map to
 > `ArduinoHal` with _different_ bit widths, because `analogWriteResolution()` is a global
@@ -208,7 +206,7 @@ Arduino boards), so `JLedHD` has no practical benefit there.
 First the configured effect (e.g. `Fade`) is evaluated for the current time
 `t`. JLed internally uses either 8-bit (`JLed`, `uint8_t`, 0-255) or 16-bit
 (`JLedHD`, `uint16_t`, 0-65535) values to represent brightness. Next, the value
-is scaled to the limits set by `MinBrightness` and `MaxBrightness` (optionally).
+is scaled to the limits set by `MinBrightness` and `MaxBrightness` (if set).
 When the effect is configured for a low-active LED using `LowActive`, the
 brightness value will be inverted. Finally the value is passed to the hardware
 abstraction, which scales it to the native PWM resolution of the platform (e.g.
@@ -216,12 +214,10 @@ abstraction, which scales it to the native PWM resolution of the platform (e.g.
 then written out to the configured GPIO.
 
 ```text
-+---------+    +---------+    +-------+    +-------+    +---------+    +-------+
-|Evaluate |    |Scale to |    |  Low  |YES |Invert |    |Scale for|    |Write  |
-|effect(t)|--->|[min,max]|--->|active?|--->| signal|--->|Hardware |--->|to GPIO|
-+---------+    +---------+    +---+---+    +-------+    +---+-----+    +-------+
-                                  |                         ^
-                                  +-------------NO----------+
++---------+    +---------+    +---------+    +---------+    +-------+
+|Evaluate |    |Scale to |    |Optional |    |Scale for|    |Write  |
+|effect(t)|--->|[min,max]|--->|Invert   |--->|Harware  |--->|to GPIO|
++---------+    +---------+    +---+-----+    +---------+    +-------+
 ```
 
 ### Effects
@@ -517,7 +513,7 @@ the callbacks (or read the predicates) on the `UpdateResult` each time you call
 no callbacks costs nothing beyond the small `UpdateResult` value it returns.
 
 Each event has both a predicate (`Is<Event>()`, a state query answering "did this
-happen on this tick?") and a fluent callback (`On<Event>(cb)`, an event hook). The
+happen on this tick?") and a fluent callback (an `On<Event>(cb)` event hook). The
 two spell the same event slightly differently by design: `IsStarted()` pairs with
 `OnStart()`, `IsRepeatStarted()` with `OnRepeatStart()`, `IsEnteringDelayAfter()`
 with `OnEnterDelayAfter()`.
@@ -540,34 +536,33 @@ site without an `if`:
 
 ```c++
 led.Update()
-    .OnStart([](JLed* l) { Serial.println("started"); })
-    .OnFirstOutput([](JLed* l) { Serial.println("first output"); })
-    .OnRepeatStart([](JLed* l) { Serial.println("iteration"); })
-    .OnEnterDelayAfter([](JLed* l) { l->MaxBrightness(64); })
-    .OnDone([](JLed* l) { l->Reset(); });
+    .OnStart([](JLed& l) { Serial.println("started"); })
+    .OnFirstOutput([](JLed& l) { Serial.println("first output"); })
+    .OnRepeatStart([](JLed& l) { Serial.println("iteration"); })
+    .OnEnterDelayAfter([](JLed& l) { l.MaxBrightness(64); })
+    .OnDone([](JLed& l) { l.Reset(); });
 ```
 
 Callbacks are template parameters ([lambdas](https://en.cppreference.com/cpp/language/lambda) or
-function pointers) and they run synchronously inline, in the order chained. A `led.Update()` call
-without any of these incurs no extra cost beyond the small `UpdateResult` value returned itself.
+function pointers) and they run synchronously inline, in the order chained.
 
 Common patterns:
 
 ```c++
 // turn led off when effect is done, regardless of last state
 void loop() {
-    led.Update().OnDone([](JLed* l) { l->WriteRaw(0); });
+    led.Update().OnDone([](JLed& l) { l.WriteRaw(0); });
 }
 
 // turn led off when in the delay-after phase
 void loop() {
-    led.Update().OnEnterDelayAfter([](JLed* l) { l->WriteRaw(0); });
+    led.Update().OnEnterDelayAfter([](JLed& l) { l.WriteRaw(0); });
 }
 
 // turn second LED led2 on, if led is in delay-after phase, else it is off
 void loop() {
-    led.Update().OnRepeatStart([](JLed*) { led2.On().Update(); });
-                .OnEnterDelayAfter([](JLed* l) { led2.Off().Update(); });
+    led.Update().OnRepeatStart([](JLed&) { led2.On().Update(); });
+                .OnEnterDelayAfter([](JLed& l) { led2.Off().Update(); });
 }
 ```
 
@@ -660,7 +655,7 @@ minimum brightness level, and a value of full brightness will be mapped to the
 maximum brightness level.
 
 To specify levels independently of the brightness type, use `jled::Percentage`
-or the `_pct` literal (see [Percentage](#percentage) below).
+or the `_pct` literal (e.g., `led.MaxBrightness(50_pct);`).
 
 The `Brightness MaxBrightness() const` method returns the current maximum
 brightness level. `Brightness MinBrightness() const` returns the current
@@ -670,7 +665,7 @@ minimum brightness level.
 
 `WriteRaw(val)` writes a brightness value directly to the hardware, applying
 `LowActive()` inversion the same way effects normally do, but bypassing the
-effect state machine entirely, it does not touch the effect configuration
+effect state machine entirely. It does not touch the effect configuration
 or any other JLed state. Use it from a lifecycle callback to force an output
 that the effect itself would not produce, e.g. turning the LED off during
 the `DelayAfter()` phase, which otherwise holds the last computed brightness
@@ -680,7 +675,7 @@ for its whole duration:
 JLed led = JLed(LED_BUILTIN).FadeOn(500).DelayAfter(1000).Repeat(5);
 
 void loop() {
-    led.Update().OnEnterDelayAfter([](JLed* l) { l->WriteRaw(0); });
+    led.Update().OnEnterDelayAfter([](JLed& l) { l.WriteRaw(0); });
 }
 ```
 
@@ -689,23 +684,15 @@ repetition's `FadeOn()` runs unaffected.
 
 ### Controlling a group of LEDs
 
-The `JLedGroup` class controls a group of LEDs in parallel or sequentially.
-It accepts any mix of `JLed`, `JLedHD`, nested `JLedGroup` objects, and
-user-defined LED types (any class derived from `TJLed`). Elements are wrapped
-in `JLedAny`, a type-erased value container with no heap allocation.
+The `JLedGroup` class controls an array of LEDs of one concrete type, in parallel or
+sequentially, written inline:
 
 ```c++
-JLedAny inner[] = {
-    JLed(5).Blink(250, 250).Repeat(2),
-    JLedHD(6).FadeOn(1000)
-};
-JLedAny leds[] = {
-    JLed(4).Blink(750, 250).Repeat(2),
-    JLedHD(3).Breathe(2000),
-    JLedGroup::Parallel(inner).Repeat(2)
-};
+JLed leds[] = {JLed(4).Blink(750, 250).Repeat(2),
+               JLed(3).Breathe(2000),
+               JLed(5).FadeOff(1000).Repeat(2)};
 
-auto group = JLedGroup::Sequential(leds);
+auto group = JLedGroup::Parallel(leds).Repeat(5);
 
 void setup() { }
 
@@ -717,9 +704,7 @@ void loop() {
 Use the static factory methods `JLedGroup::Parallel(leds)` and
 `JLedGroup::Sequential(leds)` to create a group. The array size is deduced
 automatically. A runtime-size overload is also available:
-`JLedGroup::Parallel(leds, n)`.
-
-`JLedGroup` provides the following methods:
+`JLedGroup::Parallel(leds, n)`. `JLedGroup` provides the following methods:
 
 - `Update()` - updates all elements. Returns a `GroupUpdateResult`, usable
   directly as a `bool`: `true` while the group is running, `false` once it
@@ -734,32 +719,30 @@ automatically. A runtime-size overload is also available:
 - `Reset()` - resets all elements and restarts the group from the beginning
   (the beginning of the currently configured direction, see below). Fluent:
   returns `JLedGroup&`.
-- `Reverse()` - toggles sequential playback direction. `Sequential` only, a
+- `Reverse()` - toggles sequential playback direction. `Sequential` mode only and a
   no-op in `Parallel` mode. See
   [Reversing and bouncing a sequential group](#reversing-and-bouncing-a-sequential-group).
 - `Skip()` - advances the sequence cursor by one step in the current
-  direction without playing the skipped element. `Sequential` only, a no-op
+  direction without playing the skipped element. `Sequential` mode only, a no-op
   in `Parallel` mode.
 - `IsReversed()` - current playback direction, `false` is forward (the
   default).
 
-`JLedAny` has a fixed-size internal buffer sized to hold `JLed`, `JLedHD`, or
-`JLedGroup`. A custom LED type that is larger does not fit and fails to compile.
-In that case define your own aliases, both of them, since `JLedGroup` is bound
-to `JLedAny`:
+`JLedHDGroup` is the `JLedHD` equivalent of `JLedGroup`. A user-defined LED type
+needs just a matching alias:
 
 ```c++
-using MyLedAny   = TJLedAny<sizeof(MyBigLed)>;
-using MyLedGroup = TJLedGroup<JLedClockType, MyLedAny>;
+using MyLedGroup = TJLedGroup<JLedClockType, MyLedType>;
 ```
 
-Note that this widens every slot of the group, also those holding a plain
-`JLed`. [`JLedRefGroup`](#jledrefgroup-pointer-based-groups-for-named-led-objects)
-avoids this, see [When to use what?](#when-to-use-what) below.
+Mixing different LED types (resolutions, nested groups, user-defined types) in one group needs
+[`JLedRefGroup`](#jledrefgroup-pointer-based-groups-for-named-led-objects), see
+[When to use what?](#when-to-use-what) below.
 
 #### Group lifecycle events
 
-`GroupUpdateResult` reports these group-level events, analogous to `JLed`'s
+`GroupUpdateResult` is returned by the `Update()` method of the group and reports
+these group-level events, analogous to `JLed`'s
 [Lifecycle events](#lifecycle-events) but scoped to the group as a whole:
 
 | Query               | Fires when                                                                                                                                                                                                                                                     |
@@ -772,76 +755,33 @@ avoids this, see [When to use what?](#when-to-use-what) below.
 
 An empty group (no elements) fires `IsStarted()`, `IsRepeatStarted()` and `IsDone()` together on its
 one and only `Update()` call. `IsElementEnter()`/`IsElementLeave()` do not fire there, since there is
-no element to enter or leave. They are a `Sequential` concept and never fire in `Parallel` mode either,
+no element to enter or leave. They are a `Sequential` mode concept and never fire in `Parallel` mode either,
 where all elements move together and there is no single-element handoff: use `OnStart()`/`OnDone()`
 there instead. Each event has a matching fluent callback. `OnElementEnter`/`OnElementLeave`
 additionally pass the 0-based index of the element (into the array given to `Sequential()`) and a
-reference to the element itself, so you can act on it without capturing the array:
+reference to the element itself, so you can act on it directly:
 
 ```c++
+JLed leds[] = {JLed(4).Blink(750, 250), JLed(3).Breathe(2000)};
+auto group = JLedGroup::Sequential(leds);
+
 group.Update()
-    .OnStart([](JLedGroup*) { Serial.println("group started"); })
-    .OnRepeatStart([](JLedGroup*) { Serial.println("repetition begins"); })
-    .OnElementLeave([](JLedGroup*, uint8_t idx, JLedAny&) {
+    .OnStart([](JLedGroup&) { Serial.println("group started"); })
+    .OnRepeatStart([](JLedGroup&) { Serial.println("repetition begins"); })
+    .OnElementLeave([](JLedGroup&, uint8_t idx, JLed&) {
         Serial.print("leave: ");
         Serial.println(idx);
     })
-    .OnElementEnter([](JLedGroup*, uint8_t idx, JLedAny&) {
+    .OnElementEnter([](JLedGroup&, uint8_t idx, JLed& led) {
         Serial.print("enter: ");
         Serial.println(idx);
+        led.MaxBrightness(64);
     })
-    .OnDone([](JLedGroup*) { Serial.println("group finished"); });
+    .OnDone([](JLedGroup&) { Serial.println("group finished"); });
 ```
 
-This works identically for `JLedRefGroup`. `OnStart`/`OnRepeatStart`/`OnDone` describe the group as a
-whole. `OnElementEnter`/`OnElementLeave` name the specific element, via both the index argument and
-the element reference, and fire only for `Sequential` groups.
-
-The element reference recovers the concrete type erased away in the group's underlying array via
-`As<T>()` (available on both `JLedAny` and `JLedRef`). It returns `T*`, or `nullptr` if the element
-isn't exactly that type, so you can act on the element directly, without indexing the array yourself:
-
-```c++
-JLedAny leds[] = {JLed(4).Blink(750, 250), JLedHD(3).Breathe(2000)};
-auto group = JLedGroup::Sequential(leds);
-
-group.Update().OnElementEnter([](JLedGroup*, uint8_t idx, JLedAny& led) {
-    if (auto* l = led.As<JLed>()) l->MaxBrightness(64);
-});
-```
-
-With `JLedRefGroup` the group updates the very objects your variables name, so you can also poll an
-individual LED yourself. For the common case of just knowing when a step finished, prefer
-`OnElementLeave()`, it names the element directly via its index and reference, and works the same way
-regardless of how many elements the sequence has:
-
-```c++
-auto led1 = JLed(4).Blink(750, 250).Repeat(2);
-auto led2 = JLedHD(3).Breathe(2000);
-JLedRef refs[] = {&led1, &led2};
-auto group = JLedRefGroup::Sequential(refs);
-
-void loop() {
-    group.Update().OnElementLeave([](JLedRefGroup*, uint8_t idx, JLedRef&) {
-        if (idx == 0) Serial.println("led1 finished");
-        else if (idx == 1) Serial.println("led2 finished");
-    });
-}
-```
-
-`idx` is the 0-based position in the `refs` array, so `0` is `led1`, `1` is `led2`. `OnElementLeave`
+`idx` is the 0-based position in the `leds` array, so `0` is `led1`, `1` is `led2`. `OnElementLeave`
 fires once for `led1` (handing off to `led2`) and once more for `led2` (the group finishing).
-This callback-based approach works identically with plain `JLedGroup`, since it only relies on
-group-level events.
-
-**Nested groups:** `IsStarted()`/`IsDone()`/`IsRepeatStarted()` compose correctly regardless of
-nesting depth, since they are driven purely by a group's own state. `OnElementEnter`/`OnElementLeave`
-do not: they only report transitions among a group's own direct elements. While a nested group
-occupies one slot of an outer group, the outer's active element does not change for the nested group's
-entire run, so transitions among the nested group's own elements are invisible from the outer's
-`GroupUpdateResult`. A group's events are reported only by the `Update()` call that produced them,
-and for a nested group that call is made by the outer group, so they cannot be picked up afterwards.
-To follow a nested group's progress, poll the LEDs you care about as shown above.
 
 #### Reversing and bouncing a sequential group
 
@@ -854,7 +794,7 @@ ping-pong effects. `OnDone`'s callback runs again every time a pass finishes, so
 something keeps calling `Update()`, it keeps alternating direction forever:
 
 ```c++
-group.Update().OnDone([](JLedGroup* g) { g->Reverse().Reset().Skip(); });
+group.Update().OnDone([](JLedGroup& g) { g.Reverse().Reset().Skip(); });
 // a, b, c, d  ->  c, b, a  ->  b, c, d  ->  c, b, a  ->  ...
 ```
 
@@ -864,10 +804,10 @@ For "play once, then backward once, then stop", just add a guard to only reverse
 ```c++
 bool bounced = false;
 ...
-group.Update().OnDone([&bounced](JLedGroup* g) {
+group.Update().OnDone([&bounced](JLedGroup& g) {
     if (bounced) return;
     bounced = true;
-    g->Reverse().Reset().Skip();
+    g.Reverse().Reset().Skip();
 });
 // a, b, c, d  ->  c, b, a  ->  (stays stopped)
 ```
@@ -878,7 +818,7 @@ again as the first element of the naive next pass. Omitting `.Skip()` is a valid
 choice for callers who want the duplicated endpoint:
 
 ```c++
-group.Update().OnDone([](JLedGroup* g) { g->Reverse().Reset(); });
+group.Update().OnDone([](JLedGroup& g) { g.Reverse().Reset(); });
 // a, b, c, d, d, c, b, a, a, b, c, d, ...
 ```
 
@@ -886,10 +826,11 @@ See the [Cylon/Larson scanner example](examples/group_reverse/) for a complete e
 
 #### JLedRefGroup, pointer-based groups for named LED objects
 
-`JLedRef` and `JLedRefGroup` are a more memory-efficient alternative to `JLedAny` and `JLedGroup`.
-Each `JLedRef` slot stores only a pointer to the LED and a shared vtable pointer (8 bytes on 32-bit,
-4 bytes on 8-bit AVR), rather than a full copy of the LED state. The tradeoff is ergonomics: LED
-objects must be declared as named variables, anonymous inline construction is not possible.
+`JLedRef` and `JLedRefGroup` reference externally managed LED objects by pointer instead of
+storing them by value, and are the way to build a group that mixes LED types. Each `JLedRef` slot
+stores only a pointer to the LED and a shared vtable pointer (8 bytes on 32-bit, 4 bytes on 8-bit
+AVR). The tradeoff is ergonomics: LED objects must be declared as named variables, anonymous
+inline construction is not possible.
 
 ```c++
 auto led1 = JLed(4).Blink(750, 250).Repeat(2);
@@ -913,35 +854,44 @@ JLedRef leds[] = {&led0, &led1, &innerGroup};
 auto group = JLedRefGroup::Sequential(leds);
 ```
 
-`JLedRef` accepts pointers to `JLed`, `JLedHD`, `JLedGroup`, `JLedRefGroup`,
-or any user-defined `TJLed` subclass. Mixed types work without any extra
-syntax, the array element type is declared as `JLedRef` and the compiler
-applies the implicit conversion per element.
+`IsStarted()`/`IsDone()`/`IsRepeatStarted()` on `group` still work even though one of its elements
+is itself a group. `OnElementEnter`/ `OnElementLeave` will fire for `group`'s own direct elements,
+so `inner0`/`inner1` entering or leaving inside `innerGroup` is invisible to `group`'s callbacks.
+
+`JLedRef` accepts pointers to `JLed`, `JLedHD`, `JLedGroup`, `JLedRefGroup`, or any user-defined
+`TJLed` subclass. Mixed types work without any extra syntax, the array element type is declared as
+`JLedRef` and the compiler applies the implicit conversion per element.
+
+On `JLedRefGroup`, whose elements may be of different types, the reference passed to callbacks
+is a `TJLedRef&`. You need to recover the concrete type it was constructed from with
+`element.As<T>()`, which returns `T*`, or `nullptr` if the element isn't exactly that type:
+
+```c++
+auto led1 = JLed(4).Blink(750, 250).Repeat(2);
+auto led2 = JLedHD(3).Breathe(2000);
+JLedRef refs[] = {&led1, &led2};
+auto group = JLedRefGroup::Sequential(refs);
+
+group.Update().OnElementEnter([](JLedRefGroup&, uint8_t idx, JLedRef& e) {
+    if (auto* l = e.As<JLed>()) l->MaxBrightness(64);   // l points to led1
+});
+```
 
 > **Lifetime:** LED objects must outlive the `JLedRef` / `JLedRefGroup` that
 > references them. Do not create `JLedRef` from temporaries.
 
 #### When to use what?
 
-Most of the time `JLedGroup` is the right one, so start there. It lets you write the effects
-straight into the array, and knowing when the whole group starts, repeats or finishes is usually
-enough.
+> `JLedGroup` groups LEDs of one kind, written inline.
+> `JLedRefGroup` groups anything, at the price of naming the variables.
 
 Reach for `JLedRefGroup` when:
 
+- you need to mix LED types in one group: different resolutions (`JLed`/`JLedHD`), nested
+  groups, or a user-defined `TJLed` type
 - you want to keep your LEDs as named variables anyway, because you also want to reach them from
   elsewhere in your sketch, or because you want to poll them individually
 - you want to build the group from LEDs that are declared in different places
-- you use a user-defined `TJLed` type, e.g. a PCA9685 driver. `JLedRef` takes any of them as is,
-  whatever their size. `JLedGroup` only accepts types that fit its buffer, anything larger needs
-  a `TJLedAny` alias plus a matching `TJLedGroup` type, and widens every slot of the group
-- you want to save RAM: every `JLedAny` slot is padded to hold the largest supported type
-  (`JLed`, `JLedHD` or `JLedGroup`), while a `JLedRef` slot is two pointers regardless. A group of
-  plain `JLed` objects therefore wastes the size difference per element
-
-The price is two extra rules: the LED objects must be named variables, and they must outlive the
-group. If you are unsure, start with `JLedGroup`. Moving to `JLedRefGroup` later is a small change:
-pull the LEDs out into named variables and swap the array type.
 
 ## Framework notes
 
@@ -1212,8 +1162,7 @@ Example sketches are provided in the [examples](examples/) directory.
 - [Controlling a group of LEDs sequentially](examples/group_sequence)
 - [Reversing/bouncing a group of LEDs (Cylon/Larson scanner)](examples/group_reverse)
 - [Controlling a group of LEDs in parallel](examples/group_parallel)
-- [Controlling a group of LEDs by reference](examples/group_ref)
-- [Controlling a nested group of LEDs](examples/group_nested)
+- [Mixing LED types and nesting groups by reference](examples/group_ref)
 - [Simple User provided effect](examples/user_func)
 - [Morsecode example](examples/morse)
 - [Last brightness value example](examples/last_brightness)
@@ -1301,8 +1250,8 @@ classes, bloating users code.
 
 #### JLedSequence to JLedGroup migration
 
-In JLed 5.0 `JLedSequence` is replaced by `JLedGroup`. In your old code, replace `JLed leds[]` with
-`JLedAny leds[]` and use the `JLedGroup` factory methods:
+In JLed 5.0 `JLedSequence` is replaced by `JLedGroup`. In your old code, just rename the class and
+use the `JLedGroup` factory methods; `JLed leds[]` stays `JLed leds[]`:
 
 ```cpp
 // before
@@ -1311,14 +1260,15 @@ JLedSequence seq(JLedSequence::eMode::PARALLEL, leds);   // parallel
 JLedSequence seq(JLedSequence::eMode::SEQUENCE, leds);   // sequential
 
 // after
-JLedAny leds[] = {JLed(4).Blink(500, 500), JLed(5).Breathe(1000)};
+JLed leds[] = {JLed(4).Blink(500, 500), JLed(5).Breathe(1000)};
 auto seq = JLedGroup::Parallel(leds);    // parallel
 auto seq = JLedGroup::Sequential(leds);  // sequential
 ```
 
-Reason: `JLedGroup` is a more capable replacement that supports mixing different LED types, nesting
-groups inside other groups, and applying repeat and pause/resume control to the whole group at once.
-The parallel and sequential modes are now explicit at the point of creation.
+Reason: `JLedGroup` is a more capable replacement that supports repeat, reverse, and pause/resume
+control applied to the whole group at once. The parallel and sequential modes are now explicit at
+the point of creation. For a group that mixes LED types, use
+[`JLedRefGroup`](#jledrefgroup-pointer-based-groups-for-named-led-objects) instead.
 
 #### `Update(int16_t* pLast)` removed, use `UpdateResult` now
 

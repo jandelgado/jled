@@ -6,7 +6,7 @@
 
 constexpr auto kTimeOn = 150;
 
-JLedAny leds[] = {
+JLed leds[] = {
     // on for kTimeOn ms, then off, before moving on to the next LED
     // The group's OnDone() handler switches the direction and starts over.
     JLed(32).Blink(kTimeOn, 1),
@@ -25,9 +25,9 @@ auto group = JLedGroup::Sequential(leds);
 void setup() {}
 
 void loop() {
-    group.Update().OnDone([](JLedGroup* g) {
+    group.Update().OnDone([](JLedGroup& g) {
             // group is done playing: reverse the direction, start over and
             // skip the last active LED to directly proceed to the previous one.
-            g->Reverse().Reset().Skip();
+            g.Reverse().Reset().Skip();
     });
 }

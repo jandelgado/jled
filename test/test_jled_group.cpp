@@ -31,10 +31,12 @@ constexpr size_t kTestAnyBufSize =
 using TestJLedAny = TJLedAny<kTestAnyBufSize>;
 using TestJLedGroupAny = TJLedGroup<TimeMock, TestJLedAny>;
 using TestJLedRefGroup = TJLedGroup<TimeMock, TJLedRef>;
+using TestJLedGroup = TJLedGroup<TimeMock, TestJLed>;
 
 // instantiate for test coverage measurement
 template class TJLedGroup<TimeMock, TestJLedAny>;
 template class TJLedGroup<TimeMock, TJLedRef>;
+template class TJLedGroup<TimeMock, TestJLed>;
 
 // Parallel uses the pointer overload; Sequential uses the array overload.
 // Both static factory overloads are exercised across the test suite.
@@ -57,6 +59,97 @@ TEST_CASE("parallel group updates all elements simultaneously", "[jled_group]") 
     REQUIRE(!group.Update());
     REQUIRE(HalMock::PinValue(1) == 100);
     REQUIRE(HalMock::PinValue(2) == 50);
+}
+
+TEST_CASE("homogeneous parallel group updates TJLed elements directly", "[jled_group]") {
+    HalMock::Init();
+    auto eval1 = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
+    auto eval2 = MockBrightnessEvaluator(std::vector<uint8_t>{150, 50});
+    TestJLed leds[] = {TestJLed(1).UserFunc(&eval1).Repeat(1),
+                       TestJLed(2).UserFunc(&eval2).Repeat(1)};
+    auto group = TestJLedGroup::Parallel(leds, 2);
+
+    TimeMock::set_millis(0);
+    REQUIRE(group.Update());
+    REQUIRE(HalMock::PinValue(1) == 200);
+    REQUIRE(HalMock::PinValue(2) == 150);
+
+    TimeMock::set_millis(1);
+    REQUIRE(!group.Update());
+    REQUIRE(HalMock::PinValue(1) == 100);
+    REQUIRE(HalMock::PinValue(2) == 50);
+}
+
+TEST_CASE("Stop/Reset/Pause/Resume propagate to TJLed elements in a homogeneous group",
+          "[jled_group]") {
+    HalMock::Init();
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100, 50, 25});
+    TestJLed leds[] = {TestJLed(1).UserFunc(&eval).Repeat(1)};
+    auto group = TestJLedGroup::Parallel(leds, 1);
+
+    TimeMock::set_millis(0);
+    REQUIRE(group.Update());
+    REQUIRE(HalMock::PinValue(1) == 200);
+
+    // Pause()/Resume(): exercises the protected TJLed::Pause(uint32_t, eIdleMode) and
+    // TJLed::Resume(uint32_t) that Task 1's friend declaration exposes to TJLedGroup. Pausing at
+    // t=1 (not t=0) gives a non-zero elapsed value to round-trip through Pause()'s
+    // time_start_ = t - time_start_ encoding and Resume()'s matching decode, so the test would
+    // fail if that arithmetic were broken (pausing at t=0 would pass even with broken arithmetic,
+    // since the encoded elapsed value would be 0 either way).
+    TimeMock::set_millis(1);
+    group.Pause();
+    REQUIRE(HalMock::PinValue(1) == 0);  // TO_MIN_BRIGHTNESS default
+
+    TimeMock::set_millis(1);
+    REQUIRE(group.Update());
+    REQUIRE(HalMock::PinValue(1) == 0);  // still paused, unchanged
+
+    TimeMock::set_millis(5);
+    group.Resume();
+    TimeMock::set_millis(6);
+    REQUIRE(group.Update());
+    // resumed: elapsed was 1 at pause (t=1), +1 more tick (t=5 to t=6) = elapsed 2, Eval(2) = 50
+    REQUIRE(HalMock::PinValue(1) == 50);
+
+    // Stop(): exercises TJLed::Stop(), already public before this change.
+    group.Stop(jled::eIdleMode::FULL_OFF);
+    REQUIRE(HalMock::PinValue(1) == 0);
+
+    // Reset(): exercises TJLed::Reset(), already public before this change.
+    group.Reset();
+    TimeMock::set_millis(10);
+    REQUIRE(group.Update());
+    REQUIRE(HalMock::PinValue(1) == 200);
+}
+
+TEST_CASE("OnElementEnter/OnElementLeave hand back a TestJLed& directly, no As<T>() needed",
+          "[jled_group]") {
+    HalMock::Init();
+    auto eval1 = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
+    auto eval2 = MockBrightnessEvaluator(std::vector<uint8_t>{50, 25});
+    TestJLed leds[] = {TestJLed(1).UserFunc(&eval1).Repeat(1),
+                       TestJLed(2).UserFunc(&eval2).Repeat(1)};
+    auto group = TestJLedGroup::Sequential(leds);
+
+    TimeMock::set_millis(0);
+    auto r0 = group.Update();  // led[0] enters
+    TestJLed* entered0 = nullptr;
+    r0.OnElementEnter([&](TestJLedGroup&, uint8_t, TestJLed& e) { entered0 = &e; });
+    REQUIRE(entered0 == &leds[0]);  // direct reference, no As<T>() recovery required
+
+    TimeMock::set_millis(1);
+    auto r1 = group.Update();  // led[0] leaves, led[1] enters
+    TestJLed* left1 = nullptr;
+    TestJLed* entered1 = nullptr;
+    r1.OnElementLeave([&](TestJLedGroup&, uint8_t, TestJLed& e) { left1 = &e; });
+    r1.OnElementEnter([&](TestJLedGroup&, uint8_t, TestJLed& e) { entered1 = &e; });
+    REQUIRE(left1 == &leds[0]);
+    REQUIRE(entered1 == &leds[1]);
+
+    // the reference is directly usable, e.g. to mutate the element in place
+    left1->MaxBrightness(64);
+    REQUIRE(leds[0].MaxBrightness() == 64);
 }
 
 TEST_CASE("sequential group plays elements one at a time", "[jled_group]") {
@@ -844,14 +937,14 @@ TEST_CASE("group OnStart/OnDone chaining invokes callbacks", "[jled_group]") {
 
     int startCount = 0, doneCount = 0;
     TimeMock::set_millis(0);
-    group.Update().OnStart([&](TestJLedGroupAny*) { startCount++; }).OnDone([&](TestJLedGroupAny*) {
+    group.Update().OnStart([&](TestJLedGroupAny&) { startCount++; }).OnDone([&](TestJLedGroupAny&) {
         doneCount++;
     });
     CHECK(startCount == 1);
     CHECK(doneCount == 0);
 
     TimeMock::set_millis(1);
-    group.Update().OnStart([&](TestJLedGroupAny*) { startCount++; }).OnDone([&](TestJLedGroupAny*) {
+    group.Update().OnStart([&](TestJLedGroupAny&) { startCount++; }).OnDone([&](TestJLedGroupAny&) {
         doneCount++;
     });
     CHECK(startCount == 1);
@@ -1005,15 +1098,15 @@ TEST_CASE("group OnRepeatStart callback invokes on each repetition boundary", "[
 
     int repeatStartCount = 0;
     TimeMock::set_millis(0);
-    group.Update().OnRepeatStart([&](TestJLedGroupAny*) { repeatStartCount++; });
+    group.Update().OnRepeatStart([&](TestJLedGroupAny&) { repeatStartCount++; });
     CHECK(repeatStartCount == 1);
 
     TimeMock::set_millis(1);
-    group.Update().OnRepeatStart([&](TestJLedGroupAny*) { repeatStartCount++; });
+    group.Update().OnRepeatStart([&](TestJLedGroupAny&) { repeatStartCount++; });
     CHECK(repeatStartCount == 2);
 
     TimeMock::set_millis(2);
-    group.Update().OnRepeatStart([&](TestJLedGroupAny*) { repeatStartCount++; });
+    group.Update().OnRepeatStart([&](TestJLedGroupAny&) { repeatStartCount++; });
     CHECK(repeatStartCount == 2);
 }
 
@@ -1034,7 +1127,7 @@ TEST_CASE("OnElementEnter/OnElementLeave report correct indices across a 2-eleme
     uint8_t enter0 = 255;
     TestJLedAny* entered0 = nullptr;
     CHECK(r0.IsElementEnter());
-    r0.OnElementEnter([&](TestJLedGroupAny*, uint8_t idx, TestJLedAny& e) {
+    r0.OnElementEnter([&](TestJLedGroupAny&, uint8_t idx, TestJLedAny& e) {
         enter0 = idx;
         entered0 = &e;
     });
@@ -1047,10 +1140,10 @@ TEST_CASE("OnElementEnter/OnElementLeave report correct indices across a 2-eleme
     uint8_t enter1 = 255, leave1 = 255;
     TestJLedAny* entered1 = nullptr;
     TestJLedAny* left1 = nullptr;
-    r1.OnElementEnter([&](TestJLedGroupAny*, uint8_t idx, TestJLedAny& e) {
+    r1.OnElementEnter([&](TestJLedGroupAny&, uint8_t idx, TestJLedAny& e) {
           enter1 = idx;
           entered1 = &e;
-      }).OnElementLeave([&](TestJLedGroupAny*, uint8_t idx, TestJLedAny& e) {
+      }).OnElementLeave([&](TestJLedGroupAny&, uint8_t idx, TestJLedAny& e) {
         leave1 = idx;
         left1 = &e;
     });
@@ -1068,7 +1161,7 @@ TEST_CASE("OnElementEnter/OnElementLeave report correct indices across a 2-eleme
     auto r3 = group.Update();  // led2 (last element, index 1) leaves, group done
     uint8_t leave3 = 255;
     CHECK(r3.IsDone());
-    r3.OnElementLeave([&](TestJLedGroupAny*, uint8_t idx, TestJLedAny&) { leave3 = idx; });
+    r3.OnElementLeave([&](TestJLedGroupAny&, uint8_t idx, TestJLedAny&) { leave3 = idx; });
     CHECK(leave3 == 1);
     CHECK_FALSE(r3.IsElementEnter());
 }
@@ -1093,9 +1186,9 @@ TEST_CASE("OnElementEnter/OnElementLeave indices are correct across a Repeat(2) 
     auto r3 = group.Update();  // led2 leaves (1), wraps: led1 (0) enters for lap 2
     uint8_t enter3 = 255, leave3 = 255;
     CHECK(r3.IsRepeatStarted());
-    r3.OnElementEnter([&](TestJLedGroupAny*, uint8_t idx, TestJLedAny&) {
+    r3.OnElementEnter([&](TestJLedGroupAny&, uint8_t idx, TestJLedAny&) {
           enter3 = idx;
-      }).OnElementLeave([&](TestJLedGroupAny*, uint8_t idx, TestJLedAny&) { leave3 = idx; });
+      }).OnElementLeave([&](TestJLedGroupAny&, uint8_t idx, TestJLedAny&) { leave3 = idx; });
     CHECK(enter3 == 0);
     CHECK(leave3 == 1);
 
@@ -1105,9 +1198,9 @@ TEST_CASE("OnElementEnter/OnElementLeave indices are correct across a Repeat(2) 
     TimeMock::set_millis(5);
     auto r5 = group.Update();  // led1 leaves (0), led2 (1) enters, lap 2
     uint8_t enter5 = 255, leave5 = 255;
-    r5.OnElementEnter([&](TestJLedGroupAny*, uint8_t idx, TestJLedAny&) {
+    r5.OnElementEnter([&](TestJLedGroupAny&, uint8_t idx, TestJLedAny&) {
           enter5 = idx;
-      }).OnElementLeave([&](TestJLedGroupAny*, uint8_t idx, TestJLedAny&) { leave5 = idx; });
+      }).OnElementLeave([&](TestJLedGroupAny&, uint8_t idx, TestJLedAny&) { leave5 = idx; });
     CHECK(enter5 == 1);
     CHECK(leave5 == 0);
 
@@ -1118,7 +1211,7 @@ TEST_CASE("OnElementEnter/OnElementLeave indices are correct across a Repeat(2) 
     auto r7 = group.Update();  // led2 leaves (1), no more repetitions, group done
     uint8_t leave7 = 255;
     CHECK(r7.IsDone());
-    r7.OnElementLeave([&](TestJLedGroupAny*, uint8_t idx, TestJLedAny&) { leave7 = idx; });
+    r7.OnElementLeave([&](TestJLedGroupAny&, uint8_t idx, TestJLedAny&) { leave7 = idx; });
     CHECK(leave7 == 1);
     CHECK_FALSE(r7.IsElementEnter());
 }
@@ -1140,18 +1233,18 @@ TEST_CASE("OnElementEnter/OnElementLeave do not fire in PARALLEL mode", "[jled_g
     // so there is no single-element handoff. Use OnStart()/OnDone() there instead.
     CHECK_FALSE(r0.IsElementEnter());
     CHECK_FALSE(r0.IsElementLeave());
-    r0.OnElementEnter([&](TestJLedGroupAny*, uint8_t, TestJLedAny&) {
+    r0.OnElementEnter([&](TestJLedGroupAny&, uint8_t, TestJLedAny&) {
           enterCount++;
-      }).OnElementLeave([&](TestJLedGroupAny*, uint8_t, TestJLedAny&) { leaveCount++; });
+      }).OnElementLeave([&](TestJLedGroupAny&, uint8_t, TestJLedAny&) { leaveCount++; });
 
     TimeMock::set_millis(1);
     auto r1 = group.Update();  // both elements finish simultaneously, group done
     CHECK(r1.IsDone());
     CHECK_FALSE(r1.IsElementEnter());
     CHECK_FALSE(r1.IsElementLeave());
-    r1.OnElementEnter([&](TestJLedGroupAny*, uint8_t, TestJLedAny&) {
+    r1.OnElementEnter([&](TestJLedGroupAny&, uint8_t, TestJLedAny&) {
           enterCount++;
-      }).OnElementLeave([&](TestJLedGroupAny*, uint8_t, TestJLedAny&) { leaveCount++; });
+      }).OnElementLeave([&](TestJLedGroupAny&, uint8_t, TestJLedAny&) { leaveCount++; });
 
     CHECK(enterCount == 0);
     CHECK(leaveCount == 0);
@@ -1172,9 +1265,9 @@ TEST_CASE("OnElementEnter/OnElementLeave do not fire on an empty group's one and
     CHECK_FALSE(r0.IsElementLeave());
 
     uint8_t enter0 = 255, leave0 = 255;
-    r0.OnElementEnter([&](TestJLedGroupAny*, uint8_t idx, TestJLedAny&) {
+    r0.OnElementEnter([&](TestJLedGroupAny&, uint8_t idx, TestJLedAny&) {
           enter0 = idx;
-      }).OnElementLeave([&](TestJLedGroupAny*, uint8_t idx, TestJLedAny&) { leave0 = idx; });
+      }).OnElementLeave([&](TestJLedGroupAny&, uint8_t idx, TestJLedAny&) { leave0 = idx; });
     CHECK(enter0 == 255);
     CHECK(leave0 == 255);
 }
@@ -1192,7 +1285,7 @@ TEST_CASE(
     auto r0 = group.Update();  // lap 1 tick 0
     uint8_t enter0 = 255;
     CHECK(r0.IsElementEnter());
-    r0.OnElementEnter([&](TestJLedGroupAny*, uint8_t idx, TestJLedAny&) { enter0 = idx; });
+    r0.OnElementEnter([&](TestJLedGroupAny&, uint8_t idx, TestJLedAny&) { enter0 = idx; });
     CHECK(enter0 == 0);
 
     TimeMock::set_millis(1);
@@ -1215,7 +1308,7 @@ TEST_CASE(
     auto r3 = group.Update();  // lap 2 finishes, no more repetitions, group done
     uint8_t leave3 = 255;
     CHECK(r3.IsDone());
-    r3.OnElementLeave([&](TestJLedGroupAny*, uint8_t idx, TestJLedAny&) { leave3 = idx; });
+    r3.OnElementLeave([&](TestJLedGroupAny&, uint8_t idx, TestJLedAny&) { leave3 = idx; });
     CHECK(leave3 == 0);
 }
 
@@ -1237,9 +1330,9 @@ TEST_CASE("OnElementEnter/OnElementLeave report correct indices regardless of ch
     // OnElementEnter() chained before OnElementLeave() here, the opposite order used
     // in the tests above: the result must be identical either way, since both indices
     // are resolved once at construction time, not read live off shared, mutable state.
-    r1.OnElementEnter([&](TestJLedGroupAny*, uint8_t idx, TestJLedAny&) {
+    r1.OnElementEnter([&](TestJLedGroupAny&, uint8_t idx, TestJLedAny&) {
           enter_idx = idx;
-      }).OnElementLeave([&](TestJLedGroupAny*, uint8_t idx, TestJLedAny&) { leave_idx = idx; });
+      }).OnElementLeave([&](TestJLedGroupAny&, uint8_t idx, TestJLedAny&) { leave_idx = idx; });
     CHECK(enter_idx == 1);
     CHECK(leave_idx == 0);
 }
@@ -1259,7 +1352,7 @@ TEST_CASE("OnElementLeave hands back the element for JLedRefGroup (As<T> recover
     TestJLed* left0 = nullptr;
     for (uint32_t t = 0; t < 4; t++) {
         TimeMock::set_millis(t);
-        group.Update().OnElementLeave([&](TestJLedRefGroup*, uint8_t idx, TJLedRef& e) {
+        group.Update().OnElementLeave([&](TestJLedRefGroup&, uint8_t idx, TJLedRef& e) {
             if (idx == 0) left0 = e.As<TestJLed>();
         });
     }
