@@ -33,6 +33,7 @@ monitor: phony ## open serial monitor for connected device
 
 lint: phony ## run the C++ linter
 	$(RUN) cpplint --filter -readability/check,-build/include_subdir \
+		    --quiet\
 		    --linelength=100\
 		    --exclude test/catch2 \
 		    --extensions=cpp,h,ino $(shell find . -maxdepth 3 \( ! -regex '.*/\..*' \) \

@@ -25,13 +25,20 @@ guide" in README.md for migration details and code samples.
 - perf: `ArduinoHal` now sets up the pin eagerly in its constructor by default
 - fix: `JLedGroup::Update()` could silently skip a repetition if called more than once
   within the same millisecond at a repetition boundary
-- breaking: `Update(int16_t* pLast)` removed; use `UpdateResult::Brightness()` /
-  `HasBrightness()` instead
+- breaking: `FadeOn(duration, from, to)`'s color parameters are reordered to
+  `FadeOn(duration, to, from)`, so the single positional color argument (`to`) means what
+  the name implies: "fade on, to this color". `FadeOff` is unchanged, since its own name
+- breaking: `Update(int16_t* pLast)` removed; use `UpdateResult::Value()` /
+  `HasValue()` instead
+- breaking: `JLed::brightness_t`/`JLedHD::brightness_t` renamed to `value_t`
 - breaking: lifecycle callbacks (`OnStart`, `OnDone`, ...) now receive the `JLed`/
   `JLedHD`/`JLedGroup` by reference (`JLed&`) instead of by pointer (`JLed*`)
 - breaking: `eStopMode` renamed to `eIdleMode` and moved to the `jled` namespace
-- breaking: custom `BrightnessEvaluator`s are now templated on the brightness type, and
+- breaking: custom `BrightnessEvaluator`s are now templated on the value type, and
   their `Eval()` takes `jled::period_t t` instead of `uint32_t t`
+- breaking: the free-standing legacy `jled::kFullBrightness`/`jled::kZeroBrightness`
+  constants are removed; use `jled::ValueTraits<uint8_t>::kMaxValue()`/`kOffColor()`
+  instead
 - breaking (custom HAL/`TJLed` authors): HALs no longer provide `millis()`; time now
   comes from a separate `Clock` class, and `TJLed` takes two more template parameters
 - breaking (HAL authors only): `analogWrite()` gains a required `invert` parameter, and

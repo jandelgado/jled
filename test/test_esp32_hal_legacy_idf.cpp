@@ -11,6 +11,7 @@
 #include "catch2/catch_amalgamated.hpp"
 #include "esp32_mock.h"      // NOLINT
 #include "invertable_hal.h"  // NOLINT
+#include "value_scalar.h"    // ValueTraits<uint8_t> specialization, NOLINT
 
 using jled::Esp32Hal;
 using jled::InvertableHal;

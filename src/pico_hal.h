@@ -31,8 +31,11 @@
 // GPIO 2 -> Slice 1 Channel A, and so on, wrapping around after GPIO 15.
 //
 // NOTE: Both channels of a slice share the same wrap/clkdiv settings, so two PicoHal instances on
-// pins that map to the same slice (e.g. GPIO 10 and 11 both use slice 5) must use the same
-// kResBits_ template parameter, otherwise they will silently overwrite each other's configuration.
+//  pins that map to the same slice (e.g. GPIO 10 and 11 both use slice 5) must use the same
+//  kResBits_ template parameter, otherwise they will silently overwrite each other's configuration.
+//  Example: using JLed(10) and JLedHD(11) simulanously is not possible, since pins
+//  10 and 11 both use slice 5, which cannot have different settings. Using JLed(10)
+//  and JLedHD(12) simulatonously is no problem, since these use different slices.
 //
 // With a fixed clock divider of 1 (int=1, frac=0), the only parameter
 // that determines both resolution and frequency is the wrap value:
@@ -54,9 +57,9 @@
 //
 #pragma once
 
-#include "brightness.h"
 #include "hardware/pwm.h"
 #include "pico/time.h"
+#include "scale_bit_depth.h"
 
 namespace jled {
 
@@ -66,7 +69,6 @@ class PicoHal {
     using PinType = uint8_t;
 
  private:
-    // divider=1.0, so wrap = 2^kResBits_-1 gives exactly kResBits_ resolution
     static constexpr uint16_t kWrap = (1u << kResBits_) - 1;
 
  public:
@@ -80,23 +82,27 @@ class PicoHal {
         pwm_set_enabled(slice_num_, true);
     }
 
-    template<typename Brightness>
-    void analogWrite(Brightness val) const {
-        const uint16_t duty = jled::scaleToNative<kResBits_>(val);
-        // Level kWrap+1 means fully on; adding the bool is branchless on ARM.
-        // Guard prevents uint16_t overflow at kResBits_=16 and folds away at compile time.
+    // single argument version so the HAL can also be used with InvertableHal<>
+    // if hardware inversion should not be used
+    template<typename Level>
+    void analogWrite(Level val) const {
+        const uint16_t duty = jled::scale_bit_depth<kResBits_>(val);
+        // This makes sure that "full on" is really "full on" and outputs duty+1 if
+        // futy is the maximum value (e.g. duty == 255 -> 256 is output). Otherwise
+        // a low active LED would still slightly glim.
+        // Level kWrap+1 means fully on and adding the bool is branchless.
+        // Guard on kResBits_ avoids overflow and is compile-time optimizable.
         const uint16_t full_duty = duty + static_cast<uint16_t>(kResBits_ < 16 && duty == kWrap);
         pwm_set_chan_level(slice_num_, channel_, full_duty);
     }
 
-    template<typename Brightness>
-    void analogWrite(Brightness val, bool /*invert*/) const {
-        // Inversion is fully owned by SetLowActive()'s CSR bit below; this
-        // HAL inverts in hardware, so it never needs to inspect invert on a
-        // per-call basis the way a software-fallback HAL would.
+    template<typename Level>
+    void analogWrite(Level val, bool invert) const {
+        (void)invert;   // inversion is done in hardware via SetLowActive()
         analogWrite(val);
     }
 
+    // Change polarity in hardware. Called by TJLed::LowActive()
     void SetLowActive(bool f) const {
         const auto lsb = (channel_ == PWM_CHAN_A) ? PWM_CH0_CSR_A_INV_LSB : PWM_CH0_CSR_B_INV_LSB;
         const auto bits =

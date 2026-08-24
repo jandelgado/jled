@@ -6,7 +6,7 @@
 #ifndef TEST_HAL_MOCK_H_
 #define TEST_HAL_MOCK_H_
 
-#include "brightness.h"  // jled::BrightnessTraits
+#include "value_scalar.h"  // jled::ValueTraits
 
 // HalMock implements the JLed HAL protocol directly (analogWrite(val,
 // invert) + SetLowActive(bool)). It records the raw val and invert exactly
@@ -26,8 +26,8 @@ class HalMock {
 
     // -- JLed HAL protocol (see src/*_hal.h) --
 
-    template<typename Brightness>
-    void analogWrite(Brightness val, bool invert) const {
+    template<typename Level>
+    void analogWrite(Level val, bool invert) const {
         val_ = static_cast<uint16_t>(val);
         invert_ = invert;
         pin_values()[pin_] = val_;

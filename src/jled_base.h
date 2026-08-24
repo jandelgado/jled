@@ -26,16 +26,7 @@
 #include "jled_effects.h"  // brightness evaluators and effect helper functions
 #include "jled_events.h"   // Event, EventSet, UpdateResult
 
-// JLed - non-blocking LED abstraction library.
-//
-// Example Arduino sketch:
-//   auto led = JLed(LED_BUILTIN).Blink(500, 500).Repeat(10).DelayBefore(1000);
-//
-//   void setup() {}
-//
-//   void loop() {
-//     led.Update();
-//   }
+// The JLed state machine
 
 namespace jled {
 
@@ -50,19 +41,20 @@ class JLedBase {};
 
 enum class eIdleMode { TO_MIN_BRIGHTNESS = 0, FULL_OFF, KEEP_CURRENT };
 
-template<typename Hal, typename Clock, typename Brightness, typename Derived>
+template<typename Hal, typename Clock, typename Value, typename Derived>
 class TJLed : public JLedBase {
  protected:
     // Active brightness evaluator (discriminated union).
-    EvalStorage<Brightness> eval_storage_;
+    EvalStorage<Value> eval_storage_;
     // Hardware abstraction giving access to the MCU
     Hal hal_;
 
     // Evaluate effect(t), assumes eval_storage_.IsSet().
-    Brightness Eval(period_t t) const { return eval_storage_.Eval(t); }
+    Value Eval(period_t t) const { return eval_storage_.Eval(t); }
 
  public:
-    using brightness_t = Brightness;
+    using brightness_t = Value;
+    using level_t = typename ValueTraits<Value>::level_t;
 
     TJLed() = delete;
     explicit TJLed(const Hal& hal)
@@ -72,22 +64,14 @@ class TJLed : public JLedBase {
           bPaused_{false},
           first_cycle_{false},
           done_{false},
-          minBrightness_{BrightnessTraits<Brightness>::kZeroBrightness},
-          maxBrightness_{BrightnessTraits<Brightness>::kFullBrightness} {}
+          minBrightness_{ValueTraits<level_t>::kMinValue()},
+          maxBrightness_{ValueTraits<level_t>::kMaxValue()} {}
 
-    explicit TJLed(typename Hal::PinType pin)
-        : hal_{pin},
-          state_{ST_INIT},
-          bLowActive_{false},
-          bPaused_{false},
-          first_cycle_{false},
-          done_{false},
-          minBrightness_{BrightnessTraits<Brightness>::kZeroBrightness},
-          maxBrightness_{BrightnessTraits<Brightness>::kFullBrightness} {}
+    explicit TJLed(typename Hal::PinType pin) : TJLed(Hal{pin}) {}
 
     TJLed(const TJLed& rLed) : hal_{rLed.hal_} { *this = rLed; }
 
-    Derived& operator=(const TJLed<Hal, Clock, Brightness, Derived>& rLed) {
+    Derived& operator=(const TJLed<Hal, Clock, Value, Derived>& rLed) {
         state_ = rLed.state_;
         bLowActive_ = rLed.bLowActive_;
         bPaused_ = rLed.bPaused_;
@@ -109,10 +93,8 @@ class TJLed : public JLedBase {
 
     // Set or clear physical LED low-active polarity. When on, every signal
     // physically output to a pin is inverted. Every HAL must implement
-    // SetLowActive(bool); it is notified once here so a HAL with a hardware
-    // polarity register can pre-arm it instead of inspecting invert on every
-    // analogWrite(). HALs without one implement it as a no-op (see
-    // InvertableHal).
+    // SetLowActive(bool). It is notified once here so a HAL with a hardware
+    // inversion can use it instead of calculating the inverse in analogWrite()
     Derived& LowActive(bool on = true) {
         bLowActive_ = on;
         hal_.SetLowActive(bLowActive_);
@@ -123,82 +105,86 @@ class TJLed : public JLedBase {
 
     // turn LED on
     Derived& On(uint16_t duration = 1) {
-        return Set(BrightnessTraits<Brightness>::kFullBrightness, duration);
+        return Set(ValueTraits<Value>::kOnColor(), duration);
     }
 
     // turn LED off
     Derived& Off(uint16_t duration = 1) {
-        return Set(BrightnessTraits<Brightness>::kZeroBrightness, duration);
+        return Set(ValueTraits<Value>::kOffColor(), duration);
     }
 
-    // Sets LED to given brightness. As for every effect, a duration can be
+    // Sets LED to given brightness/color. As for every effect, a duration can be
     // specified. Update() will return false after the duration elapsed.
-    Derived& Set(Brightness brightness, uint16_t duration = 1) {
+    Derived& Set(Value color, uint16_t duration = 1) {
         eval_storage_.type = EvalType::CONSTANT;
-        eval_storage_.data.constant = {brightness, duration};
+        eval_storage_.data.constant = {color, duration};
         return Reset();
     }
 
-    // Fade LED on
+    // Fade LED on from `from_color` to `to_color`. Since you normally only specify
+    // the target brightness/color, the `to_color` argument comes first, then the
+    // `from_color` (this is reversed in `FadeOff()`)
     Derived& FadeOn(uint16_t duration,
-                    Brightness from = BrightnessTraits<Brightness>::kZeroBrightness,
-                    Brightness to = BrightnessTraits<Brightness>::kFullBrightness) {
+                    Value to_color = ValueTraits<Value>::kOnColor(),
+                    Value from_color = ValueTraits<Value>::kOffColor()) {
         eval_storage_.type = EvalType::BREATHE;
-        eval_storage_.data.breathe = {duration, 0, 0, from, to};
+        eval_storage_.data.breathe = {duration, 0, 0, from_color, to_color};
         return Reset();
     }
 
-    // Fade LED off - actually is just inverted version of FadeOn()
+    // Fade LED off - actually is just inverted version of `FadeOn()`
     Derived& FadeOff(uint16_t duration,
-                     Brightness from = BrightnessTraits<Brightness>::kFullBrightness,
-                     Brightness to = BrightnessTraits<Brightness>::kZeroBrightness) {
+                     Value from_color = ValueTraits<Value>::kOnColor(),
+                     Value to_color = ValueTraits<Value>::kOffColor()) {
         eval_storage_.type = EvalType::BREATHE;
-        eval_storage_.data.breathe = {0, 0, duration, to, from};
+        eval_storage_.data.breathe = {0, 0, duration, to_color, from_color};
         return Reset();
     }
 
-    // Fade from "from" to "to" with period "duration". Sets up the breathe
-    // effect with the proper parameters and sets Min/Max brightness to reflect
-    // levels specified by "from" and "to".
-    Derived& Fade(Brightness from, Brightness to, uint16_t duration) {
-        if (from < to) {
-            return FadeOn(duration, from, to);
-        } else {
-            return FadeOff(duration, from, to);
-        }
+    // Fade from "from_color" to "to_color" with the given "duration". Sets up the breathe
+    // effect with the proper parameters.
+    Derived& Fade(Value from_color, Value to_color, uint16_t duration) {
+        return ValueTraits<Value>::IsBrighter(from_color, to_color)
+            ? FadeOn(duration, to_color, from_color) : FadeOff(duration, from_color, to_color);
     }
 
     // Set effect to Breathe, with the given period time in ms.
     Derived& Breathe(uint16_t period) { return Breathe(period / 2, 0, period / 2); }
 
     // Set effect to Breathe, with the given fade on-, on- and fade off-
-    // duration values.
-    Derived& Breathe(uint16_t duration_fade_on, uint16_t duration_on, uint16_t duration_fade_off) {
+    // duration values and optional brightness/color values to move between.
+    Derived& Breathe(uint16_t duration_fade_on, uint16_t duration_on, uint16_t duration_fade_off,
+                     Value from_color = ValueTraits<Value>::kOffColor(),
+                     Value to_color = ValueTraits<Value>::kOnColor()) {
         eval_storage_.type = EvalType::BREATHE;
-        eval_storage_.data.breathe = {duration_fade_on,
-                                      duration_on,
-                                      duration_fade_off,
-                                      BrightnessTraits<Brightness>::kZeroBrightness,
-                                      BrightnessTraits<Brightness>::kFullBrightness};
+        eval_storage_.data.breathe = {duration_fade_on, duration_on, duration_fade_off,
+                                      from_color, to_color};
         return Reset();
     }
 
-    // Set effect to Blink, with the given on- and off- duration values.
-    Derived& Blink(uint16_t duration_on, uint16_t duration_off, uint8_t n = 1) {
+    // Set effect to Blink, with the given on- and off- duration values, an optional
+    // number of iterations (default is 1) and optional brightness/color values to switch between.
+    Derived& Blink(uint16_t duration_on, uint16_t duration_off, uint8_t n = 1,
+                   Value color_on = ValueTraits<Value>::kOnColor(),
+                   Value color_off = ValueTraits<Value>::kOffColor()) {
         eval_storage_.type = EvalType::BLINK;
-        eval_storage_.data.blink = {duration_on, duration_off, n};
+        eval_storage_.data.blink = {duration_on, duration_off, n, color_on, color_off};
         return Reset();
     }
 
-    // Set effect to Candle light simulation.
+    // Set effect to Candle light simulation. Effect changes between given color_on
+    // and color_off brightness/colors values. Offset controls how in sync individual candle
+    // effects are (0 for in sync).
     // When offset is omitted, a value derived from this instance's address
     // and the current time is used, so multiple LEDs with default parameters
     // automatically flicker independently, and the pattern also varies
     // across power cycles (the address alone would be link-time fixed on
     // most embedded targets and thus identical every boot). Pass an explicit
     // offset (in ms) to control the phase precisely, e.g. to build a
-    // deliberate multi-LED wave/chase effect.
-    Derived& Candle(uint8_t speed = 6, uint8_t jitter = 15, uint16_t period = 0xffff,
+    // multi-LED wave/chase effect.
+    Derived& Candle(Value color_on = ValueTraits<Value>::kOnColor(),
+                    Value color_off = ValueTraits<Value>::kOffColor(), uint8_t speed = 6,
+                    uint8_t jitter = 15, uint16_t period = 0xffff,
                     uint16_t offset = kCandleOffsetAuto) {
         eval_storage_.type = EvalType::CANDLE;
         const uint16_t actual_offset =
@@ -206,25 +192,25 @@ class TJLed : public JLedBase {
                 ? static_cast<uint16_t>(hash32(
                       static_cast<uint32_t>(reinterpret_cast<uintptr_t>(this)) ^ Clock::millis()))
                 : offset;
-        eval_storage_.data.candle =
-            CandleBrightnessEvaluator<Brightness>(speed, jitter, period, actual_offset);
+        eval_storage_.data.candle = CandleBrightnessEvaluator<Value>(
+            speed, jitter, period, actual_offset, color_on, color_off);
         return Reset();
     }
 
-    // Use a user provided brightness evaluator.
-    Derived& UserFunc(BrightnessEvaluator<Brightness>* user_eval) {
+    // Use a user provided effect.
+    Derived& UserFunc(BrightnessEvaluator<Value>* user_eval) {
         eval_storage_.type = EvalType::USER;
         eval_storage_.data.user = user_eval;
         return Reset();
     }
 
-    // set number of repetitions for effect.
+    // Set number of repetitions for effect.
     Derived& Repeat(uint16_t num_repetitions) {
         num_repetitions_ = num_repetitions;
         return static_cast<Derived&>(*this);
     }
 
-    // repeat Forever
+    // Repeat Forever.
     Derived& Forever() { return Repeat(kRepeatForever); }
     bool IsForever() const { return num_repetitions_ == kRepeatForever; }
 
@@ -242,11 +228,15 @@ class TJLed : public JLedBase {
     }
 
     // Stop current effect and turn LED immeadiately off. Further calls to
-    // Update() will have no effect.
+    // Update() will have no effect. `mode` controls what `off` means (
+    // set to definied minimum brioghtness, turn fully off, or just keep the
+    // current value).
     Derived& Stop(eIdleMode mode = eIdleMode::TO_MIN_BRIGHTNESS) {
         if (mode != eIdleMode::KEEP_CURRENT) {
-            WriteRaw(mode == eIdleMode::FULL_OFF ? BrightnessTraits<Brightness>::kZeroBrightness
-                                                 : minBrightness_);
+            WriteRaw(mode == eIdleMode::FULL_OFF
+                         ? ValueTraits<Value>::kOffColor()
+                         : ValueTraits<Value>::ApplyBounds(ValueTraits<Value>::kOffColor(),
+                                                           minBrightness_, maxBrightness_));
         }
         state_ = ST_STOPPED;
         bPaused_ = false;
@@ -256,11 +246,12 @@ class TJLed : public JLedBase {
     bool IsRunning() const { return state_ != ST_STOPPED; }
 
     void Pause(eIdleMode mode = eIdleMode::TO_MIN_BRIGHTNESS) { Pause(Clock::millis(), mode); }
+
     void Resume() { Resume(Clock::millis()); }
 
     bool IsPaused() const { return bPaused_; }
 
-    // Reset to inital state
+    // Reset to inital state (keeping the current effect, not changing output)
     Derived& Reset() {
         time_start_ = 0;
         last_update_time_ = 0;
@@ -272,35 +263,33 @@ class TJLed : public JLedBase {
     }
 
     // Sets the minimum brightness level.
-    Derived& MinBrightness(Brightness level) {
+    Derived& MinBrightness(level_t level) {
         minBrightness_ = level;
         return static_cast<Derived&>(*this);
     }
 
     // Returns current minimum brightness level.
-    Brightness MinBrightness() const { return minBrightness_; }
+    level_t MinBrightness() const { return minBrightness_; }
 
     // Sets the maximum brightness level.
-    Derived& MaxBrightness(Brightness level) {
+    Derived& MaxBrightness(level_t level) {
         maxBrightness_ = level;
         return static_cast<Derived&>(*this);
     }
 
     // Returns current maximum brightness level.
-    Brightness MaxBrightness() const { return maxBrightness_; }
+    level_t MaxBrightness() const { return maxBrightness_; }
 
-    // Write val directly out to the hardware. Bypasses the effect state
-    // machine ("raw" = no Update()/Eval()), note that val is already in
-    // hardware-native units: turning the effect-space value into the final
-    // physical write (resolution scaling, and inversion for low-active
-    // wiring) is entirely the HAL's job. Used e.g. for forcing an output
-    // from a lifecycle callback (see UpdateResult).
-    Derived& WriteRaw(Brightness val) {
-        hal_.template analogWrite<Brightness>(val, IsLowActive());
+    // Write a brightness/color value directly out to the hardware using the HAL. Bypasses the
+    // effect state machine ("raw" = no Update()/Eval()); the HAL only handles
+    // resolution scaling and optional inversion for low-active wiring. Used
+    // e.g. for forcing an output from a lifecycle callback (see UpdateResult).
+    Derived& WriteRaw(Value val) {
+        hal_.analogWrite(val, IsLowActive());
         return static_cast<Derived&>(*this);
     }
 
-    // update brightness of LED using the given brightness evaluator and the
+    // update color/brightness of LED using the given effect evaluator and the
     // current time. Returns an UpdateResult carrying whether the effect is
     // still running, which lifecycle events fired this tick, and the
     // brightness value (if any) written to the output this tick (the
@@ -337,7 +326,7 @@ class TJLed : public JLedBase {
     UpdateResult<Derived> Update(uint32_t t) {
         auto* self = static_cast<Derived*>(this);
         auto noResult = [self](bool running, EventSet events) {
-            return UpdateResult<Derived>(running, events, Brightness{}, false, self);
+            return UpdateResult<Derived>(running, events, Value{}, false, self);
         };
 
         if (bPaused_) return noResult(true, 0);
@@ -374,7 +363,8 @@ class TJLed : public JLedBase {
         if (static_cast<int32_t>(t - time_start_) < 0) return noResult(true, events);
 
         auto writeCur = [this](period_t t) {
-            const auto val = lerp<Brightness>(Eval(t), minBrightness_, maxBrightness_);
+            const auto val =
+                ValueTraits<Value>::ApplyBounds(Eval(t), minBrightness_, maxBrightness_);
             WriteRaw(val);
             return val;
         };
@@ -436,8 +426,10 @@ class TJLed : public JLedBase {
         if (bPaused_ || state_ == ST_STOPPED) return;
         bPaused_ = true;
         if (mode != eIdleMode::KEEP_CURRENT) {
-            WriteRaw(mode == eIdleMode::FULL_OFF ? BrightnessTraits<Brightness>::kZeroBrightness
-                                                 : minBrightness_);
+            WriteRaw(mode == eIdleMode::FULL_OFF
+                         ? ValueTraits<Value>::kOffColor()
+                         : ValueTraits<Value>::ApplyBounds(ValueTraits<Value>::kOffColor(),
+                                                           minBrightness_, maxBrightness_));
         }
         if (state_ != ST_INIT) time_start_ = t - time_start_;  // encode elapsed_so_far in place
         // ST_INIT: time_start_ is 0 and not yet meaningful; Update() resets it on resume
@@ -458,8 +450,7 @@ class TJLed : public JLedBase {
 
  public:
     // Number of bits used to control brightness with Min/MaxBrightness().
-    static constexpr uint8_t kBitsBrightness = BrightnessTraits<Brightness>::kBits;
-    static constexpr Brightness kBrightnessStep = 1;
+    static constexpr uint8_t kBitsBrightness = ValueTraits<Value>::kBits;
 
  private:
     enum State : uint8_t {
@@ -481,12 +472,15 @@ class TJLed : public JLedBase {
     uint8_t bPaused_ : 1;
     uint8_t first_cycle_ : 1;  // gates kFirstOutput to the first repeat-start of a run
     uint8_t done_ : 1;         // gates kDone to the single tick that observes the stop
-    Brightness minBrightness_;
-    Brightness maxBrightness_;
+    level_t minBrightness_;
+    level_t maxBrightness_;
 
     static constexpr uint16_t kRepeatForever = 65535;
-    static constexpr uint16_t kCandleOffsetAuto = 0xffff;
     uint16_t num_repetitions_ = 1;
+
+    // Sentinel for Candle()'s offset parameter, meaning "derive an offset
+    // automatically".
+    static constexpr uint16_t kCandleOffsetAuto = 0xffff;
 
     // We store the timestamp the effect was last updated to avoid multiple
     // updates when called during the same time tick.  Only the lower 8 bits of

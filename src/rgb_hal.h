@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2026 Jan Delgado <jdelgado[at]gmx.net>
+// Copyright (c) 2026 Jan Delgado <jdelgado[at]gmx.net>
 // https://github.com/jandelgado/jled
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -21,26 +21,41 @@
 //
 #pragma once
 
+#include "value_rgb.h"  // RGBColor
+
 namespace jled {
 
-template<typename T> struct ValueTraits;    // fwd decl.
-
-// Turns a a HAL with only a single analogWrite(Level) method to the two-argument
-// analogWrite(Level, bool invert) and SetLowActive(bool) contract required by TJLed
-// and applies inversion the in software.
+// RGBHal is the HAL to drive 3-leg RGB LED connected to 3 GPIO pins using 3
+// individual HALs. All HAL related calls are delegated to the composed HALs for
+// red, green and blue control of the RGB LED.
 template<typename Hal>
-class InvertableHal : public Hal {
- public:
-    using Hal::Hal;
+class RGBHal {
+    Hal r_, g_, b_;
 
-    template<typename Value>
-    void analogWrite(Value val, bool invert) const {
-        // inversion is done in software, works with scalar types and the RGB type
-        Hal::template analogWrite<Value>(invert ? ValueTraits<Value>::Invert(val) : val);
+ public:
+    using PinType = typename Hal::PinType;
+
+    RGBHal(PinType pinr, PinType ping, PinType pinb) : r_{pinr}, g_{ping}, b_{pinb} {}
+
+    template<typename T>
+    void analogWrite(RGBColor<T> val, bool invert) const {
+        r_.analogWrite(val.r, invert);
+        g_.analogWrite(val.g, invert);
+        b_.analogWrite(val.b, invert);
     }
 
-    // Inversion is done in analogWrite() for this HAL
-    void SetLowActive(bool f) const {(void)f;}
+    void SetLowActive(bool f) const {
+        r_.SetLowActive(f);
+        g_.SetLowActive(f);
+        b_.SetLowActive(f);
+    }
+
+    Hal& r() { return r_; }
+    Hal& g() { return g_; }
+    Hal& b() { return b_; }
+    const Hal& r() const { return r_; }
+    const Hal& g() const { return g_; }
+    const Hal& b() const { return b_; }
 };
 
 }  // namespace jled

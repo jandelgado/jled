@@ -9,8 +9,8 @@
 #include <utility>
 #include <vector>
 
-#include "brightness.h"
 #include "catch2/catch_amalgamated.hpp"
+#include "value_scalar.h"
 #include "hal_mock.h"              // NOLINT
 #include "mock_brightness_eval.h"  // NOLINT
 
@@ -24,6 +24,22 @@ class TestJLed : public TJLed<HalMock, TimeMock, uint8_t, TestJLed> {
 };
 // instanciate for test coverage measurement
 template class TJLed<HalMock, TimeMock, uint8_t, TestJLed>;
+
+// TestJLedHD mirrors TestJLed but with a 16-bit (HD) color, used only for the
+// exact-size tripwire below.
+class TestJLedHD : public TJLed<HalMock, TimeMock, uint16_t, TestJLedHD> {
+    using TJLed<HalMock, TimeMock, uint16_t, TestJLedHD>::TJLed;
+};
+
+// Host-only regression tripwire: these numbers are host-ABI-specific (they
+// differ on AVR/ARM32) and exist only to catch an accidental size regression
+// on the platform CI actually runs the unit tests on. Measured directly (not
+// copied from the design doc's memory table) via a standalone sizeof-dump
+// program against this repo's current headers.
+static_assert(sizeof(TestJLed) == 48, "scalar JLed size changed");
+static_assert(sizeof(TestJLedHD) == 56, "scalar JLedHD size changed");
+static_assert(sizeof(jled::EvalStorage<uint8_t>) == 16, "u8 eval storage grew");
+static_assert(sizeof(jled::EvalStorage<uint16_t>) == 24, "u16 eval storage grew");
 
 // Type aliases for 8-bit evaluators (used in tests)
 using BlinkBrightnessEvaluator = jled::BlinkBrightnessEvaluator<uint8_t>;
@@ -74,7 +90,7 @@ TEST_CASE("On/Off function configuration", "[jled]") {
                 REQUIRE(jled.eval_storage_.type == jled::EvalType::CONSTANT);
                 const auto& eval = jled.eval_storage_.data.constant;
                 CHECK(123 == eval.duration_);
-                CHECK(jled::BrightnessTraits<uint8_t>::kFullBrightness == eval.val_);
+                CHECK(jled::ValueTraits<uint8_t>::kMaxValue() == eval.val_);
             }
 
             SECTION(
@@ -85,7 +101,7 @@ TEST_CASE("On/Off function configuration", "[jled]") {
                 REQUIRE(jled.eval_storage_.type == jled::EvalType::CONSTANT);
                 const auto& eval = jled.eval_storage_.data.constant;
                 CHECK(123 == eval.duration_);
-                CHECK(jled::BrightnessTraits<uint8_t>::kZeroBrightness == eval.val_);
+                CHECK(jled::ValueTraits<uint8_t>::kOffColor() == eval.val_);
             }
 
             SECTION("using Set() allows to set custom brightness level") {
@@ -103,7 +119,7 @@ TEST_CASE("On/Off function configuration", "[jled]") {
                 REQUIRE(jled.eval_storage_.type == jled::EvalType::CONSTANT);
                 const auto& eval = jled.eval_storage_.data.constant;
                 CHECK(1 == eval.duration_);
-                CHECK(jled::BrightnessTraits<uint8_t>::kZeroBrightness == eval.val_);
+                CHECK(jled::ValueTraits<uint8_t>::kOffColor() == eval.val_);
             }
         }
     };
@@ -125,6 +141,18 @@ TEST_CASE("using Blink() configures BlinkBrightnessEvaluator", "[jled]") {
         }
     };
     TestableJLed::test();
+}
+
+TEST_CASE("Blink with explicit colors keeps default-call behaviour bit-identical", "[jled]") {
+    auto led1 = TestJLed(1).Blink(10, 10, 2);
+    auto led2 = TestJLed(2).Blink(
+        10, 10, 2, jled::ValueTraits<uint8_t>::kOnColor(), jled::ValueTraits<uint8_t>::kOffColor());
+    for (uint32_t t = 0; t < 40; t++) {
+        TimeMock::set_millis(t);
+        led1.Update();
+        led2.Update();
+        CHECK(led1.GetHal().Value() == led2.GetHal().Value());
+    }
 }
 
 TEST_CASE("using Breathe() configures BreatheBrightnessEvaluator", "[jled]") {
@@ -168,13 +196,34 @@ TEST_CASE("using Candle() with offset configures CandleBrightnessEvaluator", "[j
         using TestJLed::TestJLed;
         static void test() {
             TestableJLed jled(1);
-            jled.Candle(1, 2, 3, 4);
+            jled.Candle(jled::ValueTraits<uint8_t>::kOnColor(),
+                        jled::ValueTraits<uint8_t>::kOffColor(),
+                        1,
+                        2,
+                        3,
+                        4);
             REQUIRE(jled.eval_storage_.type == jled::EvalType::CANDLE);
             const auto& eval = jled.eval_storage_.data.candle;
             CHECK(3 == eval.period_);
             CHECK(1 == eval.speed_);
             CHECK(2 == eval.jitter_);
             CHECK(4 == eval.offset_);
+        }
+    };
+    TestableJLed::test();
+}
+
+TEST_CASE("Candle() defaults color_on to kOnColor and color_off to kOffColor", "[jled]") {
+    class TestableJLed : public TestJLed {
+     public:
+        using TestJLed::TestJLed;
+        static void test() {
+            TestableJLed jled(1);
+            jled.Candle();
+            CHECK(jled::ValueTraits<uint8_t>::kOnColor() ==
+                  jled.eval_storage_.data.candle.color_on_);
+            CHECK(jled::ValueTraits<uint8_t>::kOffColor() ==
+                  jled.eval_storage_.data.candle.color_off_);
         }
     };
     TestableJLed::test();
@@ -188,7 +237,11 @@ TEST_CASE("using default Candle() configures CandleBrightnessEvaluator with semi
         static void test() {
             TimeMock::set_millis(0);
             TestableJLed jled(1);
-            jled.Candle(1, 2, 3);
+            jled.Candle(jled::ValueTraits<uint8_t>::kOnColor(),
+                        jled::ValueTraits<uint8_t>::kOffColor(),
+                        1,
+                        2,
+                        3);
             REQUIRE(jled.eval_storage_.type == jled::EvalType::CANDLE);
             const auto& eval = jled.eval_storage_.data.candle;
             CHECK(3 == eval.period_);
@@ -217,11 +270,19 @@ TEST_CASE(
             TestableJLed jled(1);
 
             TimeMock::set_millis(0);
-            jled.Candle(1, 2, 3);
+            jled.Candle(jled::ValueTraits<uint8_t>::kOnColor(),
+                        jled::ValueTraits<uint8_t>::kOffColor(),
+                        1,
+                        2,
+                        3);
             const auto offset_at_t0 = jled.eval_storage_.data.candle.offset_;
 
             TimeMock::set_millis(12345);
-            jled.Candle(1, 2, 3);
+            jled.Candle(jled::ValueTraits<uint8_t>::kOnColor(),
+                        jled::ValueTraits<uint8_t>::kOffColor(),
+                        1,
+                        2,
+                        3);
             const auto offset_at_t1 = jled.eval_storage_.data.candle.offset_;
 
             CHECK(offset_at_t0 != offset_at_t1);
@@ -241,7 +302,11 @@ TEST_CASE("using default Candle() decorrelates offsets of adjacent instances", "
         static void test() {
             TimeMock::set_millis(0);
             TestableJLed leds[3] = {TestableJLed(1), TestableJLed(2), TestableJLed(3)};
-            for (auto& led : leds) led.Candle(6, 15);
+            for (auto& led : leds)
+                led.Candle(jled::ValueTraits<uint8_t>::kOnColor(),
+                           jled::ValueTraits<uint8_t>::kOffColor(),
+                           6,
+                           15);
 
             const auto o0 = leds[0].eval_storage_.data.candle.offset_;
             const auto o1 = leds[1].eval_storage_.data.candle.offset_;
@@ -394,6 +459,19 @@ TEST_CASE("CandleBrightnessEvaluator table lookup", "[jled]") {
     CHECK(21 == eval.Eval(0));
     // slot=1: hash8(1)=148 < 255 -> table; hash8(~1)&0xf=10 -> kCandleTable[10]=124
     CHECK(124 == eval.Eval(1));
+}
+
+TEST_CASE("CandleBrightnessEvaluator flickers between color_on and color_off", "[jled]") {
+    // Same slot=0 scenario as the table lookup test above (factor=21), but
+    // with non-default color_on/color_off to verify Eval() blends between
+    // them instead of implicitly scaling color_on down toward black.
+    auto eval = CandleBrightnessEvaluator(0, 255, 1000, 0, /*color_on=*/200, /*color_off=*/50);
+    CHECK(jled::lerp_ordered<uint8_t>(21, 50, 200) == eval.Eval(0));
+}
+
+TEST_CASE("CandleBrightnessEvaluator jitter=0 returns color_on regardless of color_off", "[jled]") {
+    auto eval = CandleBrightnessEvaluator(0, 0, 1000, 0, /*color_on=*/200, /*color_off=*/50);
+    CHECK(200 == eval.Eval(0));
 }
 
 TEST_CASE("CandleBrightnessEvaluator offset shifts sequence", "[jled]") {
@@ -1148,37 +1226,6 @@ TEST_CASE("EvalStorage dispatches IsSet/Period/Eval to the active evaluator", "[
             CHECK((int)tc.expected_eval0 == (int)storage.Eval(0));
         }
     }
-}
-
-TEST_CASE("scale8", "[scale8]") {
-    struct Case {
-        uint8_t val;
-        uint8_t factor;
-        uint8_t expected;
-    };
-    auto tc = GENERATE(values<Case>({
-        {0, 0, 0},
-        {255, 0, 0},
-        {0, 128, 0},
-        {100, 128, 50},
-        {255, 128, 128},
-        {0, 255, 0},
-        {127, 255, 127},
-        {255, 255, 255},
-    }));
-    CHECK(tc.expected == jled::scale8(tc.val, tc.factor));
-}
-
-TEST_CASE("lerp8by8 interpolates a byte into the given interval", "[lerp8by8]") {
-    CHECK(0 == (int)(jled::lerp8by8(0, 0, 255)));
-    CHECK(0 == (int)(jled::lerp8by8(255, 0, 0)));
-    CHECK(255 == (int)(jled::lerp8by8(255, 0, 255)));
-
-    CHECK(100 == (int)(jled::lerp8by8(0, 100, 255)));
-    CHECK(100 == (int)(jled::lerp8by8(0, 100, 110)));
-
-    CHECK(255 == (int)(jled::lerp8by8(255, 100, 255)));
-    CHECK(200 == (int)(jled::lerp8by8(255, 100, 200)));
 }
 
 TEST_CASE("Pause() during ST_RUNNING sets LED to minBrightness", "[jled]") {

@@ -32,9 +32,12 @@
 //     led.Update();
 //   }
 
+#include "color_palette.h"    // NOLINT
+#include "value_rgb.h"        // NOLINT
 #include "invertable_hal.h"   // NOLINT
 #include "jled_base.h"        // NOLINT
 #include "jled_group_base.h"  // NOLINT
+#include "jled_rgb.h"         // NOLINT
 #include "jled_std.h"         // NOLINT
 
 // Raspberry Pi Pico
@@ -167,6 +170,32 @@ using JLedHDGroup = TJLedGroup<JLedClockType, JLedHD>;
 using JLedRef = TJLedRef;
 using JLedRefGroup = TJLedGroup<JLedClockType, JLedRef>;
 
+// JLedRGB: RGBColor<uint8_t> brightness control for a three-pin RGB LED,
+// over the platform's standard-resolution HAL.
+class JLedRGB : public TJLedRGB<JLedHal, JLedClockType, RGBColor<uint8_t>, JLedRGB> {
+    using Base = TJLedRGB<JLedHal, JLedClockType, RGBColor<uint8_t>, JLedRGB>;
+
+ public:
+    using Base::Base;
+};
+
+// JLedRGBGroup: homogeneous, by-value group of JLedRGB, mirroring
+// JLedGroup/JLedHDGroup
+using JLedRGBGroup = TJLedGroup<JLedClockType, JLedRGB>;
+
+// JLedRGBHD: the RGBColor<uint16_t> counterpart of JLedRGB, over the
+// platform's high-resolution HAL.
+class JLedRGBHD : public TJLedRGB<JLedHalHD, JLedClockType, RGBColor<uint16_t>, JLedRGBHD> {
+    using Base = TJLedRGB<JLedHalHD, JLedClockType, RGBColor<uint16_t>, JLedRGBHD>;
+
+ public:
+    using Base::Base;
+};
+
+// JLedRGBHDGroup: the JLedRGBHD counterpart of JLedRGBGroup, exactly as
+// JLedHDGroup is to JLedGroup.
+using JLedRGBHDGroup = TJLedGroup<JLedClockType, JLedRGBHD>;
+
 };  // namespace jled
 
 using JLed = jled::JLed;
@@ -175,3 +204,7 @@ using JLedGroup = jled::JLedGroup;
 using JLedHDGroup = jled::JLedHDGroup;
 using JLedRef = jled::JLedRef;
 using JLedRefGroup = jled::JLedRefGroup;
+using JLedRGB = jled::JLedRGB;
+using JLedRGBGroup = jled::JLedRGBGroup;
+using JLedRGBHD = jled::JLedRGBHD;
+using JLedRGBHDGroup = jled::JLedRGBHDGroup;

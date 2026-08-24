@@ -1,8 +1,10 @@
 // JLed unit tests for the STM32Cube HAL (runs on host).
 // Copyright 2026 Jan Delgado jdelgado@gmx.net
+// clang-format off
 #include "stm32cube_hal_mock.h"  // must precede stm32cube_hal.h (include-order contract)
 
 #include <stm32cube_hal.h>  // NOLINT
+// clang-format on
 
 #include "catch2/catch_amalgamated.hpp"
 

@@ -36,8 +36,8 @@
 #include <esp_timer.h>
 #include <stdint.h>
 
-#include "brightness.h"
 #include "jled_std.h"
+#include "scale_bit_depth.h"
 
 // The LEDC driver's own output_invert flag (driver/ledc.h) is only available
 // starting with ESP-IDF v4.4 (added in
@@ -138,10 +138,10 @@ class Esp32Hal : public Esp32HalBase {
         ledc_channel_config(&ledc_channel);
     }
 
-    template<typename Brightness>
-    void analogWrite(Brightness val) const {
+    template<typename Level>
+    void analogWrite(Level val) const {
         // Scale brightness to actual resolution
-        const uint16_t duty = jled::scaleToNative<kResBits_>(val);
+        const uint16_t duty = jled::scale_bit_depth<kResBits_>(val);
 
         // from:
         // https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/peripherals/ledc.html
@@ -159,8 +159,8 @@ class Esp32Hal : public Esp32HalBase {
     }
 
 #if JLED_ESP32_HAS_LEDC_OUTPUT_INVERT
-    template<typename Brightness>
-    void analogWrite(Brightness val, bool /*invert*/) const {
+    template<typename Level>
+    void analogWrite(Level val, bool /*invert*/) const {
         // Inversion is fully owned by SetLowActive()'s output_invert flag
         // below; this HAL inverts in hardware, so it never needs to inspect
         // invert on a per-call basis the way a software-fallback HAL would.
@@ -188,10 +188,9 @@ class Esp32Hal : public Esp32HalBase {
  private:
     static constexpr uint16_t kMaxBrightness = (1u << kResBits_) - 1;
 
-    // Builds the shared part of a ledc_channel_config_t. output_invert is
-    // deliberately left untouched here: that struct field only exists from
-    // ESP-IDF v4.4 on (see JLED_ESP32_HAS_LEDC_OUTPUT_INVERT), while this
-    // helper is also called unconditionally from the constructor.
+    // Builds the shared part of a ledc_channel_config_t. output_invert is left untouched here: that
+    // struct field only exists from ESP-IDF v4.4 on (see JLED_ESP32_HAS_LEDC_OUTPUT_INVERT), while
+    // this helper is also called unconditionally from the constructor.
     ledc_channel_config_t makeChannelConfig(PinType pin, uint32_t duty) const {
         ledc_channel_config_t ledc_channel{};
         ledc_channel.gpio_num = pin;

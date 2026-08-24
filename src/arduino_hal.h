@@ -22,7 +22,7 @@
 #pragma once
 #include <Arduino.h>
 
-#include "brightness.h"
+#include "scale_bit_depth.h"
 
 // Some platforms support PWM resolutions higher than 8 bits (e.g. SAMD/Due
 // up to 12-bit, RP2040 up to 16-bit). ESP8266 Core v1/v2 used 10-bit natively
@@ -67,10 +67,10 @@ class ArduinoHal : private detail::ArduinoHalInitState<kLazyInit_> {
 
     explicit ArduinoHal(PinType pin) noexcept : pin_(pin) { InitNow(Tag<kLazyInit_>{}); }
 
-    template<typename Brightness>
-    void analogWrite(Brightness val) const {
+    template<typename Level>
+    void analogWrite(Level val) const {
         EnsureSetup(Tag<kLazyInit_>{});
-        ::analogWrite(pin_, jled::scaleToNative<kResBits_>(val));
+        ::analogWrite(pin_, jled::scale_bit_depth<kResBits_>(val));
     }
 
  private:

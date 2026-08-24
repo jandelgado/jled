@@ -24,20 +24,16 @@
 #include <inttypes.h>  // types, e.g. uint8_t
 #include <stddef.h>    // size_t
 
-#include "brightness.h"  // brightness type traits and utilities
-#include "progmem.h"     // JLED_PROGMEM / FlashReader: flash-resident storage on AVR
+#include "value_scalar.h"  // ValueTraits and its scalar specializations
+#include "progmem.h"       // JLED_PROGMEM / FlashReader: flash-resident storage on AVR
 
 // Brightness evaluators: stateless, copyable functors that compute a
 // brightness value for a given point in time. Driven by TJLed (jled_base.h).
 
 namespace jled {
 
-// Legacy 8-bit constants for backwards compatibility
-static constexpr uint8_t kFullBrightness = 255;
-static constexpr uint8_t kZeroBrightness = 0;
-
-// Time argument to Eval(), always in [0, period). Shares its domain with
-// Period()'s uint16_t return, so it never needs more than 16 bits.
+// Type of effects period (period_t Period()) and time argument to Eval(period_t t).
+// Always ins [0, period)
 using period_t = uint16_t;
 
 // Compile-time log2 (C++14 compatible single-expression constexpr)
@@ -66,20 +62,19 @@ T lut_lerp(period_t t, period_t period, const T (&lut)[N]) {
     // so re-widen explicitly here for correctness; this is unrelated to (and
     // not shrunk by) t's 16-bit parameter type.
     const uint16_t tnorm = static_cast<uint16_t>((static_cast<uint32_t>(t) << (16 - kNormShift)) /
-                                                  static_cast<uint16_t>(period));
+                                                 static_cast<uint16_t>(period));
     const uint16_t i = tnorm >> kSegShift;
     const auto y0 = FlashReader<T>::Read(&lut[i]);
     const auto y1 = FlashReader<T>::Read(&lut[i + 1]);
     const uint16_t x0 = i << kSegShift;
     const uint16_t dx = tnorm - x0;
+
+
+    // avoid unnecessary uint32_t promotion:
     // For 8-bit LUTs, dx and (y1-y0) are both <= 255, so their product always
     // fits in 16 bits and can be computed natively. For 16-bit LUTs, dx can
     // be up to ~2^kSegShift and (y1-y0) up to ~2^16, so their product can
-    // exceed 65535 and must be widened to 32 bits. On platforms where int is
-    // 32 bits the 8-bit case happens to work out either way via integer
-    // promotion, but on AVR (e.g. ATmega328P) int/unsigned int is only 16
-    // bits, so the unconditional 32-bit widening would incur an expensive
-    // 32-bit multiply/shift even when not needed.
+    // exceed 65535 and must be widened to 32 bits.
     if (sizeof(T) == 1) {
         return static_cast<T>((dx * (y1 - y0) >> kSegShift) + y0);
     } else {
@@ -88,11 +83,11 @@ T lut_lerp(period_t t, period_t period, const T (&lut)[N]) {
 }
 
 // Template helper functions - implemented below after evaluator definitions
-template<typename Brightness>
-Brightness fadeon_func(period_t t, period_t period);
+template<typename Value>
+Value fadeon_func(period_t t, period_t period);
 
-template<typename Brightness>
-Brightness candle_func(period_t t, uint8_t speed, uint8_t jitter);
+template<typename Value>
+Value candle_func(period_t t, uint8_t speed, uint8_t jitter);
 
 // Simple 32-bit integer hash (avalanche mix). Exposed so callers outside
 // jled_effects.cpp (e.g. TJLed::Candle()) can derive a well-spread
@@ -100,60 +95,53 @@ Brightness candle_func(period_t t, uint8_t speed, uint8_t jitter);
 // address, without picking up the address's original small deltas.
 uint32_t hash32(uint32_t x);
 
-template<typename Brightness>
-Brightness scale(Brightness val, Brightness factor);
-
-template<typename Brightness>
-Brightness lerp(Brightness val, Brightness a, Brightness b);
-
-// Legacy 8-bit function names (inline wrappers for backwards compatibility)
-inline uint8_t scale8(uint8_t val, uint8_t f) {
-    return scale<uint8_t>(val, f);
-}
-inline uint8_t lerp8by8(uint8_t val, uint8_t a, uint8_t b) {
-    return lerp<uint8_t>(val, a, b);
-}
-
 // a function f(t,period,param) that calculates the LEDs brightness for a given
 // point in time and the given period. param is an optionally user provided
 // parameter. t will always be in range [0..period-1].
 // f(period-1,period,param) will be called last to calculate the final state of
 // the LED.
-template<typename Brightness>
+template<typename Value>
 class BrightnessEvaluator {
  public:
     virtual uint16_t Period() const = 0;
-    virtual Brightness Eval(period_t t) const = 0;
+    virtual Value Eval(period_t t) const = 0;
 };
 
-template<typename Brightness>
+template<typename Value>
 struct ConstantBrightnessEvaluator {
-    Brightness val_;
+    Value val_;
     uint16_t duration_;
 
     uint16_t Period() const { return duration_; }
-    Brightness Eval(period_t) const { return val_; }
+    Value Eval(period_t) const { return val_; }
 };
 
 // BlinkBrightnessEvaluator does n on-off cycles in the specified period
-template<typename Brightness>
+template<typename Value>
 struct BlinkBrightnessEvaluator {
     uint16_t duration_on_;
     uint16_t sub_period_;
     uint8_t n_ = 1;
+    Value color_on_;
+    Value color_off_;
 
-    BlinkBrightnessEvaluator(uint16_t duration_on, uint16_t duration_off, uint8_t n)
-        : duration_on_(duration_on), sub_period_(duration_on + duration_off), n_(n) {}
+    BlinkBrightnessEvaluator(uint16_t duration_on, uint16_t duration_off, uint8_t n,
+                             Value color_on = ValueTraits<Value>::kOnColor(),
+                             Value color_off = ValueTraits<Value>::kOffColor())
+        : duration_on_(duration_on),
+          sub_period_(duration_on + duration_off),
+          n_(n),
+          color_on_(color_on),
+          color_off_(color_off) {}
 
     uint16_t Period() const { return sub_period_ * n_; }
-    Brightness Eval(period_t t) const {
+    Value Eval(period_t t) const {
         // For the common single-cycle case (n_ == 1) t < sub_period_, so the
         // modulo is a no-op and skipped, avoiding the costly division/modulo
         // routine on MCUs without a hardware divider (e.g. AVR).
         const period_t slot_start_t = (n_ == 1) ? t : t % sub_period_;
 
-        return (slot_start_t < duration_on_) ? BrightnessTraits<Brightness>::kFullBrightness
-                                             : BrightnessTraits<Brightness>::kZeroBrightness;
+        return (slot_start_t < duration_on_) ? color_on_ : color_off_;
     }
 };
 
@@ -163,51 +151,75 @@ struct BlinkBrightnessEvaluator {
 // idea see:
 //   http://sean.voisen.org/blog/2011/10/breathing-led-with-arduino/
 // But we do it with integers only.
-template<typename Brightness>
+template<typename Value>
 struct BreatheBrightnessEvaluator {
+    using level_t = typename ValueTraits<Value>::level_t;
+
     uint16_t duration_fade_on_;
     uint16_t duration_on_;
     uint16_t duration_fade_off_;
-    Brightness from_;
-    Brightness to_;
+    Value from_;
+    Value to_;
+
     uint16_t Period() const { return duration_fade_on_ + duration_on_ + duration_fade_off_; }
-    Brightness Eval(period_t t) const {
-        Brightness val = BrightnessTraits<Brightness>::kZeroBrightness;
-        if (t < duration_fade_on_)
-            val = fadeon_func<Brightness>(t, duration_fade_on_);
-        else if (t < duration_fade_on_ + duration_on_)
-            val = BrightnessTraits<Brightness>::kFullBrightness;
-        else
-            val = fadeon_func<Brightness>(Period() - t, duration_fade_off_);
-        return lerp<Brightness>(val, from_, to_);
+
+    Value Eval(period_t t) const {
+        const level_t alpha = Alpha(t, duration_fade_on_, duration_on_, duration_fade_off_);
+        return ValueTraits<Value>::Blend(alpha, from_, to_);
+    }
+
+ private:
+    static level_t Alpha(period_t t, uint16_t duration_fade_on, uint16_t duration_on,
+                          uint16_t duration_fade_off) {
+        // fade-on in the beginning
+        if (t < duration_fade_on) return fadeon_func<level_t>(t, duration_fade_on);
+        // return maximum brightness in the plateau phase
+        if (t < duration_fade_on + duration_on) return ValueTraits<level_t>::kMaxValue();
+        // fade out at the end
+        const uint16_t period = duration_fade_on + duration_on + duration_fade_off;
+        return fadeon_func<level_t>(period - t, duration_fade_off);
     }
 };
 
-template<typename Brightness>
+template<typename Value>
 struct CandleBrightnessEvaluator {
+    using level_t = typename ValueTraits<Value>::level_t;
+
     uint8_t speed_;
     uint8_t jitter_;
     uint16_t period_;
     uint16_t offset_;
+    Value color_on_;
+    Value color_off_;
 
     CandleBrightnessEvaluator() = delete;
 
-    // speed  - speed of effect (0..15). 0 fastest. Each increment by 1 halves the speed.
-    // jitter - amount of jittering to apply. 0 - no jitter, 15 - candle,
-    //                                        64 - fire, 255 - storm
-    // period - period of the effect
-    // offset - time offset in ms added before speed scaling; use different values
-    //          per LED for independent flicker.
-    CandleBrightnessEvaluator(uint8_t speed, uint8_t jitter, uint16_t period, uint16_t offset = 0)
-        : speed_(speed), jitter_(jitter), period_(period), offset_(offset) {}
+    // speed     - speed of effect (0..15). 0 fastest. Each increment by 1 halves the speed.
+    // jitter    - amount of jittering to apply. 0 - no jitter, 15 - candle,
+    //                                           64 - fire, 255 - storm
+    // period    - period of the effect
+    // offset    - time offset in ms added before speed scaling; use different values
+    //             per LED for independent flicker.
+    // color_on  - color the candle flickers up to at full intensity.
+    // color_off - color the candle dims down to at zero intensity.
+    CandleBrightnessEvaluator(uint8_t speed, uint8_t jitter, uint16_t period, uint16_t offset = 0,
+                              Value color_on = ValueTraits<Value>::kOnColor(),
+                              Value color_off = ValueTraits<Value>::kOffColor())
+        : speed_(speed),
+          jitter_(jitter),
+          period_(period),
+          offset_(offset),
+          color_on_(color_on),
+          color_off_(color_off) {}
 
     uint16_t Period() const { return period_; }
 
-    Brightness Eval(period_t t) const {
+    Value Eval(period_t t) const {
         // offset_ shifts t to give independently configured LEDs distinct
-        // flicker phases; the sum wraps at 65536, which only reshuffles the
-        // hash input candle_func uses, not its correctness.
-        return candle_func<Brightness>(t + offset_, speed_, jitter_);
+        // flicker phases. The sum wraps at 65536, which only reshuffles the
+        // hash input candle_func uses, which is ok.
+        return ValueTraits<Value>::Blend(
+            candle_func<level_t>(t + offset_, speed_, jitter_), color_off_, color_on_);
     }
 };
 
@@ -217,16 +229,16 @@ enum class EvalType : uint8_t { NONE = 0, CONSTANT, BLINK, BREATHE, CANDLE, USER
 // Type-safe discriminated union holding the active brightness evaluator.
 // Dispatches Period() and Eval() via switch, no virtual functions for
 // built-in effects. The USER arm calls through the user's virtual pointer.
-template<typename Brightness>
+template<typename Value>
 struct EvalStorage {
     EvalType type = EvalType::NONE;
 
     union Data {
-        ConstantBrightnessEvaluator<Brightness> constant;
-        BlinkBrightnessEvaluator<Brightness> blink;
-        BreatheBrightnessEvaluator<Brightness> breathe;
-        CandleBrightnessEvaluator<Brightness> candle;
-        BrightnessEvaluator<Brightness>* user;
+        ConstantBrightnessEvaluator<Value> constant;
+        BlinkBrightnessEvaluator<Value> blink;
+        BreatheBrightnessEvaluator<Value> breathe;
+        CandleBrightnessEvaluator<Value> candle;
+        BrightnessEvaluator<Value>* user;
         Data() {}
         ~Data() {}
     } data;
@@ -250,7 +262,7 @@ struct EvalStorage {
         }
     }
 
-    Brightness Eval(period_t t) const {
+    Value Eval(period_t t) const {
         switch (type) {
             case EvalType::CONSTANT:
                 return data.constant.Eval(t);
@@ -263,37 +275,12 @@ struct EvalStorage {
             case EvalType::USER:
                 return data.user->Eval(t);
             default:
-                return BrightnessTraits<Brightness>::kZeroBrightness;
+                return ValueTraits<Value>::kOffColor();
         }
     }
 };
 
 // ===== Template Helper Function Implementations =====
-
-// Scale a value by a factor. Properties:
-//   scale(0, f) == 0 for all f
-//   scale(x, max) == x for all x (where max is the maximum value for the type)
-// This algorithm avoids division, but is not 100% accurate, but "good enough".
-// It is the same algorithmn used in FastLED.
-template<typename Brightness>
-Brightness scale(Brightness val, Brightness factor) {
-    // Use sizeof to determine type at compile time (optimizes to same code as if constexpr)
-    if (sizeof(Brightness) == 1) {
-        return (static_cast<uint16_t>(val) * static_cast<uint16_t>(1 + factor)) >> 8;
-    } else {
-        return (static_cast<uint32_t>(val) * static_cast<uint32_t>(1 + factor)) >> 16;
-    }
-}
-
-// Linear interpolation: map val from [0,max] to [a,b]
-template<typename Brightness>
-Brightness lerp(Brightness val, Brightness a, Brightness b) {
-    constexpr auto kMax = BrightnessTraits<Brightness>::kFullBrightness;
-    // Optimize for most common case: full range
-    if (a == 0 && b == kMax) return val;
-    const Brightness delta = b - a;
-    return a + scale<Brightness>(val, delta);
-}
 
 // Fade-on function: approximates exp(sin(x)) curve for smooth LED fading
 // 8-bit specialization uses pre-computed table from jled_effects.cpp

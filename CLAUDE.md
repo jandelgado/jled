@@ -2,7 +2,7 @@
 
 Non-blocking, time-driven C++14 library for LED control (blink, breathe, fade). LEDs group for parallel or sequential control.
 
-**Hard constraints** (core logic in `src/`): no float, dynamic allocation, exceptions, RTTI, `delay()`, or blocking ops. Templates over virtual functions. Backwards-compatible public API; break only with a major version bump.
+**Hard constraints** (core logic in `src/`): no float, dynamic allocation, exceptions, RTTI, `delay()`, or blocking ops. Templates over virtual functions. Backwards-compatible public API; break only with a major version bump. `constexpr` functions must be C++11-legal (single `return` statement, no local variables/`if`): the AVR (Uno) and ESP32 Arduino cores force `-std=gnu++11` regardless of what the underlying compiler actually supports, unlike other boards (e.g. `esp8266`, `nucleo_f401re`) which already build with `-std=gnu++17`.
 
 ## Repository Structure
 
@@ -25,7 +25,7 @@ PlatformIO + Make inside `devbox shell`. Discover targets with `make help`.
 - **Format**: `.clang-format` (Google). `make format` / `make format-check` (legacy: `make lint`).
 - **Static analysis**: `make lint-tidy` (clang-tidy); see `doc/LINTING_GUIDE.md`.
 - **Naming**: `PascalCase` classes/methods, `snake_case_` private members, `kPascalCase` constants, `lowercase_t` aliases.
-- Prefer `constexpr` over `#define`. No `constexpr` on functions with `if` (C++14 limit); `if (sizeof(Brightness) == 1)` stands in for `if constexpr` until C++17.
+- Prefer `constexpr` over `#define`. `constexpr` functions must stay C++11-legal (see Hard constraints above): a single `return` statement, no local variables, no `if`/`else`; build a ternary expression instead, splitting out a helper function to avoid locals if needed (see `scale_bit_depth`/`detail::ScaleUp` in `src/scale_bit_depth.h`). `if (sizeof(Brightness) == 1)` stands in for `if constexpr` in non-`constexpr` functions until C++17.
 - Use `= delete` and `override`.
 
 ## Architecture
@@ -58,7 +58,7 @@ JLed led = JLed(21).DelayBefore(1500).Breathe(500).Repeat(5).MaxBrightness(150);
 ## Common Tasks
 
 - **New effect**: evaluator in `src/jled_effects.h`, fluent method in `src/jled_base.h` (ref `BlinkBrightnessEvaluator` / `TJLed::Blink`). Add tests, an example, a `README.md` entry.
-- **New HAL**: copy `src/arduino_hal.h`, add detection in `src/jled.h`, add `test/test_[platform]_hal.cpp`. The HAL concept's `analogWrite()` requires two arguments, `analogWrite<Color>(Color val, bool invert)`; if your HAL has no native inversion capability, implement a plain single-argument `analogWrite(Color val)` and wrap it in `InvertableHal<YourHal>` (`src/invertable_hal.h`) to get software inversion for free. The HAL concept also requires `void SetLowActive(bool)`, called once from `LowActive()`; a HAL with a hardware polarity register uses it to pre-arm that register, while `InvertableHal` implements it as a no-op for HALs without one. See `Esp32Hal`/`PicoHal` for examples of the former.
+- **New HAL**: copy `src/arduino_hal.h`, add detection in `src/jled.h`, add `test/test_[platform]_hal.cpp`. The HAL concept's `analogWrite()` requires two arguments, `analogWrite<Level>(Level val, bool invert)`; if your HAL has no native inversion capability, implement a plain single-argument `analogWrite(Level val)` and wrap it in `InvertableHal<YourHal>` (`src/invertable_hal.h`) to get software inversion for free. The HAL concept also requires `void SetLowActive(bool)`, called once from `LowActive()`; a HAL with a hardware polarity register uses it to pre-arm that register, while `InvertableHal` implements it as a no-op for HALs without one. See `Esp32Hal`/`PicoHal` for examples of the former.
 - **Bug fix**: failing test first, then fix, then `make test`, `make coverage`, `make lint`.
 
 Every change adds tests. Run `make lint && make test` before commit. Don't change a test to make it pass; fix the code. Correctness over completeness: don't guess or invent APIs/files/configs; label assumptions; ask when unsure.

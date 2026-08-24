@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2026 Jan Delgado <jdelgado[at]gmx.net>
+// Copyright (c) 2026 Jan Delgado <jdelgado[at]gmx.net>
 // https://github.com/jandelgado/jled
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -21,26 +21,30 @@
 //
 #pragma once
 
+#include <inttypes.h>
+
+// HSV<T>: input type for hsv_to_rgb() (value_rgb.h), so a color can be
+// specified as hue/saturation/value and converted to the RGBColor<T> that
+// TJLedRGB actually stores/animates. Never itself a TJLed<Value>'s Value
+// type, so it carries no ValueTraits specialization.
 namespace jled {
 
-template<typename T> struct ValueTraits;    // fwd decl.
+template<typename T>
+struct HSV {
+    T h, s, v;  // all in [0, ValueTraits<T>::kMaxValue()]; h spans the full
+                // color wheel over 0..kMaxValue(), as in FastLED's CHSV.
 
-// Turns a a HAL with only a single analogWrite(Level) method to the two-argument
-// analogWrite(Level, bool invert) and SetLowActive(bool) contract required by TJLed
-// and applies inversion the in software.
-template<typename Hal>
-class InvertableHal : public Hal {
- public:
-    using Hal::Hal;
-
-    template<typename Value>
-    void analogWrite(Value val, bool invert) const {
-        // inversion is done in software, works with scalar types and the RGB type
-        Hal::template analogWrite<Value>(invert ? ValueTraits<Value>::Invert(val) : val);
-    }
-
-    // Inversion is done in analogWrite() for this HAL
-    void SetLowActive(bool f) const {(void)f;}
+    constexpr HSV WithH(T nh) const { return {nh, s, v}; }
+    constexpr HSV WithV(T nv) const { return {h, s, nv}; }
 };
+
+template<typename T>
+constexpr bool operator==(HSV<T> a, HSV<T> b) {
+    return a.h == b.h && a.s == b.s && a.v == b.v;
+}
+template<typename T>
+constexpr bool operator!=(HSV<T> a, HSV<T> b) {
+    return !(a == b);
+}
 
 }  // namespace jled

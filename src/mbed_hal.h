@@ -25,8 +25,8 @@
 
 #include <mbed.h>
 
-#include "brightness.h"
 #include "jled_std.h"
+#include "scale_bit_depth.h"
 
 namespace jled {
 
@@ -45,13 +45,13 @@ class MbedHal {
         }
     }
 
-    template<typename Brightness>
-    void analogWrite(Brightness val) const {
+    template<typename Level>
+    void analogWrite(Level val) const {
         if (!initialized_) {
             new (pwmout_buf_.data) PwmOut(pin_);
             initialized_ = true;
         }
-        const uint16_t duty = jled::scaleToNative<kResBits_>(val);
+        const uint16_t duty = jled::scale_bit_depth<kResBits_>(val);
         // Mbed PwmOut::write() takes a float in [0.0, 1.0]
         pwmout()->write(static_cast<float>(duty) / static_cast<float>(kMaxBrightness));
     }
