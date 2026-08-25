@@ -76,6 +76,9 @@ TEST_JLED_GROUP_OBJECTS=$(TEST_JLED_GROUP_SRC:.cpp=.o)
 TEST_RGB_HAL_SRC=test_rgb_hal.cpp test_main.cpp ${CATCH}
 TEST_RGB_HAL_OBJECTS=$(TEST_RGB_HAL_SRC:.cpp=.o)
 
+TEST_WRITER_HAL_SRC=test_writer_hal.cpp test_main.cpp ${CATCH}
+TEST_WRITER_HAL_OBJECTS=$(TEST_WRITER_HAL_SRC:.cpp=.o)
+
 TEST_JLED_RGB_SRC=Arduino.cpp test_jled_rgb.cpp test_main.cpp ../src/jled_effects.cpp \
 				  ../src/value_rgb.cpp ${CATCH}
 TEST_JLED_RGB_OBJECTS=$(TEST_JLED_RGB_SRC:.cpp=.o)
@@ -94,8 +97,8 @@ all: bin bin/test_arduino_mock  \
 	 bin/test_example_morse bin/test_value_scalar bin/test_scale_bit_depth bin/test_scale_lerp \
 	 bin/test_fadeon_func \
 	 bin/test_invertable_hal bin/test_jled_group bin/test_stm32cube_hal \
-	 bin/test_value_hsv bin/test_value_rgb bin/test_rgb_hal bin/test_jled_rgb \
-	 bin/test_jled_rgb_hd bin/test_color_palette
+	 bin/test_value_hsv bin/test_value_rgb bin/test_rgb_hal bin/test_writer_hal \
+	 bin/test_jled_rgb bin/test_jled_rgb_hd bin/test_color_palette
 
 bin/test_arduino_mock: $(TEST_ARDUINO_MOCK_OBJECTS)
 	$(CXX) -o $@ $(LDFLAGS) $(TEST_ARDUINO_MOCK_OBJECTS)
@@ -159,6 +162,9 @@ bin/test_stm32cube_hal: $(TEST_STM32CUBE_OBJECTS)
 bin/test_rgb_hal: $(TEST_RGB_HAL_OBJECTS)
 	$(CXX) -o $@ $(LDFLAGS) $(TEST_RGB_HAL_OBJECTS)
 
+bin/test_writer_hal: $(TEST_WRITER_HAL_OBJECTS)
+	$(CXX) -o $@ $(LDFLAGS) $(TEST_WRITER_HAL_OBJECTS)
+
 bin/test_jled_rgb: $(TEST_JLED_RGB_OBJECTS)
 	$(CXX) -o $@ $(LDFLAGS) $(TEST_JLED_RGB_OBJECTS)
 
@@ -192,6 +198,7 @@ test: depend all
 	./bin/test_jled_group
 	./bin/test_stm32cube_hal
 	./bin/test_rgb_hal
+	./bin/test_writer_hal
 	./bin/test_jled_rgb
 	./bin/test_jled_rgb_hd
 	./bin/test_color_palette
@@ -211,7 +218,7 @@ clobber: clean
 
 depend: .depend
 
-.depend: $(TEST_ARDUINO_MOCK_SRC) $(TEST_JLED_SRC) $(TEST_ESP32_SRC) $(TEST_ESP32_LEGACY_SRC) $(TEST_ESP8266_HAL_SRC) $(TEST_ARDUINO_SRC) $(TEST_INVERTABLE_HAL_SRC) $(TEST_MBED_SRC) $(TEST_PICO_SRC) $(TEST_MORSE_SRC) $(TEST_LIGHT_SCALAR_SRC) $(TEST_SCALE_BIT_DEPTH_SRC) $(TEST_SCALE_LERP_SRC) $(TEST_LIGHT_HSV_SRC) $(TEST_LIGHT_RGB_SRC) $(TEST_FADEON_SRC) $(TEST_JLED_GROUP_SRC) $(TEST_STM32CUBE_SRC) $(TEST_RGB_HAL_SRC) $(TEST_JLED_RGB_SRC) $(TEST_JLED_RGB_HD_SRC) $(TEST_COLOR_PALETTE_SRC)
+.depend: $(TEST_ARDUINO_MOCK_SRC) $(TEST_JLED_SRC) $(TEST_ESP32_SRC) $(TEST_ESP32_LEGACY_SRC) $(TEST_ESP8266_HAL_SRC) $(TEST_ARDUINO_SRC) $(TEST_INVERTABLE_HAL_SRC) $(TEST_MBED_SRC) $(TEST_PICO_SRC) $(TEST_MORSE_SRC) $(TEST_LIGHT_SCALAR_SRC) $(TEST_SCALE_BIT_DEPTH_SRC) $(TEST_SCALE_LERP_SRC) $(TEST_LIGHT_HSV_SRC) $(TEST_LIGHT_RGB_SRC) $(TEST_FADEON_SRC) $(TEST_JLED_GROUP_SRC) $(TEST_STM32CUBE_SRC) $(TEST_RGB_HAL_SRC) $(TEST_JLED_RGB_SRC) $(TEST_JLED_RGB_HD_SRC) $(TEST_COLOR_PALETTE_SRC) $(TEST_WRITER_HAL)
 	@echo updating dependencies in .depend
 	@rm -f ./.depend
 	@$(CC) -I ../src -I . -I ./pico-sdk -MM $^ > .depend

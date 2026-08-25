@@ -1302,7 +1302,6 @@ Example sketches are provided in the [examples](examples/) directory.
 - [Fade from-to effect](examples/fade_from_to)
 - [Pulse effect](examples/pulse)
 - [RGB LED blink effect with JLedRGB](examples/rgb)
-- [RGB LED color wheel sweep with JLedRGB](examples/color_wheel)
 - [Controlling a group of LEDs sequentially](examples/group_sequence)
 - [Reversing/bouncing a group of LEDs (Cylon/Larson scanner)](examples/group_reverse)
 - [Controlling a group of LEDs in parallel](examples/group_parallel)
@@ -1314,6 +1313,7 @@ Example sketches are provided in the [examples](examples/) directory.
 - [JLed lifecycle events](examples/jled_lifecycle)
 - [Group lifecycle events](examples/group_lifecycle)
 - [Custom HAL example](examples/custom_hal)
+- [Driving a WS2812B strip via a FastLED HAL](examples/fastled) using the `WriterHal` abstraction
 - [Custom PCA9685 HAL](https://github.com/jandelgado/jled-pca9685-hal)
 - [Dynamically switch sequences](https://github.com/jandelgado/jled-example-switch-sequence)
 - [STM32 mbed framework demo](examples/mbed_demo)
@@ -1353,6 +1353,12 @@ used. During the unit tests, mocked HAL instances are used, enabling tests to
 check the generated output. The [Custom HAL example](examples/custom_hal)
 provides an example for a user defined HAL.
 
+### Writing to a user-owned target
+
+`jled::WriterHal` is a ready-made HAL for cases where JLed should not drive GPIO directly, but
+instead write its output into a user-provided target, such as an array consumed by another library.
+See the [FastLED example](examples/fastled) for how this is used to drive Neopixel strips.
+
 ## Unit tests
 
 JLed comes with an exhaustive host-based unit test suite. Info on how to run
@@ -1360,6 +1366,7 @@ the host-based provided unit tests [is provided here](test/README.md).
 
 ## Contributing
 
+- open an issue to discuss your idea
 - fork this repository
 - create your feature branch
 - add code
