@@ -380,7 +380,11 @@ class TJLed : public JLedBase {
         };
 
         const auto period = eval_storage_.Period();
-        const auto cycle_period = period + delay_after_;
+        // 32 bit on purpose: both operands are uint16_t, so letting this deduce
+        // would evaluate the sum and the cycle_period * num_repetitions_ product
+        // below in int, which is only 16 bits wide on AVR and wraps there for
+        // ordinary run lengths (e.g. Blink(500, 500).Repeat(100) = 100000ms).
+        const uint32_t cycle_period = static_cast<uint32_t>(period) + delay_after_;
 
         // Cycle position is computed before the terminal check (and the
         // resulting event bits accumulated regardless of which path

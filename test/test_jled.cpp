@@ -696,6 +696,21 @@ TEST_CASE("On* callback chain invokes matching hooks on a coincident tick", "[jl
     CHECK(doneCount == 1);
 }
 
+TEST_CASE("run length is cycle_period * repetitions even when that exceeds 16 bits", "[jled]") {
+    // 1000ms cycle x 100 repetitions = 100000ms, which does not fit in 16 bits.
+    // The end-time computation must therefore happen in 32 bits. On AVR, where
+    // int is 16 bits wide, computing it in int truncates 100000 to 34464 and
+    // the effect stops after roughly a third of its length.
+    TestJLed jled = TestJLed(1).Blink(500, 500).Repeat(100);
+
+    CHECK(jled.Update(0).IsRunning());
+    CHECK(jled.Update(99998).IsRunning());
+
+    auto last = jled.Update(99999);
+    CHECK(last.IsDone());
+    CHECK_FALSE(last.IsRunning());
+}
+
 TEST_CASE("OnEnterDelayAfter never fires across a full run when delay_after_ == 0", "[jled]") {
     TestJLed jled = TestJLed(1).Blink(2, 2).Repeat(3);
 
