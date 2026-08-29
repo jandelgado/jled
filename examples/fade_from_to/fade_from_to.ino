@@ -9,7 +9,7 @@ auto led = JLed(5).On(1);  // start with LED turned on
 void setup() {}
 
 void loop() {
-    static JLed::brightness_t last_to = 255;  // uint8_t for JLed, uint16_t for JLedHD
+    static JLed::value_t last_to = 255;  // uint8_t for JLed, uint16_t for JLedHD
 
     if (!led.Update()) {
         // when effect is done (Update() returns false),

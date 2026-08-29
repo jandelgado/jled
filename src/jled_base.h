@@ -53,7 +53,7 @@ class TJLed : public JLedBase {
     Value Eval(period_t t) const { return eval_storage_.Eval(t); }
 
  public:
-    using brightness_t = Value;
+    using value_t = Value;
     using level_t = typename ValueTraits<Value>::level_t;
 
     TJLed() = delete;
@@ -92,7 +92,7 @@ class TJLed : public JLedBase {
     Hal& GetHal() { return hal_; }
 
     // Set or clear physical LED low-active polarity. When on, every signal
-    // physically output to a pin is inverted. Every HAL must implement
+    // physically output to a pin is inverted. Therefore every HAL must implement
     // SetLowActive(bool). It is notified once here so a HAL with a hardware
     // inversion can use it instead of calculating the inverse in analogWrite()
     Derived& LowActive(bool on = true) {
@@ -172,16 +172,12 @@ class TJLed : public JLedBase {
         return Reset();
     }
 
-    // Set effect to Candle light simulation. Effect changes between given color_on
-    // and color_off brightness/colors values. Offset controls how in sync individual candle
-    // effects are (0 for in sync).
-    // When offset is omitted, a value derived from this instance's address
-    // and the current time is used, so multiple LEDs with default parameters
-    // automatically flicker independently, and the pattern also varies
-    // across power cycles (the address alone would be link-time fixed on
-    // most embedded targets and thus identical every boot). Pass an explicit
-    // offset (in ms) to control the phase precisely, e.g. to build a
-    // multi-LED wave/chase effect.
+    // Set effect to Candle light simulation. Effect changes between given color_on and color_off
+    // brightness/colors values. Offset controls how in sync individual candle effects are (0 for in
+    // sync). When offset is omitted, a value derived from this instance's address and the current
+    // time is used, so multiple LEDs with default parameters automatically flicker independently.
+    // Pass an explicit offset (in ms) to control the phase precisely, e.g. to build a multi-LED
+    // wave/chase effect.
     Derived& Candle(Value color_on = ValueTraits<Value>::kOnColor(),
                     Value color_off = ValueTraits<Value>::kOffColor(), uint8_t speed = 6,
                     uint8_t jitter = 15, uint16_t period = 0xffff,
@@ -229,7 +225,7 @@ class TJLed : public JLedBase {
 
     // Stop current effect and turn LED immeadiately off. Further calls to
     // Update() will have no effect. `mode` controls what `off` means (
-    // set to definied minimum brioghtness, turn fully off, or just keep the
+    // set to definied minimum brightness, turn fully off, or just keep the
     // current value).
     Derived& Stop(eIdleMode mode = eIdleMode::TO_MIN_BRIGHTNESS) {
         if (mode != eIdleMode::KEEP_CURRENT) {
@@ -281,9 +277,8 @@ class TJLed : public JLedBase {
     level_t MaxBrightness() const { return maxBrightness_; }
 
     // Write a brightness/color value directly out to the hardware using the HAL. Bypasses the
-    // effect state machine ("raw" = no Update()/Eval()); the HAL only handles
-    // resolution scaling and optional inversion for low-active wiring. Used
-    // e.g. for forcing an output from a lifecycle callback (see UpdateResult).
+    // effect state machine ("raw" = no Update()/Eval()). Used e.g. for forcing an output from a
+    // lifecycle callback (see UpdateResult).
     Derived& WriteRaw(Value val) {
         hal_.analogWrite(val, IsLowActive());
         return static_cast<Derived&>(*this);
@@ -292,7 +287,7 @@ class TJLed : public JLedBase {
     // update color/brightness of LED using the given effect evaluator and the
     // current time. Returns an UpdateResult carrying whether the effect is
     // still running, which lifecycle events fired this tick, and the
-    // brightness value (if any) written to the output this tick (the
+    // brightness value/color (if any) written to the output this tick (the
     // calculated value after min- and max-brightness scaling was applied).
     //
     //  (brightness)                       ________________
@@ -333,10 +328,7 @@ class TJLed : public JLedBase {
         if (state_ == ST_STOPPED) {
             // A run ends either by completing naturally (kDone emitted on the
             // terminal tick below) or via Stop(). Either way kDone fires exactly
-            // once. done_ gates it: the terminal path sets done_ = true as it
-            // emits kDone; Stop() leaves done_ = false, so the first Update()
-            // after Stop() emits kDone here, then done_ suppresses repeats. An
-            // effect-less LED never emits kDone.
+            // once and done_ gates it.
             if (!done_ && eval_storage_.IsSet()) {
                 done_ = true;
                 return noResult(false, static_cast<EventSet>(Event::kDone));
@@ -478,8 +470,7 @@ class TJLed : public JLedBase {
     static constexpr uint16_t kRepeatForever = 65535;
     uint16_t num_repetitions_ = 1;
 
-    // Sentinel for Candle()'s offset parameter, meaning "derive an offset
-    // automatically".
+    // Sentinel for Candle()'s offset parameter, meaning "derive an offset automatically".
     static constexpr uint16_t kCandleOffsetAuto = 0xffff;
 
     // We store the timestamp the effect was last updated to avoid multiple

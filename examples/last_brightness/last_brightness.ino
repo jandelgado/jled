@@ -25,8 +25,8 @@ void loop() {
 
     button.loop();
     const auto r = led.Update();
-    if (r.HasBrightness()) {
-        lastBrightness = r.Brightness();
+    if (r.HasValue()) {
+        lastBrightness = r.Value();
     }
 
     if (button.isPressed()) {

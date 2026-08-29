@@ -62,7 +62,7 @@ lint-tidy-tests: phony ## run clang-tidy static analysis on src/test (modern, co
 
 test: phony ## run unit tests with coverage, plus doc-site generator tests
 	$(RUN) .tools/doc-site/test_generate_site.py
-	$(RUN) $(MAKE) -C test coverage
+	$(RUN) $(MAKE) -j "$(shell getconf _NPROCESSORS_ONLN)" -C test coverage
 
 ACT_CACHE_DIR      = $(HOME)/.cache/act/jled-cache
 ACT_CACHE          = --cache-server-path $(ACT_CACHE_DIR)

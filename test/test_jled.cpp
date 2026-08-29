@@ -573,32 +573,32 @@ TEST_CASE("Handles millis overflow during effect", "[jled]") {
     CHECK(0 == jled.GetHal().Value());
 }
 
-TEST_CASE("UpdateResult::Brightness() reports the value written to the HAL", "[jled]") {
+TEST_CASE("UpdateResult::Value() reports the value written to the HAL", "[jled]") {
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{0, 10});
     TestJLed jled = TestJLed(1).UserFunc(&eval);
 
     auto r0 = jled.Update(0);
-    REQUIRE(r0.HasBrightness());
-    CHECK(r0.Brightness() == 0);
+    REQUIRE(r0.HasValue());
+    CHECK(r0.Value() == 0);
 
     auto r1 = jled.Update(1);
-    REQUIRE(r1.HasBrightness());
-    CHECK(r1.Brightness() == 10);
+    REQUIRE(r1.HasValue());
+    CHECK(r1.Value() == 10);
 }
 
-TEST_CASE("UpdateResult::HasBrightness() is false when nothing was written this tick", "[jled]") {
+TEST_CASE("UpdateResult::HasValue() is false when nothing was written this tick", "[jled]") {
     auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{0, 10});
     TestJLed jled = TestJLed(1).UserFunc(&eval).DelayBefore(1);
 
     auto r0 = jled.Update(0);
-    CHECK_FALSE(r0.HasBrightness());  // still within delay_before_
+    CHECK_FALSE(r0.HasValue());  // still within delay_before_
 
     auto r1 = jled.Update(5);
-    REQUIRE(r1.HasBrightness());
-    CHECK(r1.Brightness() == 10);
+    REQUIRE(r1.HasValue());
+    CHECK(r1.Value() == 10);
 
     auto r2 = jled.Update(5);  // effect already stopped by t=5
-    CHECK_FALSE(r2.HasBrightness());
+    CHECK_FALSE(r2.HasValue());
 }
 
 // --- Lifecycle events (UpdateResult) ---
@@ -712,8 +712,8 @@ TEST_CASE("single-tick effect fires kStart|kFirstOutput|kRepeatStart|kDone on it
     CHECK(r.IsFirstOutput());
     CHECK(r.IsRepeatStarted());
     CHECK(r.IsDone());
-    REQUIRE(r.HasBrightness());
-    CHECK(r.Brightness() == 255);
+    REQUIRE(r.HasValue());
+    CHECK(r.Value() == 255);
 }
 
 TEST_CASE("repeated single-tick effect: final kRepeatStart lands on the terminal tick", "[jled]") {
