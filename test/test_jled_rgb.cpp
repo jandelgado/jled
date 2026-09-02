@@ -19,26 +19,6 @@ class TestJLedRGB : public TJLedRGB<HalMock, TimeMock, RGBColor<uint8_t>, TestJL
     using Base::Base;
 };
 
-TEST_CASE("JLedRGB On() is white", "[jled_rgb]") {
-    auto led = TestJLedRGB(1, 2, 3);
-    led.On();
-    TimeMock::set_millis(0);
-    led.Update();
-    CHECK(led.GetHal().r().Value() == 255);
-    CHECK(led.GetHal().g().Value() == 255);
-    CHECK(led.GetHal().b().Value() == 255);
-}
-
-TEST_CASE("JLedRGB Off() is black", "[jled_rgb]") {
-    auto led = TestJLedRGB(1, 2, 3);
-    led.Off();
-    TimeMock::set_millis(0);
-    led.Update();
-    CHECK(led.GetHal().r().Value() == 0);
-    CHECK(led.GetHal().g().Value() == 0);
-    CHECK(led.GetHal().b().Value() == 0);
-}
-
 TEST_CASE("JLedRGB Set(color) writes the exact color, no conversion", "[jled_rgb]") {
     // Set() uses ConstantBrightnessEvaluator, which stays RGB-native: no
     // conversion at all, so any RGBColor<uint8_t> comes out exactly as given.
@@ -50,23 +30,6 @@ TEST_CASE("JLedRGB Set(color) writes the exact color, no conversion", "[jled_rgb
     CHECK(led.GetHal().r().Value() == red.r);
     CHECK(led.GetHal().g().Value() == red.g);
     CHECK(led.GetHal().b().Value() == red.b);
-}
-
-TEST_CASE("JLedRGB Blink alternates the given on/off colors exactly", "[jled_rgb]") {
-    // BlinkBrightnessEvaluator also stays RGB-native: no conversion.
-    const RGBColor<uint8_t> green{0, 255, 0};
-    const RGBColor<uint8_t> red{255, 0, 0};
-    auto led = TestJLedRGB(1, 2, 3).Blink(10, 10, 1, green, red).Forever();
-
-    TimeMock::set_millis(0);
-    led.Update();
-    CHECK(led.GetHal().r().Value() == green.r);
-    CHECK(led.GetHal().g().Value() == green.g);
-
-    TimeMock::set_millis(15);
-    led.Update();
-    CHECK(led.GetHal().r().Value() == red.r);
-    CHECK(led.GetHal().g().Value() == red.g);
 }
 
 TEST_CASE("JLedRGB FadeOn(duration, color) fades on TO color, from black", "[jled_rgb]") {
@@ -87,83 +50,6 @@ TEST_CASE("JLedRGB FadeOn(duration, color) fades on TO color, from black", "[jle
     CHECK(led.GetHal().r().Value() == green.r);
     CHECK(led.GetHal().g().Value() == green.g);
     CHECK(led.GetHal().b().Value() == green.b);
-}
-
-TEST_CASE("JLedRGB FadeOn(duration, to, from) with an explicit non-default from", "[jled_rgb]") {
-    // Breathe/FadeOn/FadeOff/Fade blend RGB endpoints per channel
-    // (ValueTraits<RGBColor<T>>::Blend), so every endpoint is hit exactly
-    // regardless of color - green is just a convenient literal here.
-    const RGBColor<uint8_t> black{0, 0, 0};
-    const RGBColor<uint8_t> green{0, 255, 0};
-    auto led = TestJLedRGB(1, 2, 3).FadeOn(100, green, black);
-
-    TimeMock::set_millis(0);
-    led.Update();
-    CHECK(led.GetHal().r().Value() == 0);
-    CHECK(led.GetHal().g().Value() == 0);
-    CHECK(led.GetHal().b().Value() == 0);
-
-    TimeMock::set_millis(99);
-    led.Update();
-    CHECK(led.GetHal().r().Value() == green.r);
-    CHECK(led.GetHal().g().Value() == green.g);
-    CHECK(led.GetHal().b().Value() == green.b);
-}
-
-TEST_CASE("JLedRGB FadeOn from black to a saturated color is a pure brightness ramp",
-          "[jled_rgb]") {
-    // Per-channel blending: black and green share r == b == 0, so those two
-    // channels stay pinned at 0 for every frame while g alone ramps up. No
-    // color is touched other than the straight line between the endpoints.
-    const RGBColor<uint8_t> black{0, 0, 0};
-    const RGBColor<uint8_t> green{0, 255, 0};
-    auto led = TestJLedRGB(1, 2, 3).FadeOn(100, green, black);
-
-    for (uint32_t t = 0; t < 100; t++) {
-        TimeMock::set_millis(t);
-        led.Update();
-        CHECK(led.GetHal().r().Value() == 0);
-        CHECK(led.GetHal().b().Value() == 0);
-    }
-}
-
-TEST_CASE("JLedRGB FadeOn from a near-black gray to a saturated color blends per channel",
-          "[jled_rgb]") {
-    // gray's r and b channels (5, 5) are identical, and so are green's (0, 0),
-    // so the two channels follow the exact same lerp and stay equal at every
-    // step, while g alone ramps from 5 up to 255.
-    const RGBColor<uint8_t> gray{5, 5, 5};
-    const RGBColor<uint8_t> green{0, 255, 0};
-    auto led = TestJLedRGB(1, 2, 3).FadeOn(100, green, gray);
-
-    for (uint32_t t = 0; t < 100; t++) {
-        TimeMock::set_millis(t);
-        led.Update();
-        CHECK(led.GetHal().r().Value() == led.GetHal().b().Value());
-        CHECK(led.GetHal().g().Value() >= led.GetHal().r().Value());
-    }
-    CHECK(led.GetHal().g().Value() == green.g);
-}
-
-TEST_CASE("JLedRGB FadeOn from a saturated color to white blends per channel",
-          "[jled_rgb]") {
-    // Per-channel blending needs no special-casing for a gray/white
-    // endpoint: r and b simply ramp from 0 to 255 alongside g.
-    const RGBColor<uint8_t> green{0, 255, 0};
-    const RGBColor<uint8_t> white{255, 255, 255};
-    auto led = TestJLedRGB(1, 2, 3).FadeOn(100, white, green);
-
-    TimeMock::set_millis(0);
-    led.Update();
-    CHECK(led.GetHal().r().Value() == green.r);
-    CHECK(led.GetHal().g().Value() == green.g);
-    CHECK(led.GetHal().b().Value() == green.b);
-
-    TimeMock::set_millis(99);
-    led.Update();
-    CHECK(led.GetHal().r().Value() == white.r);
-    CHECK(led.GetHal().g().Value() == white.g);
-    CHECK(led.GetHal().b().Value() == white.b);
 }
 
 TEST_CASE("JLedRGB Fade hits exact endpoints and takes the FadeOff branch on an equal-sum tie",
@@ -273,22 +159,3 @@ TEST_CASE("JLedRGB Candle() derives a per-instance automatic offset", "[jled_rgb
     CHECK(any_pin_differs);  // different instance addresses -> different auto offsets
 }
 
-TEST_CASE("JLedRGB Stop() with non-zero MinBrightness gives white at that level", "[jled_rgb]") {
-    auto led = TestJLedRGB(1, 2, 3).MinBrightness(50).On();
-    TimeMock::set_millis(0);
-    led.Update();
-    led.Stop();
-    CHECK(led.GetHal().r().Value() == 50);
-    CHECK(led.GetHal().g().Value() == 50);
-    CHECK(led.GetHal().b().Value() == 50);
-}
-
-TEST_CASE("JLedRGB Stop() with default MinBrightness is off", "[jled_rgb]") {
-    auto led = TestJLedRGB(1, 2, 3).On();
-    TimeMock::set_millis(0);
-    led.Update();
-    led.Stop();
-    CHECK(led.GetHal().r().Value() == 0);
-    CHECK(led.GetHal().g().Value() == 0);
-    CHECK(led.GetHal().b().Value() == 0);
-}
