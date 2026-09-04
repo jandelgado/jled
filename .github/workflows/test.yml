@@ -113,9 +113,11 @@ jobs:
           fi
           passed=(); failed=()
           for example in $(find examples -maxdepth 2 -name '*.ino' -printf '%P\n' | cut -d/ -f1 | sort -u); do
+            [[ "$example" == "fastled" && "${{ matrix.board }}" != "uno" ]] && continue
             extra_opts=()
             [[ "$example" == "morse" ]] && extra_opts+=(--lib=examples/morse)
             [[ "$example" == "last_brightness" || "$example" == "pause_resume" ]] && extra_opts+=(--project-option 'lib_deps = arduinogetstarted/ezButton@1.0.6')
+            [[ "$example" == "fastled" ]] && extra_opts+=(--project-option 'lib_deps = fastled/FastLED@3.10.3')
             echo "::group::$example"
             if pio ci --board="${{ matrix.board }}" --lib="src" \
                 "${extra_opts[@]}" ${{ matrix.extra_flags }} \

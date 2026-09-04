@@ -37,3 +37,9 @@ BinPackArguments: false
 # Keep "template<...>" without a space after the keyword (Google default
 # forces "template <...>").
 SpaceAfterTemplateKeyword: false
+
+# Pin the C++ standard instead of Auto: Auto guesses per file by scanning
+# for other C++11 markers, so a file/snippet whose only nested template is
+# the line being touched can get misdetected as C++03 and forced into
+# "Foo<Foo<int> >" instead of "Foo<Foo<int>>".
+Standard: Cpp11
