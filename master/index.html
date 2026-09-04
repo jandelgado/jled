@@ -1,0 +1,1940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JLed Documentation - master</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: #24292f;
+            display: flex;
+        }
+
+        .sidebar {
+            width: 220px;
+            flex-shrink: 0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            padding: 16px;
+            background: #f6f8fa;
+            border-right: 1px solid #d0d7de;
+            font-size: 14px;
+        }
+
+        .content {
+            margin-left: 220px;
+            padding: 32px 40px;
+            max-width: 900px;
+            min-width: 0;
+        }
+
+        select { width: 100%; margin-bottom: 16px; padding: 4px; }
+        .sidebar-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+        .sidebar-title { font-weight: 600; font-size: 15px; color: #24292f; }
+        .github-link { color: #57606a; }
+        .github-link:hover { color: #24292f; text-decoration: none; }
+        .github-link svg { fill: currentColor; display: block; }
+
+        nav { margin-bottom: 16px; }
+        nav h3 { font-size: 11px; font-weight: 600; text-transform: uppercase; color: #57606a; margin: 16px 0 4px; }
+        nav ul { list-style: none; margin: 0; padding: 0; }
+        nav li { margin: 1px 0; font-size: 13px; }
+        nav li.nav-level-1 { font-weight: 600; }
+        nav li.nav-level-2 { padding-left: 10px; }
+        nav li.nav-level-3 { padding-left: 20px; font-size: 12px; }
+        nav li.nav-level-4 { padding-left: 30px; font-size: 11px; color: #57606a; }
+
+        a { color: #0969da; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        /* Prose — rendered markdown content */
+        .prose h1, .prose h2 { border-bottom: 1px solid #d0d7de; padding-bottom: .3em; }
+        .prose h1 { font-size: 2em; }
+        .prose h2 { font-size: 1.5em; }
+        .prose h3 { font-size: 1.25em; }
+        .prose h1, .prose h2, .prose h3, .prose h4 { margin: 24px 0 16px; font-weight: 600; }
+        .prose p, .prose ul, .prose ol { margin: 0 0 16px; }
+        .prose ul, .prose ol { padding-left: 2em; }
+        .prose li > ul, .prose li > ol { margin: 0; }
+        .prose img { max-width: 100%; height: auto; }
+        .prose code { background: rgba(175,184,193,.2); padding: .2em .4em; border-radius: 3px; font: 85%/1 ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+        .prose pre { background: #f6f8fa; border-radius: 6px; padding: 16px; overflow-x: auto; margin: 0 0 16px; font: 0.75rem/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+        .prose pre code { background: none; padding: 0; font-size: 100%; }
+        .prose blockquote { border-left: 4px solid #d0d7de; padding: 0 1em; color: #57606a; margin: 0 0 16px; }
+        .prose table { border-collapse: collapse; width: 100%; margin: 0 0 16px; }
+        .prose th, .prose td { border: 1px solid #d0d7de; padding: 6px 13px; }
+        .prose th { background: #f6f8fa; font-weight: 600; }
+        .prose hr { border: 0; border-top: 1px solid #d0d7de; margin: 24px 0; }
+
+        /* Pygments syntax highlighting */
+        .highlight .c, .highlight .cm, .highlight .c1, .highlight .cs { color: #6e7781; font-style: italic }
+        .highlight .cp { color: #6e7781 }
+        .highlight .k, .highlight .kd, .highlight .kr, .highlight .kt { color: #cf222e }
+        .highlight .kc, .highlight .nb, .highlight .no, .highlight .nc { color: #0550ae }
+        .highlight .nf, .highlight .nd { color: #8250df }
+        .highlight .nt { color: #116329 }
+        .highlight .na { color: #0550ae }
+        .highlight .s, .highlight .s1, .highlight .s2, .highlight .sb, .highlight .sc,
+        .highlight .sd, .highlight .se, .highlight .sh, .highlight .si, .highlight .sx,
+        .highlight .sr, .highlight .ss { color: #0a3069 }
+        .highlight .m, .highlight .mf, .highlight .mh, .highlight .mi, .highlight .mo,
+        .highlight .il { color: #0550ae }
+        .highlight .o, .highlight .ow { font-weight: bold }
+        .highlight .err { color: #82071e; background: #ffebe9 }
+        .highlight .nv, .highlight .vc, .highlight .vg, .highlight .vi { color: #953800 }
+        .highlight .gd { color: #82071e; background: #ffebe9 }
+        .highlight .gi { color: #116329; background: #dafbe1 }
+
+        
+
+        @media (max-width: 700px) {
+            body { flex-direction: column; }
+            .sidebar { position: static; width: 100%; height: auto; border-right: none; border-bottom: 1px solid #d0d7de; }
+            .content { margin-left: 0; padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <span class="sidebar-title">JLed</span>
+            <a class="github-link"
+               href="https://github.com/jandelgado/jled/tree/master"
+               target="_blank" rel="noopener"
+               title="View master on GitHub">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="20" height="20"
+                     aria-label="GitHub">
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38
+                             0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13
+                             -.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66
+                             .07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15
+                             -.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0
+                             1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82
+                             1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01
+                             1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                </svg>
+            </a>
+        </div>
+        <select onchange="switchVersion(this.value)">
+            
+
+<option value="master" selected>
+    master (dev)
+</option>
+
+<option value="v4.15.0" >
+    v4.15.0 (latest)
+</option>
+
+<option value="v4.13.1" >
+    v4.13.1
+</option>
+
+<option value="v4.13.0" >
+    v4.13.0
+</option>
+
+<option value="v4.12.2" >
+    v4.12.2
+</option>
+
+<option value="v4.12.1" >
+    v4.12.1
+</option>
+
+<option value="v4.12.0" >
+    v4.12.0
+</option>
+
+<option value="v4.11.0" >
+    v4.11.0
+</option>
+
+<option value="v4.10.0" >
+    v4.10.0
+</option>
+
+<option value="v4.9.0" >
+    v4.9.0
+</option>
+
+<option value="v4.8.0" >
+    v4.8.0
+</option>
+
+<option value="v4.7.1" >
+    v4.7.1
+</option>
+
+<option value="v4.1.0" >
+    v4.1.0
+</option>
+
+<option value="v4.0.0" >
+    v4.0.0
+</option>
+
+<option value="v3.0.0" >
+    v3.0.0
+</option>
+
+<option value="v2.4.0" >
+    v2.4.0
+</option>
+
+<option value="v2.3.0" >
+    v2.3.0
+</option>
+
+<option value="v2.2.3" >
+    v2.2.3
+</option>
+
+<option value="v2.2.2" >
+    v2.2.2
+</option>
+
+<option value="v2.2.1" >
+    v2.2.1
+</option>
+
+<option value="v2.2.0" >
+    v2.2.0
+</option>
+
+<option value="v2.1.0" >
+    v2.1.0
+</option>
+
+<option value="v2.0.1" >
+    v2.0.1
+</option>
+
+<option value="v1.1.0" >
+    v1.1.0
+</option>
+
+
+        </select>
+        
+<nav>
+    <h3>On this page</h3>
+    <ul>
+    
+        <li class="nav-level-1"><a href="#example">Example</a></li>
+    
+        <li class="nav-level-1"><a href="#table-of-contents">Table of Contents</a></li>
+    
+        <li class="nav-level-1"><a href="#features">Features</a></li>
+    
+        <li class="nav-level-1"><a href="#cheat-sheet">Cheat Sheet</a></li>
+    
+        <li class="nav-level-1"><a href="#installation">Installation</a></li>
+    
+        <li class="nav-level-2"><a href="#arduino-ide">Arduino IDE</a></li>
+    
+        <li class="nav-level-2"><a href="#platformio">PlatformIO</a></li>
+    
+        <li class="nav-level-1"><a href="#usage">Usage</a></li>
+    
+        <li class="nav-level-2"><a href="#jled-vs-jledhd">JLed vs JLedHD</a></li>
+    
+        <li class="nav-level-2"><a href="#output-pipeline">Output pipeline</a></li>
+    
+        <li class="nav-level-2"><a href="#effects">Effects</a></li>
+    
+        <li class="nav-level-3"><a href="#static-on-and-off">Static on and off</a></li>
+    
+        <li class="nav-level-3"><a href="#blinking">Blinking</a></li>
+    
+        <li class="nav-level-3"><a href="#breathing">Breathing</a></li>
+    
+        <li class="nav-level-3"><a href="#candle">Candle</a></li>
+    
+        <li class="nav-level-3"><a href="#fadeon">FadeOn</a></li>
+    
+        <li class="nav-level-3"><a href="#fadeoff">FadeOff</a></li>
+    
+        <li class="nav-level-3"><a href="#fade">Fade</a></li>
+    
+        <li class="nav-level-3"><a href="#user-provided-brightness-function">User provided brightness function</a></li>
+    
+        <li class="nav-level-2"><a href="#delays-and-repetitions">Delays and repetitions</a></li>
+    
+        <li class="nav-level-3"><a href="#initial-delay-before-effect-starts">Initial delay before effect starts</a></li>
+    
+        <li class="nav-level-3"><a href="#delay-after-effect-finished">Delay after effect finished</a></li>
+    
+        <li class="nav-level-3"><a href="#repetitions">Repetitions</a></li>
+    
+        <li class="nav-level-2"><a href="#state-functions">State functions</a></li>
+    
+        <li class="nav-level-3"><a href="#update">Update</a></li>
+    
+        <li class="nav-level-3"><a href="#lifecycle-events">Lifecycle events</a></li>
+    
+        <li class="nav-level-3"><a href="#isrunning">IsRunning</a></li>
+    
+        <li class="nav-level-3"><a href="#reset">Reset</a></li>
+    
+        <li class="nav-level-3"><a href="#immediate-stop">Immediate Stop</a></li>
+    
+        <li class="nav-level-2"><a href="#pause-and-resume">Pause and Resume</a></li>
+    
+        <li class="nav-level-2"><a href="#misc-functions">Misc functions</a></li>
+    
+        <li class="nav-level-3"><a href="#low-active-for-inverted-output">Low active for inverted output</a></li>
+    
+        <li class="nav-level-3"><a href="#minimum-and-maximum-brightness-level">Minimum- and Maximum brightness level</a></li>
+    
+        <li class="nav-level-3"><a href="#writeraw">WriteRaw</a></li>
+    
+        <li class="nav-level-2"><a href="#controlling-a-group-of-leds">Controlling a group of LEDs</a></li>
+    
+        <li class="nav-level-3"><a href="#group-lifecycle-events">Group lifecycle events</a></li>
+    
+        <li class="nav-level-3"><a href="#reversing-and-bouncing-a-sequential-group">Reversing and bouncing a sequential group</a></li>
+    
+        <li class="nav-level-3"><a href="#jledrefgroup-pointer-based-groups-for-named-led-objects">JLedRefGroup, pointer-based groups for named LED objects</a></li>
+    
+        <li class="nav-level-3"><a href="#when-to-use-what">When to use what?</a></li>
+    
+        <li class="nav-level-2"><a href="#jledrgb">JLedRGB</a></li>
+    
+        <li class="nav-level-2"><a href="#jledrgbhd">JLedRGBHD</a></li>
+    
+        <li class="nav-level-1"><a href="#framework-notes">Framework notes</a></li>
+    
+        <li class="nav-level-1"><a href="#platform-notes">Platform notes</a></li>
+    
+        <li class="nav-level-2"><a href="#resolution-and-the-brightness-type">Resolution and the Brightness type</a></li>
+    
+        <li class="nav-level-3"><a href="#arduinohal-and-the-global-analogwriteresolution-limit">ArduinoHal and the global analogWriteResolution limit</a></li>
+    
+        <li class="nav-level-3"><a href="#jled_force_arduino_hal">JLED_FORCE_ARDUINO_HAL</a></li>
+    
+        <li class="nav-level-2"><a href="#esp8266">ESP8266</a></li>
+    
+        <li class="nav-level-2"><a href="#esp32">ESP32</a></li>
+    
+        <li class="nav-level-3"><a href="#using-esp-idf">Using ESP-IDF</a></li>
+    
+        <li class="nav-level-2"><a href="#stm32">STM32</a></li>
+    
+        <li class="nav-level-3"><a href="#arduino-framework">Arduino framework</a></li>
+    
+        <li class="nav-level-3"><a href="#stm32cube-native">STM32Cube (native)</a></li>
+    
+        <li class="nav-level-3"><a href="#mbed-framework">mbed framework</a></li>
+    
+        <li class="nav-level-2"><a href="#raspberry-pi-pico">Raspberry Pi Pico</a></li>
+    
+        <li class="nav-level-1"><a href="#example-sketches">Example sketches</a></li>
+    
+        <li class="nav-level-2"><a href="#building-examples-with-platformio">Building examples with PlatformIO</a></li>
+    
+        <li class="nav-level-2"><a href="#building-examples-with-the-arduino-ide">Building examples with the Arduino IDE</a></li>
+    
+        <li class="nav-level-1"><a href="#extending">Extending</a></li>
+    
+        <li class="nav-level-2"><a href="#support-new-hardware">Support new hardware</a></li>
+    
+        <li class="nav-level-2"><a href="#writing-to-a-user-owned-target">Writing to a user-owned target</a></li>
+    
+        <li class="nav-level-1"><a href="#unit-tests">Unit tests</a></li>
+    
+        <li class="nav-level-1"><a href="#contributing">Contributing</a></li>
+    
+        <li class="nav-level-1"><a href="#jled-50-migration-guide">JLed 5.0 migration guide</a></li>
+    
+        <li class="nav-level-2"><a href="#estopmode-renamed-to-eidlemode">eStopMode renamed to eIdleMode</a></li>
+    
+        <li class="nav-level-2"><a href="#jledsequence-to-jledgroup-migration">JLedSequence to JLedGroup migration</a></li>
+    
+        <li class="nav-level-2"><a href="#updateint16_t-plast-removed-use-updateresult-now">Update(int16_t* pLast) removed, use UpdateResult now</a></li>
+    
+        <li class="nav-level-2"><a href="#custom-brightness-evaluators-brightnessevaluator-is-now-a-template">Custom brightness evaluators: BrightnessEvaluator is now a template</a></li>
+    
+        <li class="nav-level-2"><a href="#kfullbrightnesskzerobrightness-valuetraitst">kFullBrightness/kZeroBrightness → ValueTraits&lt;T&gt;</a></li>
+    
+        <li class="nav-level-2"><a href="#custom-hals-and-tjled-subclasses-clock-and-value-are-now-explicit">Custom HALs and TJLed subclasses: Clock and Value are now explicit</a></li>
+    
+        <li class="nav-level-2"><a href="#candle-gains-color_oncolor_off-which-come-first">Candle() gains color_on/color_off, which come first</a></li>
+    
+        <li class="nav-level-2"><a href="#fadeon-parameter-order-to-moved-before-from">FadeOn() parameter order: to moved before from</a></li>
+    
+        <li class="nav-level-1"><a href="#faq">FAQ</a></li>
+    
+        <li class="nav-level-2"><a href="#how-do-i-check-if-a-jled-object-is-still-being-updated">How do I check if a JLed object is still being updated?</a></li>
+    
+        <li class="nav-level-2"><a href="#how-do-i-restart-an-effect">How do I restart an effect?</a></li>
+    
+        <li class="nav-level-2"><a href="#how-do-i-change-a-running-effect">How do I change a running effect?</a></li>
+    
+        <li class="nav-level-1"><a href="#author-and-copyright">Author and Copyright</a></li>
+    
+        <li class="nav-level-1"><a href="#license">License</a></li>
+    
+    </ul>
+</nav>
+
+
+<nav>
+    <h3>Examples</h3>
+    <ul>
+    
+        <li><a href="examples/blink/">blink</a></li>
+    
+        <li><a href="examples/blink_accelerate/">blink_accelerate</a></li>
+    
+        <li><a href="examples/breathe/">breathe</a></li>
+    
+        <li><a href="examples/candle/">candle</a></li>
+    
+        <li><a href="examples/custom_hal/">custom_hal</a></li>
+    
+        <li><a href="examples/fade_from_to/">fade_from_to</a></li>
+    
+        <li><a href="examples/fade_off/">fade_off</a></li>
+    
+        <li><a href="examples/fade_on/">fade_on</a></li>
+    
+        <li><a href="examples/fastled/">fastled</a></li>
+    
+        <li><a href="examples/group_lifecycle/">group_lifecycle</a></li>
+    
+        <li><a href="examples/group_parallel/">group_parallel</a></li>
+    
+        <li><a href="examples/group_ref/">group_ref</a></li>
+    
+        <li><a href="examples/group_reverse/">group_reverse</a></li>
+    
+        <li><a href="examples/group_sequence/">group_sequence</a></li>
+    
+        <li><a href="examples/hello/">hello</a></li>
+    
+        <li><a href="examples/hello_rgb/">hello_rgb</a></li>
+    
+        <li><a href="examples/hires/">hires</a></li>
+    
+        <li><a href="examples/jled_lifecycle/">jled_lifecycle</a></li>
+    
+        <li><a href="examples/last_brightness/">last_brightness</a></li>
+    
+        <li><a href="examples/mbed_demo/">mbed_demo</a></li>
+    
+        <li><a href="examples/morse/">morse</a></li>
+    
+        <li><a href="examples/pause_resume/">pause_resume</a></li>
+    
+        <li><a href="examples/pulse/">pulse</a></li>
+    
+        <li><a href="examples/raspi_pico/">raspi_pico</a></li>
+    
+        <li><a href="examples/rgb/">rgb</a></li>
+    
+        <li><a href="examples/simple_on/">simple_on</a></li>
+    
+        <li><a href="examples/slow_breathe/">slow_breathe</a></li>
+    
+        <li><a href="examples/stm32cube_demo/">stm32cube_demo</a></li>
+    
+        <li><a href="examples/user_func/">user_func</a></li>
+    
+    </ul>
+</nav>
+
+
+        
+        <nav>
+            <h3>Install</h3>
+            <ul>
+                <li><a href="https://registry.platformio.org/libraries/jandelgado/JLed"
+                       target="_blank" rel="noopener">PlatformIO Registry</a></li>
+                <li><a href="https://www.arduino.cc/reference/en/libraries/jled/"
+                       target="_blank" rel="noopener">Arduino Library Manager</a></li>
+            </ul>
+        </nav>
+        
+        <nav>
+            <h3>Links</h3>
+            <ul>
+                <li><a href="https://github.com/jandelgado/jled/issues"
+                       target="_blank" rel="noopener">Report an issue</a></li>
+            </ul>
+        </nav>
+    </div>
+
+    <div class="content">
+        
+<div class="prose"><h1 id="jled-advanced-led-library"><a class="toclink" href="#jled-advanced-led-library">JLed - Advanced LED Library</a></h1>
+<p>Version: master</p>
+<p>JLed is an embedded C++ library to control LEDs. It uses a <strong>non-blocking</strong> approach and can
+control LEDs in simple (<strong>on</strong>/<strong>off</strong>) and complex (<strong>blinking</strong>,
+<strong>breathing</strong>, <strong>RGB color</strong>, and more) ways in a <strong>time-driven</strong> manner.</p>
+<p>JLed was featured on <a href="https://hackaday.com/2018/06/13/simplifying-basic-led-effects/">Hackaday</a>
+and someone made a <a href="https://youtu.be/x5V2vdpZq1w">video tutorial for JLed</a>. Thanks!</p>
+<p><b>Preferring Python?</b> Check out <a
+href="https://github.com/jandelgado/jled-circuitpython">jled-circuitpython</a>, a JLed
+implementation for CircuitPython and MicroPython.</p>
+<table>
+ <tr>
+  <th>JLed in action</th>
+  <th>Interactive JLed playground</th>
+ </tr>
+<tr>
+  <td><a href="examples/group_parallel"><img alt="JLed in action" src="doc/jled.gif" width=256></a></td>
+  <td><a href="https://jandelgado.github.io/jled-wasm"><img alt="jled running in the browser" src="doc/jled-wasm.png" width=256></a>
+  </td>
+ </tr>
+</table>
+
+<h2 id="example"><a class="toclink" href="#example">Example</a></h2>
+<div class="highlight"><pre><span></span><code><span class="c1">// breathe LED (on gpio 9) 6 times for 1500ms, waiting for 500ms after each run</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;jled.h&gt;</span>
+
+<span class="k">auto</span><span class="w"> </span><span class="n">led_breathe</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLed</span><span class="p">(</span><span class="mi">9</span><span class="p">).</span><span class="n">Breathe</span><span class="p">(</span><span class="mi">1500</span><span class="p">).</span><span class="n">DelayAfter</span><span class="p">(</span><span class="mi">500</span><span class="p">).</span><span class="n">Repeat</span><span class="p">(</span><span class="mi">6</span><span class="p">);</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">setup</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">}</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">loop</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">led_breathe</span><span class="p">.</span><span class="n">Update</span><span class="p">();</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<!-- TOC -->
+
+<h2 id="table-of-contents"><a class="toclink" href="#table-of-contents">Table of Contents</a></h2>
+<ul>
+<li><a href="#features">Features</a></li>
+<li><a href="#cheat-sheet">Cheat Sheet</a></li>
+<li><a href="#installation">Installation</a></li>
+<li><a href="#arduino-ide">Arduino IDE</a></li>
+<li><a href="#platformio">PlatformIO</a></li>
+<li><a href="#usage">Usage</a></li>
+<li><a href="#jled-vs-jledhd">JLed vs JLedHD</a></li>
+<li><a href="#output-pipeline">Output pipeline</a></li>
+<li><a href="#effects">Effects</a><ul>
+<li><a href="#static-on-and-off">Static on and off</a></li>
+<li><a href="#static-on-example">Static on example</a></li>
+<li><a href="#blinking">Blinking</a></li>
+<li><a href="#blinking-example">Blinking example</a></li>
+<li><a href="#breathing">Breathing</a></li>
+<li><a href="#breathing-example">Breathing example</a></li>
+<li><a href="#candle">Candle</a></li>
+<li><a href="#candle-example">Candle example</a></li>
+<li><a href="#fadeon">FadeOn</a></li>
+<li><a href="#fadeon-example">FadeOn example</a></li>
+<li><a href="#fadeoff">FadeOff</a></li>
+<li><a href="#fade">Fade</a></li>
+<li><a href="#fade-example">Fade example</a></li>
+<li><a href="#user-provided-brightness-function">User provided brightness function</a></li>
+<li><a href="#user-provided-brightness-function-example">User provided brightness function example</a></li>
+</ul>
+</li>
+<li><a href="#delays-and-repetitions">Delays and repetitions</a><ul>
+<li><a href="#initial-delay-before-effect-starts">Initial delay before effect starts</a></li>
+<li><a href="#delay-after-effect-finished">Delay after effect finished</a></li>
+<li><a href="#repetitions">Repetitions</a></li>
+</ul>
+</li>
+<li><a href="#state-functions">State functions</a><ul>
+<li><a href="#update">Update</a></li>
+<li><a href="#lifecycle-events">Lifecycle events</a></li>
+<li><a href="#isrunning">IsRunning</a></li>
+<li><a href="#reset">Reset</a></li>
+<li><a href="#immediate-stop">Immediate Stop</a></li>
+</ul>
+</li>
+<li><a href="#pause-and-resume">Pause and Resume</a></li>
+<li><a href="#misc-functions">Misc functions</a><ul>
+<li><a href="#low-active-for-inverted-output">Low active for inverted output</a></li>
+<li><a href="#minimum--and-maximum-brightness-level">Minimum- and Maximum brightness level</a></li>
+<li><a href="#writeraw">WriteRaw</a></li>
+</ul>
+</li>
+<li><a href="#controlling-a-group-of-leds">Controlling a group of LEDs</a><ul>
+<li><a href="#group-lifecycle-events">Group lifecycle events</a></li>
+<li><a href="#reversing-and-bouncing-a-sequential-group">Reversing and bouncing a sequential group</a></li>
+<li><a href="#jledrefgroup-pointer-based-groups-for-named-led-objects">JLedRefGroup, pointer-based groups for named LED objects</a></li>
+<li><a href="#when-to-use-what">When to use what?</a></li>
+</ul>
+</li>
+<li><a href="#jledrgb">JLedRGB</a></li>
+<li><a href="#jledrgbhd">JLedRGBHD</a></li>
+<li><a href="#framework-notes">Framework notes</a></li>
+<li><a href="#platform-notes">Platform notes</a></li>
+<li><a href="#resolution-and-the-brightness-type">Resolution and the <code>Brightness</code> type</a><ul>
+<li><a href="#arduinohal-and-the-global-analogwriteresolution-limit"><code>ArduinoHal</code> and the global <code>analogWriteResolution</code> limit</a></li>
+<li><a href="#jled_force_arduino_hal"><code>JLED_FORCE_ARDUINO_HAL</code></a></li>
+</ul>
+</li>
+<li><a href="#esp8266">ESP8266</a></li>
+<li><a href="#esp32">ESP32</a><ul>
+<li><a href="#using-esp-idf">Using ESP-IDF</a></li>
+</ul>
+</li>
+<li><a href="#stm32">STM32</a><ul>
+<li><a href="#arduino-framework">Arduino framework</a></li>
+<li><a href="#stm32cube-native">STM32Cube (native)</a></li>
+<li><a href="#mbed-framework">mbed framework</a></li>
+</ul>
+</li>
+<li><a href="#raspberry-pi-pico">Raspberry Pi Pico</a></li>
+<li><a href="#example-sketches">Example sketches</a></li>
+<li><a href="#building-examples-with-platformio">Building examples with PlatformIO</a></li>
+<li><a href="#building-examples-with-the-arduino-ide">Building examples with the Arduino IDE</a></li>
+<li><a href="#extending">Extending</a></li>
+<li><a href="#support-new-hardware">Support new hardware</a></li>
+<li><a href="#unit-tests">Unit tests</a></li>
+<li><a href="#contributing">Contributing</a></li>
+<li><a href="#jled-50-migration-guide">JLed 5.0 migration guide</a></li>
+<li><a href="#estopmode-renamed-to-eidlemode"><code>eStopMode</code> renamed to <code>eIdleMode</code></a></li>
+<li><a href="#jledsequence-to-jledgroup-migration">JLedSequence to JLedGroup migration</a></li>
+<li><a href="#updateint16_t-plast-removed-use-updateresult-now"><code>Update(int16_t* pLast)</code> removed, use <code>UpdateResult</code> now</a></li>
+<li><a href="#custom-brightness-evaluators-brightnessevaluator-is-now-a-template">Custom brightness evaluators: <code>BrightnessEvaluator</code> is now a template</a></li>
+<li><a href="#kfullbrightnesskzerobrightness--valuetraitst"><code>kFullBrightness</code>/<code>kZeroBrightness</code> → <code>ValueTraits&lt;T&gt;</code></a></li>
+<li><a href="#custom-hals-and-tjled-subclasses-clock-and-value-are-now-explicit">Custom HALs and <code>TJLed</code> subclasses: Clock and Value are now explicit</a></li>
+<li><a href="#candle-gains-color_oncolor_off-which-come-first"><code>Candle()</code> gains <code>color_on</code>/<code>color_off</code>, which come first</a></li>
+<li><a href="#fadeon-parameter-order-to-moved-before-from"><code>FadeOn()</code> parameter order: <code>to</code> moved before <code>from</code></a></li>
+<li><a href="#faq">FAQ</a></li>
+<li><a href="#how-do-i-check-if-a-jled-object-is-still-being-updated">How do I check if a JLed object is still being updated?</a></li>
+<li><a href="#how-do-i-restart-an-effect">How do I restart an effect?</a></li>
+<li><a href="#how-do-i-change-a-running-effect">How do I change a running effect?</a></li>
+<li><a href="#author-and-copyright">Author and Copyright</a></li>
+<li><a href="#license">License</a></li>
+</ul>
+<!-- /TOC -->
+
+<h2 id="features"><a class="toclink" href="#features">Features</a></h2>
+<ul>
+<li>non-blocking</li>
+<li>effects: simple on/off, breathe, blink, candle, fade-on, fade-off, <a href="examples/morse">user-defined</a> (e.g. morse)</li>
+<li>high resolution (up to 16-bit) effects, if the hardware supports it with <code>JLedHD</code> (since JLed 5.0)</li>
+<li>full color effects on a three-pin RGB LED with <code>JLedRGB</code> (since JLed 5.0)</li>
+<li>supports inverted polarity of LED</li>
+<li>easy configuration using fluent interface</li>
+<li>can control groups of LEDs sequentially or in parallel</li>
+<li>Portable: Arduino, ESP8266, ESP32, Mbed, Raspberry Pi Pico and more platforms
+  compatible, runs even in the <a href="https://jandelgado.github.io/jled-wasm">browser</a></li>
+<li>supports Arduino, <a href="https://www.mbed.com">mbed</a>, <a href="https://github.com/raspberrypi/pico-sdk">Raspberry Pi
+  Pico</a> and ESP32
+  <a href="https://www.espressif.com/en/products/sdks/esp-idf">ESP-IDF</a> SDK's</li>
+<li>well <a href="https://coveralls.io/github/jandelgado/jled">tested</a></li>
+</ul>
+<h2 id="cheat-sheet"><a class="toclink" href="#cheat-sheet">Cheat Sheet</a></h2>
+<p><img alt="JLed Cheat Sheet" src="doc/cheat_sheet.jpg" /></p>
+<h2 id="installation"><a class="toclink" href="#installation">Installation</a></h2>
+<h3 id="arduino-ide"><a class="toclink" href="#arduino-ide">Arduino IDE</a></h3>
+<p>In the main menu of the Arduino IDE, select <code>Sketch</code> &gt; <code>Include Library</code> &gt;
+<code>Manage Libraries...</code> and search for <code>jled</code>, then press <code>install</code>.</p>
+<h3 id="platformio"><a class="toclink" href="#platformio">PlatformIO</a></h3>
+<p>Add <code>jled</code> to your library dependencies in your <code>platformio.ini</code> project file,
+e.g.</p>
+<div class="highlight"><pre><span></span><code><span class="na">...</span>
+<span class="k">[env:nanoatmega328]</span>
+<span class="na">platform</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">atmelavr</span>
+<span class="na">board</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">nanoatmega328</span>
+<span class="na">framework</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">arduino</span>
+<span class="na">lib_deps</span><span class="o">=</span><span class="s">jled</span>
+<span class="na">...</span>
+</code></pre></div>
+
+<h2 id="usage"><a class="toclink" href="#usage">Usage</a></h2>
+<p>First, the LED object is constructed and configured, then the state is updated
+with subsequent calls to the <code>Update()</code> method, typically from the <code>loop()</code>
+function. While the effect is active, <code>Update</code> returns <code>true</code>, otherwise
+<code>false</code>. The return value is actually a richer <code>UpdateResult</code> that is also
+usable as a <code>bool</code>; see <a href="#lifecycle-events">Lifecycle events</a> for the full API.</p>
+<p>The constructor takes the pin, to which the LED is connected to as
+the only argument. Further configuration of the LED object is done using a fluent
+interface, e.g. <code>auto led = JLed(13).Breathe(2000).DelayAfter(1000).Repeat(5)</code>.
+See the examples section below for further details.</p>
+<h3 id="jled-vs-jledhd"><a class="toclink" href="#jled-vs-jledhd">JLed vs JLedHD</a></h3>
+<p><code>JLed</code> uses 8-bit brightness internally (<code>uint8_t</code>, 0-255), while <code>JLedHD</code> ("high-definition")
+uses 16-bit (<code>uint16_t</code>, 0-65535). Both share the same API and effects.</p>
+<p>Use <code>JLedHD</code> on long fade or breathe effects where the 256 discrete steps of <code>JLed</code> can
+produce visible "staircase" banding, especially at low brightness. <code>JLedHD</code> eliminates this by
+giving the HAL up to 65536 values to work with. The HAL then maps them to the native PWM
+resolution of the platform (e.g. 13-bit on ESP32, 16-bit on Pico/Teensy).</p>
+<p>Use <code>JLed</code> for simple on/off, blink or fast fade/breathe effects. Here the extra resolution
+is not visible, and 8-bit uses half the memory per brightness value. Also note that on some
+platforms (see the table below) <code>JLed</code> and <code>JLedHD</code> resolve to the same HAL width (e.g. standard
+8-bit Arduino boards), so <code>JLedHD</code> has no practical benefit there.</p>
+<blockquote>
+<p><strong>Note:</strong> You cannot mix <code>JLed</code> and <code>JLedHD</code> objects in the same sketch when both map to
+<code>ArduinoHal</code> with <em>different</em> bit widths, because <code>analogWriteResolution()</code> is a global
+setting. See the <a href="#arduinohal-and-the-global-analogwriteresolution-limit"><code>ArduinoHal</code> note</a>
+below. The same applies to <a href="#jledrgb"><code>JLedRGB</code></a> and <a href="#jledrgbhd"><code>JLedRGBHD</code></a>, which are
+built on the very same two HALs, and to any mix of the four (e.g. <code>JLed</code> with
+<code>JLedRGBHD</code>).</p>
+</blockquote>
+<h3 id="output-pipeline"><a class="toclink" href="#output-pipeline">Output pipeline</a></h3>
+<p>First the configured effect (e.g. <code>Fade</code>) is evaluated for the current time
+<code>t</code>. JLed internally uses either 8-bit (<code>JLed</code>, <code>uint8_t</code>, 0-255) or 16-bit
+(<code>JLedHD</code>, <code>uint16_t</code>, 0-65535) values to represent brightness. Next, the value
+is scaled to the limits set by <code>MinBrightness</code> and <code>MaxBrightness</code> (if set).
+When the effect is configured for a low-active LED using <code>LowActive</code>, the
+brightness value will be inverted. Finally the value is passed to the hardware
+abstraction, which scales it to the native PWM resolution of the platform (e.g.
+13 bits for ESP32 <code>JLedHD</code>, 16 bits for Pico <code>JLedHD</code>). The brightness value is
+then written out to the configured GPIO.</p>
+<div class="highlight"><pre><span></span><code>+---------+    +---------+    +---------+    +---------+    +-------+
+|Evaluate |    |Scale to |    |Optional |    |Scale for|    |Write  |
+|effect(t)|---&gt;|[min,max]|---&gt;|Invert   |---&gt;|Harware  |---&gt;|to GPIO|
++---------+    +---------+    +---+-----+    +---------+    +-------+
+</code></pre></div>
+
+<h3 id="effects"><a class="toclink" href="#effects">Effects</a></h3>
+<h4 id="static-on-and-off"><a class="toclink" href="#static-on-and-off">Static on and off</a></h4>
+<p>Calling <code>On(uint16_t period=1)</code> turns the LED on. To immediately turn a LED on,
+make a call like <code>JLed(LED_BUILTIN).On().Update()</code>. The <code>period</code> is optional
+and defaults to 1ms.</p>
+<p><code>Off()</code> works like <code>On()</code>, except that it turns the LED off, i.e., it sets the
+brightness to 0.</p>
+<p>Use the <code>Set(Brightness brightness, uint16_t period=1)</code> method to set the
+brightness to a specific value. The type of <code>brightness</code> depends on the
+instantiation: <code>uint8_t</code> (0-255) for <code>JLed</code>, and <code>uint16_t</code> (0-65535) for
+<code>JLedHD</code>. For example, <code>Set(255)</code> is equivalent to calling <code>On()</code> and <code>Set(0)</code>
+is equivalent to calling <code>Off()</code> when using <code>JLed</code>; with <code>JLedHD</code> the full
+range is <code>Set(65535)</code> for full brightness.</p>
+<p>To write brightness values that work with both <code>JLed</code> and <code>JLedHD</code> without
+change, use <code>jled::Percentage</code> or the <code>_pct</code> user-defined literal (requires
+<code>using jled::operator""_pct</code>). <code>Percentage</code> converts implicitly to the correct
+range for whichever brightness type is active:</p>
+<div class="highlight"><pre><span></span><code><span class="k">using</span><span class="w"> </span><span class="n">jled</span><span class="o">::</span><span class="k">operator</span><span class="s">""</span><span class="n">_pct</span><span class="p">;</span>
+
+<span class="n">JLed</span><span class="w">   </span><span class="n">led</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="n">JLed</span><span class="p">(</span><span class="mi">13</span><span class="p">)</span><span class="w">  </span><span class="p">.</span><span class="n">Set</span><span class="p">(</span><span class="mi">75</span><span class="n">_pct</span><span class="p">);</span><span class="w">  </span><span class="c1">// 75 % of 255  → 191</span>
+<span class="n">JLedHD</span><span class="w"> </span><span class="n">ledHD</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLedHD</span><span class="p">(</span><span class="mi">13</span><span class="p">).</span><span class="n">Set</span><span class="p">(</span><span class="mi">75</span><span class="n">_pct</span><span class="p">);</span><span class="w">  </span><span class="c1">// 75 % of 65535 → 49151</span>
+<span class="c1">// Equivalent explicit form:</span>
+<span class="n">JLed</span><span class="w">   </span><span class="n">led2</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">JLed</span><span class="p">(</span><span class="mi">13</span><span class="p">)</span><span class="w">  </span><span class="p">.</span><span class="n">Set</span><span class="p">(</span><span class="n">jled</span><span class="o">::</span><span class="n">Percentage</span><span class="p">(</span><span class="mi">75</span><span class="p">));</span>
+</code></pre></div>
+
+<p>Technically, <code>Set</code>, <code>On</code> and <code>Off</code> are effects with a default period of 1ms, that
+set the brightness to a constant value. Specifying a different period has an
+effect on when the <code>Update()</code> method will be done updating the effect and
+return false (like for any other effects). This is important when for example
+in a <code>JLedGroup</code> the LED should stay on for a given amount of time.</p>
+<h5 id="static-on-example"><a class="toclink" href="#static-on-example">Static on example</a></h5>
+<div class="highlight"><pre><span></span><code><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;jled.h&gt;</span>
+
+<span class="c1">// turn builtin LED on after 1 second.</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">led</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLed</span><span class="p">(</span><span class="n">LED_BUILTIN</span><span class="p">).</span><span class="n">On</span><span class="p">().</span><span class="n">DelayBefore</span><span class="p">(</span><span class="mi">1000</span><span class="p">);</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">setup</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">}</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">loop</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">led</span><span class="p">.</span><span class="n">Update</span><span class="p">();</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h4 id="blinking"><a class="toclink" href="#blinking">Blinking</a></h4>
+<p>In blinking mode, the LED cycles through a given number of on-off cycles, on-
+and off-cycle durations are specified independently. The builder method has the
+following signature:
+<code>Blink(uint16_t duration_on, uint16_t duration_off, uint8_t n, Brightness color_on, Brightness color_off)</code></p>
+<ul>
+<li><code>duration_on</code>, <code>duration_off</code> - the on- and off-cycle durations in ms.</li>
+<li><code>n</code> - the number of on-off cycles. The default value is 1.</li>
+<li><code>color_on</code>, <code>color_off</code> - the values written during the on- and off-cycle. They default
+  to fully on and fully off, i.e. the classic blink. Pass them to blink between two
+  brightness levels instead, e.g. <code>Blink(250, 250, 1, 200, 20)</code>.</li>
+</ul>
+<p>For the effect to work correctly, the following must hold true:
+<code>0 &lt; (duration_on+duration_off)*n &lt;= 65535</code>.</p>
+<h5 id="blinking-example"><a class="toclink" href="#blinking-example">Blinking example</a></h5>
+<div class="highlight"><pre><span></span><code><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;jled.h&gt;</span>
+
+<span class="c1">// blink internal LED 3 times: 250ms on, 500ms off. Then wait 1000ms. Repeat forever.</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">led</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLed</span><span class="p">(</span><span class="n">LED_BUILTIN</span><span class="p">).</span><span class="n">Blink</span><span class="p">(</span><span class="mi">250</span><span class="p">,</span><span class="w"> </span><span class="mi">500</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">).</span><span class="n">DelayAfter</span><span class="p">(</span><span class="mi">1000</span><span class="p">).</span><span class="n">Forever</span><span class="p">();</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">setup</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">}</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">loop</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">led</span><span class="p">.</span><span class="n">Update</span><span class="p">();</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h4 id="breathing"><a class="toclink" href="#breathing">Breathing</a></h4>
+<p>In breathing mode, the LED smoothly changes the brightness using PWM. The
+<code>Breathe()</code> method takes the period of the effect as an argument.</p>
+<h5 id="breathing-example"><a class="toclink" href="#breathing-example">Breathing example</a></h5>
+<div class="highlight"><pre><span></span><code><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;jled.h&gt;</span>
+
+<span class="c1">// connect LED to pin 13 (PWM capable). LED will breathe with period of</span>
+<span class="c1">// 2000ms and a delay of 1000ms after each period.</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">led</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLed</span><span class="p">(</span><span class="mi">13</span><span class="p">).</span><span class="n">Breathe</span><span class="p">(</span><span class="mi">2000</span><span class="p">).</span><span class="n">DelayAfter</span><span class="p">(</span><span class="mi">1000</span><span class="p">).</span><span class="n">Forever</span><span class="p">();</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">setup</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">}</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">loop</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">led</span><span class="p">.</span><span class="n">Update</span><span class="p">();</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>It is also possible to specify fade-on, on- and fade-off durations for the
+breathing mode to customize the effect:
+<code>Breathe(uint16_t duration_fade_on, uint16_t duration_on, uint16_t duration_fade_off, Brightness from, Brightness to)</code></p>
+<div class="highlight"><pre><span></span><code><span class="c1">// LED will fade-on in 500ms, stay on for 1000ms, and fade-off in 500ms.</span>
+<span class="c1">// It will delay for 1000ms afterwards and continue the pattern.</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">led</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLed</span><span class="p">(</span><span class="mi">13</span><span class="p">).</span><span class="n">Breathe</span><span class="p">(</span><span class="mi">500</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p">,</span><span class="w"> </span><span class="mi">500</span><span class="p">).</span><span class="n">DelayAfter</span><span class="p">(</span><span class="mi">1000</span><span class="p">).</span><span class="n">Forever</span><span class="p">();</span>
+</code></pre></div>
+
+<p><code>from</code> and <code>to</code> are the values the effect breathes between; they default to fully off and
+fully on. Pass them to breathe within a narrower band, e.g.
+<code>Breathe(500, 1000, 500, 20, 200)</code>.</p>
+<h4 id="candle"><a class="toclink" href="#candle">Candle</a></h4>
+<p>In candle mode, the random flickering of a candle or fire is simulated.
+The builder method has the following signature:
+<code>Candle(Brightness color_on, Brightness color_off, uint8_t speed, uint8_t jitter, uint16_t period, uint16_t offset)</code></p>
+<ul>
+<li><code>color_on</code> - the color the flicker rises to at full intensity. Defaults to fully
+  on, which is the previous behaviour.</li>
+<li><code>color_off</code> - the color the flicker dims down to at zero intensity. Defaults to
+  fully off (black), which is the previous behaviour. Pass a non-black color to
+  flicker between two colors instead of towards black, e.g. <code>RGBColor&lt;uint8_t&gt;</code>
+  red and yellow for a JLedRGB, or a dim base brightness for a plain JLed.</li>
+<li><code>speed</code> - controls the speed of the effect. 0 for fastest, increasing speed
+  divides into halve per increment. The default value is 6.</li>
+<li><code>jitter</code> - the amount of jittering. 0 none (constant on), 255 maximum. Default
+  value is 15.</li>
+<li><code>period</code> - Period of effect in ms. The default value is 65535 ms.</li>
+<li><code>offset</code> - a time offset in ms. By default each LED derives its offset from its
+  own memory address, so multiple LEDs with the same parameters automatically
+  flicker independently without any configuration. Pass 0 to have all LEDs run
+  in sync, or any other value to set a specific pattern.</li>
+</ul>
+<p>Note that the automatic offset is derived from the object's address at the moment
+<code>Candle()</code> is called, so calling it on a temporary inside a builder-chain expression
+(e.g. <code>JLed(pin).Candle()</code>) can occasionally hand two LEDs the same offset, when their
+temporaries happen to share a stack slot. Construct named LED objects and call <code>Candle()</code>
+on them if independent flicker matters.</p>
+<p>The default settings simulate a candle. For a fire effect for example
+call the method with <code>Candle(255 /*color_on*/, 0 /*color_off*/, 5 /*speed*/, 100 /*jitter*/)</code>.</p>
+<h5 id="candle-example"><a class="toclink" href="#candle-example">Candle example</a></h5>
+<div class="highlight"><pre><span></span><code><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;jled.h&gt;</span>
+
+<span class="c1">// Candle on LED pin 13 (PWM capable).</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">led</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLed</span><span class="p">(</span><span class="mi">13</span><span class="p">).</span><span class="n">Candle</span><span class="p">();</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">setup</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">}</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">loop</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">led</span><span class="p">.</span><span class="n">Update</span><span class="p">();</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h4 id="fadeon"><a class="toclink" href="#fadeon">FadeOn</a></h4>
+<p>In FadeOn mode, the LED is smoothly faded on to 100% brightness using PWM. The
+<code>FadeOn()</code> method takes the period of the effect as an argument.</p>
+<p>The brightness function uses an approximation of this function (example with
+period 1000):</p>
+<h5 id="fadeon-example"><a class="toclink" href="#fadeon-example">FadeOn example</a></h5>
+<div class="highlight"><pre><span></span><code><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;jled.h&gt;</span>
+
+<span class="c1">// LED is connected to pin 9 (PWM capable) gpio</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">led</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLed</span><span class="p">(</span><span class="mi">9</span><span class="p">).</span><span class="n">FadeOn</span><span class="p">(</span><span class="mi">1000</span><span class="p">).</span><span class="n">DelayBefore</span><span class="p">(</span><span class="mi">2000</span><span class="p">);</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">setup</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">}</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">loop</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">led</span><span class="p">.</span><span class="n">Update</span><span class="p">();</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h4 id="fadeoff"><a class="toclink" href="#fadeoff">FadeOff</a></h4>
+<p>In FadeOff mode, the LED is smoothly faded off using PWM. The fade starts at
+100% brightness. Internally it is implemented as a mirrored version of the
+FadeOn function, i.e., FadeOff(t) = FadeOn(period-t). The <code>FadeOff()</code> method
+takes the period of the effect as argument.</p>
+<h4 id="fade"><a class="toclink" href="#fade">Fade</a></h4>
+<p>The Fade effect allows to fade from any start value <code>from</code> to any target value
+<code>to</code> with the given duration. Internally it sets up a <code>FadeOn</code> or <code>FadeOff</code>
+effect and <code>MinBrightness</code> and <code>MaxBrightness</code> values properly. The <code>Fade</code>
+method take three arguments: <code>from</code>, <code>to</code> and <code>duration</code>.</p>
+<p><a href="examples/fade_from_to"><img alt="fade from-to" src="doc/fade_from-to.png" height=200></a></p>
+<h5 id="fade-example"><a class="toclink" href="#fade-example">Fade example</a></h5>
+<div class="highlight"><pre><span></span><code><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;jled.h&gt;</span>
+
+<span class="c1">// fade from 100 to 200 with period 1000</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">led</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLed</span><span class="p">(</span><span class="mi">9</span><span class="p">).</span><span class="n">Fade</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span><span class="w"> </span><span class="mi">200</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p">);</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">setup</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">}</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">loop</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">led</span><span class="p">.</span><span class="n">Update</span><span class="p">();</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h4 id="user-provided-brightness-function"><a class="toclink" href="#user-provided-brightness-function">User provided brightness function</a></h4>
+<p>It is also possible to provide a user defined brightness evaluator. The class must be derived from
+the <code>jled::BrightnessEvaluator&lt;Value&gt;</code> template class and implement two methods:</p>
+<ul>
+<li><code>Value Eval(jled::period_t t) const</code> - the brightness evaluation function that
+  calculates a value for the given time <code>t</code> (<code>t</code> is always in <code>[0, Period())</code>, and
+  <code>period_t</code> is <code>uint16_t</code>). The value must be returned as an unsigned byte, where 0
+  means LED off and 255 means full brightness if <code>Value</code> is <code>uint8_t</code>, as an
+  unsigned int between 0 and 65535 if <code>Value</code> is <code>uint16_t</code>, and as an <code>RGBColor&lt;T&gt;</code>
+  for <code>JLedRGB</code>/<code>JLedRGBHD</code>.</li>
+<li><code>uint16_t Period() const</code> - period of the effect.</li>
+</ul>
+<p>All time values are specified in milliseconds.</p>
+<p>The <a href="examples/user_func">user_func</a> example demonstrates a simple user provided
+brightness function, while the <a href="examples/morse">morse</a> example shows how a more
+complex application, allowing you to send morse codes (not necessarily with an
+LED), can be realized.</p>
+<h5 id="user-provided-brightness-function-example"><a class="toclink" href="#user-provided-brightness-function-example">User provided brightness function example</a></h5>
+<p>The example shows how to implement a user defined effect that works with all LED
+types, i.e. <code>JLed</code>, <code>JLedHD</code>, <code>JLedRGB</code> and <code>JLedRGBHD</code>. Instead of computing a
+value directly, which only works for the scalar types, it uses the value type's
+<code>jled::ValueTraits&lt;Value&gt;</code>.</p>
+<div class="highlight"><pre><span></span><code><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">Value</span><span class="o">&gt;</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">UserEffect</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">jled</span><span class="o">::</span><span class="n">BrightnessEvaluator</span><span class="o">&lt;</span><span class="n">Value</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">using</span><span class="w"> </span><span class="n">Traits</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jled</span><span class="o">::</span><span class="n">ValueTraits</span><span class="o">&lt;</span><span class="n">Value</span><span class="o">&gt;</span><span class="p">;</span>
+
+<span class="w">  </span><span class="k">public</span><span class="o">:</span>
+<span class="w">    </span><span class="n">Value</span><span class="w"> </span><span class="n">Eval</span><span class="p">(</span><span class="n">jled</span><span class="o">::</span><span class="n">period_t</span><span class="w"> </span><span class="n">t</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// this function changes between OFF and ON every 250 ms.</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="p">(</span><span class="n">t</span><span class="o">/</span><span class="mi">250</span><span class="p">)</span><span class="o">%</span><span class="mi">2</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">Traits</span><span class="o">::</span><span class="n">kOnColor</span><span class="p">()</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">Traits</span><span class="o">::</span><span class="n">kOffColor</span><span class="p">();</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="c1">// duration of effect: 5 seconds.</span>
+<span class="w">    </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">Period</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">5000</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<span class="p">};</span>
+</code></pre></div>
+
+<h3 id="delays-and-repetitions"><a class="toclink" href="#delays-and-repetitions">Delays and repetitions</a></h3>
+<h4 id="initial-delay-before-effect-starts"><a class="toclink" href="#initial-delay-before-effect-starts">Initial delay before effect starts</a></h4>
+<p>Use the <code>DelayBefore()</code> method to specify a delay before the first effect starts.
+The default value is 0 ms.</p>
+<h4 id="delay-after-effect-finished"><a class="toclink" href="#delay-after-effect-finished">Delay after effect finished</a></h4>
+<p>Use the <code>DelayAfter()</code> method to specify a delay after each repetition of
+an effect. The default value is 0 ms.</p>
+<h4 id="repetitions"><a class="toclink" href="#repetitions">Repetitions</a></h4>
+<p>Use the <code>Repeat()</code> method to specify the number of repetitions. The default
+value is 1 repetition. The <code>Forever()</code> method sets to repeat the effect
+forever. Each repetition includes a full period of the effect and the time
+specified by <code>DelayAfter()</code> method. Use <code>IsForever()</code> to query whether the
+effect is set to repeat forever.</p>
+<h3 id="state-functions"><a class="toclink" href="#state-functions">State functions</a></h3>
+<h4 id="update"><a class="toclink" href="#update">Update</a></h4>
+<p>Call <code>Update()</code> or <code>Update(uint32_t t)</code> to periodically update the state of
+the LED. <code>Update()</code> is a shortcut to call <code>Update(uint32_t t)</code> with the
+current time in milliseconds.</p>
+<p><code>Update()</code> returns an <code>UpdateResult</code>, which is usable directly as a <code>bool</code>:
+<code>true</code> while the effect is active, <code>false</code> once it finished.</p>
+<p><code>UpdateResult</code> also carries the value (brightness or color) written to the LED
+this tick:</p>
+<div class="highlight"><pre><span></span><code><span class="k">auto</span><span class="w"> </span><span class="n">r</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">led</span><span class="p">.</span><span class="n">Update</span><span class="p">();</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">r</span><span class="p">.</span><span class="n">HasValue</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// the LED was updated with the value now stored in r.Value()</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">lastVal</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">r</span><span class="p">.</span><span class="n">Value</span><span class="p">();</span>
+<span class="w">    </span><span class="p">...</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>See <a href="examples/last_brightness">last_brightness</a> example for a working example.</p>
+<p>Beyond brightness, <code>UpdateResult</code> exposes lifecycle events, see
+<a href="#lifecycle-events">Lifecycle events</a> below.</p>
+<h4 id="lifecycle-events"><a class="toclink" href="#lifecycle-events">Lifecycle events</a></h4>
+<p><code>UpdateResult</code> also reports which phase transitions happened on this
+<code>Update()</code> call, so you can react inline instead of polling the return value
+and tracking state yourself:</p>
+<p>These are <strong>inspected per <code>Update()</code> call</strong>, not registered once: you re-attach
+the callbacks (or read the predicates) on the <code>UpdateResult</code> each time you call
+<code>Update()</code> in your loop. There is no stored handler, and a bare <code>Update()</code> with
+no callbacks costs nothing beyond the small <code>UpdateResult</code> value it returns.</p>
+<p>Each event has both a predicate (<code>Is&lt;Event&gt;()</code>, a state query answering "did this
+happen on this tick?") and a fluent callback (an <code>On&lt;Event&gt;(cb)</code> event hook). The
+two spell the same event slightly differently by design: <code>IsStarted()</code> pairs with
+<code>OnStart()</code>, <code>IsRepeatStarted()</code> with <code>OnRepeatStart()</code>, <code>IsEnteringDelayAfter()</code>
+with <code>OnEnterDelayAfter()</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Query</th>
+<th>Fires when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>IsStarted()</code></td>
+<td>once per run, on the first <code>Update()</code> call (or the first after <code>Reset()</code>)</td>
+</tr>
+<tr>
+<td><code>IsFirstOutput()</code></td>
+<td>once per run, on the first actual output tick</td>
+</tr>
+<tr>
+<td><code>IsRepeatStarted()</code></td>
+<td>once per repetition, including the first</td>
+</tr>
+<tr>
+<td><code>IsEnteringDelayAfter()</code></td>
+<td>once per repetition that has a <code>DelayAfter()</code>, on entry to that phase</td>
+</tr>
+<tr>
+<td><code>IsDone()</code></td>
+<td>once, when the effect stops: all repetitions complete, or <code>Stop()</code> is called</td>
+</tr>
+</tbody>
+</table>
+<p>More than one of these can be true on the same <code>Update()</code> call. E.g., an
+effect with the default <code>duration = 1</code> (as used by <code>On()</code>, <code>Off()</code> and
+<code>Set()</code>) starts and finishes on its one and only call, so <code>IsStarted()</code>,
+<code>IsFirstOutput()</code>, <code>IsRepeatStarted()</code> and <code>IsDone()</code> are all <code>true</code> together.</p>
+<p>Each event also has a matching fluent callback, so you can react at the call
+site without an <code>if</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="n">led</span><span class="p">.</span><span class="n">Update</span><span class="p">()</span>
+<span class="w">    </span><span class="p">.</span><span class="n">OnStart</span><span class="p">([](</span><span class="n">JLed</span><span class="o">&amp;</span><span class="w"> </span><span class="n">l</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Serial</span><span class="p">.</span><span class="n">println</span><span class="p">(</span><span class="s">"started"</span><span class="p">);</span><span class="w"> </span><span class="p">})</span>
+<span class="w">    </span><span class="p">.</span><span class="n">OnFirstOutput</span><span class="p">([](</span><span class="n">JLed</span><span class="o">&amp;</span><span class="w"> </span><span class="n">l</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Serial</span><span class="p">.</span><span class="n">println</span><span class="p">(</span><span class="s">"first output"</span><span class="p">);</span><span class="w"> </span><span class="p">})</span>
+<span class="w">    </span><span class="p">.</span><span class="n">OnRepeatStart</span><span class="p">([](</span><span class="n">JLed</span><span class="o">&amp;</span><span class="w"> </span><span class="n">l</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Serial</span><span class="p">.</span><span class="n">println</span><span class="p">(</span><span class="s">"iteration"</span><span class="p">);</span><span class="w"> </span><span class="p">})</span>
+<span class="w">    </span><span class="p">.</span><span class="n">OnEnterDelayAfter</span><span class="p">([](</span><span class="n">JLed</span><span class="o">&amp;</span><span class="w"> </span><span class="n">l</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">l</span><span class="p">.</span><span class="n">MaxBrightness</span><span class="p">(</span><span class="mi">64</span><span class="p">);</span><span class="w"> </span><span class="p">})</span>
+<span class="w">    </span><span class="p">.</span><span class="n">OnDone</span><span class="p">([](</span><span class="n">JLed</span><span class="o">&amp;</span><span class="w"> </span><span class="n">l</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">l</span><span class="p">.</span><span class="n">Reset</span><span class="p">();</span><span class="w"> </span><span class="p">});</span>
+</code></pre></div>
+
+<p>Callbacks are template parameters (<a href="https://en.cppreference.com/cpp/language/lambda">lambdas</a> or
+function pointers) and they run synchronously inline, in the order chained.</p>
+<p>Common patterns:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// turn led off when effect is done, regardless of last state</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">loop</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">led</span><span class="p">.</span><span class="n">Update</span><span class="p">().</span><span class="n">OnDone</span><span class="p">([](</span><span class="n">JLed</span><span class="o">&amp;</span><span class="w"> </span><span class="n">l</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">l</span><span class="p">.</span><span class="n">WriteRaw</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span><span class="w"> </span><span class="p">});</span>
+<span class="p">}</span>
+
+<span class="c1">// turn led off when in the delay-after phase</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">loop</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">led</span><span class="p">.</span><span class="n">Update</span><span class="p">().</span><span class="n">OnEnterDelayAfter</span><span class="p">([](</span><span class="n">JLed</span><span class="o">&amp;</span><span class="w"> </span><span class="n">l</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">l</span><span class="p">.</span><span class="n">WriteRaw</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span><span class="w"> </span><span class="p">});</span>
+<span class="p">}</span>
+
+<span class="c1">// turn second LED led2 on, if led is in delay-after phase, else it is off</span>
+<span class="kt">void</span><span class="w"> </span><span class="nf">loop</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">led</span><span class="p">.</span><span class="n">Update</span><span class="p">().</span><span class="n">OnRepeatStart</span><span class="p">([](</span><span class="n">JLed</span><span class="o">&amp;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">led2</span><span class="p">.</span><span class="n">On</span><span class="p">().</span><span class="n">Update</span><span class="p">();</span><span class="w"> </span><span class="p">});</span>
+<span class="w">                </span><span class="p">.</span><span class="n">OnEnterDelayAfter</span><span class="p">([](</span><span class="n">JLed</span><span class="o">&amp;</span><span class="w"> </span><span class="n">l</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">led2</span><span class="p">.</span><span class="n">Off</span><span class="p">().</span><span class="n">Update</span><span class="p">();</span><span class="w"> </span><span class="p">});</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h4 id="isrunning"><a class="toclink" href="#isrunning">IsRunning</a></h4>
+<p><code>IsRunning()</code> returns <code>true</code> if the current effect is running, else <code>false</code>.</p>
+<h4 id="reset"><a class="toclink" href="#reset">Reset</a></h4>
+<p>A call to <code>Reset()</code> brings the JLed object to its initial state. Use it when
+you want to start-over an effect.</p>
+<h4 id="immediate-stop"><a class="toclink" href="#immediate-stop">Immediate Stop</a></h4>
+<p>Call <code>Stop()</code> to immediately turn the LED off and stop any running effects.
+Further calls to <code>Update()</code> will have no effect, unless the Led is reset using
+<code>Reset()</code> or a new effect is activated. By default, <code>Stop()</code> sets the current
+brightness level to <code>MinBrightness</code>.</p>
+<p><code>Stop()</code> takes an optional argument <code>mode</code> of type <code>JLed::eStopMode</code>:</p>
+<ul>
+<li>if set to <code>JLed::eStopMode::KEEP_CURRENT</code>, the LEDs current level will be kept</li>
+<li>if set to <code>JLed::eStopMode::FULL_OFF</code> the level of the LED is set to <code>0</code>,
+  regardless of what <code>MinBrightness</code> is set to, effectively turning the LED off</li>
+<li>if set to <code>JLed::eStopMode::TO_MIN_BRIGHTNESS</code> (default behavior), the LED
+  will set to the value of <code>MinBrightness</code></li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="c1">// stop the effect and set the brightness level to 0, regardless of min brightness</span>
+<span class="n">led</span><span class="p">.</span><span class="n">Stop</span><span class="p">(</span><span class="n">JLed</span><span class="o">::</span><span class="n">eStopMode</span><span class="o">::</span><span class="n">FULL_OFF</span><span class="p">);</span>
+</code></pre></div>
+
+<h3 id="pause-and-resume"><a class="toclink" href="#pause-and-resume">Pause and Resume</a></h3>
+<p>Call <code>Pause()</code> to freeze the current effect. While paused, <code>Update()</code> returns <code>true</code> but
+does not advance the effect. Call <code>Resume()</code> to continue from the exact point where it was
+paused. <code>IsPaused()</code> returns <code>true</code> while the effect is frozen.</p>
+<p><code>Pause()</code> accepts an optional <code>mode</code> argument of type <code>jled::eIdleMode</code> (same values as
+<code>Stop()</code>) that controls the LED's brightness during the pause. The default is
+<code>jled::eIdleMode::TO_MIN_BRIGHTNESS</code>, which sets the LED to its configured minimum
+brightness. Use <code>jled::eIdleMode::KEEP_CURRENT</code> to hold the last rendered value, or
+<code>jled::eIdleMode::FULL_OFF</code> to force the LED off regardless of <code>MinBrightness</code>.</p>
+<p>Pausing before an effect has started is valid, the effect will not start until
+<code>Resume()</code> is called.</p>
+<div class="highlight"><pre><span></span><code><span class="k">auto</span><span class="w"> </span><span class="n">led</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLed</span><span class="p">(</span><span class="mi">9</span><span class="p">).</span><span class="n">Breathe</span><span class="p">(</span><span class="mi">2000</span><span class="p">).</span><span class="n">Forever</span><span class="p">();</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">loop</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">buttonPressed</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">led</span><span class="p">.</span><span class="n">IsPaused</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">led</span><span class="p">.</span><span class="n">Resume</span><span class="p">();</span>
+<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">led</span><span class="p">.</span><span class="n">Pause</span><span class="p">();</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="n">led</span><span class="p">.</span><span class="n">Update</span><span class="p">();</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p><code>JLedGroup</code> also supports <code>Pause()</code> and <code>Resume()</code>, which propagate to all member LEDs so
+the entire group freezes and resumes in sync.</p>
+<h3 id="misc-functions"><a class="toclink" href="#misc-functions">Misc functions</a></h3>
+<h4 id="low-active-for-inverted-output"><a class="toclink" href="#low-active-for-inverted-output">Low active for inverted output</a></h4>
+<p>Use the <code>LowActive()</code> method when the connected LED is low active (common anode). All output
+will be inverted then. Call <code>LowActive(false)</code> to switch back to normal (high active) output.
+Use <code>IsLowActive()</code> to query whether the LED is configured as low active.</p>
+<p>Inversion is performed by the HAL layer: on Raspberry Pi Pico, and on ESP32 with ESP-IDF
+≥ 4.4, it is done in hardware (a PWM-CSR polarity bit / the LEDC driver's <code>output_invert</code>
+flag is set when <code>LowActive()</code> is called). <code>InvertableHal</code> is a software fallback
+used on ESP-IDF &lt; 4.4 and every other bundled platform.</p>
+<h4 id="minimum-and-maximum-brightness-level"><a class="toclink" href="#minimum-and-maximum-brightness-level">Minimum- and Maximum brightness level</a></h4>
+<p>The <code>MaxBrightness(Brightness level)</code> method is used to set the maximum
+brightness level of the LED, where <code>Brightness</code> is <code>uint8_t</code> for <code>JLed</code> and
+<code>uint16_t</code> for <code>JLedHD</code>. A level of full brightness (255 / 65535, the default)
+is maximum output, while 0 effectively turns the LED off. In the same way, the
+<code>MinBrightness(Brightness level)</code> method sets the minimum brightness level. The
+default minimum level is 0. If minimum or maximum brightness levels are set,
+the output value is scaled to be within the interval defined by
+<code>[minimum brightness, maximum brightness]</code>: a value of 0 will be mapped to the
+minimum brightness level, and a value of full brightness will be mapped to the
+maximum brightness level.</p>
+<p>To specify levels independently of the brightness type, use <code>jled::Percentage</code>
+or the <code>_pct</code> literal (e.g., <code>led.MaxBrightness(50_pct);</code>).</p>
+<p>The <code>Brightness MaxBrightness() const</code> method returns the current maximum
+brightness level. <code>Brightness MinBrightness() const</code> returns the current
+minimum brightness level.</p>
+<h4 id="writeraw"><a class="toclink" href="#writeraw">WriteRaw</a></h4>
+<p><code>WriteRaw(val)</code> writes a brightness value directly to the hardware, applying
+<code>LowActive()</code> inversion the same way effects normally do, but bypassing the
+effect state machine entirely. "Raw" refers to the state machine only, not to
+the value: <code>val</code> is an ordinary effect-space value (a <code>jled::RGBColor&lt;uint8_t&gt;</code>
+color on <code>JLedRGB</code>) and goes through the same conversion an effect's output
+does. It does not touch the effect configuration
+or any other JLed state. Use it from a lifecycle callback to force an output
+that the effect itself would not produce, e.g. turning the LED off during
+the <code>DelayAfter()</code> phase, which otherwise holds the last computed brightness
+for its whole duration:</p>
+<div class="highlight"><pre><span></span><code><span class="n">JLed</span><span class="w"> </span><span class="n">led</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLed</span><span class="p">(</span><span class="n">LED_BUILTIN</span><span class="p">).</span><span class="n">FadeOn</span><span class="p">(</span><span class="mi">500</span><span class="p">).</span><span class="n">DelayAfter</span><span class="p">(</span><span class="mi">1000</span><span class="p">).</span><span class="n">Repeat</span><span class="p">(</span><span class="mi">5</span><span class="p">);</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">loop</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">led</span><span class="p">.</span><span class="n">Update</span><span class="p">().</span><span class="n">OnEnterDelayAfter</span><span class="p">([](</span><span class="n">JLed</span><span class="o">&amp;</span><span class="w"> </span><span class="n">l</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">l</span><span class="p">.</span><span class="n">WriteRaw</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span><span class="w"> </span><span class="p">});</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>Since <code>WriteRaw()</code> leaves the effect configuration untouched, the next
+repetition's <code>FadeOn()</code> runs unaffected.</p>
+<h3 id="controlling-a-group-of-leds"><a class="toclink" href="#controlling-a-group-of-leds">Controlling a group of LEDs</a></h3>
+<p>The <code>JLedGroup</code> class controls an array of LEDs of one concrete type, in parallel or
+sequentially, written inline:</p>
+<div class="highlight"><pre><span></span><code><span class="n">JLed</span><span class="w"> </span><span class="n">leds</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="n">JLed</span><span class="p">(</span><span class="mi">4</span><span class="p">).</span><span class="n">Blink</span><span class="p">(</span><span class="mi">750</span><span class="p">,</span><span class="w"> </span><span class="mi">250</span><span class="p">).</span><span class="n">Repeat</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span>
+<span class="w">               </span><span class="n">JLed</span><span class="p">(</span><span class="mi">3</span><span class="p">).</span><span class="n">Breathe</span><span class="p">(</span><span class="mi">2000</span><span class="p">),</span>
+<span class="w">               </span><span class="n">JLed</span><span class="p">(</span><span class="mi">5</span><span class="p">).</span><span class="n">FadeOff</span><span class="p">(</span><span class="mi">1000</span><span class="p">).</span><span class="n">Repeat</span><span class="p">(</span><span class="mi">2</span><span class="p">)};</span>
+
+<span class="k">auto</span><span class="w"> </span><span class="n">group</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLedGroup</span><span class="o">::</span><span class="n">Parallel</span><span class="p">(</span><span class="n">leds</span><span class="p">).</span><span class="n">Repeat</span><span class="p">(</span><span class="mi">5</span><span class="p">);</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">setup</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">}</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">loop</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">group</span><span class="p">.</span><span class="n">Update</span><span class="p">();</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>Use the static factory methods <code>JLedGroup::Parallel(leds)</code> and
+<code>JLedGroup::Sequential(leds)</code> to create a group. The array size is deduced
+automatically. A runtime-size overload is also available:
+<code>JLedGroup::Parallel(leds, n)</code>. <code>JLedGroup</code> provides the following methods:</p>
+<ul>
+<li><code>Update()</code> - updates all elements. Returns a <code>GroupUpdateResult</code>, usable
+  directly as a <code>bool</code>: <code>true</code> while the group is running, <code>false</code> once it
+  has finished. Also exposes <code>IsStarted()</code>/<code>IsDone()</code> and
+  <code>OnStart()</code>/<code>OnDone()</code> for group-level lifecycle events, see
+  <a href="#group-lifecycle-events">Group lifecycle events</a> below.</li>
+<li><code>Repeat(n)</code> - plays the group <code>n</code> times. Default is 1.</li>
+<li><code>Forever()</code> - plays the group indefinitely.</li>
+<li><code>Stop(mode = jled::eIdleMode::TO_MIN_BRIGHTNESS)</code> - stops all elements
+  immediately. <code>mode</code> controls the final brightness of each LED, identical to
+  <a href="#immediate-stop"><code>JLed::Stop(mode)</code></a>. Further calls to <code>Update()</code> have no effect.</li>
+<li><code>Reset()</code> - resets all elements and restarts the group from the beginning
+  (the beginning of the currently configured direction, see below). Fluent:
+  returns <code>JLedGroup&amp;</code>.</li>
+<li><code>Reverse()</code> - toggles sequential playback direction. <code>Sequential</code> mode only and a
+  no-op in <code>Parallel</code> mode. See
+  <a href="#reversing-and-bouncing-a-sequential-group">Reversing and bouncing a sequential group</a>.</li>
+<li><code>Skip()</code> - advances the sequence cursor by one step in the current
+  direction without playing the skipped element. <code>Sequential</code> mode only, a no-op
+  in <code>Parallel</code> mode.</li>
+<li><code>IsReversed()</code> - current playback direction, <code>false</code> is forward (the
+  default).</li>
+</ul>
+<p><code>JLedHDGroup</code> is the <code>JLedHD</code> equivalent of <code>JLedGroup</code>. A user-defined LED type
+needs just a matching alias:</p>
+<div class="highlight"><pre><span></span><code><span class="k">using</span><span class="w"> </span><span class="n">MyLedGroup</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">TJLedGroup</span><span class="o">&lt;</span><span class="n">JLedClockType</span><span class="p">,</span><span class="w"> </span><span class="n">MyLedType</span><span class="o">&gt;</span><span class="p">;</span>
+</code></pre></div>
+
+<p>Mixing different LED types (resolutions, nested groups, user-defined types) in one group needs
+<a href="#jledrefgroup-pointer-based-groups-for-named-led-objects"><code>JLedRefGroup</code></a>, see
+<a href="#when-to-use-what">When to use what?</a> below.</p>
+<h4 id="group-lifecycle-events"><a class="toclink" href="#group-lifecycle-events">Group lifecycle events</a></h4>
+<p><code>GroupUpdateResult</code> is returned by the <code>Update()</code> method of the group and reports
+these group-level events, analogous to <code>JLed</code>'s
+<a href="#lifecycle-events">Lifecycle events</a> but scoped to the group as a whole:</p>
+<table>
+<thead>
+<tr>
+<th>Query</th>
+<th>Fires when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>IsStarted()</code></td>
+<td>once per run, on the first <code>Update()</code> call (or the first after <code>Reset()</code>)</td>
+</tr>
+<tr>
+<td><code>IsDone()</code></td>
+<td>once, when the group finishes: all repetitions exhausted, or <code>Stop()</code> is called</td>
+</tr>
+<tr>
+<td><code>IsRepeatStarted()</code></td>
+<td>once per repetition, including the first: coincides with <code>IsStarted()</code> on the first, and fires again each time a full pass through the group completes and another repetition follows (<code>Repeat(n&gt;1)</code>/<code>Forever()</code>). Independent of <code>Parallel</code>/<code>Sequential</code> mode</td>
+</tr>
+<tr>
+<td><code>IsElementEnter()</code></td>
+<td><code>Sequential</code> groups only: an element became active this tick, the first element on start or the next element on a handoff. Never fires in <code>Parallel</code> mode</td>
+</tr>
+<tr>
+<td><code>IsElementLeave()</code></td>
+<td><code>Sequential</code> groups only: an element stopped being active this tick, on a handoff to the next element or when the last element finishes. Never fires in <code>Parallel</code> mode</td>
+</tr>
+</tbody>
+</table>
+<p>An empty group (no elements) fires <code>IsStarted()</code>, <code>IsRepeatStarted()</code> and <code>IsDone()</code> together on its
+one and only <code>Update()</code> call. <code>IsElementEnter()</code>/<code>IsElementLeave()</code> do not fire there, since there is
+no element to enter or leave. They are a <code>Sequential</code> mode concept and never fire in <code>Parallel</code> mode either,
+where all elements move together and there is no single-element handoff: use <code>OnStart()</code>/<code>OnDone()</code>
+there instead. Each event has a matching fluent callback. <code>OnElementEnter</code>/<code>OnElementLeave</code>
+additionally pass the 0-based index of the element (into the array given to <code>Sequential()</code>) and a
+reference to the element itself, so you can act on it directly:</p>
+<div class="highlight"><pre><span></span><code><span class="n">JLed</span><span class="w"> </span><span class="n">leds</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="n">JLed</span><span class="p">(</span><span class="mi">4</span><span class="p">).</span><span class="n">Blink</span><span class="p">(</span><span class="mi">750</span><span class="p">,</span><span class="w"> </span><span class="mi">250</span><span class="p">),</span><span class="w"> </span><span class="n">JLed</span><span class="p">(</span><span class="mi">3</span><span class="p">).</span><span class="n">Breathe</span><span class="p">(</span><span class="mi">2000</span><span class="p">)};</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">group</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLedGroup</span><span class="o">::</span><span class="n">Sequential</span><span class="p">(</span><span class="n">leds</span><span class="p">);</span>
+
+<span class="n">group</span><span class="p">.</span><span class="n">Update</span><span class="p">()</span>
+<span class="w">    </span><span class="p">.</span><span class="n">OnStart</span><span class="p">([](</span><span class="n">JLedGroup</span><span class="o">&amp;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Serial</span><span class="p">.</span><span class="n">println</span><span class="p">(</span><span class="s">"group started"</span><span class="p">);</span><span class="w"> </span><span class="p">})</span>
+<span class="w">    </span><span class="p">.</span><span class="n">OnRepeatStart</span><span class="p">([](</span><span class="n">JLedGroup</span><span class="o">&amp;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Serial</span><span class="p">.</span><span class="n">println</span><span class="p">(</span><span class="s">"repetition begins"</span><span class="p">);</span><span class="w"> </span><span class="p">})</span>
+<span class="w">    </span><span class="p">.</span><span class="n">OnElementLeave</span><span class="p">([](</span><span class="n">JLedGroup</span><span class="o">&amp;</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">idx</span><span class="p">,</span><span class="w"> </span><span class="n">JLed</span><span class="o">&amp;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">Serial</span><span class="p">.</span><span class="n">print</span><span class="p">(</span><span class="s">"leave: "</span><span class="p">);</span>
+<span class="w">        </span><span class="n">Serial</span><span class="p">.</span><span class="n">println</span><span class="p">(</span><span class="n">idx</span><span class="p">);</span>
+<span class="w">    </span><span class="p">})</span>
+<span class="w">    </span><span class="p">.</span><span class="n">OnElementEnter</span><span class="p">([](</span><span class="n">JLedGroup</span><span class="o">&amp;</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">idx</span><span class="p">,</span><span class="w"> </span><span class="n">JLed</span><span class="o">&amp;</span><span class="w"> </span><span class="n">led</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">Serial</span><span class="p">.</span><span class="n">print</span><span class="p">(</span><span class="s">"enter: "</span><span class="p">);</span>
+<span class="w">        </span><span class="n">Serial</span><span class="p">.</span><span class="n">println</span><span class="p">(</span><span class="n">idx</span><span class="p">);</span>
+<span class="w">        </span><span class="n">led</span><span class="p">.</span><span class="n">MaxBrightness</span><span class="p">(</span><span class="mi">64</span><span class="p">);</span>
+<span class="w">    </span><span class="p">})</span>
+<span class="w">    </span><span class="p">.</span><span class="n">OnDone</span><span class="p">([](</span><span class="n">JLedGroup</span><span class="o">&amp;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Serial</span><span class="p">.</span><span class="n">println</span><span class="p">(</span><span class="s">"group finished"</span><span class="p">);</span><span class="w"> </span><span class="p">});</span>
+</code></pre></div>
+
+<p><code>idx</code> is the 0-based position in the <code>leds</code> array, so <code>0</code> is <code>led1</code>, <code>1</code> is <code>led2</code>. <code>OnElementLeave</code>
+fires once for <code>led1</code> (handing off to <code>led2</code>) and once more for <code>led2</code> (the group finishing).</p>
+<h4 id="reversing-and-bouncing-a-sequential-group"><a class="toclink" href="#reversing-and-bouncing-a-sequential-group">Reversing and bouncing a sequential group</a></h4>
+<p><code>Reverse()</code> toggles the playback direction on a <code>Sequential</code> group. It takes no argument
+so calling it repeatedly, e.g. once per <code>OnDone</code>, alternates direction pass over pass.</p>
+<p>Call <code>Reverse()</code>, <code>Reset()</code> and <code>Skip()</code> together from <code>OnDone</code> for continous
+ping-pong effects. <code>OnDone</code>'s callback runs again every time a pass finishes, so as long as
+something keeps calling <code>Update()</code>, it keeps alternating direction forever:</p>
+<div class="highlight"><pre><span></span><code><span class="n">group</span><span class="p">.</span><span class="n">Update</span><span class="p">().</span><span class="n">OnDone</span><span class="p">([](</span><span class="n">JLedGroup</span><span class="o">&amp;</span><span class="w"> </span><span class="n">g</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">g</span><span class="p">.</span><span class="n">Reverse</span><span class="p">().</span><span class="n">Reset</span><span class="p">().</span><span class="n">Skip</span><span class="p">();</span><span class="w"> </span><span class="p">});</span>
+<span class="c1">// a, b, c, d  -&gt;  c, b, a  -&gt;  b, c, d  -&gt;  c, b, a  -&gt;  ...</span>
+</code></pre></div>
+
+<p>For "play once, then backward once, then stop", just add a guard to only reverse once in
+<code>OnDone</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="kt">bool</span><span class="w"> </span><span class="n">bounced</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="p">...</span>
+<span class="n">group</span><span class="p">.</span><span class="n">Update</span><span class="p">().</span><span class="n">OnDone</span><span class="p">([</span><span class="o">&amp;</span><span class="n">bounced</span><span class="p">](</span><span class="n">JLedGroup</span><span class="o">&amp;</span><span class="w"> </span><span class="n">g</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">bounced</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="p">;</span>
+<span class="w">    </span><span class="n">bounced</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="w">    </span><span class="n">g</span><span class="p">.</span><span class="n">Reverse</span><span class="p">().</span><span class="n">Reset</span><span class="p">().</span><span class="n">Skip</span><span class="p">();</span>
+<span class="p">});</span>
+<span class="c1">// a, b, c, d  -&gt;  c, b, a  -&gt;  (stays stopped)</span>
+</code></pre></div>
+
+<p>Without the <code>Skip()</code> the following sequence, with duplicate endpoints, will be played:</p>
+<div class="highlight"><pre><span></span><code><span class="n">group</span><span class="p">.</span><span class="n">Update</span><span class="p">().</span><span class="n">OnDone</span><span class="p">([](</span><span class="n">JLedGroup</span><span class="o">&amp;</span><span class="w"> </span><span class="n">g</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">g</span><span class="p">.</span><span class="n">Reverse</span><span class="p">().</span><span class="n">Reset</span><span class="p">();</span><span class="w"> </span><span class="p">});</span>
+<span class="c1">// a, b, c, d, d, c, b, a, a, b, c, d, ...</span>
+</code></pre></div>
+
+<p>See the <a href="examples/group_reverse/">Cylon/Larson scanner example</a> for a complete example.</p>
+<h4 id="jledrefgroup-pointer-based-groups-for-named-led-objects"><a class="toclink" href="#jledrefgroup-pointer-based-groups-for-named-led-objects">JLedRefGroup, pointer-based groups for named LED objects</a></h4>
+<p><code>JLedRef</code> and <code>JLedRefGroup</code> reference externally managed LED objects by pointer instead of
+storing them by value, and are the way to build a group that mixes LED types. Each <code>JLedRef</code> slot
+stores only a pointer to the LED and a shared vtable pointer (8 bytes on 32-bit, 4 bytes on 8-bit
+AVR). The tradeoff is ergonomics: LED objects must be declared as named variables, anonymous
+inline construction is not possible.</p>
+<div class="highlight"><pre><span></span><code><span class="k">auto</span><span class="w"> </span><span class="n">led1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLed</span><span class="p">(</span><span class="mi">4</span><span class="p">).</span><span class="n">Blink</span><span class="p">(</span><span class="mi">750</span><span class="p">,</span><span class="w"> </span><span class="mi">250</span><span class="p">).</span><span class="n">Repeat</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">led2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLedHD</span><span class="p">(</span><span class="mi">3</span><span class="p">).</span><span class="n">Breathe</span><span class="p">(</span><span class="mi">2000</span><span class="p">);</span>
+
+<span class="n">JLedRef</span><span class="w"> </span><span class="n">refs</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="o">&amp;</span><span class="n">led1</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">led2</span><span class="p">};</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">group</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLedRefGroup</span><span class="o">::</span><span class="n">Parallel</span><span class="p">(</span><span class="n">refs</span><span class="p">);</span>
+</code></pre></div>
+
+<p>Nested groups work the same way, declare the inner group as a named variable and take its address:</p>
+<div class="highlight"><pre><span></span><code><span class="k">auto</span><span class="w"> </span><span class="n">inner0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLed</span><span class="p">(</span><span class="mi">5</span><span class="p">).</span><span class="n">Blink</span><span class="p">(</span><span class="mi">250</span><span class="p">,</span><span class="w"> </span><span class="mi">250</span><span class="p">).</span><span class="n">Repeat</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">inner1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLedHD</span><span class="p">(</span><span class="mi">6</span><span class="p">).</span><span class="n">FadeOn</span><span class="p">(</span><span class="mi">1000</span><span class="p">);</span>
+<span class="n">JLedRef</span><span class="w"> </span><span class="n">inner_refs</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="o">&amp;</span><span class="n">inner0</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">inner1</span><span class="p">};</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">innerGroup</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLedRefGroup</span><span class="o">::</span><span class="n">Parallel</span><span class="p">(</span><span class="n">inner_refs</span><span class="p">);</span>
+
+<span class="k">auto</span><span class="w"> </span><span class="n">led0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLed</span><span class="p">(</span><span class="mi">4</span><span class="p">).</span><span class="n">Blink</span><span class="p">(</span><span class="mi">750</span><span class="p">,</span><span class="w"> </span><span class="mi">250</span><span class="p">).</span><span class="n">Repeat</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">led1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLedHD</span><span class="p">(</span><span class="mi">3</span><span class="p">).</span><span class="n">Breathe</span><span class="p">(</span><span class="mi">2000</span><span class="p">);</span>
+<span class="n">JLedRef</span><span class="w"> </span><span class="n">leds</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="o">&amp;</span><span class="n">led0</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">led1</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">innerGroup</span><span class="p">};</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">group</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLedRefGroup</span><span class="o">::</span><span class="n">Sequential</span><span class="p">(</span><span class="n">leds</span><span class="p">);</span>
+</code></pre></div>
+
+<p><code>IsStarted()</code>/<code>IsDone()</code>/<code>IsRepeatStarted()</code> on <code>group</code> still work even though one of its elements
+is itself a group. <code>OnElementEnter</code>/ <code>OnElementLeave</code> will fire for <code>group</code>'s own direct elements,
+so <code>inner0</code>/<code>inner1</code> entering or leaving inside <code>innerGroup</code> is invisible to <code>group</code>'s callbacks.</p>
+<p><code>JLedRef</code> accepts pointers to <code>JLed</code>, <code>JLedHD</code>, <code>JLedGroup</code>, <code>JLedRefGroup</code>, or any user-defined
+<code>TJLed</code> subclass. Mixed types work without any extra syntax, the array element type is declared as
+<code>JLedRef</code> and the compiler applies the implicit conversion per element.</p>
+<p>On <code>JLedRefGroup</code>, whose elements may be of different types, the reference passed to callbacks
+is a <code>TJLedRef&amp;</code>. You need to recover the concrete type it was constructed from with
+<code>element.As&lt;T&gt;()</code>, which returns <code>T*</code>, or <code>nullptr</code> if the element isn't exactly that type:</p>
+<div class="highlight"><pre><span></span><code><span class="k">auto</span><span class="w"> </span><span class="n">led1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLed</span><span class="p">(</span><span class="mi">4</span><span class="p">).</span><span class="n">Blink</span><span class="p">(</span><span class="mi">750</span><span class="p">,</span><span class="w"> </span><span class="mi">250</span><span class="p">).</span><span class="n">Repeat</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">led2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLedHD</span><span class="p">(</span><span class="mi">3</span><span class="p">).</span><span class="n">Breathe</span><span class="p">(</span><span class="mi">2000</span><span class="p">);</span>
+<span class="n">JLedRef</span><span class="w"> </span><span class="n">refs</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="o">&amp;</span><span class="n">led1</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">led2</span><span class="p">};</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">group</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLedRefGroup</span><span class="o">::</span><span class="n">Sequential</span><span class="p">(</span><span class="n">refs</span><span class="p">);</span>
+
+<span class="n">group</span><span class="p">.</span><span class="n">Update</span><span class="p">().</span><span class="n">OnElementEnter</span><span class="p">([](</span><span class="n">JLedRefGroup</span><span class="o">&amp;</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">idx</span><span class="p">,</span><span class="w"> </span><span class="n">JLedRef</span><span class="o">&amp;</span><span class="w"> </span><span class="n">e</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="k">auto</span><span class="o">*</span><span class="w"> </span><span class="n">l</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">e</span><span class="p">.</span><span class="n">As</span><span class="o">&lt;</span><span class="n">JLed</span><span class="o">&gt;</span><span class="p">())</span><span class="w"> </span><span class="n">l</span><span class="o">-&gt;</span><span class="n">MaxBrightness</span><span class="p">(</span><span class="mi">64</span><span class="p">);</span><span class="w">   </span><span class="c1">// l points to led1</span>
+<span class="p">});</span>
+</code></pre></div>
+
+<blockquote>
+<p><strong>Lifetime:</strong> LED objects must outlive the <code>JLedRef</code> / <code>JLedRefGroup</code> that
+references them. Do not create <code>JLedRef</code> from temporaries.</p>
+</blockquote>
+<h4 id="when-to-use-what"><a class="toclink" href="#when-to-use-what">When to use what?</a></h4>
+<blockquote>
+<p><code>JLedGroup</code> groups LEDs of one kind, written inline.
+<code>JLedRefGroup</code> groups anything, at the price of naming the variables.</p>
+</blockquote>
+<p>Reach for <code>JLedRefGroup</code> when:</p>
+<ul>
+<li>you need to mix LED types in one group: different resolutions (<code>JLed</code>/<code>JLedHD</code>), nested
+  groups, or a user-defined <code>TJLed</code> type</li>
+<li>you want to keep your LEDs as named variables anyway, because you also want to reach them from
+  elsewhere in your sketch, or because you want to poll them individually</li>
+<li>you want to build the group from LEDs that are declared in different places</li>
+</ul>
+<h3 id="jledrgb"><a class="toclink" href="#jledrgb">JLedRGB</a></h3>
+<p><code>JLedRGB</code> controls a three-pin (red/green/blue) RGB LED with full color effects, instead of the
+single PWM channel <code>JLed</code>/<code>JLedHD</code> control. It shares the same fluent API and effects as
+<code>JLed</code>/<code>JLedHD</code>; where those take a plain brightness value, <code>JLedRGB</code> takes a <code>jled::RGBColor&lt;uint8_t&gt;</code>
+color instead.</p>
+<p>The constructor takes the three PWM-capable pins the LED's R, G and B legs are connected to:</p>
+<div class="highlight"><pre><span></span><code><span class="k">auto</span><span class="w"> </span><span class="n">led</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLedRGB</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span><span class="w"> </span><span class="mi">11</span><span class="p">);</span><span class="w">  </span><span class="c1">// R=9, G=10, B=11</span>
+</code></pre></div>
+
+<p>Colors are <code>jled::RGBColor&lt;uint8_t&gt;</code> values: <code>r</code>, <code>g</code> and <code>b</code> each range over <code>0..255</code>, and a color
+is written to the LED exactly as given.</p>
+<p>Every existing builder (<code>Blink</code>, <code>Breathe</code>, <code>Candle</code>, <code>FadeOn</code>, <code>FadeOff</code>, <code>Fade</code>, the user-provided
+brightness function) works unchanged on <code>JLedRGB</code>, with <code>RGBColor&lt;uint8_t&gt;</code> colors taking the
+place of the plain brightness arguments/defaults <code>JLed</code>/<code>JLedHD</code> use, e.g. <code>Blink(duration_on,
+duration_off, n, color_on, color_off)</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="k">constexpr</span><span class="w"> </span><span class="n">jled</span><span class="o">::</span><span class="n">RGBColor</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">kGreen</span><span class="p">{</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">255</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">};</span>
+<span class="k">constexpr</span><span class="w"> </span><span class="n">jled</span><span class="o">::</span><span class="n">RGBColor</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">kRed</span><span class="p">{</span><span class="mi">255</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">};</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">led</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLedRGB</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span><span class="w"> </span><span class="mi">11</span><span class="p">).</span><span class="n">Blink</span><span class="p">(</span><span class="mi">250</span><span class="p">,</span><span class="w"> </span><span class="mi">750</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">kGreen</span><span class="p">,</span><span class="w"> </span><span class="n">kRed</span><span class="p">).</span><span class="n">Forever</span><span class="p">();</span>
+</code></pre></div>
+
+<p><code>On()</code> turns the LED white (full value on every channel), <code>Off()</code> turns it off (black), and
+<code>Set(color)</code> sets it to a specific <code>RGBColor&lt;uint8_t&gt;</code> color, mirroring
+<code>On()</code>/<code>Off()</code>/<code>Set(brightness)</code> on <code>JLed</code>/<code>JLedHD</code>.</p>
+<p><code>Candle(color_on, color_off, speed, jitter, period, offset)</code> (see <a href="#candle">Candle</a> above)
+flickers between <code>color_on</code> and <code>color_off</code> instead of the default white/black, e.g. a
+red/yellow flicker with <code>Candle(kRed, kYellow)</code>.</p>
+<p><code>value_t</code> (the type effects are evaluated in) and <code>level_t</code> (the type
+<a href="#minimum--and-maximum-brightness-level"><code>MinBrightness</code>/<code>MaxBrightness</code></a> take and return) are the
+same type on <code>JLed</code>/<code>JLedHD</code> (<code>uint8_t</code>/<code>uint16_t</code> respectively), but differ on <code>JLedRGB</code>:
+<code>value_t</code> is <code>RGBColor&lt;uint8_t&gt;</code>, while <code>level_t</code> is <code>uint8_t</code>. So <code>MinBrightness</code>/
+<code>MaxBrightness</code> still take and return a plain <code>uint8_t</code>, which scales all three channels
+uniformly (preserving hue) rather than any single component. A fully-off (black) color has no
+hue to preserve and floors to gray at the minimum level.</p>
+<p><code>JLedRGBGroup</code> is the <code>JLedRGB</code> equivalent of <code>JLedGroup</code>, see <a href="#controlling-a-group-of-leds">Controlling a group of
+LEDs</a> above.</p>
+<p><code>&lt;jled.h&gt;</code> also brings in <code>color_palette.h</code>, a <code>constexpr</code> palette of the HTML/CSS named colors as
+<code>RGBColor&lt;uint8_t&gt;</code> in the <code>jled::color</code> namespace (<code>kBlack</code>, <code>kWhite</code>, <code>kRed</code>, <code>kTomato</code>,
+<code>kSteelBlue</code>, ...), plus <code>RGB(hex)</code> to pack a <code>0xRRGGBB</code> literal and <code>Widen(color)</code> to
+convert one to <code>RGBColor&lt;uint16_t&gt;</code> for <code>JLedRGBHD</code> - all resolved at compile time, zero runtime
+cost:</p>
+<div class="highlight"><pre><span></span><code><span class="k">using</span><span class="w"> </span><span class="k">namespace</span><span class="w"> </span><span class="nn">jled</span><span class="o">::</span><span class="nn">color</span><span class="p">;</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">led</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLedRGB</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span><span class="w"> </span><span class="mi">11</span><span class="p">).</span><span class="n">Blink</span><span class="p">(</span><span class="mi">250</span><span class="p">,</span><span class="w"> </span><span class="mi">750</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">kGreen</span><span class="p">,</span><span class="w"> </span><span class="n">kRed</span><span class="p">).</span><span class="n">Forever</span><span class="p">();</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">custom</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">RGB</span><span class="p">(</span><span class="mh">0xff3849</span><span class="p">);</span><span class="w">          </span><span class="c1">// RGBColor&lt;uint8_t&gt;{0xff, 0x38, 0x49}</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">led_hd</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLedRGBHD</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span><span class="w"> </span><span class="mi">11</span><span class="p">).</span><span class="n">Set</span><span class="p">(</span><span class="n">Widen</span><span class="p">(</span><span class="n">kRed</span><span class="p">));</span><span class="w">  </span><span class="c1">// RGBColor&lt;uint16_t&gt;{0xffff, 0, 0}</span>
+</code></pre></div>
+
+<p><code>HSV&lt;T&gt;</code> (<code>h</code>, <code>s</code>, <code>v</code>, plus <code>WithH</code>/<code>WithS</code>/<code>WithV</code> to vary a single component) and
+<code>hsv_to_rgb(HSV&lt;uint8_t&gt;)</code> / <code>hsv_to_rgb(HSV&lt;uint16_t&gt;)</code> convert an HSV color into the
+<code>RGBColor&lt;T&gt;</code> the effects work in, e.g. to fade across the color wheel:</p>
+<div class="highlight"><pre><span></span><code><span class="k">using</span><span class="w"> </span><span class="n">jled</span><span class="o">::</span><span class="n">HSV</span><span class="p">;</span>
+<span class="k">using</span><span class="w"> </span><span class="n">jled</span><span class="o">::</span><span class="n">hsv_to_rgb</span><span class="p">;</span>
+<span class="n">led</span><span class="p">.</span><span class="n">Fade</span><span class="p">(</span><span class="n">hsv_to_rgb</span><span class="p">(</span><span class="n">HSV</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="p">{</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">255</span><span class="p">,</span><span class="w"> </span><span class="mi">255</span><span class="p">}),</span>
+<span class="w">         </span><span class="n">hsv_to_rgb</span><span class="p">(</span><span class="n">HSV</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="p">{</span><span class="mi">192</span><span class="p">,</span><span class="w"> </span><span class="mi">255</span><span class="p">,</span><span class="w"> </span><span class="mi">255</span><span class="p">}),</span><span class="w"> </span><span class="mi">15000</span><span class="p">);</span>
+</code></pre></div>
+
+<p>The effects themselves always interpolate per channel in RGB, never in HSV.</p>
+<p>See the <a href="examples/rgb">rgb</a> example for a complete sketch.</p>
+<h3 id="jledrgbhd"><a class="toclink" href="#jledrgbhd">JLedRGBHD</a></h3>
+<p><code>JLedRGBHD</code> is to <code>JLedRGB</code> what <a href="#jled-vs-jledhd"><code>JLedHD</code></a> is to <code>JLed</code>: the same
+three-pin RGB LED control, but with 16-bit colors over the platform's high-resolution
+HAL. Colors are <code>jled::RGBColor&lt;uint16_t&gt;</code> values, whose <code>r</code>, <code>g</code> and <code>b</code> components each range
+over <code>0..65535</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="k">auto</span><span class="w"> </span><span class="n">led</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLedRGBHD</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span><span class="w"> </span><span class="mi">11</span><span class="p">);</span><span class="w">  </span><span class="c1">// R=9, G=10, B=11</span>
+<span class="n">led</span><span class="p">.</span><span class="n">Set</span><span class="p">(</span><span class="n">jled</span><span class="o">::</span><span class="n">RGBColor</span><span class="o">&lt;</span><span class="kt">uint16_t</span><span class="o">&gt;</span><span class="p">{</span><span class="mi">65535</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">32768</span><span class="p">});</span><span class="w">  </span><span class="c1">// full red, half green</span>
+</code></pre></div>
+
+<p>Everything else is identical to <a href="#jledrgb"><code>JLedRGB</code></a>: the same builders (<code>Blink</code>,
+<code>Breathe</code>, <code>FadeOn</code>, <code>FadeOff</code>, <code>Fade</code>, <code>Candle(color_on, color_off, speed, jitter, period, offset)</code>, a
+user-provided brightness function, ...), the same <code>On()</code>/<code>Off()</code>/<code>Set(color)</code> semantics, and the same
+split between <code>value_t</code> (<code>RGBColor&lt;uint16_t&gt;</code>) and <code>level_t</code> (<code>uint16_t</code>, what
+<code>MinBrightness</code>/<code>MaxBrightness</code> take and return, scaling all three channels uniformly).</p>
+<p>One detail is specific to the 16-bit variant's <code>hsv_to_rgb</code>: hue and saturation resolve to 256
+steps, because the chromaticity mapping runs on their high bytes, while the value component
+resolves to the full 65536 steps. The effects are unaffected, they interpolate per channel in
+RGB.</p>
+<p><code>JLedRGBHDGroup</code> is the <code>JLedRGBHD</code> equivalent of <code>JLedHDGroup</code>, see <a href="#controlling-a-group-of-leds">Controlling a group
+of LEDs</a> above.</p>
+<h2 id="framework-notes"><a class="toclink" href="#framework-notes">Framework notes</a></h2>
+<p>JLed supports the Arduino and <a href="https://www.mbed.org">mbed</a> frameworks, as well as native
+Pico-SDK, ESP-IDF and STM32Cube builds without any framework at all (see the <a href="#raspberry-pi-pico">Raspberry Pi
+Pico</a>, <a href="#esp32">ESP32</a> and <a href="#stm32">STM32</a> sections). When
+using PlatformIO, the framework to be used is configured in the <code>platformio.ini</code>
+file, as shown in the following example, which for example selects the <code>mbed</code>
+framework:</p>
+<div class="highlight"><pre><span></span><code><span class="k">[env:nucleo_f401re_mbed]</span>
+<span class="na">platform</span><span class="o">=</span><span class="s">ststm32</span>
+<span class="na">board</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">nucleo_f401re</span>
+<span class="na">framework</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">mbed</span>
+<span class="na">upload_protocol</span><span class="o">=</span><span class="s">stlink</span>
+</code></pre></div>
+
+<p>An <a href="examples/mbed_demo/mbed_demo.cpp">mbed example is provided here</a>.
+To compile it for the F401RE, make your <a href="platformio.ini">platformio.ini</a> look like:</p>
+<div class="highlight"><pre><span></span><code><span class="na">...</span>
+<span class="k">[platformio]</span>
+<span class="na">default_envs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">nucleo_f401re_mbed</span>
+<span class="na">src_dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">examples/mbed_demo</span>
+<span class="na">...</span>
+</code></pre></div>
+
+<h2 id="platform-notes"><a class="toclink" href="#platform-notes">Platform notes</a></h2>
+<h3 id="resolution-and-the-brightness-type"><a class="toclink" href="#resolution-and-the-brightness-type">Resolution and the <code>Brightness</code> type</a></h3>
+<p>JLed calculates all effects in either <strong>8-bit</strong> precision (<code>uint8_t</code>, used by <code>JLed</code>) or
+<strong>16-bit</strong> precision (<code>uint16_t</code>, used by <code>JLedHD</code>). Before writing to hardware, the value is
+scaled from the internal precision to the native PWM resolution of the HAL. This scaling is
+performed by a single bit-shift and is zero-cost when source and target resolutions are
+identical (e.g. 8-bit internal → 8-bit HAL, or 16-bit internal → 16-bit HAL).</p>
+<p>To specify brightness values that work transparently with both <code>JLed</code> and <code>JLedHD</code> without
+any code changes, use <code>Percentage</code> or the <code>_pct</code> user-defined literal:</p>
+<div class="highlight"><pre><span></span><code><span class="k">using</span><span class="w"> </span><span class="n">jled</span><span class="o">::</span><span class="k">operator</span><span class="s">""</span><span class="n">_pct</span><span class="p">;</span>
+
+<span class="n">JLed</span><span class="w">   </span><span class="n">led</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="n">JLed</span><span class="p">(</span><span class="mi">13</span><span class="p">)</span><span class="w">  </span><span class="p">.</span><span class="n">MaxBrightness</span><span class="p">(</span><span class="mi">75</span><span class="n">_pct</span><span class="p">).</span><span class="n">Breathe</span><span class="p">(</span><span class="mi">500</span><span class="p">);</span><span class="w">  </span><span class="c1">// 75 % of 255</span>
+<span class="c1">// or ...</span>
+<span class="n">JLedHD</span><span class="w"> </span><span class="n">led16</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLedHD</span><span class="p">(</span><span class="mi">13</span><span class="p">).</span><span class="n">MaxBrightness</span><span class="p">(</span><span class="mi">75</span><span class="n">_pct</span><span class="p">).</span><span class="n">Breathe</span><span class="p">(</span><span class="mi">500</span><span class="p">);</span><span class="w">  </span><span class="c1">// 75 % of 65535</span>
+<span class="c1">// Both of the above are equivalent to: .MaxBrightness(jled::Percentage(75))</span>
+</code></pre></div>
+
+<p>The following table shows the HAL and native PWM resolution used by <code>JLed</code> and <code>JLedHD</code> on
+each supported platform:</p>
+<table>
+<thead>
+<tr>
+<th>Platform</th>
+<th><code>JLed</code></th>
+<th><code>JLedHD</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ESP32 (default)</td>
+<td><code>Esp32Hal&lt;8&gt;</code> (8-bit)</td>
+<td><code>Esp32Hal&lt;13&gt;</code> (13-bit)</td>
+</tr>
+<tr>
+<td>Raspberry Pi Pico (default)</td>
+<td><code>PicoHal&lt;8&gt;</code> (8-bit)</td>
+<td><code>PicoHal&lt;16&gt;</code> (16-bit)</td>
+</tr>
+<tr>
+<td>mbed</td>
+<td><code>MbedHal&lt;8&gt;</code> (8-bit)</td>
+<td><code>MbedHal&lt;16&gt;</code> (16-bit)</td>
+</tr>
+<tr>
+<td>Teensy 4.x / 3.x / LC</td>
+<td><code>ArduinoHal&lt;8&gt;</code> (8-bit)</td>
+<td><code>ArduinoHal&lt;16&gt;</code> (16-bit)</td>
+</tr>
+<tr>
+<td>SAMD21 (Arduino Zero, MKR series) / Arduino Due</td>
+<td><code>ArduinoHal&lt;8&gt;</code> (8-bit)</td>
+<td><code>ArduinoHal&lt;12&gt;</code> (12-bit)</td>
+</tr>
+<tr>
+<td>STM32 (STM32duino)</td>
+<td><code>ArduinoHal&lt;12&gt;</code> (12-bit)</td>
+<td><code>ArduinoHal&lt;12&gt;</code> (12-bit)</td>
+</tr>
+<tr>
+<td>nRF5 (Nordic)</td>
+<td><code>ArduinoHal&lt;8&gt;</code> (8-bit)</td>
+<td><code>ArduinoHal&lt;12&gt;</code> (12-bit)</td>
+</tr>
+<tr>
+<td>RP2040 arduino-pico SDK (with <code>JLED_FORCE_ARDUINO_HAL</code>)</td>
+<td><code>ArduinoHal&lt;8&gt;</code> (8-bit)</td>
+<td><code>ArduinoHal&lt;16&gt;</code> (16-bit)</td>
+</tr>
+<tr>
+<td>ESP8266 Arduino core v1/v2</td>
+<td><code>ArduinoHal&lt;10&gt;</code> (10-bit)</td>
+<td><code>ArduinoHal&lt;10&gt;</code> (10-bit)</td>
+</tr>
+<tr>
+<td>ESP8266 Arduino core v3+</td>
+<td><code>ArduinoHal&lt;8&gt;</code> (8-bit)</td>
+<td><code>ArduinoHal&lt;10&gt;</code> (10-bit)</td>
+</tr>
+<tr>
+<td>All other Arduino-compatible platforms</td>
+<td><code>ArduinoHal&lt;8&gt;</code> (8-bit)</td>
+<td><code>ArduinoHal&lt;8&gt;</code> (8-bit)</td>
+</tr>
+</tbody>
+</table>
+<p>Internally, <code>JLed</code> performs all effect calculations in 8-bit arithmetic (<code>uint8_t</code>). The result
+is passed directly to the HAL, which writes it via <code>analogWrite</code> using 8-bit resolution.</p>
+<p><code>JLedHD</code> performs the same calculations in 16-bit arithmetic (<code>uint16_t</code>), giving 256× finer
+intermediate values. If the platform's native PWM resolution is lower than 16 bits (e.g. 13-bit
+on ESP32), the HAL scales the value to fit: a 16-bit brightness of 65535 becomes
+8191 in 13-bit space. No precision is fabricated, the extra bits simply allow the effect
+evaluator to express smoother transitions before the final hardware mapping is applied.</p>
+<h4 id="arduinohal-and-the-global-analogwriteresolution-limit"><a class="toclink" href="#arduinohal-and-the-global-analogwriteresolution-limit"><code>ArduinoHal</code> and the global <code>analogWriteResolution</code> limit</a></h4>
+<p><code>ArduinoHal</code> uses Arduino's
+<a href="https://docs.arduino.cc/language-reference/en/functions/analog-io/analogWriteResolution/">analogWriteResolution()</a> function
+to configure the PWM resolution, which is a <strong>global, sketch-wide setting</strong> that applies to every PWM
+pin at once. As a consequence, you currently <strong>cannot mix</strong> <code>JLed</code> (8-bit) and <code>JLedHD</code> objects in the same
+sketch when both resolve to <code>ArduinoHal</code> with different bit widths. The last
+<code>analogWriteResolution()</code> call wins and silently misconfigures the other instances. This affects all
+platforms where <code>JLed</code> and <code>JLedHD</code> resolve to different bit widths: Teensy (16-bit), SAMD21 / Arduino
+Due / nRF5 (12-bit <code>JLedHD</code> vs 8-bit <code>JLed</code>), ESP8266 core v3+ (<code>JLed</code> 8-bit vs <code>JLedHD</code> 10-bit), and
+RP2040 via arduino-pico (16-bit). On all remaining Arduino-compatible platforms both types share the
+same resolution (STM32duino where both are 12-bit, ESP8266 core v1/v2 where both are 10-bit), so
+mixing is safe.</p>
+<p><code>JLedRGB</code> and <code>JLedRGBHD</code> are built on the very same two HALs (<code>JLedRGB</code> composes three
+<code>JLed</code> channels, <code>JLedRGBHD</code> three <code>JLedHD</code> channels), so the rule applies to them too, and
+to any mix of the four types.</p>
+<h4 id="jled_force_arduino_hal"><a class="toclink" href="#jled_force_arduino_hal"><code>JLED_FORCE_ARDUINO_HAL</code></a></h4>
+<p>Define <code>JLED_FORCE_ARDUINO_HAL</code> (e.g. via <code>build_flags</code> in <code>platformio.ini</code>) to bypass the
+native Pico-SDK and ESP32 HALs and fall back to the generic <code>ArduinoHal</code>. This is useful
+when targeting those platforms through the Arduino framework rather than the native SDK, or
+for debugging purposes.</p>
+<div class="highlight"><pre><span></span><code><span class="k">[env:my_board]</span>
+<span class="na">platform</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">...</span>
+<span class="na">build_flags</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">-DJLED_FORCE_ARDUINO_HAL</span>
+</code></pre></div>
+
+<p>When <code>JLED_FORCE_ARDUINO_HAL</code> is set on an RP2040 board, <code>JLedHD</code> maps to
+<code>ArduinoHal&lt;16&gt;</code> (Earle Philhower arduino-pico SDK) instead of <code>PicoHal&lt;16&gt;</code>, subject to
+the global <code>analogWriteResolution</code> constraint described above. On ESP32, the flag falls
+back to <code>ArduinoHal&lt;8&gt;</code> for both <code>JLed</code> and <code>JLedHD</code>, so they share the same resolution
+and can be mixed freely.</p>
+<h3 id="esp8266"><a class="toclink" href="#esp8266">ESP8266</a></h3>
+<p>The ESP8266 PWM peripheral supports up to 10-bit resolution. On Arduino core v1/v2 both <code>JLed</code>
+and <code>JLedHD</code> operate at native 10-bit resolution (<code>ArduinoHal&lt;10&gt;</code>), with brightness values
+scaled from 8-bit or 16-bit internal precision accordingly. ESP8266 Arduino core v3+ reverted
+the <code>analogWrite()</code> default to 8 bits for compatibility, so <code>JLed</code> maps to <code>ArduinoHal&lt;8&gt;</code>
+there. <code>JLedHD</code>, however, stays at <code>ArduinoHal&lt;10&gt;</code> so the HAL calls <code>analogWriteResolution(10)</code>
+(available since core v3) to restore full 10-bit output. <code>JLedHD</code> keeps its extra resolution
+on every ESP8266 core version. Because <code>JLed</code> and <code>JLedHD</code> then differ in width, they cannot be
+mixed in the same sketch on core v3+ (see the <a href="#arduinohal-and-the-global-analogwriteresolution-limit"><code>ArduinoHal</code>
+note</a> above); on core v1/v2 both are
+10-bit and can be mixed freely.</p>
+<h3 id="esp32"><a class="toclink" href="#esp32">ESP32</a></h3>
+<p>When compiling for the ESP32, JLed uses <code>ledc</code> functions provided by the ESP32
+ESP-IDF SDK. (See <a href="https://docs.espressif.com/projects/esp-idf/en/latest/api-reference/peripherals/ledc.html">espressif
+documentation</a>
+for details).</p>
+<p>The <code>ledc</code> API connects so-called channels to GPIO pins, enabling them to use
+PWM. There are <code>LEDC_CHANNEL_MAX</code> (8) channels available per speed mode. Unless
+otherwise specified, JLed automatically picks the next free channel, starting
+with channel 0 and wrapping over after the last channel. To manually specify a
+channel, the JLed object must be constructed this way:</p>
+<div class="highlight"><pre><span></span><code><span class="k">auto</span><span class="w"> </span><span class="n">esp32Led</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLed</span><span class="p">(</span><span class="n">jled</span><span class="o">::</span><span class="n">Esp32Hal</span><span class="o">&lt;</span><span class="mi">8</span><span class="o">&gt;</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="mi">7</span><span class="p">)).</span><span class="n">Blink</span><span class="p">(</span><span class="mi">1000</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p">).</span><span class="n">Forever</span><span class="p">();</span>
+</code></pre></div>
+
+<p><code>JLed</code> uses <code>Esp32Hal&lt;8&gt;</code> (8-bit PWM, <code>LEDC_TIMER_0</code>) and <code>JLedHD</code> uses <code>Esp32Hal&lt;13&gt;</code>
+(13-bit PWM, <code>LEDC_TIMER_1</code>). Both types can be used simultaneously because they are
+assigned to separate timers and LEDC channels. Higher resolutions produce smoother
+brightness gradients at the cost of a lower maximum PWM frequency. At 13-bit resolution
+and the default 5 kHz base frequency the ESP32 is still well within its hardware limits.</p>
+<p>The <code>jled::Esp32Hal(pin, chan)</code> constructor takes the pin number as the first
+argument and the ESP32 ledc channel number on the second position.</p>
+<p>For completeness, the full signature of the <code>Esp32Hal</code> constructor is</p>
+<div class="highlight"><pre><span></span><code><span class="n">Esp32Hal</span><span class="p">(</span><span class="n">PinType</span><span class="w"> </span><span class="n">pin</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">chan</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kAutoSelectChan</span><span class="p">,</span><span class="w"> </span><span class="kt">uint16_t</span><span class="w"> </span><span class="n">freq</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5000</span><span class="p">)</span>
+</code></pre></div>
+
+<p>The PWM resolution and timer are template parameters, not runtime arguments:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// default: 8-bit resolution, LEDC_TIMER_0</span>
+<span class="k">template</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">kResBits</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">8</span><span class="p">,</span><span class="w"> </span><span class="n">ledc_timer_t</span><span class="w"> </span><span class="n">kTimer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">LEDC_TIMER_0</span><span class="o">&gt;</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Esp32Hal</span><span class="p">;</span>
+</code></pre></div>
+
+<p>This allows to override the default frequency, resolution, and timer when needed.</p>
+<p><strong>Important</strong>: Do not call Arduino SDK functions <code>pinMode</code> or <code>digitalWrite</code> on GPIO pins
+that are controlled by JLed, because that would interfere with JLed using the Espressif
+<code>ledc</code> API directly, resulting in malfunctioning JLed LEDs.</p>
+<p><strong>Important</strong>: Each GPIO pin must be controlled by at most one <code>JLed</code> (or <code>JLedHD</code>) object
+at a time. Constructing a second JLed on the same pin will silently reconfigure the shared
+LEDC channel, disrupting the first object.</p>
+<h4 id="using-esp-idf"><a class="toclink" href="#using-esp-idf">Using ESP-IDF</a></h4>
+<p>Since JLed uses the ESP-IDF SDK, JLed can also be directly used in ESP-IDF
+projects, without the need of using the Arduino Framework (which is also
+possible). See these repositories for example projects:</p>
+<ul>
+<li>https://github.com/jandelgado/jled-esp-idf-example</li>
+<li>https://github.com/jandelgado/jled-esp-idf-platformio-example</li>
+</ul>
+<h3 id="stm32"><a class="toclink" href="#stm32">STM32</a></h3>
+<h4 id="arduino-framework"><a class="toclink" href="#arduino-framework">Arduino framework</a></h4>
+<p>I had success running JLed on a <a href="https://www.st.com/en/evaluation-tools/nucleo-f401re.html">STM32 Nucleo64 F401RE
+board</a> using the official
+<a href="https://github.com/stm32duino/Arduino_Core_STM32">STM32duino core</a> (PlatformIO
+<code>ststm32</code> platform, see <code>env:nucleo_f401re</code> in <a href="platformio.ini">platformio.ini</a>) and
+compiling examples from the Arduino IDE. Note that the <code>stlink</code> is necessary to upload
+sketches to the microcontroller. <code>STM32duino</code> provides the Arduino API for STM32
+microcontrollers, allowing to write portable code.</p>
+<h4 id="stm32cube-native"><a class="toclink" href="#stm32cube-native">STM32Cube (native)</a></h4>
+<p>On bare STM32Cube (CubeMX / STM32CubeIDE) builds, JLed auto-selects a native
+HAL that drives an already-configured timer PWM channel. You own timer setup:
+configure the timer frequency and resolution in CubeMX (<code>MX_TIMx_Init()</code>, which
+sets <code>Init.Period</code>), then hand JLed the handle plus channel:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// inside main(), after MX_TIMx_Init() has run:</span>
+<span class="n">JLed</span><span class="w"> </span><span class="n">led</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">JLed</span><span class="p">({</span><span class="o">&amp;</span><span class="n">htim2</span><span class="p">,</span><span class="w"> </span><span class="n">TIM_CHANNEL_1</span><span class="p">}).</span><span class="n">Breathe</span><span class="p">(</span><span class="mi">1000</span><span class="p">).</span><span class="n">Forever</span><span class="p">();</span>
+<span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">led</span><span class="p">.</span><span class="n">Update</span><span class="p">();</span><span class="w"> </span><span class="p">}</span>
+</code></pre></div>
+
+<p>Notes:</p>
+<ul>
+<li>Construct these JLed objects inside or below <code>main()</code>, after the timer init,
+  never as file-scope globals. The HAL starts PWM and reads the timer period in
+  its constructor, which for a global would run before <code>main()</code>.</li>
+<li>Brightness is scaled to the timer period you configured, so PWM resolution is
+  as fine as that period. Both <code>JLed</code> (8-bit) and <code>JLedHD</code> (16-bit) work.</li>
+<li><code>LowActive()</code> inverts the output in hardware via the timer polarity bit.</li>
+<li>The Arduino-framework STM32 path (STM32duino) keeps using the standard Arduino
+  HAL; this native HAL is only auto-selected on non-Arduino STM32Cube builds.</li>
+<li>See <a href="examples/stm32cube_demo">the stm32cube demo</a> for a complete CubeMX project.</li>
+</ul>
+<h4 id="mbed-framework"><a class="toclink" href="#mbed-framework">mbed framework</a></h4>
+<p>STM32 boards can also be driven through the <a href="https://www.mbed.org">mbed</a>
+framework, in which case JLed uses <code>MbedHal</code>. Select the framework in
+<code>platformio.ini</code> (<code>framework = mbed</code>, see <code>env:nucleo_f401re_mbed</code>) and refer to
+the <a href="#framework-notes">Framework notes</a> for a full configuration example.</p>
+<h3 id="raspberry-pi-pico"><a class="toclink" href="#raspberry-pi-pico">Raspberry Pi Pico</a></h3>
+<p>When using JLed on a Raspberry Pi Pico with the native <strong>Pico SDK</strong>, <code>JLed</code> uses
+<code>PicoHal&lt;8&gt;</code> (8-bit PWM) and <code>JLedHD</code> uses <code>PicoHal&lt;16&gt;</code> (16-bit PWM). Each PWM slice is
+configured independently, so <code>JLed</code> and <code>JLedHD</code> instances can be mixed freely, <strong>except</strong>
+when two pins share the same PWM slice (e.g. GPIO 10 and GPIO 11 both use slice 5): pins on
+the same slice must use the same resolution, otherwise their wrap register will be silently
+overwritten.</p>
+<p>With a fixed clock divider of 1 the PWM frequency depends on resolution:</p>
+<table>
+<thead>
+<tr>
+<th>Bits</th>
+<th>RP2040 frequency</th>
+<th>RP2350 frequency</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>8</td>
+<td>~488 kHz</td>
+<td>~586 kHz</td>
+</tr>
+<tr>
+<td>10</td>
+<td>~122 kHz</td>
+<td>~146 kHz</td>
+</tr>
+<tr>
+<td>12</td>
+<td>~30.5 kHz</td>
+<td>~36.6 kHz</td>
+</tr>
+<tr>
+<td>16</td>
+<td>~1.9 kHz</td>
+<td>~2.3 kHz</td>
+</tr>
+</tbody>
+</table>
+<p>Even at 16-bit resolution the PWM frequency stays above 1 kHz, producing smooth visible
+output on LEDs. The Pico supports up to 16 PWM channels in parallel. See the
+<a href="examples/raspi_pico">pico-demo</a> for an example and build instructions.</p>
+<p><code>PicoHal</code> is used by default even when building through the <strong>Arduino framework</strong> (Earle
+Philhower arduino-pico SDK). To use the generic <code>ArduinoHal</code> instead, e.g. <code>JLedHD</code> as
+<code>ArduinoHal&lt;16&gt;</code>, define <a href="#jled_force_arduino_hal"><code>JLED_FORCE_ARDUINO_HAL</code></a>; the
+<code>analogWriteResolution</code> global constraint described above then applies.</p>
+<h2 id="example-sketches"><a class="toclink" href="#example-sketches">Example sketches</a></h2>
+<p>Example sketches are provided in the <a href="examples/">examples</a> directory.</p>
+<ul>
+<li><a href="examples/hello">Hello, world</a></li>
+<li><a href="examples/hello_rgb">Hello, RGB</a></li>
+<li><a href="examples/blink">Blink effect</a></li>
+<li><a href="examples/blink_accelerate">Accelerating blink effect</a></li>
+<li><a href="examples/hires">High resolution effects with JLedHD</a></li>
+<li><a href="examples/simple_on">Turn LED on after a delay</a></li>
+<li><a href="examples/breathe">Breathe effect</a></li>
+<li><a href="examples/slow_breathe">Long running breathe effect</a></li>
+<li><a href="examples/candle">Candle effect</a></li>
+<li><a href="examples/fade_on">Fade LED on</a></li>
+<li><a href="examples/fade_off">Fade LED off</a></li>
+<li><a href="examples/fade_from_to">Fade from-to effect</a></li>
+<li><a href="examples/pulse">Pulse effect</a></li>
+<li><a href="examples/rgb">RGB LED blink effect with JLedRGB</a></li>
+<li><a href="examples/group_sequence">Controlling a group of LEDs sequentially</a></li>
+<li><a href="examples/group_reverse">Reversing/bouncing a group of LEDs (Cylon/Larson scanner)</a></li>
+<li><a href="examples/group_parallel">Controlling a group of LEDs in parallel</a></li>
+<li><a href="examples/group_ref">Mixing LED types and nesting groups by reference</a></li>
+<li><a href="examples/user_func">Simple User provided effect</a></li>
+<li><a href="examples/morse">Morsecode example</a></li>
+<li><a href="examples/last_brightness">Last brightness value example</a></li>
+<li><a href="examples/pause_resume">Pause and resume effect with a button</a></li>
+<li><a href="examples/jled_lifecycle">JLed lifecycle events</a></li>
+<li><a href="examples/group_lifecycle">Group lifecycle events</a></li>
+<li><a href="examples/custom_hal">Custom HAL example</a></li>
+<li><a href="examples/fastled">Driving a WS2812B strip via a FastLED HAL</a> using the <code>WriterHal</code> abstraction</li>
+<li><a href="https://github.com/jandelgado/jled-pca9685-hal">Custom PCA9685 HAL</a></li>
+<li><a href="https://github.com/jandelgado/jled-example-switch-sequence">Dynamically switch sequences</a></li>
+<li><a href="examples/mbed_demo">STM32 mbed framework demo</a></li>
+<li><a href="examples/stm32cube_demo">STM32 STM32Cube framework demo</a></li>
+<li><a href="https://jandelgado.github.io/jled-wasm">JLed compiled to WASM and running in the browser</a></li>
+<li><a href="examples/raspi_pico">Raspberry Pi Pico Demo</a></li>
+<li><a href="https://github.com/jandelgado/jled-esp-idf-example">ESP32 ESP-IDF example</a></li>
+<li><a href="https://github.com/jandelgado/jled-esp-idf-platformio-example">ESP32 ESP-IDF PlatformIO example</a></li>
+</ul>
+<h3 id="building-examples-with-platformio"><a class="toclink" href="#building-examples-with-platformio">Building examples with PlatformIO</a></h3>
+<p>To build an example using <a href="http://platformio.org/">the PlatformIO ide</a>,
+uncomment the example to be built in the <a href="platformio.ini">platformio.ini</a>
+project file, e.g.:</p>
+<div class="highlight"><pre><span></span><code><span class="k">[platformio]</span>
+<span class="c1">; uncomment example to build</span>
+<span class="na">src_dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">examples/hello</span>
+<span class="c1">;src_dir = examples/blink</span>
+<span class="c1">;src_dir = examples/breathe</span>
+</code></pre></div>
+
+<h3 id="building-examples-with-the-arduino-ide"><a class="toclink" href="#building-examples-with-the-arduino-ide">Building examples with the Arduino IDE</a></h3>
+<p>To build an example sketch in the Arduino IDE, select an example from
+the <code>File</code> &gt; <code>Examples</code> &gt; <code>JLed</code> menu.</p>
+<h2 id="extending"><a class="toclink" href="#extending">Extending</a></h2>
+<h3 id="support-new-hardware"><a class="toclink" href="#support-new-hardware">Support new hardware</a></h3>
+<p>JLed uses a very thin hardware abstraction layer (HAL) to abstract access to
+the actual MCU/framework used (e.g. ESP32, ESP8266). The HAL encapsulates
+access to the GPIO and clock functionality of the MCU under the framework being
+used. During the unit tests, mocked HAL instances are used, enabling tests to
+check the generated output. The <a href="examples/custom_hal">Custom HAL example</a>
+provides an example for a user defined HAL.</p>
+<h3 id="writing-to-a-user-owned-target"><a class="toclink" href="#writing-to-a-user-owned-target">Writing to a user-owned target</a></h3>
+<p><code>jled::WriterHal</code> is a ready-made HAL for cases where JLed should not drive GPIO directly, but
+instead write its output into a user-provided target, such as an array consumed by another library.
+See the <a href="examples/fastled">FastLED example</a> for how this is used to drive Neopixel strips.</p>
+<h2 id="unit-tests"><a class="toclink" href="#unit-tests">Unit tests</a></h2>
+<p>JLed comes with an exhaustive host-based unit test suite. Info on how to run
+the host-based provided unit tests <a href="test/README.md">is provided here</a>.</p>
+<h2 id="contributing"><a class="toclink" href="#contributing">Contributing</a></h2>
+<ul>
+<li>open an issue to discuss your idea</li>
+<li>fork this repository</li>
+<li>create your feature branch</li>
+<li>add code</li>
+<li>add <a href="test/">unit test(s)</a></li>
+<li>add <a href="README.md">documentation</a></li>
+<li>make sure the cpp <a href="https://github.com/cpplint/cpplint">linter</a> does not
+  report any problems (run <code>make lint</code>). Hint: use <code>clang-format</code> with the
+  provided <a href=".clang-format">settings</a></li>
+<li>commit changes</li>
+<li>submit a PR</li>
+</ul>
+<h2 id="jled-50-migration-guide"><a class="toclink" href="#jled-50-migration-guide">JLed 5.0 migration guide</a></h2>
+<p>JLed 5.0 introduced some breaking changes in the public APIs. Here is how to update
+code written against JLed 4.15 to keep on running with JLed 5.0.</p>
+<h3 id="estopmode-renamed-to-eidlemode"><a class="toclink" href="#estopmode-renamed-to-eidlemode"><code>eStopMode</code> renamed to <code>eIdleMode</code></a></h3>
+<p><code>JLed::eStopMode</code> has been renamed to <code>eIdleMode</code> and moved to the <code>jled</code> namespace.
+The same enum is shared by <code>Stop()</code> and the new <code>Pause()</code> functionality:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// before</span>
+<span class="n">led</span><span class="p">.</span><span class="n">Stop</span><span class="p">(</span><span class="n">JLed</span><span class="o">::</span><span class="n">eStopMode</span><span class="o">::</span><span class="n">KEEP_CURRENT</span><span class="p">);</span>
+
+<span class="c1">// after</span>
+<span class="n">led</span><span class="p">.</span><span class="n">Stop</span><span class="p">(</span><span class="n">jled</span><span class="o">::</span><span class="n">eIdleMode</span><span class="o">::</span><span class="n">KEEP_CURRENT</span><span class="p">);</span>
+</code></pre></div>
+
+<p>Reason: otherwise we would have separate <code>eStopMode</code> enums for <code>JLed</code>, <code>JLedHD</code> etc.
+classes, bloating users code.</p>
+<h3 id="jledsequence-to-jledgroup-migration"><a class="toclink" href="#jledsequence-to-jledgroup-migration">JLedSequence to JLedGroup migration</a></h3>
+<p>In JLed 5.0 <code>JLedSequence</code> is replaced by <code>JLedGroup</code>. In your old code, just rename the class and
+use the <code>JLedGroup</code> factory methods; <code>JLed leds[]</code> stays <code>JLed leds[]</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// before</span>
+<span class="n">JLed</span><span class="w"> </span><span class="n">leds</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="n">JLed</span><span class="p">(</span><span class="mi">4</span><span class="p">).</span><span class="n">Blink</span><span class="p">(</span><span class="mi">500</span><span class="p">,</span><span class="w"> </span><span class="mi">500</span><span class="p">),</span><span class="w"> </span><span class="n">JLed</span><span class="p">(</span><span class="mi">5</span><span class="p">).</span><span class="n">Breathe</span><span class="p">(</span><span class="mi">1000</span><span class="p">)};</span>
+<span class="n">JLedSequence</span><span class="w"> </span><span class="nf">seq</span><span class="p">(</span><span class="n">JLedSequence</span><span class="o">::</span><span class="n">eMode</span><span class="o">::</span><span class="n">PARALLEL</span><span class="p">,</span><span class="w"> </span><span class="n">leds</span><span class="p">);</span><span class="w">   </span><span class="c1">// parallel</span>
+<span class="n">JLedSequence</span><span class="w"> </span><span class="nf">seq</span><span class="p">(</span><span class="n">JLedSequence</span><span class="o">::</span><span class="n">eMode</span><span class="o">::</span><span class="n">SEQUENCE</span><span class="p">,</span><span class="w"> </span><span class="n">leds</span><span class="p">);</span><span class="w">   </span><span class="c1">// sequential</span>
+
+<span class="c1">// after</span>
+<span class="n">JLed</span><span class="w"> </span><span class="n">leds</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="n">JLed</span><span class="p">(</span><span class="mi">4</span><span class="p">).</span><span class="n">Blink</span><span class="p">(</span><span class="mi">500</span><span class="p">,</span><span class="w"> </span><span class="mi">500</span><span class="p">),</span><span class="w"> </span><span class="n">JLed</span><span class="p">(</span><span class="mi">5</span><span class="p">).</span><span class="n">Breathe</span><span class="p">(</span><span class="mi">1000</span><span class="p">)};</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">seq</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLedGroup</span><span class="o">::</span><span class="n">Parallel</span><span class="p">(</span><span class="n">leds</span><span class="p">);</span><span class="w">    </span><span class="c1">// parallel</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">seq</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">JLedGroup</span><span class="o">::</span><span class="n">Sequential</span><span class="p">(</span><span class="n">leds</span><span class="p">);</span><span class="w">  </span><span class="c1">// sequential</span>
+</code></pre></div>
+
+<p>Reason: <code>JLedGroup</code> is a more capable replacement that supports repeat, reverse, and pause/resume
+control applied to the whole group at once. The parallel and sequential modes are now explicit at
+the point of creation. For a group that mixes LED types, use
+<a href="#jledrefgroup-pointer-based-groups-for-named-led-objects"><code>JLedRefGroup</code></a> instead.</p>
+<h3 id="updateint16_t-plast-removed-use-updateresult-now"><a class="toclink" href="#updateint16_t-plast-removed-use-updateresult-now"><code>Update(int16_t* pLast)</code> removed, use <code>UpdateResult</code> now</a></h3>
+<p>The optional out parameter in <code>Update()</code> was removed, the last written brightness value
+can now be obtained using the <code>UpdateResult</code> object returned by <code>Update()</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// before</span>
+<span class="kt">int16_t</span><span class="w"> </span><span class="n">lastVal</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">-1</span><span class="p">;</span>
+<span class="n">led</span><span class="p">.</span><span class="n">Update</span><span class="p">(</span><span class="o">&amp;</span><span class="n">lastVal</span><span class="p">);</span>
+
+<span class="c1">// after</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">r</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">led</span><span class="p">.</span><span class="n">Update</span><span class="p">();</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">r</span><span class="p">.</span><span class="n">HasValue</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">lastVal</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">r</span><span class="p">.</span><span class="n">Value</span><span class="p">();</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h3 id="custom-brightness-evaluators-brightnessevaluator-is-now-a-template"><a class="toclink" href="#custom-brightness-evaluators-brightnessevaluator-is-now-a-template">Custom brightness evaluators: <code>BrightnessEvaluator</code> is now a template</a></h3>
+<p><code>BrightnessEvaluator</code> and the return type of <code>Eval()</code> are now parameterised by the value type,
+to support 8-bit, high resolution 16-bit and RGB effects. <code>Eval()</code>'s time argument also changed
+from <code>uint32_t</code> to <code>jled::period_t</code> (a <code>uint16_t</code>), and <code>UserFunc()</code> now takes a
+<code>jled::BrightnessEvaluator&lt;Value&gt;*</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// before</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">MyEffect</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">jled</span><span class="o">::</span><span class="n">BrightnessEvaluator</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kt">uint8_t</span><span class="w"> </span><span class="nf">Eval</span><span class="p">(</span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">t</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">}</span>
+<span class="p">};</span>
+
+<span class="c1">// after</span>
+<span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span><span class="w"> </span><span class="nc">Value</span><span class="o">&gt;</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">MyEffect</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">jled</span><span class="o">::</span><span class="n">BrightnessEvaluator</span><span class="o">&lt;</span><span class="n">Value</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">Value</span><span class="w"> </span><span class="nf">Eval</span><span class="p">(</span><span class="n">jled</span><span class="o">::</span><span class="n">period_t</span><span class="w"> </span><span class="n">t</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">}</span>
+<span class="p">};</span>
+</code></pre></div>
+
+<p>See the <a href="examples/user_func">user_func</a> and <a href="examples/morse">morse</a> examples for complete implementations.</p>
+<h3 id="kfullbrightnesskzerobrightness-valuetraitst"><a class="toclink" href="#kfullbrightnesskzerobrightness-valuetraitst"><code>kFullBrightness</code>/<code>kZeroBrightness</code> → <code>ValueTraits&lt;T&gt;</code></a></h3>
+<p>The two free <code>constexpr uint8_t</code> constants in the <code>jled</code> namespace were replaced by the
+<code>ValueTraits&lt;T&gt;</code> traits template, whose constants are static functions:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// before</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">full</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jled</span><span class="o">::</span><span class="n">kFullBrightness</span><span class="p">;</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">zero</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jled</span><span class="o">::</span><span class="n">kZeroBrightness</span><span class="p">;</span>
+
+<span class="c1">// after</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">full</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jled</span><span class="o">::</span><span class="n">ValueTraits</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;::</span><span class="n">kOnColor</span><span class="p">();</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">zero</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jled</span><span class="o">::</span><span class="n">ValueTraits</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;::</span><span class="n">kOffColor</span><span class="p">();</span>
+</code></pre></div>
+
+<p>The old constants are removed, not kept as deprecated aliases: hardcoding 8-bit values is
+exactly what the traits exist to avoid.</p>
+<p>The old constants served two roles. As a value shown by the LED (<code>On</code>, <code>Off</code>, <code>Blink</code> and
+<code>FadeOn</code> defaults) they map to <code>kOnColor()</code>/<code>kOffColor()</code>, as shown above. As the bounds of
+the brightness level passed to <code>MinBrightness</code>/<code>MaxBrightness</code> they map to
+<code>kMinValue()</code>/<code>kMaxValue()</code>, which exist only for scalar value types.</p>
+<p>Reason: with <code>JLedHD</code> and <code>JLedRGB</code> a "brightness" is no longer necessarily an 8-bit scalar,
+so the traits describe an arbitrary value type. Besides the constants, <code>ValueTraits</code> carries
+the <code>ApplyBounds</code>/<code>Blend</code>/<code>IsBrighter</code>/<code>Invert</code> operations the effects and the HALs need to
+work on any value type. The scalar specializations (<code>value_scalar.h</code>) provide
+<code>kMinValue</code>/<code>kMaxValue</code> on top of the <code>kOffColor</code>/<code>kOnColor</code>/<code>kBits</code> members
+<code>ValueTraits&lt;RGBColor&lt;T&gt;&gt;</code> (<code>value_rgb.h</code>) also has.</p>
+<h3 id="custom-hals-and-tjled-subclasses-clock-and-value-are-now-explicit"><a class="toclink" href="#custom-hals-and-tjled-subclasses-clock-and-value-are-now-explicit">Custom HALs and <code>TJLed</code> subclasses: Clock and Value are now explicit</a></h3>
+<p>The HAL interface no longer includes a <code>millis()</code> method. Time is now provided by a separate clock
+class with a single <code>static uint32_t millis()</code> method. <code>TJLed</code> gained two new explicit template
+parameters: <code>Clock</code> and <code>Value</code>, so the full signature changed from <code>TJLed&lt;Hal, Derived&gt;</code> to
+<code>TJLed&lt;Hal, Clock, Value, Derived&gt;</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// before</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">CustomHal</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">analogWrite</span><span class="p">(</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">val</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">uint32_t</span><span class="w"> </span><span class="nf">millis</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="c1">// remove this</span>
+<span class="p">};</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">CustomJLed</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">jled</span><span class="o">::</span><span class="n">TJLed</span><span class="o">&lt;</span><span class="n">CustomHal</span><span class="p">,</span><span class="w"> </span><span class="n">CustomJLed</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
+
+<span class="c1">// after</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">CustomHal</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">analogWrite</span><span class="p">(</span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">val</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">invert</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="c1">// millis() gone; invert added for low-active support</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">SetLowActive</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">invert</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="p">;</span><span class="w">  </span><span class="c1">// new: required; no-op if there's no polarity register</span>
+<span class="p">};</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">CustomJLed</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">jled</span><span class="o">::</span><span class="n">TJLed</span><span class="o">&lt;</span><span class="n">CustomHal</span><span class="p">,</span><span class="w"> </span><span class="n">jled</span><span class="o">::</span><span class="n">JLedClockType</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="p">,</span><span class="w"> </span><span class="n">CustomJLed</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">};</span>
+</code></pre></div>
+
+<p>See the <a href="examples/custom_hal">custom_hal</a> example for a complete implementation. See the
+<a href="#low-active-for-inverted-output">Low active for inverted output</a> section for the
+<code>analogWrite(val, invert)</code> contract, and <code>InvertableHal&lt;Hal&gt;</code> if your HAL has no native inversion
+capability (it implements <code>SetLowActive(bool)</code> as a no-op).</p>
+<p>Reason: a platform may have multiple PWM HALs (for example the built-in one plus an external PCA9685
+driver) but only a single clock. Separating them avoids duplicating time logic across HALs. Making
+the value type explicit enables zero-cost high-resolution and RGB variants without any runtime
+overhead.</p>
+<h3 id="candle-gains-color_oncolor_off-which-come-first"><a class="toclink" href="#candle-gains-color_oncolor_off-which-come-first"><code>Candle()</code> gains <code>color_on</code>/<code>color_off</code>, which come first</a></h3>
+<p><code>Candle()</code> can now flicker between two arbitrary values instead of always flickering white
+towards implicit black. The two new parameters lead the parameter list, so
+<code>Candle(speed, jitter, period)</code> became
+<code>Candle(color_on, color_off, speed, jitter, period, offset)</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// before</span>
+<span class="n">led</span><span class="p">.</span><span class="n">Candle</span><span class="p">(</span><span class="mi">5</span><span class="w"> </span><span class="cm">/*speed*/</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="w"> </span><span class="cm">/*jitter*/</span><span class="p">,</span><span class="w"> </span><span class="mi">65535</span><span class="w"> </span><span class="cm">/*period*/</span><span class="p">);</span>
+
+<span class="c1">// after</span>
+<span class="n">led</span><span class="p">.</span><span class="n">Candle</span><span class="p">(</span><span class="mi">255</span><span class="w"> </span><span class="cm">/*color_on*/</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="cm">/*color_off*/</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="w"> </span><span class="cm">/*speed*/</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="w"> </span><span class="cm">/*jitter*/</span><span class="p">,</span><span class="w"> </span><span class="mi">65535</span><span class="w"> </span><span class="cm">/*period*/</span><span class="p">);</span>
+</code></pre></div>
+
+<p>A bare <code>Candle()</code> is unaffected, its defaults reproduce the old behaviour. Any call passing
+<code>speed</code>, <code>jitter</code> or <code>period</code> positionally needs <code>color_on</code> and <code>color_off</code> prepended by hand.
+On <code>JLed</code>/<code>JLedHD</code> the colors have the same scalar type (<code>uint8_t</code>/<code>uint16_t</code>) as <code>speed</code> and
+<code>jitter</code>, so a stale call is <strong>not</strong> caught by the compiler and silently reinterprets its first
+argument as <code>color_on</code> instead of <code>speed</code> - check call sites manually rather than relying on
+build errors to find them.</p>
+<p>Reason: the colors are the parameters callers most often want to set while leaving speed, jitter,
+period and offset at their defaults, so they belong before those. The trailing <code>offset</code> parameter
+is new too, it controls how in sync several candles flicker and defaults to an automatically
+derived per-instance value.</p>
+<h3 id="fadeon-parameter-order-to-moved-before-from"><a class="toclink" href="#fadeon-parameter-order-to-moved-before-from"><code>FadeOn()</code> parameter order: <code>to</code> moved before <code>from</code></a></h3>
+<p><code>FadeOn()</code>'s two optional color parameters are reordered so the single positional argument
+means "to", not "from":</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// before</span>
+<span class="n">led</span><span class="p">.</span><span class="n">FadeOn</span><span class="p">(</span><span class="mi">1000</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="cm">/*from*/</span><span class="p">,</span><span class="w"> </span><span class="mi">200</span><span class="w"> </span><span class="cm">/*to*/</span><span class="p">);</span>
+
+<span class="c1">// after</span>
+<span class="n">led</span><span class="p">.</span><span class="n">FadeOn</span><span class="p">(</span><span class="mi">1000</span><span class="p">,</span><span class="w"> </span><span class="mi">200</span><span class="w"> </span><span class="cm">/*to*/</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="cm">/*from*/</span><span class="p">);</span>
+</code></pre></div>
+
+<p><code>FadeOff()</code> is unchanged (<code>FadeOff(duration, from, to)</code>), since its own name already implies
+the destination (off) and the natural thing to customize is the start.</p>
+<p>Reason: <code>FadeOn(duration, from, to)</code> read like "fade on, to this value" but the second
+positional argument was actually the start, not the destination - a footgun where
+<code>FadeOn(1000, 200)</code> faded <em>from</em> 200 <em>to</em> full brightness, not from off to 200. <code>FadeOn</code> is now
+<code>FadeOn(duration, to, from)</code>, matching what the name implies.</p>
+<h2 id="faq"><a class="toclink" href="#faq">FAQ</a></h2>
+<h3 id="how-do-i-check-if-a-jled-object-is-still-being-updated"><a class="toclink" href="#how-do-i-check-if-a-jled-object-is-still-being-updated">How do I check if a JLed object is still being updated?</a></h3>
+<ul>
+<li>Check the return value of the <code>JLed::Update</code> method: it is usable as a <code>bool</code>,
+  <code>true</code> if the effect is still running, otherwise <code>false</code>. Or call <code>.IsRunning()</code>
+  on it, or <code>.IsDone()</code> / <code>.OnDone(...)</code> to react to the exact tick it finishes (
+  see <a href="#lifecycle-events">Lifecycle events</a>).</li>
+</ul>
+<h3 id="how-do-i-restart-an-effect"><a class="toclink" href="#how-do-i-restart-an-effect">How do I restart an effect?</a></h3>
+<p>Call <code>Reset()</code> on a <code>JLed</code> object to start over.</p>
+<h3 id="how-do-i-change-a-running-effect"><a class="toclink" href="#how-do-i-change-a-running-effect">How do I change a running effect?</a></h3>
+<p>Just 'reconfigure' the <code>JLed</code> with any of the effect methods (e.g. <code>FadeOn</code>,
+<code>Breathe</code>, <code>Blink</code> etc). Time-wise, the effect will start over.</p>
+<h2 id="author-and-copyright"><a class="toclink" href="#author-and-copyright">Author and Copyright</a></h2>
+<p>Copyright © 2017-2026 by Jan Delgado.</p>
+<h2 id="license"><a class="toclink" href="#license">License</a></h2>
+<p><a href="LICENSE">MIT</a></p></div>
+
+    </div>
+
+    <script>
+        
+function switchVersion(version) {
+    const base = window.location.pathname.includes('/jled/') ? '/jled/' : '/';
+    window.location.href = base + version + '/';
+}
+
+    </script>
+</body>
+</html>

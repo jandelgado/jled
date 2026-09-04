@@ -1,0 +1,45 @@
+---
+Language: Cpp
+BasedOnStyle: Google
+
+# Codebase predates this file and uses 4-space indent / 100-col lines
+# instead of Google's stock 2-space / 80-col.
+IndentWidth: 4
+ColumnLimit: 100
+ContinuationIndentWidth: 4
+ConstructorInitializerIndentWidth: 4
+AccessModifierOffset: -3
+
+# Collapse short one-liner methods/accessors defined inside a class body
+# (most of the codebase's existing style), and trivial lambdas, but leave
+# free functions and multi-statement bodies as written.
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortLambdasOnASingleLine: All
+
+# Note: AlignConsecutiveAssignments/Declarations were tried but rejected -
+# they don't just preserve already-aligned blocks, they force alignment on
+# every run of 2+ adjacent declarations, padding ones that were never
+# aligned in the source (net +222 changed lines across the codebase).
+AlignConsecutiveShortCaseStatements:
+  Enabled: true
+  AcrossEmptyLines: false
+  AcrossComments: false
+  AlignCaseColons: false
+
+# Keep hand-formatted arrays/init-lists readable: one element per line
+# instead of packing several per line to fill the column width. Note:
+# AlignAfterOpenBracket: BlockIndent was tried to also move the opening
+# brace onto its own line, but it applies to *all* brackets, not just
+# braced-init-lists, and wrecks multi-line function declarations/calls
+# (e.g. FadeOn/Candle) with a dangling closing paren. Rejected.
+BinPackArguments: false
+
+# Keep "template<...>" without a space after the keyword (Google default
+# forces "template <...>").
+SpaceAfterTemplateKeyword: false
+
+# Pin the C++ standard instead of Auto: Auto guesses per file by scanning
+# for other C++11 markers, so a file/snippet whose only nested template is
+# the line being touched can get misdetected as C++03 and forced into
+# "Foo<Foo<int> >" instead of "Foo<Foo<int>>".
+Standard: Cpp11
