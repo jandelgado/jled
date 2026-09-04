@@ -8,7 +8,7 @@ the latest release version here](https://jandelgado.github.io/jled)
 
 JLed is an embedded C++ library to control LEDs. It uses a **non-blocking** approach and can
 control LEDs in simple (**on**/**off**) and complex (**blinking**,
-**breathing**, and more) ways in a **time-driven** manner.
+**breathing**, **RGB color**, and more) ways in a **time-driven** manner.
 
 JLed was featured on [Hackaday](https://hackaday.com/2018/06/13/simplifying-basic-led-effects/)
 and someone made a [video tutorial for JLed](https://youtu.be/x5V2vdpZq1w). Thanks!
@@ -198,8 +198,8 @@ produce visible "staircase" banding, especially at low brightness. `JLedHD` elim
 giving the HAL up to 65536 values to work with. The HAL then maps them to the native PWM
 resolution of the platform (e.g. 13-bit on ESP32, 16-bit on Pico/Teensy).
 
-Use `JLed` for simple on/off, blink or fast fade/breathe effects. Here the extra resolution buys
-usually nothing, and 8-bit uses half the memory per brightness value. Also note that on some
+Use `JLed` for simple on/off, blink or fast fade/breathe effects. Here the extra resolution
+is not visible, and 8-bit uses half the memory per brightness value. Also note that on some
 platforms (see the table below) `JLed` and `JLedHD` resolve to the same HAL width (e.g. standard
 8-bit Arduino boards), so `JLedHD` has no practical benefit there.
 
@@ -1292,6 +1292,7 @@ Philhower arduino-pico SDK). To use the generic `ArduinoHal` instead, e.g. `JLed
 Example sketches are provided in the [examples](examples/) directory.
 
 - [Hello, world](examples/hello)
+- [Hello, RGB](examples/hello_rgb)
 - [Blink effect](examples/blink)
 - [Accelerating blink effect](examples/blink_accelerate)
 - [High resolution effects with JLedHD](examples/hires)
