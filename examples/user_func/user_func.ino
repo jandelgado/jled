@@ -1,14 +1,14 @@
-// JLed user provided brightness function demo.
-// Copyright 2017 by Jan Delgado. All rights reserved.
+// JLed user provided effect function demo.
+// Copyright 2017-2026 by Jan Delgado. All rights reserved.
 // https://github.com/jandelgado/jled
 #include <jled.h>
 
-template<typename Brightness>
-class UserEffect : public jled::BrightnessEvaluator<Brightness> {
+template<typename Value>
+class UserEffect : public jled::BrightnessEvaluator<Value> {
  public:
-    Brightness Eval(jled::period_t t) const override {
+    Value Eval(jled::period_t t) const override {
         // this function changes between OFF and ON  every 250 ms.
-        return jled::BrightnessTraits<Brightness>::kFullBrightness * ((t / 250) % 2);
+        return jled::ValueTraits<Value>::kMaxValue() * ((t / 250) % 2);
     }
     // duration of effect: 5 seconds.
     uint16_t Period() const override { return 5000; }

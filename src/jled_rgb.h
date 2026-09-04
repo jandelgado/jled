@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2026 Jan Delgado <jdelgado[at]gmx.net>
+// Copyright (c) 2026 Jan Delgado <jdelgado[at]gmx.net>
 // https://github.com/jandelgado/jled
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -21,26 +21,22 @@
 //
 #pragma once
 
+#include "value_rgb.h"  // NOLINT
+#include "jled_base.h"  // NOLINT
+#include "rgb_hal.h"    // NOLINT
+
 namespace jled {
 
-template<typename T> struct ValueTraits;    // fwd decl.
+// TJLedRGB: base Template for JLedRGB classes for 3-pin RGB Leds.
+// TJLedRGB uses the RGBHal<Hal>, which uses 3 individual HALs to address the r,g and b
+// pins of a RGB LED.
+template<typename Hal, typename Clock, typename Value, typename Derived>
+class TJLedRGB : public TJLed<RGBHal<Hal>, Clock, Value, Derived> {
+    using Base = TJLed<RGBHal<Hal>, Clock, Value, Derived>;
 
-// Turns a a HAL with only a single analogWrite(Level) method to the two-argument
-// analogWrite(Level, bool invert) and SetLowActive(bool) contract required by TJLed
-// and applies inversion the in software.
-template<typename Hal>
-class InvertableHal : public Hal {
  public:
-    using Hal::Hal;
-
-    template<typename Value>
-    void analogWrite(Value val, bool invert) const {
-        // inversion is done in software, works with scalar types and the RGB type
-        Hal::template analogWrite<Value>(invert ? ValueTraits<Value>::Invert(val) : val);
-    }
-
-    // Inversion is done in analogWrite() for this HAL
-    void SetLowActive(bool f) const {(void)f;}
+    TJLedRGB(typename Hal::PinType r, typename Hal::PinType g, typename Hal::PinType b)
+        : Base(RGBHal<Hal>(r, g, b)) {}
 };
 
 }  // namespace jled

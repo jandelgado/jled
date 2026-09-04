@@ -25,7 +25,7 @@
 //
 #include <jled.h>
 
-JLed::brightness_t max_br = 20;
+JLed::value_t max_br = 20;
 auto led = JLed(LED_BUILTIN).FadeOn(2000).DelayAfter(1000).MaxBrightness(max_br).Repeat(5);
 
 void setup() {

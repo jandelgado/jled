@@ -81,7 +81,7 @@ uint8_t candle_func<uint8_t>(period_t t, uint8_t speed, uint8_t jitter) {
     // stays below t's 16-bit width (shifting by >= 16 bits is undefined
     // behavior), with no need to widen t to compute it.
     const period_t slot = t >> (speed & 0xf);
-    if (hash8(slot) >= jitter) return kFullBrightness;
+    if (hash8(slot) >= jitter) return 255;
     return FlashReader<uint8_t>::Read(&kCandleTable[hash8(~slot) & 0xf]);
 }
 

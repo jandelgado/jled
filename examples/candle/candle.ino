@@ -6,7 +6,8 @@
 auto led = JLed(5).Candle().Forever();
 
 // change speed and jitter to turn the candle into a fire
-// auto led = JLed(5).Candle(5 /* speed */, 100 /*jitter*/).Forever();
+// auto led = JLed(5).Candle(255 /* color_on */, 0 /* color_off */, 5 /* speed */,
+//                           100 /*jitter*/).Forever();
 
 void setup() {}
 

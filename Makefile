@@ -33,6 +33,7 @@ monitor: phony ## open serial monitor for connected device
 
 lint: phony ## run the C++ linter
 	$(RUN) cpplint --filter -readability/check,-build/include_subdir \
+		    --quiet\
 		    --linelength=100\
 		    --exclude test/catch2 \
 		    --extensions=cpp,h,ino $(shell find . -maxdepth 3 \( ! -regex '.*/\..*' \) \
@@ -61,7 +62,7 @@ lint-tidy-tests: phony ## run clang-tidy static analysis on src/test (modern, co
 
 test: phony ## run unit tests with coverage, plus doc-site generator tests
 	$(RUN) .tools/doc-site/test_generate_site.py
-	$(RUN) $(MAKE) -C test coverage
+	$(RUN) $(MAKE) -j "$(shell getconf _NPROCESSORS_ONLN)" -C test coverage
 
 ACT_CACHE_DIR      = $(HOME)/.cache/act/jled-cache
 ACT_CACHE          = --cache-server-path $(ACT_CACHE_DIR)

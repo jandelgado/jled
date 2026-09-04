@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <arduino_hal.h>     // NOLINT
 #include <invertable_hal.h>  // NOLINT
+#include <value_scalar.h>    // ValueTraits<uint8_t>/<uint16_t> specialization, NOLINT
 
 #include "catch2/catch_amalgamated.hpp"
 

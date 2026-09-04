@@ -61,29 +61,24 @@ constexpr bool HasEvent(EventSet mask, Event flag) {
 }
 
 // Result of a single TJLed::Update() call: whether the effect is still
-// running, which lifecycle events fired this tick, and the brightness value
-// (if any) written to the HAL this tick.
+// running, which lifecycle events fired this tick, and the value (brightness
+// or color) written to the HAL this tick.
 template<typename T>
 class UpdateResult {
     // Member order matters here: obj_ (the widest-aligned member, a pointer)
     // comes first so no alignment padding is inserted before it, and running_/
-    // has_brightness_ are 1-bit fields sharing a single trailing byte instead of
+    // has_value_ are 1-bit fields sharing a single trailing byte instead of
     // two separate bool bytes. On a 32-bit MCU this keeps sizeof(UpdateResult<JLedHD>)
     // at 8 bytes instead of 12; on 8-bit AVR it saves a further byte per instance.
     T* obj_;
-    typename T::brightness_t brightness_;  // value written this tick; valid iff has_brightness_
-    EventSet event_;                       // bitmask of events that fired this tick
+    typename T::value_t value_;  // value written this tick; valid iff has_value_
+    EventSet event_;             // bitmask of events that fired this tick
     uint8_t running_ : 1;
-    uint8_t has_brightness_ : 1;  // true iff the HAL was written this tick
+    uint8_t has_value_ : 1;  // true iff the HAL was written this tick
 
  public:
-    UpdateResult(bool running, EventSet event, typename T::brightness_t brightness,
-                 bool has_brightness, T* obj)
-        : obj_(obj),
-          brightness_(brightness),
-          event_(event),
-          running_(running),
-          has_brightness_(has_brightness) {}
+    UpdateResult(bool running, EventSet event, typename T::value_t value, bool has_value, T* obj)
+        : obj_(obj), value_(value), event_(event), running_(running), has_value_(has_value) {}
 
     // Implicit bool: preserves all existing if/while/|= usage
     operator bool() const { return running_; }  // NOLINT(runtime/explicit)
@@ -95,11 +90,11 @@ class UpdateResult {
     bool IsEnteringDelayAfter() const { return HasEvent(event_, Event::kEnterDelayAfter); }
     bool IsDone() const { return HasEvent(event_, Event::kDone); }
 
-    // Value written to the HAL this tick. HasBrightness() distinguishes "wrote value 0"
+    // Value written to the HAL this tick. HasValue() distinguishes "wrote value 0"
     // from "wrote nothing". Holds the full range for both 8-bit (JLed) and 16-bit (JLedHD)
     // resolutions.
-    bool HasBrightness() const { return has_brightness_; }
-    typename T::brightness_t Brightness() const { return brightness_; }
+    bool HasValue() const { return has_value_; }
+    typename T::value_t Value() const { return value_; }
 
     // Callback API
     // Template parameter F accepts any callable (lambda with or without capture,

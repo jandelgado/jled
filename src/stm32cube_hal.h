@@ -24,7 +24,7 @@
 
 #include <stdint.h>  // NOLINT
 
-#include "brightness.h"  // BrightnessTraits
+#include "value_scalar.h"  // ValueTraits
 
 // This header references STM32Cube types, macros and
 // functions (TIM_HandleTypeDef, HAL_TIM_PWM_Start, HAL_TIM_PWM_ConfigChannel,
@@ -32,8 +32,9 @@
 // TIM_OCPOLARITY_HIGH/_LOW, TIM_OCFAST_DISABLE, HAL_GetTick) without including
 // any vendor header (because the header depends on the actual MCU that is used and
 // we want to keep things simple here). The family HAL header (stm32XXxx_hal.h) must
-// therefore be included before <jled.h>: in CubeMX projects it arrives via main.h, in
-// STM32duino via Arduino.h. On the host, test/stm32cube_hal_mock.h stands in.
+// therefore be included before <jled.h>: in CubeMX projects it comes with main.h and
+// is usually create with the STM32CubeMX tool, in STM32duino via Arduino.h. On the
+// host, test/stm32cube_hal_mock.h mocks it for tests.
 
 namespace jled {
 
@@ -67,17 +68,18 @@ class Stm32CubeHal {
  public:
     using PinType = Stm32PwmChannel;
 
-    // Eager init: the constructor caches Init.Period and starts PWM. Construct
-    // Stm32Cube-backed JLed objects inside/below main(), after MX_TIMx_Init(),
-    // never as file-scope globals (whose constructors run before main()).
+    // Eager init: assumes this constructor is run after MX_TIMx_Init() was run in your
+    // apps initialization phase somewhere.
     explicit Stm32CubeHal(PinType pin) noexcept
         : htim_(pin.htim), channel_(pin.channel), period_(pin.htim->Init.Period) {
         HAL_TIM_PWM_Start(htim_, channel_);
     }
 
-    template<typename Brightness>
-    void analogWrite(Brightness val) const {
-        constexpr uint32_t kFull = BrightnessTraits<Brightness>::kFullBrightness;
+    // one-argument analogWrite() so the HAL can also be used with InvertableHal<>
+    // if the user wants to bypass hardware inversion.
+    template<typename Level>
+    void analogWrite(Level val) const {
+        constexpr uint32_t kFull = ValueTraits<Level>::kMaxValue();
         // Fast path: when the user's period equals JLed's full-brightness value,
         // period_ / kFull == 1 so we can skip the 64-bit multiply/divide. Otherwise scale
         // with a 64-bit intermediate: val (<=65535) * period_ (<=2^32-1) can exceed 2^32.
@@ -95,10 +97,9 @@ class Stm32CubeHal {
         __HAL_TIM_SET_COMPARE(htim_, channel_, duty);
     }
 
-    // Native hardware invert (SetLowActive() below) owns inversion entirely;
-    // invert is ignored here, the same pattern as Esp32Hal/PicoHal.
-    template<typename Brightness>
-    void analogWrite(Brightness val, bool /*invert*/) const {
+    template<typename Level>
+    void analogWrite(Level val, bool invert) const {
+        (void)invert;  // inversion is done in hardware via SetLowActive()
         analogWrite(val);
     }
 
@@ -115,9 +116,6 @@ class Stm32CubeHal {
         sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
         HAL_TIM_PWM_ConfigChannel(htim_, &sConfigOC, channel_);
     }
-
-    // Compiler-generated copy ctor/assignment duplicate htim_/channel_/period_
-    // only; they touch no hardware, so TJLed's copy/assign never re-start PWM.
 
  private:
     TIM_HandleTypeDef* htim_;

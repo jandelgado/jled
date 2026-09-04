@@ -1,7 +1,9 @@
 // JLed Unit tests for JLedGroup (run on host).
 // Copyright 2017-2026 Jan Delgado jdelgado@gmx.net
+#include <value_rgb.h>        // NOLINT
 #include <jled_base.h>        // NOLINT
 #include <jled_group_base.h>  // NOLINT
+#include <rgb_hal.h>          // NOLINT
 
 #include <vector>  // NOLINT
 
@@ -17,6 +19,17 @@ class TestJLed : public TJLed<HalMock, TimeMock, uint8_t, TestJLed> {
 
 class TestJLedHD : public TJLed<HalMock, TimeMock, uint16_t, TestJLedHD> {
     using TJLed<HalMock, TimeMock, uint16_t, TestJLedHD>::TJLed;
+};
+
+// Host stand-in for jled::JLedRGB (src/jled_rgb.h): same base, over
+// RGBHal<HalMock> instead of RGBHal<JLedHal>. Only needed here to show that a
+// Value = RGBColor<uint8_t> LED mixes with a scalar TestJLed inside one
+// JLedRefGroup, so the Candle convenience overload is left out.
+class TestJLedRGB : public TJLed<RGBHal<HalMock>, TimeMock, RGBColor<uint8_t>, TestJLedRGB> {
+    using Base = TJLed<RGBHal<HalMock>, TimeMock, RGBColor<uint8_t>, TestJLedRGB>;
+
+ public:
+    TestJLedRGB(uint8_t r, uint8_t g, uint8_t b) : Base(RGBHal<HalMock>(r, g, b)) {}
 };
 
 namespace {
@@ -684,6 +697,33 @@ TEST_CASE("JLedRefGroup references externally managed LEDs", "[jled_group]") {
         // silently rearmed for a repetition that will never come.
         REQUIRE_FALSE(led1.IsRunning());
     }
+}
+
+TEST_CASE("JLedRefGroup mixes JLed and JLedRGB by reference", "[jled_rgb]") {
+    // TJLedGroup is homogeneous and stores ElementType by value, so a group
+    // owning both a scalar JLed and an RGB JLedRGB does not exist. TJLedRef
+    // type-erases any JLedBase subclass regardless of its Value, so a
+    // JLedRefGroup is the supported way to drive a mixed set from one group.
+    HalMock::Init();
+    auto eval = MockBrightnessEvaluator(std::vector<uint8_t>{200, 100});
+    TestJLed scalar = TestJLed(1).UserFunc(&eval).Repeat(1);
+    TestJLedRGB rgb(4, 5, 6);
+    rgb.On(2);  // white for two ticks
+
+    TJLedRef refs[] = {&scalar, &rgb};
+    auto group = TestJLedRefGroup::Parallel(refs);
+
+    TimeMock::set_millis(0);
+    REQUIRE(group.Update());
+    CHECK(HalMock::PinValue(1) == 200);  // the scalar LED ran
+    CHECK(HalMock::PinValue(4) == 255);  // and so did all three RGB channels
+    CHECK(HalMock::PinValue(5) == 255);
+    CHECK(HalMock::PinValue(6) == 255);
+
+    TimeMock::set_millis(1);
+    REQUIRE(!group.Update());  // both elements finish on the same tick
+    CHECK(HalMock::PinValue(1) == 100);
+    CHECK(HalMock::PinValue(4) == 255);
 }
 
 TEST_CASE("Pause() default mode is TO_MIN_BRIGHTNESS", "[jled_group]") {

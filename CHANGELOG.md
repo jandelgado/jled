@@ -9,29 +9,53 @@ guide" in README.md for migration details and code samples.
   single `JLed`/`JLedHD` type, e.g. `JLed leds[]`. Adds `Reverse()`/`Skip()`/
   `IsReversed()` for backward and ping-pong playback, `Pause()`/`Resume()`, and
   group-level lifecycle events via `GroupUpdateResult`. New `JLedRef` and `JLedRefGroup`
-  remain the way to mix LED types or nest groups. See "Controlling a group of LEDs"
+  let's you mix LED types or nest groups. See "Controlling a group of LEDs" in the README
 - new: lifecycle events for `JLed`/`JLedHD` (start, first output, repeat start, entering
   delay-after, done), with matching `On*()` callbacks, via `UpdateResult`
 - new: `Pause()`/`Resume()`/`IsPaused()` to freeze and later resume an effect. Also
   works on groups, pausing all members at once
 - new: high resolution (up to 16-bit) effects with `JLedHD`
+- new: `JLedRGB`/`JLedRGBHD` control a three-pin RGB LED with the same API and
+  effects as `JLed`/`JLedHD`, using `jled::RGBColor<uint8_t>`/`jled::RGBColor<uint16_t>`
+  colors in place of a plain brightness value. `Blink`/`Set`/`On`/`Off`/`Candle` write the
+  given color exactly, with no color-space conversion; `Breathe`/`FadeOn`/`FadeOff`/`Fade`
+  internally calculate transitions using the HSV color model, so a sweep between two
+  differently-hued colors ramps through hue space instead of a flat per-channel RGB
+  blend's muddy midpoint. `JLedRGBGroup`/`JLedRGBHDGroup` group them, see "JLedRGB"
+- new: `Breathe` takes trailing color parameters. The defaults reproduce the previous behaviour
+  exactly, so existing code is unaffected
+- breaking: `Candle` takes leading `color_on`/`color_off` parameters:
+  `Candle(color_on, color_off, speed, jitter, period, offset)`. The flicker now ramps
+  between the two instead of always dimming towards implicit black, e.g. a red/yellow
+  flicker on `JLedRGB`. On `JLed`/`JLedHD` these are plain brightness values, defaulting
+  to fully on / fully off (the previous behaviour)
 - new: `WriteRaw(val)` writes a brightness value straight to the hardware, bypassing the
   effect logic. Handy from a lifecycle callback
 - new: `Percentage`/`_pct` literal to set `MinBrightness`/`MaxBrightness` as a percentage
 - new: native STM32Cube HAL, see the [stm32cube_demo](examples/stm32cube_demo) example
 - new: `LowActive(bool on = true)` takes a parameter, so it can be toggled off again with
   `LowActive(false)`
-- new: `Blink` effect now has a repeat parameter
+- new: `Blink` effect now has a repeat parameter and parameters for the on- and off-color. On
+  `JLed`/`JLedHD` these are plain brightness values, so e.g. `Blink(250, 250, 1, 200, 20)` blinks
+  between the two brightness 200 and 20 levels instead of on and off. In `JLedRGB` these are RGB
+  colors.
 - perf: `ArduinoHal` now sets up the pin eagerly in its constructor by default
 - fix: `JLedGroup::Update()` could silently skip a repetition if called more than once
   within the same millisecond at a repetition boundary
-- breaking: `Update(int16_t* pLast)` removed; use `UpdateResult::Brightness()` /
-  `HasBrightness()` instead
+- breaking: `FadeOn(duration, from, to)`'s color parameters are reordered to
+  `FadeOn(duration, to, from)`, so the single positional color argument (`to`) means what
+  the name implies: "fade on, to this color". `FadeOff` is unchanged, since its own name
+- breaking: `Update(int16_t* pLast)` removed; use `UpdateResult::Value()` /
+  `HasValue()` instead
+- breaking: `JLed::brightness_t`/`JLedHD::brightness_t` renamed to `value_t`
 - breaking: lifecycle callbacks (`OnStart`, `OnDone`, ...) now receive the `JLed`/
   `JLedHD`/`JLedGroup` by reference (`JLed&`) instead of by pointer (`JLed*`)
 - breaking: `eStopMode` renamed to `eIdleMode` and moved to the `jled` namespace
-- breaking: custom `BrightnessEvaluator`s are now templated on the brightness type, and
+- breaking: custom `BrightnessEvaluator`s are now templated on the value type, and
   their `Eval()` takes `jled::period_t t` instead of `uint32_t t`
+- breaking: the free-standing legacy `jled::kFullBrightness`/`jled::kZeroBrightness`
+  constants are removed; use `jled::ValueTraits<uint8_t>::kMaxValue()`/`kOffColor()`
+  instead
 - breaking (custom HAL/`TJLed` authors): HALs no longer provide `millis()`; time now
   comes from a separate `Clock` class, and `TJLed` takes two more template parameters
 - breaking (HAL authors only): `analogWrite()` gains a required `invert` parameter, and

@@ -8,7 +8,7 @@ the latest release version here](https://jandelgado.github.io/jled)
 
 JLed is an embedded C++ library to control LEDs. It uses a **non-blocking** approach and can
 control LEDs in simple (**on**/**off**) and complex (**blinking**,
-**breathing**, and more) ways in a **time-driven** manner.
+**breathing**, **RGB color**, and more) ways in a **time-driven** manner.
 
 JLed was featured on [Hackaday](https://hackaday.com/2018/06/13/simplifying-basic-led-effects/)
 and someone made a [video tutorial for JLed](https://youtu.be/x5V2vdpZq1w). Thanks!
@@ -92,6 +92,8 @@ void loop() {
     - [Reversing and bouncing a sequential group](#reversing-and-bouncing-a-sequential-group)
     - [JLedRefGroup, pointer-based groups for named LED objects](#jledrefgroup-pointer-based-groups-for-named-led-objects)
     - [When to use what?](#when-to-use-what)
+  - [JLedRGB](#jledrgb)
+  - [JLedRGBHD](#jledrgbhd)
 - [Framework notes](#framework-notes)
 - [Platform notes](#platform-notes)
   - [Resolution and the `Brightness` type](#resolution-and-the-brightness-type)
@@ -117,7 +119,11 @@ void loop() {
   - [JLedSequence to JLedGroup migration](#jledsequence-to-jledgroup-migration)
   - [`Update(int16_t* pLast)` removed, use `UpdateResult` now](#updateint16_t-plast-removed-use-updateresult-now)
   - [Custom brightness evaluators: `BrightnessEvaluator` is now a template](#custom-brightness-evaluators-brightnessevaluator-is-now-a-template)
+  - [`BrightnessTraits` → `ColorTraits`](#brightnesstraits--colortraits)
   - [Custom HALs and `TJLed` subclasses: Clock and Brightness are now explicit](#custom-hals-and-tjled-subclasses-clock-and-brightness-are-now-explicit)
+  - [`Candle()` parameter order: `color` moved first](#candle-parameter-order-color-moved-first)
+  - [`Candle()` gains a `color_off` parameter: `color` renamed `color_on`, `speed`/`jitter`/`period`/`offset` shift over](#candle-gains-a-color_off-parameter-color-renamed-color_on-speedjitterperiodoffset-shift-over)
+  - [`FadeOn()` parameter order: `to` moved before `from`](#fadeon-parameter-order-to-moved-before-from)
 - [FAQ](#faq)
   - [How do I check if a JLed object is still being updated?](#how-do-i-check-if-a-jled-object-is-still-being-updated)
   - [How do I restart an effect?](#how-do-i-restart-an-effect)
@@ -132,6 +138,7 @@ void loop() {
 - non-blocking
 - effects: simple on/off, breathe, blink, candle, fade-on, fade-off, [user-defined](examples/morse) (e.g. morse)
 - high resolution (up to 16-bit) effects, if the hardware supports it with `JLedHD` (since JLed 5.0)
+- full color effects on a three-pin RGB LED with `JLedRGB` (since JLed 5.0)
 - supports inverted polarity of LED
 - easy configuration using fluent interface
 - can control groups of LEDs sequentially or in parallel
@@ -191,15 +198,17 @@ produce visible "staircase" banding, especially at low brightness. `JLedHD` elim
 giving the HAL up to 65536 values to work with. The HAL then maps them to the native PWM
 resolution of the platform (e.g. 13-bit on ESP32, 16-bit on Pico/Teensy).
 
-Use `JLed` for simple on/off, blink or fast fade/breathe effects. Here the extra resolution buys
-usually nothing, and 8-bit uses half the memory per brightness value. Also note that on some
+Use `JLed` for simple on/off, blink or fast fade/breathe effects. Here the extra resolution
+is not visible, and 8-bit uses half the memory per brightness value. Also note that on some
 platforms (see the table below) `JLed` and `JLedHD` resolve to the same HAL width (e.g. standard
 8-bit Arduino boards), so `JLedHD` has no practical benefit there.
 
 > **Note:** You cannot mix `JLed` and `JLedHD` objects in the same sketch when both map to
 > `ArduinoHal` with _different_ bit widths, because `analogWriteResolution()` is a global
 > setting. See the [`ArduinoHal` note](#arduinohal-and-the-global-analogwriteresolution-limit)
-> below.
+> below. The same applies to [`JLedRGB`](#jledrgb) and [`JLedRGBHD`](#jledrgbhd), which are
+> built on the very same two HALs, and to any mix of the four (e.g. `JLed` with
+> `JLedRGBHD`).
 
 ### Output pipeline
 
@@ -276,9 +285,17 @@ void loop() {
 #### Blinking
 
 In blinking mode, the LED cycles through a given number of on-off cycles, on-
-and off-cycle durations are specified independently. The `Blink()` method has three
-parameters `duration_on`, `duration_off` and `n`, the number of on-off cycles, which
-defaults to 1. For the effect to work correctly, the following must hold true:
+and off-cycle durations are specified independently. The builder method has the
+following signature:
+`Blink(uint16_t duration_on, uint16_t duration_off, uint8_t n, Brightness color_on, Brightness color_off)`
+
+- `duration_on`, `duration_off` - the on- and off-cycle durations in ms.
+- `n` - the number of on-off cycles. The default value is 1.
+- `color_on`, `color_off` - the values written during the on- and off-cycle. They default
+  to fully on and fully off, i.e. the classic blink. Pass them to blink between two
+  brightness levels instead, e.g. `Blink(250, 250, 1, 200, 20)`.
+
+For the effect to work correctly, the following must hold true:
 `0 < (duration_on+duration_off)*n <= 65535`.
 
 ##### Blinking example
@@ -318,7 +335,8 @@ void loop() {
 ```
 
 It is also possible to specify fade-on, on- and fade-off durations for the
-breathing mode to customize the effect.
+breathing mode to customize the effect:
+`Breathe(uint16_t duration_fade_on, uint16_t duration_on, uint16_t duration_fade_off, Brightness from, Brightness to)`
 
 ```c++
 // LED will fade-on in 500ms, stay on for 1000ms, and fade-off in 500ms.
@@ -326,12 +344,22 @@ breathing mode to customize the effect.
 auto led = JLed(13).Breathe(500, 1000, 500).DelayAfter(1000).Forever();
 ```
 
+`from` and `to` are the values the effect breathes between; they default to fully off and
+fully on. Pass them to breathe within a narrower band, e.g.
+`Breathe(500, 1000, 500, 20, 200)`.
+
 #### Candle
 
 In candle mode, the random flickering of a candle or fire is simulated.
 The builder method has the following signature:
-`Candle(uint8_t speed, uint8_t jitter, uint16_t period, uint16_t offset)`
+`Candle(Brightness color_on, Brightness color_off, uint8_t speed, uint8_t jitter, uint16_t period, uint16_t offset)`
 
+- `color_on` - the color the flicker rises to at full intensity. Defaults to fully
+  on, which is the previous behaviour.
+- `color_off` - the color the flicker dims down to at zero intensity. Defaults to
+  fully off (black), which is the previous behaviour. Pass a non-black color to
+  flicker between two colors instead of towards black, e.g. `RGBColor<uint8_t>`
+  red and yellow for a JLedRGB, or a dim base brightness for a plain JLed.
 - `speed` - controls the speed of the effect. 0 for fastest, increasing speed
   divides into halve per increment. The default value is 6.
 - `jitter` - the amount of jittering. 0 none (constant on), 255 maximum. Default
@@ -342,8 +370,14 @@ The builder method has the following signature:
   flicker independently without any configuration. Pass 0 to have all LEDs run
   in sync, or any other value to set a specific pattern.
 
+Note that the automatic offset is derived from the object's address at the moment
+`Candle()` is called, so calling it on a temporary inside a builder-chain expression
+(e.g. `JLed(pin).Candle()`) can occasionally hand two LEDs the same offset, when their
+temporaries happen to share a stack slot. Construct named LED objects and call `Candle()`
+on them if independent flicker matters.
+
 The default settings simulate a candle. For a fire effect for example
-call the method with `Candle(5 /*speed*/, 100 /* jitter*/)`.
+call the method with `Candle(255 /*color_on*/, 0 /*color_off*/, 5 /*speed*/, 100 /*jitter*/)`.
 
 ##### Candle example
 
@@ -446,7 +480,7 @@ class UserEffect : public jled::BrightnessEvaluator<Brightness> {
   public:
     Brightness Eval(jled::period_t t) const override {
         // this function changes between OFF and ON  every 250 ms.
-        return jled::BrightnessTraits<Brightness>::kFullBrightness*((t/250)%2);
+        return jled::ColorTraits<Brightness>::kMaxValue()*((t/250)%2);
     }
     // duration of effect: 5 seconds.
     uint16_t Period() const override { return 5000; }
@@ -665,7 +699,10 @@ minimum brightness level.
 
 `WriteRaw(val)` writes a brightness value directly to the hardware, applying
 `LowActive()` inversion the same way effects normally do, but bypassing the
-effect state machine entirely. It does not touch the effect configuration
+effect state machine entirely. "Raw" refers to the state machine only, not to
+the value: `val` is an ordinary effect-space value (a `jled::RGBColor<uint8_t>`
+color on `JLedRGB`) and goes through the same conversion an effect's output
+does. It does not touch the effect configuration
 or any other JLed state. Use it from a lifecycle callback to force an output
 that the effect itself would not produce, e.g. turning the LED off during
 the `DelayAfter()` phase, which otherwise holds the last computed brightness
@@ -786,10 +823,9 @@ fires once for `led1` (handing off to `led2`) and once more for `led2` (the grou
 #### Reversing and bouncing a sequential group
 
 `Reverse()` toggles the playback direction on a `Sequential` group. It takes no argument
-so calling it repeatedly, e.g. once per `OnDone`, naturally alternates
-direction pass over pass.
+so calling it repeatedly, e.g. once per `OnDone`, alternates direction pass over pass.
 
-Composing `Reverse()`, `Reset()` and `Skip()` from `OnDone` is the idiomatic recipe for continuous
+Call `Reverse()`, `Reset()` and `Skip()` together from `OnDone` for continous
 ping-pong effects. `OnDone`'s callback runs again every time a pass finishes, so as long as
 something keeps calling `Update()`, it keeps alternating direction forever:
 
@@ -812,10 +848,7 @@ group.Update().OnDone([&bounced](JLedGroup& g) {
 // a, b, c, d  ->  c, b, a  ->  (stays stopped)
 ```
 
-`Skip()` drops the reprise of the element the direction just reversed away from, which
-would otherwise play twice: once as the last element of the pass that just finished, once
-again as the first element of the naive next pass. Omitting `.Skip()` is a valid, deliberate
-choice for callers who want the duplicated endpoint:
+Without the `Skip()` the following sequence, with duplicate endpoints, will be played:
 
 ```c++
 group.Update().OnDone([](JLedGroup& g) { g.Reverse().Reset(); });
@@ -892,6 +925,113 @@ Reach for `JLedRefGroup` when:
 - you want to keep your LEDs as named variables anyway, because you also want to reach them from
   elsewhere in your sketch, or because you want to poll them individually
 - you want to build the group from LEDs that are declared in different places
+
+### JLedRGB
+
+`JLedRGB` controls a three-pin (red/green/blue) RGB LED with full color effects, instead of the
+single PWM channel `JLed`/`JLedHD` control. It shares the same fluent API and effects as
+`JLed`/`JLedHD`; where those take a plain brightness value, `JLedRGB` takes a `jled::RGBColor<uint8_t>`
+color instead.
+
+The constructor takes the three PWM-capable pins the LED's R, G and B legs are connected to:
+
+```c++
+auto led = JLedRGB(9, 10, 11);  // R=9, G=10, B=11
+```
+
+Colors are `jled::RGBColor<uint8_t>` values: `r`, `g` and `b` each range over `0..255`, and a color
+is written to the LED exactly as given - `Blink`, `Set`, `On`, `Off` and `Candle` never convert it
+to any other color space, so e.g. `RGBColor<uint8_t>{255, 0, 255}` (magenta) or `{0, 255, 255}`
+(cyan) render exactly, unlike an HSV-based color model, which cannot represent either at full
+saturation (see [FastLED's own `hsv2rgb_rainbow`](https://github.com/FastLED/FastLED), which
+`jled::hsv_to_rgb` is based on, for why - it optimizes for a smooth-looking hue wheel over hitting
+every RGB corner exactly):
+
+```c++
+constexpr jled::RGBColor<uint8_t> kMagenta{255, 0, 255};
+```
+
+Every existing builder (`Blink`, `Breathe`, `FadeOn`, `FadeOff`, `Fade`, the user-provided
+brightness function, ...) works unchanged on `JLedRGB`, with `RGBColor<uint8_t>` colors taking the
+place of the plain brightness arguments/defaults `JLed`/`JLedHD` use, e.g. `Blink(duration_on,
+duration_off, n, color_on, color_off)`:
+
+```c++
+constexpr jled::RGBColor<uint8_t> kGreen{0, 255, 0};
+constexpr jled::RGBColor<uint8_t> kRed{255, 0, 0};
+auto led = JLedRGB(9, 10, 11).Blink(250, 750, 1, kGreen, kRed).Forever();
+```
+
+`Breathe`, `FadeOn`, `FadeOff` and `Fade` are the one exception to "never converted": a sweep
+between two colors of different hues is computed by briefly converting the two endpoints to HSV
+(once, when the builder is called, not on every tick) and blending there, so the sweep still ramps
+smoothly through hue space instead of dipping through a desaturated/muddy midpoint the way a plain
+per-channel RGB blend would (e.g. red -> green via a flat RGB blend passes through olive; via HSV
+it passes through yellow). This is invisible from the API - the builders still just take
+`RGBColor<uint8_t>` - but it means an exotic color like magenta used as a `Breathe`/`Fade` endpoint
+is subject to the same HSV round-trip limits `jled::hsv_from_rgb` always had, even though the same
+color used with `Blink`/`Set`/`Candle` is exact.
+
+`On()` turns the LED white (full value on every channel), `Off()` turns it off (black), and
+`Set(color)` sets it to a specific `RGBColor<uint8_t>` color, mirroring
+`On()`/`Off()`/`Set(brightness)` on `JLed`/`JLedHD`.
+
+`Candle(color_on, color_off, speed, jitter, period, offset)` (see [Candle](#candle) above)
+flickers between `color_on` and `color_off` instead of the default white/black, e.g. a
+red/yellow flicker with `Candle(kRed, kYellow)`.
+
+`brightness_t` (the type effects are evaluated in) and `scalar_t` (the type
+[`MinBrightness`/`MaxBrightness`](#minimum--and-maximum-brightness-level) take and return) are the
+same type on `JLed`/`JLedHD` (`uint8_t`/`uint16_t` respectively), but differ on `JLedRGB`:
+`brightness_t` is `RGBColor<uint8_t>`, while `scalar_t` is `uint8_t`. So `MinBrightness`/
+`MaxBrightness` still take and return a plain `uint8_t`, which scales all three channels
+uniformly (preserving hue) rather than any single component.
+
+`JLedRGBGroup` is the `JLedRGB` equivalent of `JLedGroup`, see [Controlling a group of
+LEDs](#controlling-a-group-of-leds) above.
+
+`<jled.h>` also brings in `jled_colors.h`, a small `constexpr` basic-color palette for
+`RGBColor<uint8_t>` in the `jled::color` namespace (`kBlack`, `kWhite`, `kRed`, `kGreen`, `kBlue`,
+`kYellow`, `kCyan`, `kMagenta`), plus `RGB(hex)` to pack a `0xRRGGBB` literal and `Widen(color)` to
+convert one to `RGBColor<uint16_t>` for `JLedRGBHD` - all resolved at compile time, zero runtime
+cost:
+
+```c++
+using namespace jled::color;
+auto led = JLedRGB(9, 10, 11).Blink(250, 750, 1, kGreen, kRed).Forever();
+auto custom = RGB(0xff3849);          // RGBColor<uint8_t>{0xff, 0x38, 0x49}
+auto led_hd = JLedRGBHD(9, 10, 11).Set(Widen(kRed));  // RGBColor<uint16_t>{0xffff, 0, 0}
+```
+
+See the [rgb](examples/rgb) example for a complete sketch.
+
+### JLedRGBHD
+
+`JLedRGBHD` is to `JLedRGB` what [`JLedHD`](#jled-vs-jledhd) is to `JLed`: the same
+three-pin RGB LED control, but with 16-bit colors over the platform's high-resolution
+HAL. Colors are `jled::RGBColor<uint16_t>` values, whose `r`, `g` and `b` components each range
+over `0..65535`:
+
+```c++
+auto led = JLedRGBHD(9, 10, 11);  // R=9, G=10, B=11
+led.Set(jled::RGBColor<uint16_t>{65535, 0, 32768});  // full red, half green
+```
+
+Everything else is identical to [`JLedRGB`](#jledrgb): the same builders (`Blink`,
+`Breathe`, `FadeOn`, `FadeOff`, `Fade`, `Candle(color_on, color_off, speed, jitter, period, offset)`, a
+user-provided brightness function, ...), the same `On()`/`Off()`/`Set(color)` semantics, and the same
+split between `brightness_t` (`RGBColor<uint16_t>`) and `scalar_t` (`uint16_t`, what
+`MinBrightness`/`MaxBrightness` take and return, scaling all three channels uniformly).
+
+One detail is specific to the 16-bit variant's `Breathe`/`FadeOn`/`FadeOff`/`Fade` HSV detour:
+hue and saturation still resolve to 256 steps internally, because the chromaticity mapping runs
+on their high bytes, while the value component resolves to the full 65536 steps. `FadeOn`,
+`FadeOff` and `Breathe` hold hue and saturation constant and animate only `v`, so they get the
+full benefit of the extra resolution; only a `Fade` between two _different_ hues is limited to
+256 hue steps, which is not perceptible on an LED.
+
+`JLedRGBHDGroup` is the `JLedRGBHD` equivalent of `JLedHDGroup`, see [Controlling a group
+of LEDs](#controlling-a-group-of-leds) above.
 
 ## Framework notes
 
@@ -982,6 +1122,10 @@ Due / nRF5 (12-bit `JLedHD` vs 8-bit `JLed`), ESP8266 core v3+ (`JLed` 8-bit vs 
 RP2040 via arduino-pico (16-bit). On all remaining Arduino-compatible platforms both types share the
 same resolution (STM32duino where both are 12-bit, ESP8266 core v1/v2 where both are 10-bit), so
 mixing is safe.
+
+`JLedRGB` and `JLedRGBHD` are built on the very same two HALs (`JLedRGB` composes three
+`JLed` channels, `JLedRGBHD` three `JLedHD` channels), so the rule applies to them too, and
+to any mix of the four types.
 
 #### `JLED_FORCE_ARDUINO_HAL`
 
@@ -1148,6 +1292,7 @@ Philhower arduino-pico SDK). To use the generic `ArduinoHal` instead, e.g. `JLed
 Example sketches are provided in the [examples](examples/) directory.
 
 - [Hello, world](examples/hello)
+- [Hello, RGB](examples/hello_rgb)
 - [Blink effect](examples/blink)
 - [Accelerating blink effect](examples/blink_accelerate)
 - [High resolution effects with JLedHD](examples/hires)
@@ -1159,6 +1304,8 @@ Example sketches are provided in the [examples](examples/) directory.
 - [Fade LED off](examples/fade_off)
 - [Fade from-to effect](examples/fade_from_to)
 - [Pulse effect](examples/pulse)
+- [RGB LED blink effect with JLedRGB](examples/rgb)
+- [RGB LED color wheel sweep with JLedRGB](examples/color_wheel)
 - [Controlling a group of LEDs sequentially](examples/group_sequence)
 - [Reversing/bouncing a group of LEDs (Cylon/Larson scanner)](examples/group_reverse)
 - [Controlling a group of LEDs in parallel](examples/group_parallel)
@@ -1307,6 +1454,30 @@ class MyEffect : public jled::BrightnessEvaluator<Brightness> {
 
 See the [user_func](examples/user_func) and [morse](examples/morse) examples for complete implementations.
 
+#### `BrightnessTraits` → `ColorTraits`
+
+`BrightnessTraits<T>` was renamed to `ColorTraits<T>`, and the two brightness constants it
+carried became static functions with new names:
+
+```cpp
+// before
+auto full = jled::BrightnessTraits<uint8_t>::kFullBrightness;
+auto zero = jled::BrightnessTraits<uint8_t>::kZeroBrightness;
+
+// after
+auto full = jled::ColorTraits<uint8_t>::kMaxValue();
+auto zero = jled::ColorTraits<uint8_t>::kOffColor();
+```
+
+`BrightnessTraits<T>` is removed entirely, not kept as a deprecated alias: JLed 5.0 is
+still unreleased, so there is no shipped code relying on the old name to preserve
+compatibility with. Update any reference (a template parameter, a `using`, a
+specialization) to `ColorTraits<T>`.
+
+Reason: with `JLedRGB` a "brightness" is no longer necessarily a scalar, so the traits
+describe a color type. `ColorTraits` also gained the `ToRaw`/`ApplyBounds`/`Blend`/`Dim`/
+`IsBrighter` operations the effects need to work on any color type.
+
 #### Custom HALs and `TJLed` subclasses: Clock and Brightness are now explicit
 
 The HAL interface no longer includes a `millis()` method. Time is now provided by a separate clock
@@ -1339,6 +1510,75 @@ Reason: a platform may have multiple PWM HALs (for example the built-in one plus
 driver) but only a single clock. Separating them avoids duplicating time logic across HALs. Making
 the brightness type explicit enables zero-cost high-resolution variants without any runtime
 overhead.
+
+#### `Candle()` parameter order: `color` moved first
+
+`Candle()`'s parameters are reordered so the base `color` comes first, matching the parameter
+users most often want to override while leaving the rest at their defaults:
+
+```cpp
+// before
+led.Candle(5 /*speed*/, 100 /*jitter*/, 65535 /*period*/, 0 /*offset*/, 200 /*color*/);
+
+// after
+led.Candle(200 /*color*/, 5 /*speed*/, 100 /*jitter*/, 65535 /*period*/, 0 /*offset*/);
+```
+
+Calls that only pass `color` (e.g. `Candle()`, unaffected) or none of the other parameters keep
+working. Any call passing `speed`, `jitter`, `period` or `offset` positionally needs its arguments
+reordered by hand. On `JLed`/`JLedHD`, `color` has the same scalar type (`uint8_t`/`uint16_t`) as
+the other parameters, so a stale call is **not** caught by the compiler and silently reinterprets
+its first argument as `color` instead of `speed` - check call sites manually rather than relying on
+build errors to find them.
+
+Reason: `color` is the parameter callers most often want to set while leaving speed, jitter,
+period and offset at their defaults, so it belongs first, consistent with how other builders
+(`Blink`, `Set`, ...) put the value that matters most upfront.
+
+#### `Candle()` gains a `color_off` parameter: `color` renamed `color_on`, `speed`/`jitter`/`period`/`offset` shift over
+
+`Candle()` can now flicker between two arbitrary colors instead of always dimming towards
+implicit black. The new `color_off` parameter is inserted right after `color` (renamed
+`color_on`), mirroring `Blink`'s `color_on`/`color_off` adjacency:
+
+```cpp
+// before
+led.Candle(200 /*color*/, 5 /*speed*/, 100 /*jitter*/, 65535 /*period*/, 0 /*offset*/);
+
+// after
+led.Candle(200 /*color_on*/, 0 /*color_off*/, 5 /*speed*/, 100 /*jitter*/, 65535 /*period*/,
+           0 /*offset*/);
+```
+
+Calls that only pass `color`/`color_on` (e.g. `Candle()`, unaffected) keep working. Any call
+passing `speed`, `jitter`, `period` or `offset` positionally needs `color_off` inserted by hand.
+As with the `color` reorder above, on `JLed`/`JLedHD` every parameter shares the same scalar
+type, so a stale call is **not** caught by the compiler - check call sites manually.
+
+Reason: mirroring `Blink`'s `color_on`/`color_off` adjacency keeps the two related color
+parameters next to each other, rather than separating them with `speed`/`jitter`/`period`/`offset`
+in between.
+
+#### `FadeOn()` parameter order: `to` moved before `from`
+
+`FadeOn()`'s two optional color parameters are reordered so the single positional argument
+means "to", not "from":
+
+```cpp
+// before
+led.FadeOn(1000, 0 /*from*/, 200 /*to*/);
+
+// after
+led.FadeOn(1000, 200 /*to*/, 0 /*from*/);
+```
+
+`FadeOff()` is unchanged (`FadeOff(duration, from, to)`), since its own name already implies
+the destination (off) and the natural thing to customize is the start.
+
+Reason: `FadeOn(duration, from, to)` read like "fade on, to color" but the second
+positional argument was actually the start, not the destination - a footgun where
+`FadeOn(1000, red)` faded _from_ red _to_ white, not from black to red. `FadeOn` is now
+`FadeOn(duration, to, from)`, matching what the name implies.
 
 ## FAQ
 
